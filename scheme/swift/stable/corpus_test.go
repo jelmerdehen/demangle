@@ -139,3 +139,37 @@ func pct(n, total int) float64 {
 	}
 	return 100 * float64(n) / float64(total)
 }
+
+// FuzzSwiftStable seeds the fuzzer with the Apple corpus so any
+// adversarial mutation the runtime generates is rooted in a real-
+// world shape. The parser must never panic or exceed the deadline
+// regardless of input.
+func FuzzSwiftStable(f *testing.F) {
+	path := filepath.Join("testdata", "apple", "manglings.txt")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		f.Fatalf("read corpus: %v", err)
+	}
+	seen := map[string]bool{}
+	for _, line := range strings.Split(string(data), "\n") {
+		idx := strings.Index(line, " ---> ")
+		if idx < 0 {
+			continue
+		}
+		mangled := line[:idx]
+		if seen[mangled] {
+			continue
+		}
+		seen[mangled] = true
+		f.Add(mangled)
+	}
+
+	cat := demangle.NewCatalog()
+	cat.Register(stable.Scheme{})
+	f.Fuzz(func(t *testing.T, in string) {
+		if len(in) > 8192 {
+			t.Skip()
+		}
+		_, _ = cat.Demangle(context.Background(), in, nil)
+	})
+}
