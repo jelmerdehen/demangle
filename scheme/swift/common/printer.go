@@ -71,6 +71,17 @@ func printNode(b *strings.Builder, n *demangle.Node, opts PrintOptions) {
 			}
 			printNode(b, c, opts)
 		}
+	case KindFunctionEntity:
+		printFunctionEntity(b, n, opts)
+	case KindEntityPath:
+		for i, c := range n.Children {
+			if i > 0 {
+				b.WriteByte('.')
+			}
+			printNode(b, c, opts)
+		}
+	case KindEmptyList:
+		// nothing
 	default:
 		// For unknown kinds, dump as "<KindName>" to surface gaps
 		// during incremental grammar build-out.
@@ -97,6 +108,27 @@ func printNominal(b *strings.Builder, n *demangle.Node, opts PrintOptions) {
 		b.WriteByte('.')
 	}
 	b.WriteString(name)
+}
+
+// printFunctionEntity renders "Module.Path.name(args) -> ret".
+// Children shape: [path (EntityPath), args (Type or EmptyList),
+// ret (Type or EmptyList)].
+func printFunctionEntity(b *strings.Builder, n *demangle.Node, opts PrintOptions) {
+	if len(n.Children) < 3 {
+		b.WriteString("<FunctionEntity:malformed>")
+		return
+	}
+	printNode(b, n.Children[0], opts) // path
+	b.WriteByte('(')
+	if n.Children[1] != nil && NodeKind(n.Children[1].Kind) != KindEmptyList {
+		printNode(b, n.Children[1], opts)
+	}
+	b.WriteString(") -> ")
+	if n.Children[2] == nil || NodeKind(n.Children[2].Kind) == KindEmptyList {
+		b.WriteString("()")
+	} else {
+		printNode(b, n.Children[2], opts)
+	}
 }
 
 // printBoundGeneric renders "Module.Name<T, U>".

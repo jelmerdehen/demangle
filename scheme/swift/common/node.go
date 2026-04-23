@@ -66,6 +66,12 @@ const (
 	KindExistentialMetatype
 	KindDependentGenericParamType
 	KindDependentGenericType
+
+	// Function entities.
+	KindFunctionEntity
+	KindEntityPath
+	KindLabelList
+	KindEmptyList
 )
 
 // Name returns the human-readable label used by the printer + shown
@@ -134,6 +140,14 @@ func (k NodeKind) Name() string {
 		return "DependentGenericParamType"
 	case KindDependentGenericType:
 		return "DependentGenericType"
+	case KindFunctionEntity:
+		return "FunctionEntity"
+	case KindEntityPath:
+		return "EntityPath"
+	case KindLabelList:
+		return "LabelList"
+	case KindEmptyList:
+		return "EmptyList"
 	}
 	return "Unknown"
 }
@@ -166,6 +180,10 @@ func (k NodeKind) Category() demangle.KindCategory {
 	case KindMetatype, KindExistentialMetatype,
 		KindDependentGenericParamType, KindDependentGenericType:
 		return demangle.KindCatType
+	case KindFunctionEntity:
+		return demangle.KindCatFunction
+	case KindEntityPath, KindLabelList, KindEmptyList:
+		return demangle.KindCatOther
 	}
 	return demangle.KindCatUnknown
 }
@@ -178,7 +196,7 @@ var (
 )
 
 func init() {
-	for k := KindInvalid; k <= KindDependentGenericType; k++ {
+	for k := KindInvalid; k <= KindEmptyList; k++ {
 		KindNames[int32(k)] = k.Name()
 		KindCategories[int32(k)] = k.Category()
 	}

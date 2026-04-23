@@ -110,6 +110,40 @@ func TestStableNominalPaths(t *testing.T) {
 	}
 }
 
+func TestStableFunctionEntities(t *testing.T) {
+	t.Parallel()
+	cat := newCatalog(t)
+	cases := []struct {
+		in, want string
+	}{
+		// Top-level module function.
+		{"$s4main3fooyyF", "main.foo() -> ()"},
+		// Method on a struct.
+		{"$s4main3FooV3baryyF", "main.Foo.bar() -> ()"},
+		// Method on a class.
+		{"$s4main3FooC3baryyF", "main.Foo.bar() -> ()"},
+		// Method on an enum.
+		{"$s4main3FooO3baryyF", "main.Foo.bar() -> ()"},
+		// Function returning non-void: () -> Swift.Int.
+		{"$s4main3fooySiF", "main.foo() -> Swift.Int"},
+		// Function returning Array<Int>: () -> [Swift.Int].
+		{"$s4main3fooySaySiGF", "main.foo() -> [Swift.Int]"},
+	}
+	for _, c := range cases {
+		c := c
+		t.Run(c.in, func(t *testing.T) {
+			t.Parallel()
+			r, err := cat.Demangle(context.Background(), c.in, nil)
+			if err != nil {
+				t.Fatalf("demangle: %v", err)
+			}
+			if r.Output != c.want {
+				t.Fatalf("output = %q, want %q", r.Output, c.want)
+			}
+		})
+	}
+}
+
 func TestStableBoundGenerics(t *testing.T) {
 	t.Parallel()
 	cat := newCatalog(t)
@@ -141,9 +175,8 @@ func TestStableBoundGenerics(t *testing.T) {
 func TestStableRejectsUnsupported(t *testing.T) {
 	t.Parallel()
 	cat := newCatalog(t)
-	// Function-mangle trailer 'yyF' isn't in our subset yet. We
-	// expect ErrUnsupported (parsed the type head, tail unknown).
-	_, err := cat.Demangle(context.Background(), "$s4main3fooyyF", nil)
+	// Non-void function trailer is not in the subset yet.
+	_, err := cat.Demangle(context.Background(), "$s4main3fooySiSgF", nil)
 	if err == nil {
 		t.Fatalf("expected unsupported-trailer error")
 	}

@@ -137,18 +137,149 @@ func (p *parser) peek() byte {
 	return p.s[p.i]
 }
 
-// parseGlobal is the top-level entry. For the currently-supported
-// subset it yields a single Type node. Wrapping in Global is for
-// symmetry with the Apple AST shape; future commits that add entities
-// will use the Global container properly.
+// parseGlobal is the top-level entry. Routes between:
+//
+//   - Function entity: <ctx><ident> [<ctx><ident>]* <argtype> <rettype> 'F'
+//     (detected by a y/type sequence followed by 'F').
+//   - Nominal type: <ctx><ident><kindByte>
+//   - Bare type: builtin or stdlib sub.
+//
+// Current subset: one-level module + identifier + yyF, plus
+// module + type-nominal + identifier + yyF (methods on structs,
+// classes, enums).
 func (p *parser) parseGlobal() (*demangle.Node, error) {
 	g := common.NewNode(common.KindGlobal)
+
+	// Try function entity first — it's the most common shape in the
+	// Apple corpus. Roll back on no-match.
+	if entity, ok, err := p.tryFunctionEntity(); err != nil {
+		return nil, err
+	} else if ok {
+		common.AddChildren(g, entity)
+		return g, nil
+	}
+
+	// Fall back to bare type.
 	t, err := p.parseType()
 	if err != nil {
 		return nil, err
 	}
 	common.AddChildren(g, t)
 	return g, nil
+}
+
+// tryFunctionEntity attempts to match:
+//
+//	(digit-led context) (ident) (['V'|'C'|'O'] (ident))* 'y' 'y' 'F'
+//
+// For now covers only void args + void return (the "yyF" trailer).
+// Returns (entity, matched, err). On (false, nil) the parser state
+// is fully rolled back.
+func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
+	save := p.i
+	saveSubs := p.subs
+	restore := func() {
+		p.i = save
+		p.subs = saveSubs
+	}
+
+	if p.eof() || !(p.s[p.i] >= '0' && p.s[p.i] <= '9') {
+		return nil, false, nil
+	}
+
+	// Module.
+	mod, err := p.parseIdentifier()
+	if err != nil {
+		restore()
+		return nil, false, nil
+	}
+
+	var pathSteps []*demangle.Node
+	pathSteps = append(pathSteps, common.NewModule(mod))
+
+	// Walk identifier + optional (V/C/O) nominal-kind step until we
+	// hit a 'y' (function args marker).
+	for {
+		if p.eof() {
+			restore()
+			return nil, false, nil
+		}
+		c := p.s[p.i]
+		if c == 'y' {
+			break
+		}
+		if !(c >= '0' && c <= '9') {
+			restore()
+			return nil, false, nil
+		}
+		ident, err := p.parseIdentifier()
+		if err != nil {
+			restore()
+			return nil, false, nil
+		}
+		if p.eof() {
+			restore()
+			return nil, false, nil
+		}
+		peek := p.s[p.i]
+		if peek == 'V' || peek == 'C' || peek == 'O' {
+			p.i++ // consume nominal kind
+		}
+		pathSteps = append(pathSteps, common.NewIdentifier(ident))
+	}
+
+	// Function type. Two common shapes handled here:
+	//
+	//   yyF                             () -> ()
+	//   y <rettype> F                   () -> ret
+	//   <argtype> y F                   (arg) -> ()
+	//
+	// More general shapes (multi-arg tuples, labelled args, throws,
+	// async) land in later coverage commits.
+	if p.eof() || p.s[p.i] != 'y' {
+		restore()
+		return nil, false, nil
+	}
+	var args, ret *demangle.Node
+	p.i++ // consume first 'y'
+
+	// After first 'y', we might see:
+	//   y F         → args=empty, ret=empty
+	//   <type> F    → args=empty, ret=<type>
+	// Or the parsed shape was actually args-first, with the 'y' being
+	// the empty-args marker.
+	if !p.eof() && p.s[p.i] == 'y' && p.i+1 < len(p.s) && p.s[p.i+1] == 'F' {
+		p.i += 2
+		args = common.NewNode(common.KindEmptyList)
+		ret = common.NewNode(common.KindEmptyList)
+	} else if !p.eof() && p.s[p.i] == 'F' {
+		// Just 'yF' — this shouldn't really happen in stable ABI
+		// (need two slots) but handle defensively.
+		p.i++
+		args = common.NewNode(common.KindEmptyList)
+		ret = common.NewNode(common.KindEmptyList)
+	} else {
+		// args is empty (the 'y' we consumed); try to parse a return type.
+		retType, err := p.parseType()
+		if err != nil {
+			restore()
+			return nil, false, nil
+		}
+		if p.eof() || p.s[p.i] != 'F' {
+			restore()
+			return nil, false, nil
+		}
+		p.i++
+		args = common.NewNode(common.KindEmptyList)
+		ret = retType
+	}
+
+	path := common.NewNode(common.KindEntityPath)
+	common.AddChildren(path, pathSteps...)
+
+	entity := common.NewNode(common.KindFunctionEntity)
+	common.AddChildren(entity, path, args, ret)
+	return entity, true, nil
 }
 
 // parseType consumes one type. Branches on the first byte:
