@@ -251,6 +251,30 @@ func (p *parser) tryEntitySuffix(inner *demangle.Node) (*demangle.Node, bool) {
 			prefix = "default associated conformance accessor for "
 		} else if p.s[p.i+1] == 'n' {
 			prefix = "associated conformance descriptor for "
+		} else if p.s[p.i+1] == 'A' {
+			prefix = "partial apply forwarder for "
+		} else if p.s[p.i+1] == 'a' {
+			prefix = "partial apply obj-c forwarder for "
+		} else if p.s[p.i+1] == 'I' {
+			prefix = "inlined generic function "
+		} else if p.s[p.i+1] == 'j' {
+			prefix = "dispatch thunk of "
+		} else if p.s[p.i+1] == 'Y' {
+			prefix = "async function pointer to "
+		} else if p.s[p.i+1] == 'u' {
+			prefix = "async await resume partial function for "
+		}
+	case 'f':
+		// Init/deinit markers.
+		switch p.s[p.i+1] {
+		case 'C':
+			prefix = "__allocating_init "
+		case 'c':
+			prefix = "__nonallocating_init "
+		case 'D':
+			prefix = "__deallocating_deinit "
+		case 'd':
+			prefix = "__destroying_deinit "
 		}
 	}
 	if prefix == "" {

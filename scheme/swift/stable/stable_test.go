@@ -174,6 +174,8 @@ func TestStableEntitySuffixes(t *testing.T) {
 		{"$s4main3fooyyFTwB", "back deployment fallback for main.foo() -> ()"},
 		{"$s4main3fooyyFTO", "@objc thunk of main.foo() -> ()"},
 		{"$s4main3fooyyFTD", "dynamic dispatch thunk of main.foo() -> ()"},
+		{"$s4main3fooyyFTA", "partial apply forwarder for main.foo() -> ()"},
+		{"$s4main3fooyyFTj", "dispatch thunk of main.foo() -> ()"},
 	}
 	for _, c := range cases {
 		c := c
