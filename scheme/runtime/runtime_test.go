@@ -51,6 +51,25 @@ func TestRuntime(t *testing.T) {
 	}
 }
 
+func FuzzRuntime(f *testing.F) {
+	seeds := []string{
+		"__cxa_throw", "_Unwind_Resume", "__stack_chk_fail",
+		"__asan_report_load4", "objc_msgSend", "swift_allocObject",
+		"", "__cxa_", "plain",
+	}
+	for _, s := range seeds {
+		f.Add(s)
+	}
+	cat := demangle.NewCatalog()
+	cat.Register(runtime.Scheme{})
+	f.Fuzz(func(t *testing.T, in string) {
+		if len(in) > 4096 {
+			t.Skip()
+		}
+		_, _ = cat.Demangle(context.Background(), in, nil)
+	})
+}
+
 func TestRuntimeRejectsOthers(t *testing.T) {
 	t.Parallel()
 	cat := newCatalog(t)
