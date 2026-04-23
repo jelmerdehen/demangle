@@ -74,16 +74,16 @@ func (Scheme) Demangle(_ context.Context, in string, _ demangle.Options) (*deman
 	if err != nil {
 		return nil, err
 	}
-	// Trailing bytes describe the type encoding (function "FZ<ret>",
-	// variable type, etc.). Narrow subset: surface them as-is in an
-	// annotation rather than parsing.
+	dotted := strings.Join(parts, ".")
 	typeTail := ""
 	if p.i < len(p.s) {
 		typeTail = p.s[p.i:]
 	}
-	dotted := strings.Join(parts, ".")
 	display := dotted
-	if typeTail != "" {
+	// Try to decode a function-type trailer: F <args> Z <return>.
+	if decoded, ok := decodeFunctionType(typeTail); ok {
+		display = dotted + decoded
+	} else if typeTail != "" {
 		display = dotted + " [type: " + typeTail + "]"
 	}
 	return &demangle.Result{
@@ -100,6 +100,81 @@ func (Scheme) Demangle(_ context.Context, in string, _ demangle.Options) (*deman
 			"dlang.type_tail": typeTail,
 		},
 	}, nil
+}
+
+// decodeFunctionType reads a D function-type trailer:
+//
+//	F <linkage?> <params>* Z <return-primitive>
+//
+// Linkage prefixes: "Ya" (extern C), "Yb" (extern D), etc. We skip
+// any single-byte unknown prefix between F and the first param.
+// Params + return are single-byte primitive codes.
+func decodeFunctionType(s string) (string, bool) {
+	if s == "" || s[0] != 'F' {
+		return "", false
+	}
+	i := 1
+	// Find Z.
+	z := strings.IndexByte(s[i:], 'Z')
+	if z < 0 {
+		return "", false
+	}
+	argSection := s[i : i+z]
+	retSection := s[i+z+1:]
+	if retSection == "" {
+		return "", false
+	}
+	var args []string
+	for j := 0; j < len(argSection); j++ {
+		name := dLangPrim(argSection[j])
+		if name == "" {
+			return "", false
+		}
+		args = append(args, name)
+	}
+	retName := dLangPrim(retSection[0])
+	if retName == "" {
+		return "", false
+	}
+	return "(" + strings.Join(args, ", ") + ") → " + retName, true
+}
+
+func dLangPrim(c byte) string {
+	switch c {
+	case 'v':
+		return "void"
+	case 'b':
+		return "bool"
+	case 'g':
+		return "byte"
+	case 'h':
+		return "ubyte"
+	case 's':
+		return "short"
+	case 't':
+		return "ushort"
+	case 'i':
+		return "int"
+	case 'k':
+		return "uint"
+	case 'l':
+		return "long"
+	case 'm':
+		return "ulong"
+	case 'f':
+		return "float"
+	case 'd':
+		return "double"
+	case 'e':
+		return "real"
+	case 'a':
+		return "char"
+	case 'u':
+		return "wchar"
+	case 'w':
+		return "dchar"
+	}
+	return ""
 }
 
 type parser struct {

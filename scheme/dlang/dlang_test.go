@@ -27,6 +27,7 @@ func TestDLangNarrow(t *testing.T) {
 	}{
 		{"_D3foo3barFZv", "foo.bar"},
 		{"_D3std3foo3barFZv", "std.foo.bar"},
+		{"_D3foo3barFiiZv", "foo.bar"},
 	}
 	for _, c := range cases {
 		c := c
