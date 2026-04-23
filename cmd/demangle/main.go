@@ -61,6 +61,8 @@ func main() {
 		err = runContext(args)
 	case "fuzz":
 		err = runFuzz(args)
+	case "catalog":
+		err = runCatalog(args)
 	case "version":
 		err = runVersion(args)
 	case "help", "-h", "--help":
@@ -90,6 +92,7 @@ Commands:
   context list                     list stored contexts
   context delete <sha256>          delete a context by sha256
   fuzz --scheme NAME               convenience wrapper over "go test -fuzz"
+  catalog stats                    summary: scheme count, family / fidelity / stability breakdowns
   version                          print library build info
 
 See docs/ for details.
@@ -501,6 +504,52 @@ func runFuzz(args []string) error {
 	// inside the scheme's subpackage. Implementation deferred to
 	// Stage 0.5 when the first native adapter arrives.
 	return fmt.Errorf("fuzz: deferred to Stage 0.5 (scheme=%s duration=%s)", *scheme, *duration)
+}
+
+// ---- catalog ------------------------------------------------------
+
+func runCatalog(args []string) error {
+	if len(args) == 0 {
+		return errors.New("catalog: expected subcommand stats")
+	}
+	switch args[0] {
+	case "stats":
+		return runCatalogStats(args[1:])
+	default:
+		return fmt.Errorf("catalog: unknown subcommand %q", args[0])
+	}
+}
+
+func runCatalogStats(_ []string) error {
+	schemes := demangle.Default.Schemes()
+	byFidelity := map[string]int{}
+	byFamily := map[string]int{}
+	byStability := map[string]int{}
+	manglers := 0
+	for _, info := range schemes {
+		byFidelity[info.MangleFidelity.String()]++
+		byFamily[info.Family]++
+		byStability[info.Stability.String()]++
+		s, _ := demangle.Default.Scheme(info.Name)
+		if _, ok := s.(demangle.Mangler); ok {
+			manglers++
+		}
+	}
+	fmt.Printf("schemes:       %d\n", len(schemes))
+	fmt.Printf("manglers:      %d (%.0f%%)\n", manglers, 100*float64(manglers)/float64(len(schemes)))
+	fmt.Printf("\nby family:\n")
+	for k, v := range byFamily {
+		fmt.Printf("  %-8s %d\n", k, v)
+	}
+	fmt.Printf("\nby fidelity:\n")
+	for k, v := range byFidelity {
+		fmt.Printf("  %-12s %d\n", k, v)
+	}
+	fmt.Printf("\nby stability:\n")
+	for k, v := range byStability {
+		fmt.Printf("  %-14s %d\n", k, v)
+	}
+	return nil
 }
 
 // ---- version ------------------------------------------------------
