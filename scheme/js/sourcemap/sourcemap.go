@@ -33,6 +33,8 @@ import (
 	"github.com/jelmerdehen/demangle"
 )
 
+// strings import kept; helper.
+
 const (
 	KindLocation int32 = iota + 1
 )
@@ -108,10 +110,31 @@ func (Scheme) Demangle(_ context.Context, in string, opts demangle.Options) (*de
 	if hasName {
 		name = idx.names[seg.nameIdx]
 	}
+	// sourcesContent lookup — the original source line at origLine,
+	// when the map inlined the source text.
+	originalLine := ""
+	if seg.sourceIdx >= 0 && seg.sourceIdx < len(idx.sourcesContent) {
+		content := idx.sourcesContent[seg.sourceIdx]
+		if content != "" && seg.origLine >= 0 {
+			lines := strings.Split(content, "\n")
+			if seg.origLine < len(lines) {
+				originalLine = lines[seg.origLine]
+			}
+		}
+	}
 	displayLoc := fmt.Sprintf("%s:%d:%d", source, seg.origLine+1, seg.origCol)
 	output := displayLoc
 	if hasName {
 		output = name
+	}
+	attrs := map[string]string{
+		"js.original_source":  source,
+		"js.original_name":    name,
+		"js.has_name_mapping": boolStr(hasName),
+		"js.map_sha256":       idx.sha,
+	}
+	if originalLine != "" {
+		attrs["js.original_line"] = originalLine
 	}
 	return &demangle.Result{
 		Scheme: "js-sourcemap",
@@ -119,20 +142,10 @@ func (Scheme) Demangle(_ context.Context, in string, opts demangle.Options) (*de
 		Output: output,
 		Tree: &demangle.Node{
 			Scheme: "js-sourcemap", Kind: KindLocation,
-			Text: displayLoc,
-			Attrs: map[string]string{
-				"js.original_source":  source,
-				"js.original_name":    name,
-				"js.has_name_mapping": boolStr(hasName),
-				"js.map_sha256":       idx.sha,
-			},
+			Text:  displayLoc,
+			Attrs: attrs,
 		},
-		Annotations: map[string]string{
-			"js.original_source":  source,
-			"js.original_name":    name,
-			"js.has_name_mapping": boolStr(hasName),
-			"js.map_sha256":       idx.sha,
-		},
+		Annotations: attrs,
 	}, nil
 }
 
@@ -171,9 +184,10 @@ type segment struct {
 }
 
 type parsed struct {
-	sha     string
-	sources []string
-	names   []string
+	sha            string
+	sources        []string
+	sourcesContent []string
+	names          []string
 	// lineSegments[L] is the slice of segments for generated-line L,
 	// sorted by genCol. Binary search for lookup.
 	lineSegments [][]segment
@@ -201,11 +215,12 @@ func (p *parsed) lookup(line, col int) *segment {
 // --- JSON envelope ------------------------------------------------
 
 type envelope struct {
-	Version  int      `json:"version"`
-	File     string   `json:"file"`
-	Sources  []string `json:"sources"`
-	Names    []string `json:"names"`
-	Mappings string   `json:"mappings"`
+	Version        int      `json:"version"`
+	File           string   `json:"file"`
+	Sources        []string `json:"sources"`
+	SourcesContent []string `json:"sourcesContent"`
+	Names          []string `json:"names"`
+	Mappings       string   `json:"mappings"`
 	// Sections-based indexed maps: future work. For now we fail
 	// gracefully on their presence.
 	Sections json.RawMessage `json:"sections"`
@@ -222,7 +237,12 @@ func parseMap(data []byte, sha string) (*parsed, error) {
 	if len(e.Sections) > 0 {
 		return nil, fmt.Errorf("source map: indexed sections maps not yet supported")
 	}
-	p := &parsed{sha: sha, sources: e.Sources, names: e.Names}
+	p := &parsed{
+		sha:            sha,
+		sources:        e.Sources,
+		sourcesContent: e.SourcesContent,
+		names:          e.Names,
+	}
 	lines := strings.Split(e.Mappings, ";")
 	p.lineSegments = make([][]segment, len(lines))
 
