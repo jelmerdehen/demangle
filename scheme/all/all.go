@@ -11,6 +11,7 @@ import (
 	_ "github.com/jelmerdehen/demangle/scheme/gosym"
 	_ "github.com/jelmerdehen/demangle/scheme/java/all"
 	_ "github.com/jelmerdehen/demangle/scheme/js/all"
+	_ "github.com/jelmerdehen/demangle/scheme/objc"
 	_ "github.com/jelmerdehen/demangle/scheme/rust"
 	_ "github.com/jelmerdehen/demangle/scheme/swift/all"
 )
