@@ -108,6 +108,8 @@ func runDemangle(args []string) error {
 	tree := fs.Bool("tree", false, "include AST in output")
 	asJSON := fs.Bool("json", false, "print full Result as JSON")
 	contextSHA := fs.String("context-sha", "", "sha256 of a stored Context to attach (see `demangle context list`)")
+	qualify := fs.Bool("qualify", true, "qualify names with module prefix (scheme-specific)")
+	sugar := fs.Bool("sugar", true, "synthesise sugared types ([T], T?, [K:V]) where applicable")
 	_ = fs.Parse(args)
 
 	if fs.NArg() != 1 {
@@ -115,7 +117,12 @@ func runDemangle(args []string) error {
 	}
 	input := fs.Arg(0)
 
-	opts := &demangle.Options{Simplified: *simplified, ReturnTree: *tree}
+	opts := &demangle.Options{
+		Simplified:      *simplified,
+		ReturnTree:      *tree,
+		QualifyEntities: *qualify,
+		SynthesizeSugar: *sugar,
+	}
 	if *contextSHA != "" {
 		store, err := openDefaultContextStore()
 		if err != nil {

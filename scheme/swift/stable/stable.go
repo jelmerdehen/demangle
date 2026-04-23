@@ -70,7 +70,7 @@ func (Scheme) Demangle(_ context.Context, in string, opts demangle.Options) (*de
 	if !ok {
 		return nil, demangle.WrongScheme("swift-stable", in)
 	}
-	return ParseBody("swift-stable", in, body, prefixLen(in))
+	return parseBodyWithOpts("swift-stable", in, body, prefixLen(in), opts)
 }
 
 // ParseBody parses a post-prefix body as Swift stable-ABI mangling.
@@ -80,6 +80,13 @@ func (Scheme) Demangle(_ context.Context, in string, opts demangle.Options) (*de
 // `origin` is the full input including prefix (for offset math);
 // `prefixBytes` is the length of the prefix in the origin.
 func ParseBody(schemeName, origin, body string, prefixBytes int) (*demangle.Result, error) {
+	return parseBodyWithOpts(schemeName, origin, body, prefixBytes, demangle.Options{
+		QualifyEntities: true,
+		SynthesizeSugar: true,
+	})
+}
+
+func parseBodyWithOpts(schemeName, origin, body string, prefixBytes int, opts demangle.Options) (*demangle.Result, error) {
 	p := &parser{s: body, origin: origin, prefixBytes: prefixBytes, schemeName: schemeName}
 	tree, err := p.parseGlobal()
 	if err != nil {
@@ -92,7 +99,19 @@ func ParseBody(schemeName, origin, body string, prefixBytes int) (*demangle.Resu
 			Window: tail(p.s, p.i),
 		}
 	}
-	display := common.Print(tree, common.DefaultPrintOptions())
+	printOpts := common.PrintOptions{
+		QualifyEntities:              opts.QualifyEntities,
+		SynthesizeSugar:              opts.SynthesizeSugar,
+		DisplayGenericSpecialisations: opts.DisplayGenericSpecialisations,
+		DisplayThunks:                opts.DisplayThunks,
+		Simplified:                   opts.Simplified,
+	}
+	// Default: QualifyEntities + SynthesizeSugar on if not explicitly disabled
+	// (zero-value Options would otherwise render without module prefix).
+	if !opts.QualifyEntities && !opts.SynthesizeSugar && !opts.Simplified {
+		printOpts = common.DefaultPrintOptions()
+	}
+	display := common.Print(tree, printOpts)
 	return &demangle.Result{
 		Scheme: schemeName,
 		Input:  origin,
