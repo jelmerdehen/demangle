@@ -393,7 +393,7 @@ func (p *parser) parseSignature() (signature, error) {
 	default:
 		return sig, p.grammarErr("return type byte")
 	}
-	// Args. Collect single-byte primitives until we hit 'Z' or '@'.
+	// Args. Collect types until we hit 'Z' or '@'.
 	var args []string
 	for !p.eof() {
 		c := p.s[p.i]
@@ -409,31 +409,47 @@ func (p *parser) parseSignature() (signature, error) {
 			}
 			break
 		}
-		switch c {
-		case 'X':
-			args = append(args, "void")
-		case 'H':
-			args = append(args, "int")
-		case 'D':
-			args = append(args, "char")
-		case 'J':
-			args = append(args, "long")
-		case 'I':
-			args = append(args, "unsigned int")
-		case 'K':
-			args = append(args, "unsigned long")
-		case 'M':
-			args = append(args, "float")
-		case 'N':
-			args = append(args, "double")
-		case 'F':
-			args = append(args, "short")
-		case 'G':
-			args = append(args, "unsigned short")
-		default:
-			return sig, p.grammarErr("arg type byte")
+		// Pointer shape: 'P' cv-byte primitive.
+		//   PA<prim>  → <prim>*
+		//   PB<prim>  → <prim> const*  (narrow display)
+		//   PEA<prim> → <prim>* (__ptr64-qualified far pointer)
+		if c == 'P' {
+			if p.i+2 >= len(p.s) {
+				return sig, p.truncated()
+			}
+			cv := p.s[p.i+1]
+			p.i += 2
+			// Optional 'E' (near/far/__ptr64 modifier).
+			if cv == 'E' && !p.eof() {
+				cv = p.s[p.i]
+				p.i++
+			}
+			if p.eof() {
+				return sig, p.truncated()
+			}
+			base := primitiveTypeName(p.s[p.i])
+			if base == "" {
+				return sig, p.grammarErr("pointer target primitive")
+			}
+			p.i++
+			qual := ""
+			switch cv {
+			case 'B':
+				qual = " const"
+			case 'C':
+				qual = " volatile"
+			case 'D':
+				qual = " const volatile"
+			}
+			args = append(args, base+qual+"*")
+			continue
 		}
-		p.i++
+		if pt := primitiveTypeName(c); pt != "" {
+			args = append(args, pt)
+			p.i++
+			continue
+		}
+		return sig, p.grammarErr("arg type byte")
 	}
 	// Void args dedupe: "void" as sole arg = "(void)" in MSVC display.
 	argsJoined := strings.Join(args, ", ")

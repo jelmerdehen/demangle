@@ -30,6 +30,10 @@ func TestMSVCBasics(t *testing.T) {
 		{"?baz@Bar@Foo@@YAXXZ", "void __cdecl Foo::Bar::baz(void)"},
 		// Template: std::vector<int>::method(void).
 		{"?method@?$vector@H@std@@YAXXZ", "void __cdecl std::vector<int>::method(void)"},
+		// Pointer arg: int*
+		{"?foo@@YAXPAH@Z", "void __cdecl foo(int*)"},
+		// Pointer-to-const char: char const*
+		{"?bar@@YAXPBD@Z", "void __cdecl bar(char const*)"},
 	}
 	for _, c := range cases {
 		c := c
