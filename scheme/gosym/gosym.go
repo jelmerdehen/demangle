@@ -96,9 +96,24 @@ func (Scheme) Demangle(_ context.Context, in string, _ demangle.Options) (*deman
 		attrs["go.closure"] = base[idx+1:]
 		base = base[:idx]
 	}
-	// Synthesised type methods.
+	// Synthesised type methods (type..eq., type..hash., type..lt.).
 	if strings.HasPrefix(base, "type..") {
 		attrs["go.synthesized"] = "true"
+		rest := base[len("type.."):]
+		for _, prefix := range []string{"eq.", "hash.", "lt.", "equal."} {
+			if strings.HasPrefix(rest, prefix) {
+				attrs["go.synthetic_op"] = strings.TrimSuffix(prefix, ".")
+				break
+			}
+		}
+	}
+	// go:itab — interface table sym.
+	if strings.HasPrefix(base, "go:itab.") {
+		attrs["go.kind"] = "InterfaceTable"
+	}
+	// go:typelink — type link sym.
+	if strings.HasPrefix(base, "go:typelink.") {
+		attrs["go.kind"] = "TypeLink"
 	}
 	// Split pkg / method structure.
 	if strings.Contains(base, ".(*") {

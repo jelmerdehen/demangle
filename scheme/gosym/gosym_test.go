@@ -51,6 +51,16 @@ func TestGoSymParses(t *testing.T) {
 			"pkg.Func",
 			map[string]string{"go.closure": "func1.2"},
 		},
+		{
+			"type..eq.pkg.T",
+			"type..eq.pkg.T",
+			map[string]string{"go.synthesized": "true", "go.synthetic_op": "eq"},
+		},
+		{
+			"type..hash.pkg.T",
+			"type..hash.pkg.T",
+			map[string]string{"go.synthetic_op": "hash"},
+		},
 	}
 	for _, c := range cases {
 		c := c
