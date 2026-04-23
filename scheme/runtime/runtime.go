@@ -13,12 +13,25 @@
 //   __asan_*       — AddressSanitizer runtime
 //   __msan_*       — MemorySanitizer runtime
 //   __tsan_*       — ThreadSanitizer runtime
+//   __hwasan_*     — Hardware-assisted AddressSanitizer runtime
 //   __ubsan_*      — UndefinedBehaviorSanitizer
+//   __scudo_*      — Scudo hardened allocator runtime
+//   __memprof_*    — HeapProfiler (LLVM) runtime
 //   __llvm_*       — LLVM misc helpers
+//   __profc_*      — LLVM coverage counter
+//   __profd_*      — LLVM coverage descriptor
+//   __profn_*      — LLVM coverage name
 //   __gcov_*       — GCC gcov coverage
+//   __cfi_*        — LLVM Control-Flow Integrity helpers
+//   __emutls_*     — GCC emulated thread-local helpers
+//   __tls_*        — TLS access helpers
+//   __gxx_personality_*  — C++ exception personality routine
 //   __Block_*      — Apple block helpers
+//   _dispatch_*    — Apple libdispatch (Grand Central Dispatch)
+//   _objc_*        — libobjc runtime calls (leading-underscore variant)
 //   objc_*         — libobjc runtime calls
 //   swift_*        — Swift runtime calls
+//   __rust_*       — Rust runtime/allocator helpers
 package runtime
 
 import (
@@ -57,16 +70,30 @@ var prefixes = []struct {
 	family string
 	kind   string
 }{
+	{"__gxx_personality_", "cpp-abi", "C++ exception personality routine"},
 	{"__cxa_", "cpp-abi", "Itanium C++ ABI helper"},
 	{"_Unwind_", "cpp-abi", "libunwind helper"},
 	{"__stack_chk_", "gcc", "stack protector helper"},
+	{"__hwasan_", "sanitizer", "HWAddressSanitizer runtime"},
 	{"__asan_", "sanitizer", "AddressSanitizer runtime"},
 	{"__msan_", "sanitizer", "MemorySanitizer runtime"},
 	{"__tsan_", "sanitizer", "ThreadSanitizer runtime"},
 	{"__ubsan_", "sanitizer", "UndefinedBehaviorSanitizer runtime"},
+	{"__scudo_", "sanitizer", "Scudo allocator runtime"},
+	{"__memprof_", "sanitizer", "MemProf runtime"},
+	{"__profc_", "llvm", "LLVM coverage counter"},
+	{"__profd_", "llvm", "LLVM coverage descriptor"},
+	{"__profn_", "llvm", "LLVM coverage name"},
+	{"__llvm_prf_", "llvm", "LLVM PGO profile"},
 	{"__llvm_", "llvm", "LLVM helper"},
+	{"__cfi_", "llvm", "Control-Flow Integrity helper"},
+	{"__emutls_", "gcc", "emulated TLS helper"},
+	{"__tls_", "gcc", "TLS access helper"},
 	{"__gcov_", "gcc", "gcov coverage helper"},
+	{"__rust_", "rust", "Rust runtime/allocator helper"},
 	{"__Block_", "apple", "Apple block helper"},
+	{"_dispatch_", "apple", "libdispatch (GCD) runtime"},
+	{"_objc_", "apple", "libobjc runtime"},
 	{"objc_", "apple", "libobjc runtime"},
 	{"swift_", "apple", "Swift runtime"},
 	{"go:runtime.", "go", "Go runtime"},

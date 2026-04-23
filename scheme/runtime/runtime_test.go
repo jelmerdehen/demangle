@@ -27,10 +27,20 @@ func TestRuntime(t *testing.T) {
 		kind   string
 	}{
 		{"__cxa_throw", "cpp-abi", "Itanium C++ ABI helper"},
+		{"__gxx_personality_v0", "cpp-abi", "C++ exception personality routine"},
 		{"_Unwind_Resume", "cpp-abi", "libunwind helper"},
 		{"__stack_chk_fail", "gcc", "stack protector helper"},
 		{"__asan_report_load4", "sanitizer", "AddressSanitizer runtime"},
+		{"__hwasan_shadow", "sanitizer", "HWAddressSanitizer runtime"},
+		{"__scudo_print_stats", "sanitizer", "Scudo allocator runtime"},
+		{"__memprof_init", "sanitizer", "MemProf runtime"},
+		{"__profc_main", "llvm", "LLVM coverage counter"},
+		{"__cfi_check_fail", "llvm", "Control-Flow Integrity helper"},
+		{"__emutls_get_address", "gcc", "emulated TLS helper"},
+		{"__rust_alloc", "rust", "Rust runtime/allocator helper"},
+		{"_dispatch_async", "apple", "libdispatch (GCD) runtime"},
 		{"objc_msgSend", "apple", "libobjc runtime"},
+		{"_objc_release", "apple", "libobjc runtime"},
 		{"swift_allocObject", "apple", "Swift runtime"},
 	}
 	for _, c := range cases {
