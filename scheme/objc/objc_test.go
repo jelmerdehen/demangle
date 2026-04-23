@@ -77,6 +77,14 @@ func TestObjCRuntimeSymbols(t *testing.T) {
 		{"_OBJC_METACLASS_$_NSArray", "metaclass symbol"},
 		{"_OBJC_PROTOCOL_$_NSCoding", "protocol symbol"},
 		{"_OBJC_IVAR_$_NSString._bytes", "ivar offset"},
+		{"_OBJC_$_CATEGORY_NSString_$_MyAdditions", "category symbol"},
+		{"_OBJC_$_CATEGORY_INSTANCE_METHODS_NSString_$_MyAdditions", "category instance methods"},
+		{"_OBJC_$_CATEGORY_CLASS_METHODS_NSString_$_MyAdditions", "category class methods"},
+		{"_OBJC_$_INSTANCE_METHODS_Foo", "instance method list"},
+		{"_OBJC_$_CLASS_METHODS_Foo", "class method list"},
+		{"_OBJC_$_PROP_LIST_Foo", "property list"},
+		{"_OBJC_$_PROTOCOL_REFS_Foo", "protocol refs"},
+		{"__objc_class_name_Foo", "legacy class name symbol"},
 	}
 	for _, c := range cases {
 		c := c
@@ -90,6 +98,24 @@ func TestObjCRuntimeSymbols(t *testing.T) {
 				t.Fatalf("kind = %q, want %q", r.Annotations["objc.kind"], c.wantKind)
 			}
 		})
+	}
+}
+
+func TestObjCCategoryMethod(t *testing.T) {
+	t.Parallel()
+	cat := newCatalog(t)
+	r, err := cat.Demangle(context.Background(), "-[NSString(MyAdditions) trim]", nil)
+	if err != nil {
+		t.Fatalf("demangle: %v", err)
+	}
+	if r.Annotations["objc.class"] != "NSString" {
+		t.Fatalf("class = %q", r.Annotations["objc.class"])
+	}
+	if r.Annotations["objc.category"] != "MyAdditions" {
+		t.Fatalf("category = %q", r.Annotations["objc.category"])
+	}
+	if r.Annotations["objc.selector"] != "trim" {
+		t.Fatalf("selector = %q", r.Annotations["objc.selector"])
 	}
 }
 

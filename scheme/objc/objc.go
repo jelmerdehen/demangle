@@ -57,13 +57,15 @@ func (Scheme) Sniff(s string) (int, bool) {
 		}
 	}
 	// Runtime symbols: _OBJC_CLASS_$_<Name>, _OBJC_METACLASS_$_<Name>,
-	// _OBJC_IVAR_$_<Class>.<ivar>.
+	// _OBJC_IVAR_$_<Class>.<ivar>, _OBJC_$_CATEGORY_... etc.
 	if strings.HasPrefix(s, "_OBJC_CLASS_$_") ||
 		strings.HasPrefix(s, "_OBJC_METACLASS_$_") ||
 		strings.HasPrefix(s, "_OBJC_IVAR_$_") ||
 		strings.HasPrefix(s, "_OBJC_PROTOCOL_$_") ||
 		strings.HasPrefix(s, "_OBJC_LABEL_CLASS_$") ||
-		strings.HasPrefix(s, "_OBJC_LABEL_PROTOCOL_$") {
+		strings.HasPrefix(s, "_OBJC_LABEL_PROTOCOL_$") ||
+		strings.HasPrefix(s, "_OBJC_$_") ||
+		strings.HasPrefix(s, "__objc_class_name_") {
 		return 95, true
 	}
 	return 0, false
@@ -99,6 +101,11 @@ func (Scheme) Demangle(_ context.Context, in string, _ demangle.Options) (*deman
 		if len(parts) == 2 {
 			selector = parts[1]
 		}
+		// Category method: "Class(Cat)".
+		if lparen := strings.IndexByte(class, '('); lparen > 0 && strings.HasSuffix(class, ")") {
+			attrs["objc.category"] = class[lparen+1 : len(class)-1]
+			class = class[:lparen]
+		}
 		attrs["objc.class"] = class
 		attrs["objc.selector"] = selector
 		attrs["objc.method_kind"] = kind
@@ -120,31 +127,9 @@ func (Scheme) Demangle(_ context.Context, in string, _ demangle.Options) (*deman
 }
 
 // parseRuntimeSymbol handles _OBJC_<KIND>_$_<NAME> / _OBJC_IVAR_$_
-// forms common in Mach-O symbol tables.
+// and _OBJC_$_CATEGORY_ shapes common in Mach-O symbol tables.
 func parseRuntimeSymbol(in string, attrs map[string]string) (*demangle.Result, bool) {
-	kinds := map[string]string{
-		"_OBJC_CLASS_$_":          "class symbol",
-		"_OBJC_METACLASS_$_":      "metaclass symbol",
-		"_OBJC_PROTOCOL_$_":       "protocol symbol",
-		"_OBJC_LABEL_CLASS_$":     "class list label",
-		"_OBJC_LABEL_PROTOCOL_$":  "protocol list label",
-	}
-	for prefix, kind := range kinds {
-		if strings.HasPrefix(in, prefix) {
-			name := in[len(prefix):]
-			attrs["objc.kind"] = kind
-			attrs["objc.name"] = name
-			return &demangle.Result{
-				Scheme: "objc", Input: in,
-				Output: kind + " " + name,
-				Tree: &demangle.Node{
-					Scheme: "objc", Kind: KindSymbol, Text: in, Attrs: attrs,
-				},
-				Annotations: attrs,
-			}, true
-		}
-	}
-	// Ivar: _OBJC_IVAR_$_<Class>.<ivar>
+	// Ivar first — prefix overlaps _OBJC_ so match the more-specific form.
 	if strings.HasPrefix(in, "_OBJC_IVAR_$_") {
 		rest := in[len("_OBJC_IVAR_$_"):]
 		dot := strings.LastIndexByte(rest, '.')
@@ -164,6 +149,115 @@ func parseRuntimeSymbol(in string, attrs map[string]string) (*demangle.Result, b
 			},
 			Annotations: attrs,
 		}, true
+	}
+	// Category-scoped symbols: _OBJC_$_CATEGORY_<Class>_$_<Cat>,
+	// _OBJC_$_CATEGORY_INSTANCE_METHODS_<Class>_$_<Cat>, etc.
+	categoryKinds := []struct {
+		prefix string
+		kind   string
+	}{
+		{"_OBJC_$_CATEGORY_INSTANCE_METHODS_", "category instance methods"},
+		{"_OBJC_$_CATEGORY_CLASS_METHODS_", "category class methods"},
+		{"_OBJC_$_CATEGORY_PROTOCOLS_$_", "category protocol list"},
+		{"_OBJC_$_CATEGORY_", "category symbol"},
+	}
+	for _, ck := range categoryKinds {
+		if strings.HasPrefix(in, ck.prefix) {
+			rest := in[len(ck.prefix):]
+			// "<Class>_$_<Cat>" split.
+			sep := strings.Index(rest, "_$_")
+			class, cat := rest, ""
+			if sep >= 0 {
+				class = rest[:sep]
+				cat = rest[sep+len("_$_"):]
+			}
+			attrs["objc.kind"] = ck.kind
+			attrs["objc.class"] = class
+			if cat != "" {
+				attrs["objc.category"] = cat
+			}
+			out := ck.kind + " " + class
+			if cat != "" {
+				out += "(" + cat + ")"
+			}
+			return &demangle.Result{
+				Scheme: "objc", Input: in,
+				Output: out,
+				Tree: &demangle.Node{
+					Scheme: "objc", Kind: KindSymbol, Text: in, Attrs: attrs,
+				},
+				Annotations: attrs,
+			}, true
+		}
+	}
+	// Per-class method / prop-list / protocol-refs tables under
+	// _OBJC_$_<KIND>_<Class>.
+	classKinds := []struct {
+		prefix string
+		kind   string
+	}{
+		{"_OBJC_$_INSTANCE_METHODS_", "instance method list"},
+		{"_OBJC_$_CLASS_METHODS_", "class method list"},
+		{"_OBJC_$_INSTANCE_VARIABLES_", "instance variable list"},
+		{"_OBJC_$_PROP_LIST_", "property list"},
+		{"_OBJC_$_PROTOCOL_REFS_", "protocol refs"},
+		{"_OBJC_$_CLASS_REFS_", "class refs"},
+		{"_OBJC_$_CATEGORY_LIST_", "category list"},
+	}
+	for _, ck := range classKinds {
+		if strings.HasPrefix(in, ck.prefix) {
+			name := in[len(ck.prefix):]
+			attrs["objc.kind"] = ck.kind
+			attrs["objc.class"] = name
+			return &demangle.Result{
+				Scheme: "objc", Input: in,
+				Output: ck.kind + " " + name,
+				Tree: &demangle.Node{
+					Scheme: "objc", Kind: KindSymbol, Text: in, Attrs: attrs,
+				},
+				Annotations: attrs,
+			}, true
+		}
+	}
+	// Legacy Obj-C ABI v1 (pre-2007): __objc_class_name_<Class>.
+	if strings.HasPrefix(in, "__objc_class_name_") {
+		name := in[len("__objc_class_name_"):]
+		attrs["objc.kind"] = "legacy class name symbol"
+		attrs["objc.name"] = name
+		return &demangle.Result{
+			Scheme: "objc", Input: in,
+			Output: "legacy class name symbol " + name,
+			Tree: &demangle.Node{
+				Scheme: "objc", Kind: KindSymbol, Text: in, Attrs: attrs,
+			},
+			Annotations: attrs,
+		}, true
+	}
+	// Generic runtime kinds.
+	kinds := []struct {
+		prefix string
+		kind   string
+	}{
+		{"_OBJC_CLASS_$_", "class symbol"},
+		{"_OBJC_METACLASS_$_", "metaclass symbol"},
+		{"_OBJC_PROTOCOL_$_", "protocol symbol"},
+		{"_OBJC_LABEL_CLASS_$", "class list label"},
+		{"_OBJC_LABEL_PROTOCOL_$", "protocol list label"},
+	}
+	for _, ck := range kinds {
+		if strings.HasPrefix(in, ck.prefix) {
+			name := in[len(ck.prefix):]
+			attrs["objc.kind"] = ck.kind
+			attrs["objc.name"] = name
+			return &demangle.Result{
+				Scheme: "objc", Input: in,
+				Output: ck.kind + " " + name,
+				Tree: &demangle.Node{
+					Scheme: "objc", Kind: KindSymbol, Text: in, Attrs: attrs,
+				},
+				Annotations: attrs,
+			}, true
+		}
 	}
 	return nil, false
 }
