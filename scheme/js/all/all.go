@@ -6,4 +6,5 @@ package all
 
 import (
 	_ "github.com/jelmerdehen/demangle/scheme/js/minified"
+	_ "github.com/jelmerdehen/demangle/scheme/js/sourcemap"
 )
