@@ -67,6 +67,8 @@ func printNode(b *strings.Builder, n *demangle.Node, opts PrintOptions) {
 		b.WriteString(n.Text)
 	case KindBuiltinTypeName:
 		b.WriteString(n.Text)
+	case KindDependentGenericParamType:
+		b.WriteString(n.Text)
 	case KindTypeList:
 		for i, c := range n.Children {
 			if i > 0 {

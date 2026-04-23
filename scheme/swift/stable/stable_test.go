@@ -138,6 +138,12 @@ func TestStableFunctionEntities(t *testing.T) {
 		{"$s4main3fooyyYF", "main.foo() async -> ()"},
 		// Async throws.
 		{"$s4main3fooyyYKF", "main.foo() async throws -> ()"},
+		// Generic-param 'x' as arg: (A) -> ()
+		{"$s4main3fooxyF", "main.foo(A) -> ()"},
+		// Generic-param 'q_' as arg: (B) -> ()
+		{"$s4main3fooq_yF", "main.foo(B) -> ()"},
+		// Generic-param as return: () -> A
+		{"$s4main3fooyxF", "main.foo() -> A"},
 	}
 	for _, c := range cases {
 		c := c

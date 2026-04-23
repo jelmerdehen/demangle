@@ -279,7 +279,8 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 			return nil, false, nil
 		}
 		c := p.s[p.i]
-		if c == 'y' || c == 'B' || c == 'S' || c == 'A' {
+		if c == 'y' || c == 'B' || c == 'S' || c == 'A' ||
+			c == 'x' || c == 'q' {
 			break
 		}
 		// 's' module sub could start a type; but an ident chain
@@ -424,6 +425,12 @@ func (p *parser) parseType() (*demangle.Node, error) {
 	case c == 'A':
 		p.i++
 		node, err = p.parseNumericSubstitution()
+	case c == 'x':
+		p.i++
+		node = p.genericParam(0, 0)
+	case c == 'q':
+		p.i++
+		node, err = p.parseGenericParam()
 	case c >= '0' && c <= '9':
 		node, err = p.parseNominalPath()
 	default:
@@ -524,6 +531,90 @@ func (p *parser) tryBoundGeneric(base *demangle.Node) (*demangle.Node, bool, err
 	typ := common.NewNode(common.KindType)
 	common.AddChildren(typ, bound)
 	return typ, true, nil
+}
+
+// genericParam builds a DependentGenericParamType Type for (depth, index).
+// Display: depth=0 → A, B, C, …; depth=1 → A1, B1, …; depth=N → A<N>, …
+func (p *parser) genericParam(depth, index int) *demangle.Node {
+	letter := byte('A' + index)
+	name := string(letter)
+	if depth > 0 {
+		name += itoa(depth)
+	}
+	typ := common.NewNode(common.KindType)
+	gp := common.NewNode(common.KindDependentGenericParamType)
+	gp.Text = name
+	common.AddChildren(typ, gp)
+	return typ
+}
+
+func itoa(n int) string {
+	if n == 0 {
+		return "0"
+	}
+	var b []byte
+	neg := n < 0
+	if neg {
+		n = -n
+	}
+	for n > 0 {
+		b = append([]byte{byte('0' + n%10)}, b...)
+		n /= 10
+	}
+	if neg {
+		b = append([]byte{'-'}, b...)
+	}
+	return string(b)
+}
+
+// parseGenericParam — 'q' consumed; follows grammar:
+//
+//	q_          → depth=0, index=1  → "B"
+//	q<N>_       → depth=0, index=<N>+1
+//	qd_         → depth=1, index=0  → "A1"
+//	qd_<N>_     → depth=1, index=<N>+1
+//	qd<depth>__  → depth=<depth>+1 (multi-digit extension)
+//
+// Narrow: support `q_`, `q<digit>_`, `qd_`, `qd<digit>_`.
+func (p *parser) parseGenericParam() (*demangle.Node, error) {
+	if p.eof() {
+		return nil, p.truncated()
+	}
+	depth := 0
+	index := 1 // 'q' (not 'x') means "not the first" — starts from B
+	if p.s[p.i] == 'd' {
+		depth = 1
+		p.i++
+	}
+	// Optional index digit.
+	if !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+		start := p.i
+		for !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+			p.i++
+		}
+		v := 0
+		for _, c := range p.s[start:p.i] {
+			v = v*10 + int(c-'0')
+		}
+		if depth == 0 {
+			index = v + 1
+		} else {
+			index = v + 1
+		}
+	} else if depth == 1 {
+		// `qd_` — no explicit index, default to 0.
+		index = 0
+	}
+	// Require '_' terminator.
+	if p.eof() || p.s[p.i] != '_' {
+		return nil, p.grammarErr("'_' terminating generic param")
+	}
+	p.i++
+	return p.genericParam(depth, index), nil
+}
+
+func (p *parser) truncated() error {
+	return demangle.TruncatedInput(p.schemeName, p.origin, p.i+p.prefixBytes)
 }
 
 // parseNumericSubstitution — 'A' consumed; reads a base-10 index +
