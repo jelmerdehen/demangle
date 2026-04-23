@@ -4,6 +4,51 @@ All notable changes to this project will be documented here. Format
 follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). This
 project uses semantic versioning.
 
+## [0.1.8] - 2026-04-22
+
+### Added
+
+- **swift-stable** — correctness + coverage improvements.
+  - function-signature parsed in Apple-ABI order (`result-type`
+    before `params-type`); label-list presence detected
+    speculatively to match real Swift output.
+  - `So` stdlib substitution → `__C` module reference, unblocking
+    Clang-imported / Obj-C bridged symbols.
+  - `Tu` = async function pointer to / `TY` = async await resume
+    partial function for (previously swapped).
+  - Multi-arg tuple `params-type`: `<el1>_<el2>_..._<elN>t`.
+  - `z` / `h` params-type modifiers render as `inout ` / `__shared `.
+  - 10 B-family builtins added: ImplicitActor, UnsafeValueBuffer,
+    BridgeObject, DefaultActorStorage,
+    NonDefaultDistributedActorStorage, Executor, IntLiteral, Job,
+    PackIndex.
+  - Protocol-kind inference when the kind-byte slot is consumed by
+    an H/M/T/W entity-suffix marker.
+  - Apple fixture corpus: 11 → 17 direct matches; parser gates
+    hard-fail on any mismatch.
+- **cxxmsvc**
+  - Data-variable shape: `?name@@3HA` → `int name`.
+  - Template args generalised to class/struct/union scope
+    (`Vfoo@ns@@`), integer constants (`$0N@`), pointer-to-primitive
+    (`PA<cv><prim>`), and two-byte extended primitives.
+- **runtime** — prefix map grew from 13 to 25 entries: HWAsan,
+  Scudo, MemProf, LLVM PGO (`__profc_` / `__profd_` / `__profn_` /
+  `__llvm_prf_`), CFI, emulated TLS, Rust runtime, libdispatch
+  (GCD), leading-underscore `_objc_*`, `__gxx_personality_*`.
+- **objc** — category + per-class runtime symbols (`_OBJC_$_CATEGORY_*`,
+  `_OBJC_$_INSTANCE_METHODS_`, `_OBJC_$_CLASS_METHODS_`,
+  `_OBJC_$_PROP_LIST_`, `_OBJC_$_PROTOCOL_REFS_`,
+  `_OBJC_$_CLASS_REFS_`, `_OBJC_$_CATEGORY_LIST_`), legacy Obj-C
+  ABI v1 `__objc_class_name_*`, and category-method selector
+  parsing (`-[Class(Category) selector]`).
+- **gosym** — Go 1.18+ generic instantiation brackets
+  (`pkg.Foo[pkg.Bar].Method` → display form minus brackets, with
+  `go.generic_args` annotation).
+- **dlang** — full function-type trailer decoding: linkage
+  (`Ya`/`Yb`/`Yc`/…), N-prefixed attributes
+  (`@nogc`/`nothrow`/`pure`/…), composite types (`P`, `A`, `G`,
+  `H`, `D`, `C`, `S`), variadic terminators (`Z`/`X`/`Y`).
+
 ## [0.1.7] - 2026-04-24
 
 ### Added
