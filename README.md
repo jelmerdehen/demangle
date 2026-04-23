@@ -6,14 +6,15 @@
 A standalone Go library for polyglot mangle/demangle of native-code
 symbol names.
 
-**18 schemes** across 6 language families. One uniform API.
+**21 schemes** across 8 language / runtime families. One uniform API.
 
 ```
 android-dex       cpp-itanium       cpp-msvc          dlang
-jni               js-minified       js-sourcemap      jvmdesc
-kotlin            proguard-map      rust              scala2
-swift-embedded    swift-macro       swift-old         swift-stable
-swift-v40         swift-v42
+gosym             jni               js-minified       js-sourcemap
+jvmdesc           kotlin            objc              proguard-map
+runtime           rust              scala2            swift-embedded
+swift-macro       swift-old         swift-stable      swift-v40
+swift-v42
 ```
 
 ## Install

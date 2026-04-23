@@ -214,8 +214,11 @@ non-skynet consumer appears (Stage 6.5).
 | android-dex      | java    | dex                 | exact    | field + method descriptors      |
 | js-sourcemap     | js      | V3                  | none     | VLQ + segment parser            |
 | js-minified      | js      | heuristic           | none     | detection only                  |
+| gosym            | go      | any                 | none     | Go symbol structure extractor   |
+| objc             | objc    | any                 | none     | ObjC selectors + Mach-O runtime symbols |
+| runtime          | runtime | any                 | none     | C / C++ / toolchain helper classifier |
 
-Eighteen schemes in total.
+Twenty-one schemes in total.
 
 ## Tiered builds
 

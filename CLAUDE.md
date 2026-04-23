@@ -4,10 +4,10 @@ Standalone Go library for polyglot mangle/demangle. Consumed by skynet
 (direct Go import) and by behavox (GraphQL on skynet that calls the
 library directly).
 
-## Current state (2026-04-23)
+## Current state (2026-04-24)
 
-- **18 schemes registered** across 6 families (swift × 6, cpp × 3,
-  rust, dlang, java × 6, js × 2).
+- **21 schemes registered** across 8 families (swift × 6, cpp × 2,
+  rust, dlang, java × 6, js × 2, go, objc, runtime).
 - Stages 0, 0.5a, 0.5b, 2, 3, 4, 5, 6 shipped. Stage 1 (Swift stable
   full corpus) is mid-build — subset coverage with zero mismatches
   on the Apple corpus; grammar ratchets per commit.
