@@ -1,0 +1,156 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2026 Jelmer de Hen
+
+syntax = "proto3";
+package demangle.v1;
+
+option go_package = "github.com/jelmerdehen/demangle/cmd/demanglegrpc/proto/demanglepb;demanglepb";
+
+// Demangle is the wire-level mirror of the github.com/jelmerdehen/demangle
+// library surface. No Mangle RPC on day one — the library's Mangle is
+// round-trip-test-only until a concrete caller needs wire access.
+// When that happens, Mangle lands on BOTH GraphQL and gRPC in the
+// same PR (symmetry rule from the v5.1 plan).
+service Demangle {
+  rpc Demangle(Request)              returns (Response);
+  rpc Detect(DetectRequest)          returns (DetectResponse);
+  rpc Schemes(Empty)                 returns (SchemesResponse);
+  rpc DemangleStream(stream Request) returns (stream Response);
+
+  rpc UploadContext(UploadContextRequest) returns (UploadContextResponse);
+  rpc ListContexts(ListContextsRequest)   returns (ListContextsResponse);
+  rpc DeleteContext(DeleteContextRequest) returns (Empty);
+}
+
+message Empty {}
+
+message Options {
+  bool simplified                      = 1;
+  bool synthesize_sugar                = 2;
+  bool qualify_entities                = 3;
+  bool display_generic_specialisations = 4;
+  bool display_thunks                  = 5;
+  bool return_tree                     = 6;
+  bool verify_round_trip               = 7;
+  bool allow_legacy                    = 8;
+  bool best_effort_mangle              = 9;
+  map<string, string> scheme_specific  = 10;
+
+  // Context is referenced by sha256 from the server's ContextStore.
+  // Empty means "no context." Contexts are uploaded via UploadContext.
+  string context_sha256 = 11;
+}
+
+message Request {
+  string input   = 1;
+  string scheme  = 2; // empty = auto-detect
+  Options options = 3;
+  uint64 id      = 4; // caller-supplied correlation id for streaming
+}
+
+message Annotation {
+  string key   = 1;
+  string value = 2;
+}
+
+message Node {
+  string scheme = 1;
+  int32  kind   = 2;
+  string text   = 3;
+  uint64 index  = 4;
+  repeated Node children      = 5;
+  repeated Annotation attrs   = 6;
+}
+
+message Error {
+  int32  kind     = 1; // demangle.ErrKind
+  string scheme   = 2;
+  int32  offset   = 3;
+  string expected = 4;
+  string got      = 5;
+  string window   = 6;
+  string message  = 7; // humanised form
+}
+
+message Response {
+  uint64 id            = 1;
+  string scheme        = 2;
+  string input         = 3;
+  string output        = 4;
+  int32  confidence    = 5;
+  repeated Annotation annotations = 6;
+  Node  tree           = 7;   // nil unless Options.return_tree
+  bool  partial        = 8;
+  repeated string lost_info = 9;
+  Error err            = 10;  // nil on success
+}
+
+message DetectRequest {
+  string input = 1;
+  int32  max_candidates = 2;
+  int32  min_confidence = 3;
+  bool   include_weak   = 4;
+  string scheme_hint_family = 5;
+  bool   strict = 6;
+  int32  ambiguity_window = 7;
+}
+
+message Candidate {
+  string scheme     = 1;
+  int32  confidence = 2;
+  repeated string signals   = 3;
+  repeated string negatives = 4;
+  string diagnostic = 5;
+}
+
+message DetectResponse {
+  repeated Candidate candidates = 1;
+}
+
+message SchemeInfo {
+  string name             = 1;
+  string family           = 2;
+  string version          = 3;
+  string description      = 4;
+  string stability        = 5;  // "stable" | "experimental" | "deprecated"
+  string mangle_fidelity  = 6;  // "exact" | "canonical" | "best-effort" | "none"
+  bool   implements_mangler = 7;
+  int32  max_input_bytes  = 8;
+  repeated string requires_context = 9;
+}
+
+message SchemesResponse {
+  repeated SchemeInfo schemes = 1;
+}
+
+message UploadContextRequest {
+  string kind = 1;          // "proguard_map" | "js_source_map" | …
+  bytes  blob = 2;
+  map<string, string> metadata = 3;
+}
+
+message UploadContextResponse {
+  string sha256    = 1;
+  int64  byte_size = 2;
+}
+
+message ContextInfo {
+  string kind              = 1;
+  string sha256            = 2;
+  int64  byte_size         = 3;
+  int64  uploaded_ts       = 4;  // unix seconds
+  int64  last_access_ts    = 5;
+  map<string, string> metadata = 6;
+}
+
+message ListContextsRequest {
+  string kind = 1; // empty = all kinds
+}
+
+message ListContextsResponse {
+  repeated ContextInfo contexts = 1;
+}
+
+message DeleteContextRequest {
+  string sha256 = 1;
+}
