@@ -146,6 +146,10 @@ func TestStableFunctionEntities(t *testing.T) {
 		{"$s4main3fooyyq_F", "main.foo(B) -> ()"},
 		// Generic-param as result: () -> A
 		{"$s4main3fooxyF", "main.foo() -> A"},
+		// Multi-arg tuple: (Swift.Int, Swift.String) -> ()
+		{"$s4main3fooyySi_SStF", "main.foo(Swift.Int, Swift.String) -> ()"},
+		// Three-arg tuple: (Swift.Int, Swift.Int, Swift.Int) -> Swift.Bool
+		{"$s4main3fooSbSi_Si_SitF", "main.foo(Swift.Int, Swift.Int, Swift.Int) -> Swift.Bool"},
 	}
 	for _, c := range cases {
 		c := c

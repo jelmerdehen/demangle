@@ -461,7 +461,13 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 			}
 			r = x
 		}
-		// Params-type.
+		// Params-type — may be a tuple for multi-param functions:
+		//
+		//   params-type ::= tuple-element-list 't'
+		//   tuple-element-list ::= tuple-element ('_' tuple-element)*
+		//
+		// Single-element tuples reduce to just the element's type, so
+		// we parse one type and then look for '_' indicating a tuple.
 		if p.eof() {
 			revert()
 			return false
@@ -476,7 +482,29 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 				revert()
 				return false
 			}
-			a = x
+			if !p.eof() && p.s[p.i] == '_' {
+				// Multi-element tuple. Gather remaining elements + 't'.
+				elements := []*demangle.Node{x}
+				for !p.eof() && p.s[p.i] == '_' {
+					p.i++
+					y, err := p.parseType()
+					if err != nil {
+						revert()
+						return false
+					}
+					elements = append(elements, y)
+				}
+				if p.eof() || p.s[p.i] != 't' {
+					revert()
+					return false
+				}
+				p.i++ // consume 't'
+				tup := common.NewNode(common.KindTypeList)
+				common.AddChildren(tup, elements...)
+				a = tup
+			} else {
+				a = x
+			}
 		}
 		// Async / throws markers. Spec: Ya = async (2 bytes), K = throws.
 		localAsync := false
