@@ -127,6 +127,14 @@ func printFunctionEntity(b *strings.Builder, n *demangle.Node, opts PrintOptions
 	printNode(b, n.Children[0], opts) // path
 	b.WriteByte('(')
 	if n.Children[1] != nil && NodeKind(n.Children[1].Kind) != KindEmptyList {
+		// inout/shared params-modifier attributes come through on the
+		// params node (set during stable-parser's tryFunctionEntity).
+		if n.Children[1].Attrs["swift.inout"] == "true" {
+			b.WriteString("inout ")
+		}
+		if n.Children[1].Attrs["swift.shared"] == "true" {
+			b.WriteString("__shared ")
+		}
 		printNode(b, n.Children[1], opts)
 	}
 	b.WriteByte(')')

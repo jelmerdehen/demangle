@@ -505,6 +505,24 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 			} else {
 				a = x
 			}
+			// params-type ::= type 'z'? 'h'?  —  inout / shared modifiers.
+			// Annotate but don't reject; printer can render "inout T"
+			// etc. in a future commit. For now we consume without
+			// displaying so the grammar match succeeds.
+			if !p.eof() && p.s[p.i] == 'z' {
+				p.i++
+				if a.Attrs == nil {
+					a.Attrs = map[string]string{}
+				}
+				a.Attrs["swift.inout"] = "true"
+			}
+			if !p.eof() && p.s[p.i] == 'h' {
+				p.i++
+				if a.Attrs == nil {
+					a.Attrs = map[string]string{}
+				}
+				a.Attrs["swift.shared"] = "true"
+			}
 		}
 		// Async / throws markers. Spec: Ya = async (2 bytes), K = throws.
 		localAsync := false
