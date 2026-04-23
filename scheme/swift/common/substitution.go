@@ -13,17 +13,21 @@ import (
 //
 // Kept as a single source of truth for both parse and print. Not
 // goroutine-unsafe — populated once at package load, read-only after.
+// StdlibSubstitutions — per ABI Mangling.rst "KNOWN-TYPE-KIND". The
+// byte after 'S' selects one entry. `c` is NOT in this table — it
+// routes to a second-level `Sc<X>` lookup (StdlibSubstitutions2)
+// handled by the caller.
 var StdlibSubstitutions = map[byte]stdlib{
-	'a': {"Swift", "Array", KindStructure},
 	'A': {"Swift", "AutoreleasingUnsafeMutablePointer", KindStructure},
+	'a': {"Swift", "Array", KindStructure},
+	'B': {"Swift", "BinaryFloatingPoint", KindProtocol},
 	'b': {"Swift", "Bool", KindStructure},
-	'c': {"Swift", "UnicodeScalar", KindStructure},
 	'D': {"Swift", "Dictionary", KindStructure},
-	'd': {"Swift", "Double", KindStructure},
-	'e': {"Swift", "Substring", KindStructure},
-	'E': {"Swift", "Encoder", KindProtocol},
-	'F': {"Swift", "Float", KindStructure}, // (Swift 'f' is Float, 'F' is FloatingPoint proto — TODO)
-	'f': {"Swift", "Float", KindStructure},
+	'd': {"Swift", "Double", KindStructure}, // Float64 alias; display Double.
+	'E': {"Swift", "Encodable", KindProtocol},
+	'e': {"Swift", "Decodable", KindProtocol},
+	'F': {"Swift", "FloatingPoint", KindProtocol},
+	'f': {"Swift", "Float", KindStructure}, // Float32 alias; display Float.
 	'G': {"Swift", "RandomNumberGenerator", KindProtocol},
 	'H': {"Swift", "Hashable", KindProtocol},
 	'h': {"Swift", "Set", KindStructure},
@@ -47,11 +51,11 @@ var StdlibSubstitutions = map[byte]stdlib{
 	'R': {"Swift", "UnsafeBufferPointer", KindStructure},
 	'r': {"Swift", "UnsafeMutableBufferPointer", KindStructure},
 	'S': {"Swift", "String", KindStructure},
-	's': {"Swift", "UInt", KindStructure},
+	's': {"Swift", "Substring", KindStructure},
 	'T': {"Swift", "Sequence", KindProtocol},
 	't': {"Swift", "IteratorProtocol", KindProtocol},
 	'U': {"Swift", "UnsignedInteger", KindProtocol},
-	'u': {"Swift", "UInt", KindStructure}, // duplicate — alias
+	'u': {"Swift", "UInt", KindStructure},
 	'V': {"Swift", "UnsafeRawPointer", KindStructure},
 	'v': {"Swift", "UnsafeMutableRawPointer", KindStructure},
 	'W': {"Swift", "UnsafeRawBufferPointer", KindStructure},
@@ -62,6 +66,30 @@ var StdlibSubstitutions = map[byte]stdlib{
 	'y': {"Swift", "StringProtocol", KindProtocol},
 	'Z': {"Swift", "SignedInteger", KindProtocol},
 	'z': {"Swift", "BinaryInteger", KindProtocol},
+}
+
+// StdlibSubstitutions2 — per ABI Mangling.rst "KNOWN-TYPE-KIND-2",
+// selected by the byte after `Sc`. These are the concurrency-adjacent
+// stdlib types introduced in Swift 5.5+.
+var StdlibSubstitutions2 = map[byte]stdlib{
+	'A': {"Swift", "Actor", KindProtocol},
+	'C': {"Swift", "CheckedContinuation", KindStructure},
+	'c': {"Swift", "UnsafeContinuation", KindStructure},
+	'E': {"Swift", "CancellationError", KindStructure},
+	'e': {"Swift", "UnownedSerialExecutor", KindStructure},
+	'F': {"Swift", "Executor", KindProtocol},
+	'f': {"Swift", "SerialExecutor", KindProtocol},
+	'G': {"Swift", "TaskGroup", KindStructure},
+	'g': {"Swift", "ThrowingTaskGroup", KindStructure},
+	'I': {"Swift", "AsyncIteratorProtocol", KindProtocol},
+	'i': {"Swift", "AsyncSequence", KindProtocol},
+	'J': {"Swift", "UnownedJob", KindStructure},
+	'M': {"Swift", "MainActor", KindClass},
+	'P': {"Swift", "TaskPriority", KindStructure},
+	'S': {"Swift", "AsyncStream", KindStructure},
+	's': {"Swift", "AsyncThrowingStream", KindStructure},
+	'T': {"Swift", "Task", KindStructure},
+	't': {"Swift", "UnsafeCurrentTask", KindStructure},
 }
 
 type stdlib struct {
@@ -78,11 +106,26 @@ func BuildStdlibNominal(c byte) (*demangle.Node, bool) {
 	if !ok {
 		return nil, false
 	}
+	return buildFromStdlib(s), true
+}
+
+// BuildStdlibNominal2 is the 'Sc<X>' second-level lookup variant used
+// for concurrency-adjacent stdlib types. Returns (node, true) if X
+// is mapped.
+func BuildStdlibNominal2(c byte) (*demangle.Node, bool) {
+	s, ok := StdlibSubstitutions2[c]
+	if !ok {
+		return nil, false
+	}
+	return buildFromStdlib(s), true
+}
+
+func buildFromStdlib(s stdlib) *demangle.Node {
 	typ := NewNode(KindType)
 	nom := NewNode(s.kind)
 	AddChildren(nom, NewModule(s.module), NewIdentifier(s.name))
 	AddChildren(typ, nom)
-	return typ, true
+	return typ
 }
 
 // SubstitutionTable is the per-parse numeric substitution cache used

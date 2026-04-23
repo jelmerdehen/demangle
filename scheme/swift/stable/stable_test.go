@@ -74,7 +74,17 @@ func TestStableStdlibSubstitutions(t *testing.T) {
 		{"$sSa", "Swift.Array"},
 		{"$sSb", "Swift.Bool"},
 		{"$sSd", "Swift.Double"},
+		{"$sSf", "Swift.Float"},
 		{"$sSS", "Swift.String"},
+		{"$sSs", "Swift.Substring"},
+		{"$sSe", "Swift.Decodable"},
+		{"$sSE", "Swift.Encodable"},
+		{"$sSu", "Swift.UInt"},
+		// Sc<X> — concurrency (KNOWN-TYPE-KIND-2).
+		{"$sScA", "Swift.Actor"},
+		{"$sScT", "Swift.Task"},
+		{"$sScG", "Swift.TaskGroup"},
+		{"$sScM", "Swift.MainActor"},
 	}
 	for _, c := range cases {
 		c := c

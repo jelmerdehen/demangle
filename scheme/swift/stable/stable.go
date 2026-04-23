@@ -1090,19 +1090,28 @@ func (p *parser) builtinTypeNamed(name string) *demangle.Node {
 //
 //	'o' — '__C' module (Objective-C / Clang-imported).  Continues
 //	      with <idlen><id><kind> for a nominal under __C.
-//	'C' — C module (rare).  Continues similarly.
+//	'c' — second-level stdlib-sub selector (Actor, TaskGroup, …).
+//	      Reads one more byte and looks it up in StdlibSubstitutions2.
 func (p *parser) parseStdlibSubstitution() (*demangle.Node, error) {
 	if p.eof() {
 		return nil, demangle.TruncatedInput(p.schemeName, p.origin, p.i+p.prefixBytes)
 	}
 	c := p.s[p.i]
-	// Module-letter substitutions expand into "<module> <id> <kind>" —
-	// they're the stdlib shortcut for a module name, not a complete
-	// nominal type in themselves.
 	switch c {
 	case 'o':
 		p.i++
 		return p.parseNominalWithModule(common.NewModule("__C"))
+	case 'c':
+		// 'Sc<X>' — second-level lookup. Reads one more byte.
+		if p.i+1 >= len(p.s) {
+			return nil, demangle.TruncatedInput(p.schemeName, p.origin, p.i+p.prefixBytes)
+		}
+		next := p.s[p.i+1]
+		if node, ok := common.BuildStdlibNominal2(next); ok {
+			p.i += 2
+			return node, nil
+		}
+		return nil, p.grammarErr("stdlib substitution letter (Sc<X>)")
 	}
 	node, ok := common.BuildStdlibNominal(c)
 	if !ok {
