@@ -153,28 +153,91 @@ func (p *parser) peek() byte {
 //   - Nominal type: <ctx><ident><kindByte>
 //   - Bare type: builtin or stdlib sub.
 //
-// Current subset: one-level module + identifier + yyF, plus
-// module + type-nominal + identifier + yyF (methods on structs,
-// classes, enums).
+// Any of those may be followed by a 2-letter entity-suffix marker
+// that wraps the preceding node (e.g. "Mn" = nominal type descriptor
+// for X, "Hn" = runtime record for nominal type descriptor for X).
 func (p *parser) parseGlobal() (*demangle.Node, error) {
 	g := common.NewNode(common.KindGlobal)
 
 	// Try function entity first — it's the most common shape in the
 	// Apple corpus. Roll back on no-match.
+	var inner *demangle.Node
 	if entity, ok, err := p.tryFunctionEntity(); err != nil {
 		return nil, err
 	} else if ok {
-		common.AddChildren(g, entity)
-		return g, nil
+		inner = entity
+	} else {
+		t, err := p.parseType()
+		if err != nil {
+			return nil, err
+		}
+		inner = t
 	}
 
-	// Fall back to bare type.
-	t, err := p.parseType()
-	if err != nil {
-		return nil, err
+	// Optional entity-suffix marker wraps inner.
+	if wrapped, ok := p.tryEntitySuffix(inner); ok {
+		inner = wrapped
 	}
-	common.AddChildren(g, t)
+
+	common.AddChildren(g, inner)
 	return g, nil
+}
+
+// tryEntitySuffix matches the common 2-letter runtime-record and
+// descriptor markers that appear after a nominal type or function
+// entity. Returns (wrapped, consumed) — unchanged on no-match.
+func (p *parser) tryEntitySuffix(inner *demangle.Node) (*demangle.Node, bool) {
+	if p.i+1 >= len(p.s) {
+		return inner, false
+	}
+	prefix := ""
+	switch p.s[p.i] {
+	case 'M':
+		// Metadata kinds.
+		switch p.s[p.i+1] {
+		case 'n':
+			prefix = "nominal type descriptor for "
+		case 'a':
+			prefix = "type metadata accessor for "
+		case 'f':
+			prefix = "metaclass for "
+		case 'p':
+			prefix = "protocol descriptor for "
+		case 'L':
+			prefix = "type metadata pattern for "
+		}
+	case 'H':
+		// Runtime-record kinds.
+		switch p.s[p.i+1] {
+		case 'n':
+			prefix = "nominal type descriptor runtime record for "
+		case 'r':
+			prefix = "protocol descriptor runtime record for "
+		case 'c':
+			prefix = "protocol conformance descriptor runtime record for "
+		case 'o':
+			prefix = "opaque type descriptor runtime record for "
+		}
+	case 'W':
+		switch p.s[p.i+1] {
+		case 'l':
+			prefix = "lazy protocol witness table accessor for "
+		case 'L':
+			prefix = "lazy protocol witness table cache variable for "
+		case 'P':
+			prefix = "protocol witness table for "
+		}
+	}
+	if prefix == "" {
+		return inner, false
+	}
+	p.i += 2
+	// Render inner + wrap in a TypeMangling node so the printer
+	// emits "prefix <inner-display>" form.
+	wrap := common.NewNode(common.KindTypeMangling)
+	wrap.Text = prefix
+	common.AddChildren(wrap, inner)
+	return wrap, true
 }
 
 // tryFunctionEntity attempts to match:

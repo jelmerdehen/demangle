@@ -50,6 +50,9 @@ func printNode(b *strings.Builder, n *demangle.Node, opts PrintOptions) {
 			printNode(b, n.Children[0], opts)
 		}
 	case KindTypeMangling:
+		if n.Text != "" {
+			b.WriteString(n.Text)
+		}
 		for _, c := range n.Children {
 			printNode(b, c, opts)
 		}

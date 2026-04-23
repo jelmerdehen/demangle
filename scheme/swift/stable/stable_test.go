@@ -148,6 +148,32 @@ func TestStableFunctionEntities(t *testing.T) {
 	}
 }
 
+func TestStableEntitySuffixes(t *testing.T) {
+	t.Parallel()
+	cat := newCatalog(t)
+	cases := []struct {
+		in, want string
+	}{
+		{"$ss5OtherVHn", "nominal type descriptor runtime record for Swift.Other"},
+		{"$ss6SimpleVHr", "protocol descriptor runtime record for Swift.Simple"},
+		{"$s4main3FooVMn", "nominal type descriptor for main.Foo"},
+		{"$s4main3FooVMa", "type metadata accessor for main.Foo"},
+	}
+	for _, c := range cases {
+		c := c
+		t.Run(c.in, func(t *testing.T) {
+			t.Parallel()
+			r, err := cat.Demangle(context.Background(), c.in, nil)
+			if err != nil {
+				t.Fatalf("demangle: %v", err)
+			}
+			if r.Output != c.want {
+				t.Fatalf("output = %q, want %q", r.Output, c.want)
+			}
+		})
+	}
+}
+
 func TestStableBoundGenerics(t *testing.T) {
 	t.Parallel()
 	cat := newCatalog(t)
