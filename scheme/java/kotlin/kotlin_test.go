@@ -37,6 +37,9 @@ var cases = []tc{
 	{"processItem$lambda$3", "processItem", "$lambda$3", "Lambda#3"},
 	{"access$secret$cp", "secret", "access$$cp", "PrivateAccessor"},
 	{"$$WhenMappings", "", "$$WhenMappings", "WhenMappings"},
+	{"Foo$DefaultImpls", "Foo", "$DefaultImpls", "DefaultImpls"},
+	{"Foo$Factory", "Foo", "$Factory", "Factory"},
+	{"$delegatedProperties", "", "$delegatedProperties", "DelegatedProperties"},
 }
 
 func TestKotlinDemangle(t *testing.T) {

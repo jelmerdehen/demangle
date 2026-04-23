@@ -75,12 +75,16 @@ type suffixEntry struct {
 // class companions) are handled separately below.
 var fixedSuffixes = []suffixEntry{
 	{"$$WhenMappings", "WhenMappings"},
+	{"$delegatedProperties", "DelegatedProperties"},
 	{"$annotations", "Annotations"},
 	{"$default", "DefaultArgsDispatcher"},
 	{"-box-impl", "InlineBox"},
 	{"-unbox-impl", "InlineUnbox"},
 	{"$Companion", "Companion"},
 	{"$Serializer", "Serializer"},
+	{"$Factory", "Factory"},
+	{"$DefaultImpls", "DefaultImpls"},
+	{"$-innerClass", "InnerClass"},
 	{"-impl", "InlineImpl"},
 }
 
