@@ -4,6 +4,27 @@ All notable changes to this project will be documented here. Format
 follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). This
 project uses semantic versioning.
 
+## [0.1.2] - 2026-04-24
+
+### Added
+
+- Swift stable: K (throws) + Y (async) function-attribute flags
+  between return type and F marker.
+- MSVC pointer-to-primitive argument types (PAH → int*, PBD →
+  char const*).
+- MSVC special-name forms: ??0 (ctor) / ??1 (dtor) / ??_7 (vftable)
+  / ??_R0 (RTTI).
+- Basic MSVC templates ?$Name@<prim-args>.
+- Production-ready `cmd/demanglegrpc` options: `--tls-cert` +
+  `--tls-key`, `--max-recv-mb`, keepalive + enforcement policies.
+- `demangle catalog stats` CLI for at-a-glance registry summary.
+- `demangle batch --corpus -` (stdin), `--format jsonl`, `--only-ok`.
+- `CONTRIBUTING.md` — PR checklist + CI-gate explainer.
+
+### Changed
+
+- Bench baselines refreshed.
+
 ## [0.1.1] - 2026-04-24
 
 ### Added
