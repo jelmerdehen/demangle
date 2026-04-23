@@ -7,4 +7,6 @@ package all
 
 import (
 	_ "github.com/jelmerdehen/demangle/scheme/cxxitanium"
+	_ "github.com/jelmerdehen/demangle/scheme/cxxmsvc"
+	_ "github.com/jelmerdehen/demangle/scheme/dlang"
 )

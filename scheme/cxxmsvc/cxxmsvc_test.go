@@ -1,0 +1,76 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2026 Jelmer de Hen
+
+package cxxmsvc_test
+
+import (
+	"context"
+	"testing"
+
+	"github.com/jelmerdehen/demangle"
+	"github.com/jelmerdehen/demangle/scheme/cxxmsvc"
+)
+
+func newCatalog(t *testing.T) *demangle.Catalog {
+	t.Helper()
+	c := demangle.NewCatalog()
+	c.Register(cxxmsvc.Scheme{})
+	return c
+}
+
+func TestMSVCBasics(t *testing.T) {
+	t.Parallel()
+	cat := newCatalog(t)
+	cases := []struct {
+		in, want string
+	}{
+		// Free function: void __cdecl foo(void)
+		{"?foo@@YAXXZ", "void __cdecl foo(void)"},
+		// Nested namespace.
+		{"?baz@Bar@Foo@@YAXXZ", "void __cdecl Foo::Bar::baz(void)"},
+	}
+	for _, c := range cases {
+		c := c
+		t.Run(c.in, func(t *testing.T) {
+			t.Parallel()
+			r, err := cat.Demangle(context.Background(), c.in, nil)
+			if err != nil {
+				t.Fatalf("demangle: %v", err)
+			}
+			if r.Output != c.want {
+				t.Fatalf("output = %q, want %q", r.Output, c.want)
+			}
+		})
+	}
+}
+
+func TestMSVCSniff(t *testing.T) {
+	t.Parallel()
+	s := cxxmsvc.Scheme{}
+	for _, c := range []struct {
+		in      string
+		wantHit bool
+	}{
+		{"?foo@@YAXXZ", true},
+		{"_Z1fv", false},
+		{"_$s10Foundation4DataV", false},
+		{"", false},
+	} {
+		c := c
+		t.Run(c.in, func(t *testing.T) {
+			_, ok := s.Sniff(c.in)
+			if ok != c.wantHit {
+				t.Fatalf("sniff = %v, want %v", ok, c.wantHit)
+			}
+		})
+	}
+}
+
+func TestMSVCRejectsNonMangled(t *testing.T) {
+	t.Parallel()
+	cat := newCatalog(t)
+	_, err := cat.Demangle(context.Background(), "plain", nil)
+	if err == nil {
+		t.Fatalf("expected error")
+	}
+}
