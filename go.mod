@@ -2,7 +2,10 @@ module github.com/jelmerdehen/demangle
 
 go 1.26
 
-require modernc.org/sqlite v1.49.1
+require (
+	github.com/ianlancetaylor/demangle v0.0.0-20251118225945-96ee0021ea0f
+	modernc.org/sqlite v1.49.1
+)
 
 require (
 	github.com/dustin/go-humanize v1.0.1 // indirect
