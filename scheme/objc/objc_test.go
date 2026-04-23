@@ -66,6 +66,33 @@ func TestObjCBlockInvoke(t *testing.T) {
 	}
 }
 
+func TestObjCRuntimeSymbols(t *testing.T) {
+	t.Parallel()
+	cat := newCatalog(t)
+	cases := []struct {
+		in       string
+		wantKind string
+	}{
+		{"_OBJC_CLASS_$_NSString", "class symbol"},
+		{"_OBJC_METACLASS_$_NSArray", "metaclass symbol"},
+		{"_OBJC_PROTOCOL_$_NSCoding", "protocol symbol"},
+		{"_OBJC_IVAR_$_NSString._bytes", "ivar offset"},
+	}
+	for _, c := range cases {
+		c := c
+		t.Run(c.in, func(t *testing.T) {
+			t.Parallel()
+			r, err := cat.Demangle(context.Background(), c.in, nil)
+			if err != nil {
+				t.Fatalf("demangle: %v", err)
+			}
+			if r.Annotations["objc.kind"] != c.wantKind {
+				t.Fatalf("kind = %q, want %q", r.Annotations["objc.kind"], c.wantKind)
+			}
+		})
+	}
+}
+
 func TestObjCSniff(t *testing.T) {
 	t.Parallel()
 	s := objc.Scheme{}
