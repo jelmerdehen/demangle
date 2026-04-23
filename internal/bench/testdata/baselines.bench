@@ -2,35 +2,35 @@ goos: linux
 goarch: amd64
 pkg: github.com/jelmerdehen/demangle/internal/bench
 cpu: 11th Gen Intel(R) Core(TM) i9-11900K @ 3.50GHz
-BenchmarkSchemesAll/swift-stable/builtin-16         	 2185078	       260.7 ns/op	     456 B/op	       9 allocs/op
-BenchmarkSchemesAll/swift-stable/nominal-16         	 1510534	       410.4 ns/op	     776 B/op	      14 allocs/op
-BenchmarkSchemesAll/swift-stable/bound-generic-16   	  768978	       813.5 ns/op	    1320 B/op	      30 allocs/op
-BenchmarkSchemesAll/swift-stable/function-yyF-16    	 1000000	       547.7 ns/op	     848 B/op	      17 allocs/op
-BenchmarkSchemesAll/swift-stable/function-one-arg-16         	  635746	      1045 ns/op	    1512 B/op	      33 allocs/op
-BenchmarkSchemesAll/cpp-itanium/short-16                     	  752582	       802.2 ns/op	    1568 B/op	      21 allocs/op
-BenchmarkSchemesAll/cpp-itanium/class-method-16              	  464179	      1397 ns/op	    1856 B/op	      30 allocs/op
-BenchmarkSchemesAll/cpp-itanium/ctor-16                      	  318117	      2179 ns/op	    2264 B/op	      42 allocs/op
-BenchmarkSchemesAll/cpp-itanium/operator-16                  	  574142	      1062 ns/op	    1656 B/op	      25 allocs/op
-BenchmarkSchemesAll/cpp-msvc/free-fn-16                      	 2615571	       247.9 ns/op	     312 B/op	       6 allocs/op
-BenchmarkSchemesAll/cpp-msvc/nested-16                       	 1347248	       497.4 ns/op	     576 B/op	      12 allocs/op
-BenchmarkSchemesAll/rust-v0/short-16                         	 1830256	       315.0 ns/op	     712 B/op	       7 allocs/op
-BenchmarkSchemesAll/rust-legacy/write_fmt-16                 	 1583457	       395.9 ns/op	     632 B/op	       7 allocs/op
-BenchmarkSchemesAll/dlang/nested-16                          	 1589958	       362.3 ns/op	    1016 B/op	       9 allocs/op
-BenchmarkSchemesAll/jni/basic-16                             	 2709692	       229.2 ns/op	     464 B/op	       7 allocs/op
-BenchmarkSchemesAll/jni/argsig-16                            	 1400611	       506.3 ns/op	     648 B/op	      11 allocs/op
-BenchmarkSchemesAll/jvmdesc/primitive-16                     	10164512	        59.49 ns/op	     240 B/op	       2 allocs/op
-BenchmarkSchemesAll/jvmdesc/class-ref-16                     	 4024807	       156.2 ns/op	     320 B/op	       4 allocs/op
-BenchmarkSchemesAll/jvmdesc/method-16                        	 1824913	       306.6 ns/op	     392 B/op	       6 allocs/op
-BenchmarkSchemesAll/jvmdesc/generic-16                       	 1705482	       407.4 ns/op	     456 B/op	       8 allocs/op
-BenchmarkSchemesAll/kotlin/default-16                        	 2421648	       249.6 ns/op	     912 B/op	       6 allocs/op
-BenchmarkSchemesAll/kotlin/inline-hash-16                    	  935956	       660.9 ns/op	     979 B/op	       8 allocs/op
-BenchmarkSchemesAll/scala2/plus-eq-16                        	 2779431	       197.1 ns/op	     248 B/op	       3 allocs/op
-BenchmarkSchemesAll/scala2/colon-colon-16                    	 4799120	       123.6 ns/op	     256 B/op	       3 allocs/op
-BenchmarkSchemesAll/android-dex/method-16                    	 4488861	       141.3 ns/op	     280 B/op	       4 allocs/op
-BenchmarkSchemesAll/android-dex/array-16                     	 4314687	       150.7 ns/op	     280 B/op	       4 allocs/op
-BenchmarkSchemesAll/js-minified/terser-16                    	 2571087	       232.2 ns/op	     576 B/op	       4 allocs/op
-BenchmarkSchemesAll/js-minified/obf-hex-16                   	 2343102	       282.0 ns/op	     576 B/op	       4 allocs/op
-BenchmarkBatch-16                                            	    1455	    430047 ns/op	    520873 names/sec	  775922 B/op	    4335 allocs/op
+BenchmarkSchemesAll/swift-stable/builtin-16         	 1261240	       485.9 ns/op	     456 B/op	       9 allocs/op
+BenchmarkSchemesAll/swift-stable/nominal-16         	  820286	       723.6 ns/op	     776 B/op	      14 allocs/op
+BenchmarkSchemesAll/swift-stable/bound-generic-16   	  400856	      1391 ns/op	    1320 B/op	      30 allocs/op
+BenchmarkSchemesAll/swift-stable/function-yyF-16    	  666996	       847.5 ns/op	     848 B/op	      17 allocs/op
+BenchmarkSchemesAll/swift-stable/function-one-arg-16         	  374588	      1624 ns/op	    1512 B/op	      33 allocs/op
+BenchmarkSchemesAll/cpp-itanium/short-16                     	  431785	      1515 ns/op	    1568 B/op	      21 allocs/op
+BenchmarkSchemesAll/cpp-itanium/class-method-16              	  286558	      2327 ns/op	    1856 B/op	      30 allocs/op
+BenchmarkSchemesAll/cpp-itanium/ctor-16                      	  164083	      3458 ns/op	    2264 B/op	      42 allocs/op
+BenchmarkSchemesAll/cpp-itanium/operator-16                  	  352462	      1728 ns/op	    1656 B/op	      25 allocs/op
+BenchmarkSchemesAll/cpp-msvc/free-fn-16                      	 1522016	       380.0 ns/op	     312 B/op	       6 allocs/op
+BenchmarkSchemesAll/cpp-msvc/nested-16                       	  697044	       757.9 ns/op	     576 B/op	      12 allocs/op
+BenchmarkSchemesAll/rust-v0/short-16                         	 1010935	       613.1 ns/op	     712 B/op	       7 allocs/op
+BenchmarkSchemesAll/rust-legacy/write_fmt-16                 	  810350	       644.8 ns/op	     632 B/op	       7 allocs/op
+BenchmarkSchemesAll/dlang/nested-16                          	  912002	       680.1 ns/op	    1016 B/op	       9 allocs/op
+BenchmarkSchemesAll/jni/basic-16                             	 1411054	       429.5 ns/op	     464 B/op	       7 allocs/op
+BenchmarkSchemesAll/jni/argsig-16                            	  736477	       684.1 ns/op	     648 B/op	      11 allocs/op
+BenchmarkSchemesAll/jvmdesc/primitive-16                     	 5344682	       105.6 ns/op	     240 B/op	       2 allocs/op
+BenchmarkSchemesAll/jvmdesc/class-ref-16                     	 1970407	       298.3 ns/op	     320 B/op	       4 allocs/op
+BenchmarkSchemesAll/jvmdesc/method-16                        	 1000000	       501.5 ns/op	     392 B/op	       6 allocs/op
+BenchmarkSchemesAll/jvmdesc/generic-16                       	  913074	       667.5 ns/op	     456 B/op	       8 allocs/op
+BenchmarkSchemesAll/kotlin/default-16                        	 1000000	       501.3 ns/op	     912 B/op	       6 allocs/op
+BenchmarkSchemesAll/kotlin/inline-hash-16                    	  464299	      1221 ns/op	     980 B/op	       8 allocs/op
+BenchmarkSchemesAll/scala2/plus-eq-16                        	 1935522	       290.0 ns/op	     248 B/op	       3 allocs/op
+BenchmarkSchemesAll/scala2/colon-colon-16                    	 2320317	       264.2 ns/op	     256 B/op	       3 allocs/op
+BenchmarkSchemesAll/android-dex/method-16                    	 2155390	       279.3 ns/op	     280 B/op	       4 allocs/op
+BenchmarkSchemesAll/android-dex/array-16                     	 2103440	       296.2 ns/op	     280 B/op	       4 allocs/op
+BenchmarkSchemesAll/js-minified/terser-16                    	 1371878	       478.7 ns/op	     576 B/op	       4 allocs/op
+BenchmarkSchemesAll/js-minified/obf-hex-16                   	  963040	       523.2 ns/op	     576 B/op	       4 allocs/op
+BenchmarkBatch-16                                            	    1024	    644724 ns/op	    347436 names/sec	  776103 B/op	    4335 allocs/op
 PASS
-ok  	github.com/jelmerdehen/demangle/internal/bench	23.844s
+ok  	github.com/jelmerdehen/demangle/internal/bench	21.040s
 ?   	github.com/jelmerdehen/demangle/internal/bench/cmd/bench-compare	[no test files]

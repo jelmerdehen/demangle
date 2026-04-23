@@ -4,6 +4,35 @@ All notable changes to this project will be documented here. Format
 follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). This
 project uses semantic versioning.
 
+## [0.1.1] - 2026-04-24
+
+### Added
+
+- Swift stable grammar ratchet: function entities with non-void
+  args + returns, entity-suffix markers (`Mn`/`Ma`/`Mf`/`Mp`/`ML` +
+  `Hn`/`Hr`/`Hc`/`Ho` + `Wl`/`WL`/`WP`).
+- Swift variant subpackages: v42 / v40 / embedded / macro / old each
+  get regression tests locking in prefix-routing semantics.
+- Corpus-seeded `FuzzSwiftStable` fuzzer (~790k execs in 10s, zero
+  panics).
+- Fuzz harnesses for every remaining hand-written parser: MSVC,
+  D, JNI, Kotlin, Scala2, dex, ProGuard, JS source map, JS
+  minified.
+- MSVC basic template support: `?$Name@<prim-args>@Scope@@...`
+  renders as `Scope::Name<arg1, …>::…`.
+- CLI batch: stdin corpus via `--corpus -`, JSONL output via
+  `--format jsonl`, `--only-ok` filter for piping.
+- CLI `catalog stats` — registry summary (scheme count, family /
+  fidelity / stability breakdown, Mangler percentage).
+- `examples/go-consumer/` — runnable Go integration reference.
+- `examples/python-grpc-client/` — documentation for non-Go
+  consumers of `cmd/demanglegrpc`.
+
+### Changed
+
+- Apple-corpus minimum ratchet raised from 4 to 8 direct matches.
+- Bench baselines refreshed.
+
 ## [0.1.0] - 2026-04-23
 
 First tagged release. **18 schemes** across 6 families, all tests
