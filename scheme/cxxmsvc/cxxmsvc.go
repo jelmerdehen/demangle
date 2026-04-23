@@ -138,6 +138,8 @@ func (p *parser) parse() (string, error) {
 
 // parseNameChain reads identifiers separated by '@' until it sees
 // '@@'. Example: "?foo@Bar@Baz@@..." → ["foo", "Bar", "Baz"].
+// Template names appear as "?$<name>@<arg1>@<arg2>@@" at any point
+// in the chain; rendered as "<name><arg1, arg2, …>".
 func (p *parser) parseNameChain() ([]string, error) {
 	var parts []string
 	for {
@@ -165,6 +167,17 @@ func (p *parser) parseNameChain() ([]string, error) {
 			parts = append(parts, p.names[idx])
 			continue
 		}
+		// Template: ?$<name>@<arg>+@@
+		if p.peek() == '?' && p.i+1 < len(p.s) && p.s[p.i+1] == '$' {
+			p.i += 2
+			tmpl, err := p.parseTemplate()
+			if err != nil {
+				return nil, err
+			}
+			parts = append(parts, tmpl)
+			p.names = append(p.names, tmpl)
+			continue
+		}
 		// Plain identifier: read until '@'.
 		start := p.i
 		for !p.eof() && p.s[p.i] != '@' {
@@ -177,6 +190,74 @@ func (p *parser) parseNameChain() ([]string, error) {
 		parts = append(parts, name)
 		p.names = append(p.names, name)
 	}
+}
+
+// parseTemplate — narrow subset handling "?$<name>@<arg>@..."
+// where each arg is a single primitive-type letter. After consuming
+// as many args as we can identify by that shape, we stop and let
+// the caller continue the outer scope chain. This covers the common
+// std::vector<int>, std::basic_string<char>, …-style cases.
+func (p *parser) parseTemplate() (string, error) {
+	// Template name up to '@'.
+	start := p.i
+	for !p.eof() && p.s[p.i] != '@' {
+		p.i++
+	}
+	if start == p.i {
+		return "", p.grammarErr("template name")
+	}
+	name := p.s[start:p.i]
+	if p.eof() || p.s[p.i] != '@' {
+		return "", p.grammarErr("'@' after template name")
+	}
+	p.i++ // consume '@'
+	// Collect primitive-type args one at a time. Stop at first byte
+	// that isn't a recognised primitive — remaining tokens are part
+	// of the enclosing scope chain, not this template.
+	var args []string
+	for !p.eof() {
+		ty := primitiveTypeName(p.s[p.i])
+		if ty == "" {
+			break
+		}
+		args = append(args, ty)
+		p.i++
+		// Each arg is followed by '@' in the template invocation.
+		if !p.eof() && p.s[p.i] == '@' {
+			p.i++
+		}
+	}
+	return name + "<" + strings.Join(args, ", ") + ">", nil
+}
+
+// primitiveTypeName returns the MSVC primitive-type byte's C/C++
+// display form, or "" if the byte isn't a primitive.
+func primitiveTypeName(c byte) string {
+	switch c {
+	case 'H':
+		return "int"
+	case 'D':
+		return "char"
+	case 'E':
+		return "unsigned char"
+	case 'F':
+		return "short"
+	case 'G':
+		return "unsigned short"
+	case 'I':
+		return "unsigned int"
+	case 'J':
+		return "long"
+	case 'K':
+		return "unsigned long"
+	case 'M':
+		return "float"
+	case 'N':
+		return "double"
+	case 'X':
+		return "void"
+	}
+	return ""
 }
 
 type signature struct {

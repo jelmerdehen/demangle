@@ -28,6 +28,8 @@ func TestMSVCBasics(t *testing.T) {
 		{"?foo@@YAXXZ", "void __cdecl foo(void)"},
 		// Nested namespace.
 		{"?baz@Bar@Foo@@YAXXZ", "void __cdecl Foo::Bar::baz(void)"},
+		// Template: std::vector<int>::method(void).
+		{"?method@?$vector@H@std@@YAXXZ", "void __cdecl std::vector<int>::method(void)"},
 	}
 	for _, c := range cases {
 		c := c
