@@ -4,6 +4,16 @@ All notable changes to this project will be documented here. Format
 follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). This
 project uses semantic versioning.
 
+## [0.1.6] - 2026-04-24
+
+### Added
+
+- objc scheme: Mach-O ObjC runtime-symbol prefixes
+  (`_OBJC_CLASS_$_`, `_OBJC_METACLASS_$_`, `_OBJC_PROTOCOL_$_`,
+  `_OBJC_IVAR_$_`, `_OBJC_LABEL_CLASS_$`, `_OBJC_LABEL_PROTOCOL_$`).
+  Surfaces `objc.kind` + `objc.name` / `objc.class` / `objc.ivar`
+  annotations.
+
 ## [0.1.5] - 2026-04-24
 
 ### Added
