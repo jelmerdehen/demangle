@@ -357,10 +357,42 @@ func primitiveTypeName(c byte) string {
 		return "float"
 	case 'N':
 		return "double"
+	case 'O':
+		return "long double"
 	case 'X':
 		return "void"
+	case '_':
+		// Two-byte primitives use '_' prefix; caller checks the next
+		// byte separately.
+		return ""
 	}
 	return ""
+}
+
+// primitiveTypeNameExt handles the two-byte `_<letter>` primitives.
+// Returns (name, bytesConsumed) — (0, "") if the pair isn't a known
+// extended primitive.
+func primitiveTypeNameExt(s string) (string, int) {
+	if len(s) < 2 || s[0] != '_' {
+		return "", 0
+	}
+	switch s[1] {
+	case 'N':
+		return "bool", 2
+	case 'W':
+		return "wchar_t", 2
+	case 'T':
+		return "char16_t", 2
+	case 'U':
+		return "char32_t", 2
+	case 'S':
+		return "char8_t", 2
+	case 'J':
+		return "__int64", 2
+	case 'K':
+		return "unsigned __int64", 2
+	}
+	return "", 0
 }
 
 type signature struct {
@@ -572,6 +604,14 @@ func (p *parser) parseSignatureMode(ctorDtor bool) (signature, error) {
 			args = append(args, pt)
 			p.i++
 			continue
+		}
+		// Extended primitive (two-byte `_<letter>`).
+		if c == '_' {
+			if pt, n := primitiveTypeNameExt(p.s[p.i:]); pt != "" {
+				args = append(args, pt)
+				p.i += n
+				continue
+			}
 		}
 		return sig, p.grammarErr("arg type byte")
 	}

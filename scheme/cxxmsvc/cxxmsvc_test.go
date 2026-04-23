@@ -44,6 +44,12 @@ func TestMSVCBasics(t *testing.T) {
 		{"?ref@@YAXAAH@Z", "void __cdecl ref(int&)"},
 		// Const-lvalue reference arg: char const&
 		{"?cref@@YAXABD@Z", "void __cdecl cref(char const&)"},
+		// bool arg.
+		{"?b@@YAX_N@Z", "void __cdecl b(bool)"},
+		// wchar_t arg.
+		{"?w@@YAX_W@Z", "void __cdecl w(wchar_t)"},
+		// __int64 arg.
+		{"?i@@YAX_J@Z", "void __cdecl i(__int64)"},
 	}
 	for _, c := range cases {
 		c := c
