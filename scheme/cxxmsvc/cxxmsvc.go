@@ -80,6 +80,20 @@ func (Scheme) Demangle(_ context.Context, in string, _ demangle.Options) (*deman
 	}
 	p := &parser{s: in, i: 1}
 
+	// Special-name prefixes (??0 / ??1 / ??_7 / ??_R0 …). These
+	// start with "?" at position 1. Handle the common ones before
+	// the generic parse path.
+	if p.i < len(p.s) && p.s[p.i] == '?' {
+		if display, ok, err := p.parseSpecialName(); err != nil {
+			return nil, err
+		} else if ok {
+			return &demangle.Result{
+				Scheme: "cpp-msvc", Input: in, Output: display,
+				Tree: &demangle.Node{Scheme: "cpp-msvc", Kind: KindSymbol, Text: display},
+			}, nil
+		}
+	}
+
 	display, err := p.parse()
 	if err != nil {
 		return nil, err
@@ -92,6 +106,95 @@ func (Scheme) Demangle(_ context.Context, in string, _ demangle.Options) (*deman
 			Scheme: "cpp-msvc", Kind: KindSymbol, Text: display,
 		},
 	}, nil
+}
+
+// parseSpecialName handles "??<op>..." name forms:
+//
+//	??0<scope-chain>@@...    — constructor
+//	??1<scope-chain>@@...    — destructor
+//	??_7<scope-chain>@@...   — vftable (virtual function table)
+//	??_R0?AV<scope-chain>@@  — RTTI type descriptor (narrow subset)
+//
+// Returns (display, matched, err). On matched=false the caller falls
+// back to the generic path.
+func (p *parser) parseSpecialName() (string, bool, error) {
+	p.i++ // consume second '?'
+	if p.eof() {
+		return "", false, p.truncated()
+	}
+	switch p.s[p.i] {
+	case '0':
+		p.i++
+		chain, err := p.parseNameChain()
+		if err != nil {
+			return "", true, err
+		}
+		sig, err := p.parseSignatureMode(true)
+		if err != nil {
+			return "", true, err
+		}
+		joined := strings.Join(reverse(chain), "::")
+		base := joined
+		if dot := strings.LastIndex(joined, "::"); dot >= 0 {
+			base = joined[dot+2:]
+		}
+		prefix := ""
+		if sig.quals != "" {
+			prefix = sig.quals + " "
+		}
+		return prefix + joined + "::" + base + "(" + sig.args + ")", true, nil
+	case '1':
+		p.i++
+		chain, err := p.parseNameChain()
+		if err != nil {
+			return "", true, err
+		}
+		sig, err := p.parseSignatureMode(true)
+		if err != nil {
+			return "", true, err
+		}
+		joined := strings.Join(reverse(chain), "::")
+		base := joined
+		if dot := strings.LastIndex(joined, "::"); dot >= 0 {
+			base = joined[dot+2:]
+		}
+		prefix := ""
+		if sig.quals != "" {
+			prefix = sig.quals + " "
+		}
+		return prefix + joined + "::~" + base + "(" + sig.args + ")", true, nil
+	case '_':
+		if p.i+1 >= len(p.s) {
+			p.i-- // rewind the consumed '?'
+			return "", false, nil
+		}
+		switch p.s[p.i+1] {
+		case '7':
+			p.i += 2
+			chain, err := p.parseNameChain()
+			if err != nil {
+				return "", true, err
+			}
+			return "const " + strings.Join(reverse(chain), "::") + "::`vftable'", true, nil
+		case 'R':
+			// ??_R0: RTTI type descriptor. Narrow — skip the suffix.
+			if p.i+3 < len(p.s) && p.s[p.i+2] == '0' {
+				p.i += 3
+				// Consume "?AV" or "?AU" optional scope-class marker.
+				if p.i+2 < len(p.s) && p.s[p.i] == '?' {
+					p.i += 3
+				}
+				chain, err := p.parseNameChain()
+				if err != nil {
+					return "", true, err
+				}
+				return strings.Join(reverse(chain), "::") + " `RTTI Type Descriptor'", true, nil
+			}
+		}
+	}
+	// Unknown special form — rewind and let the generic path take over.
+	p.i--
+	return "", false, nil
 }
 
 // parser implements the narrow subset. Simple bytes-and-backrefs;
@@ -283,6 +386,12 @@ type signature struct {
 // Return+args: 'X' = void. 'XXZ' = void-return void-arg.
 // 'XZ' after a method = void-arg only (thiscall return is first).
 func (p *parser) parseSignature() (signature, error) {
+	return p.parseSignatureMode(false)
+}
+
+// parseSignatureMode — ctorDtor=true tells the parser the signature
+// has no explicit return-type byte (ctors/dtors return void).
+func (p *parser) parseSignatureMode(ctorDtor bool) (signature, error) {
 	sig := signature{args: "void"}
 	if p.eof() {
 		return sig, p.truncated()
@@ -366,32 +475,40 @@ func (p *parser) parseSignature() (signature, error) {
 	default:
 		return sig, p.grammarErr("calling convention")
 	}
-	// Return type.
+	// Return type. For ctors/dtors the wire-form has an '@' instead
+	// (no explicit return); we synthesise "void" in that case.
 	if p.eof() {
 		return sig, p.truncated()
 	}
-	ret := p.s[p.i]
-	p.i++
 	var retName string
-	switch ret {
-	case 'X':
-		retName = "void"
-	case 'H':
-		retName = "int"
-	case 'D':
-		retName = "char"
-	case 'J':
-		retName = "long"
-	case 'I':
-		retName = "unsigned int"
-	case 'K':
-		retName = "unsigned long"
-	case 'M':
-		retName = "float"
-	case 'N':
-		retName = "double"
-	default:
-		return sig, p.grammarErr("return type byte")
+	if ctorDtor {
+		if p.s[p.i] == '@' {
+			p.i++
+		}
+		retName = ""
+	} else {
+		ret := p.s[p.i]
+		p.i++
+		switch ret {
+		case 'X':
+			retName = "void"
+		case 'H':
+			retName = "int"
+		case 'D':
+			retName = "char"
+		case 'J':
+			retName = "long"
+		case 'I':
+			retName = "unsigned int"
+		case 'K':
+			retName = "unsigned long"
+		case 'M':
+			retName = "float"
+		case 'N':
+			retName = "double"
+		default:
+			return sig, p.grammarErr("return type byte")
+		}
 	}
 	// Args. Collect types until we hit 'Z' or '@'.
 	var args []string
@@ -460,12 +577,21 @@ func (p *parser) parseSignature() (signature, error) {
 	}
 	// Assemble quals.
 	prefix := accessQuals
-	if prefix != "" && convName != "" {
-		prefix += " " + retName + " " + convName
-	} else if convName != "" {
-		prefix = retName + " " + convName
+	if ctorDtor {
+		// Ctor/dtor: no return type in display.
+		if prefix != "" && convName != "" {
+			prefix += " " + convName
+		} else if convName != "" {
+			prefix = convName
+		}
 	} else {
-		prefix = retName
+		if prefix != "" && convName != "" {
+			prefix += " " + retName + " " + convName
+		} else if convName != "" {
+			prefix = retName + " " + convName
+		} else {
+			prefix = retName
+		}
 	}
 	sig.quals = prefix
 	return sig, nil

@@ -34,6 +34,12 @@ func TestMSVCBasics(t *testing.T) {
 		{"?foo@@YAXPAH@Z", "void __cdecl foo(int*)"},
 		// Pointer-to-const char: char const*
 		{"?bar@@YAXPBD@Z", "void __cdecl bar(char const*)"},
+		// Constructor.
+		{"??0Foo@@QAE@XZ", "public: __thiscall Foo::Foo(void)"},
+		// Destructor.
+		{"??1Foo@@QAE@XZ", "public: __thiscall Foo::~Foo(void)"},
+		// Virtual function table.
+		{"??_7Foo@@6B@", "const Foo::`vftable'"},
 	}
 	for _, c := range cases {
 		c := c
