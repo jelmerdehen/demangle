@@ -4,6 +4,30 @@ All notable changes to this project will be documented here. Format
 follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). This
 project uses semantic versioning.
 
+## [0.1.4] - 2026-04-24
+
+### Added
+
+- Swift stable: `Tw*` back-deploy + `TO` / `To` / `TD` / `TE` / `TN` / `Tn` /
+  `TA` / `Ta` / `TI` / `Tj` / `TY` / `Tu` thunk + dispatch suffixes.
+- Swift stable: `fC` / `fc` / `fD` / `fd` init / deinit markers.
+- Swift stable: PrintOptions end-to-end — `--qualify` / `--sugar` /
+  `--simplified` CLI flags now reach the printer.
+- Scala 2: `$anonfun$<N>` + trailing `$class` heuristic annotations.
+- Kotlin: `$DefaultImpls`, `$Factory`, `$delegatedProperties`,
+  `$-innerClass` suffixes.
+- Integration test: blank-imports scheme/all + exercises every
+  registered scheme via Catalog.Demangle. Panic-free on fixture
+  input from each family.
+- Scheme-count guard test that fires if a new scheme lands but
+  isn't registered on scheme/all.
+
+### Changed
+
+- Apple-corpus direct-match ratchet 8 → 11 (corpus-test gate
+  updated).
+- Bench baselines refreshed.
+
 ## [0.1.3] - 2026-04-24
 
 ### Added

@@ -19,10 +19,12 @@ package doc.
 | 6 — gRPC service scaffold | ✅ | proto + server + 5 integration tests |
 | 6.5 — deploy artifacts | 🚧 | healthz + metrics + TLS + keepalive + systemd unit ready; lux deploy gated on first real caller |
 
-## Tallies
+## Tallies (updated)
 
 - **19 schemes** registered.
-- **40+ commits** on `main`; **3+ tags**.
+- **50+ commits** on `main`; **4 tags** (v0.1.0 through v0.1.4).
+- **10 fuzz harnesses**.
+- Apple corpus: **11/153** direct matches, **0 mismatches**.
 - **9 fuzz harnesses** across hand-written parsers. Zero panics on
   millions of execs.
 - **535 k names/sec** on the batch API (meets the ≥ 500 k/sec spec
