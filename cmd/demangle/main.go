@@ -27,6 +27,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime/debug"
+	"sort"
 	"strings"
 	"time"
 
@@ -63,6 +64,8 @@ func main() {
 		err = runFuzz(args)
 	case "catalog":
 		err = runCatalog(args)
+	case "corpus":
+		err = runCorpus(args)
 	case "version":
 		err = runVersion(args)
 	case "help", "-h", "--help":
@@ -93,6 +96,7 @@ Commands:
   context delete <sha256>          delete a context by sha256
   fuzz --scheme NAME               convenience wrapper over "go test -fuzz"
   catalog stats                    summary: scheme count, family / fidelity / stability breakdowns
+  corpus <file>                    per-scheme match stats across newline-delimited inputs
   version                          print library build info
 
 See docs/ for details.
@@ -555,6 +559,79 @@ func runCatalogStats(_ []string) error {
 	fmt.Printf("\nby stability:\n")
 	for k, v := range byStability {
 		fmt.Printf("  %-14s %d\n", k, v)
+	}
+	return nil
+}
+
+// ---- corpus -------------------------------------------------------
+
+func runCorpus(args []string) error {
+	if len(args) != 1 {
+		return errors.New("corpus: expected exactly one <file> argument (or '-' for stdin)")
+	}
+	var f *os.File
+	if args[0] == "-" {
+		f = os.Stdin
+	} else {
+		var err error
+		f, err = os.Open(args[0])
+		if err != nil {
+			return err
+		}
+		defer f.Close()
+	}
+
+	byScheme := map[string]int{}
+	errorsByKind := map[string]int{}
+	var total, succeeded int
+
+	scanner := bufio.NewScanner(f)
+	scanner.Buffer(make([]byte, 0, 64*1024), 4*1024*1024)
+	ctx := context.Background()
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		total++
+		r, err := demangle.Default.Demangle(ctx, line, nil)
+		if err != nil {
+			var e *demangle.Error
+			if errors.As(err, &e) {
+				errorsByKind[e.Kind.String()]++
+			} else {
+				errorsByKind["unknown"]++
+			}
+			continue
+		}
+		succeeded++
+		byScheme[r.Scheme]++
+	}
+	if err := scanner.Err(); err != nil {
+		return err
+	}
+
+	fmt.Printf("corpus:        %d inputs\n", total)
+	if total > 0 {
+		fmt.Printf("succeeded:     %d (%.1f%%)\n", succeeded, 100*float64(succeeded)/float64(total))
+	}
+
+	if len(byScheme) > 0 {
+		fmt.Printf("\nby scheme:\n")
+		names := make([]string, 0, len(byScheme))
+		for k := range byScheme {
+			names = append(names, k)
+		}
+		sort.Slice(names, func(i, j int) bool { return byScheme[names[i]] > byScheme[names[j]] })
+		for _, k := range names {
+			fmt.Printf("  %-18s %6d\n", k, byScheme[k])
+		}
+	}
+	if len(errorsByKind) > 0 {
+		fmt.Printf("\nby error kind:\n")
+		for k, v := range errorsByKind {
+			fmt.Printf("  %-20s %6d\n", k, v)
+		}
 	}
 	return nil
 }
