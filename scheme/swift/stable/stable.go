@@ -942,6 +942,24 @@ func (p *parser) parseBuiltin() (*demangle.Node, error) {
 		return p.builtinTypeNamed("SILToken"), nil
 	case 'v':
 		return p.parseBuiltinVector()
+	case 'A':
+		return p.builtinTypeNamed("ImplicitActor"), nil
+	case 'B':
+		return p.builtinTypeNamed("UnsafeValueBuffer"), nil
+	case 'b':
+		return p.builtinTypeNamed("BridgeObject"), nil
+	case 'D':
+		return p.builtinTypeNamed("DefaultActorStorage"), nil
+	case 'd':
+		return p.builtinTypeNamed("NonDefaultDistributedActorStorage"), nil
+	case 'e':
+		return p.builtinTypeNamed("Executor"), nil
+	case 'I':
+		return p.builtinTypeNamed("IntLiteral"), nil
+	case 'j':
+		return p.builtinTypeNamed("Job"), nil
+	case 'P':
+		return p.builtinTypeNamed("PackIndex"), nil
 	}
 	return nil, p.grammarErr("builtin type class char")
 }
