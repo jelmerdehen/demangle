@@ -784,6 +784,18 @@ func (p *parser) truncated() error {
 	return demangle.TruncatedInput(p.schemeName, p.origin, p.i+p.prefixBytes)
 }
 
+// entitySuffixStart reports whether b introduces a 2/3-byte entity
+// suffix marker (H/M/T/W families). Used to infer implicit nominal
+// kinds when the suffix consumes the slot a kind byte would normally
+// occupy.
+func entitySuffixStart(b byte) bool {
+	switch b {
+	case 'H', 'M', 'T', 'W':
+		return true
+	}
+	return false
+}
+
 // parseNumericSubstitution — 'A' consumed; reads a base-10 index +
 // '_' and returns the previously-recorded Node at that position.
 // Apple uses base-36 (A0_..A9_,AA_..AZ_,Aa_..Az_) but base-10 covers
@@ -824,6 +836,18 @@ func (p *parser) parseNominalWithModule(module *demangle.Node) (*demangle.Node, 
 		return nil, demangle.TruncatedInput(p.schemeName, p.origin, p.i+p.prefixBytes)
 	}
 	k := p.s[p.i]
+	// If the kind byte slot is the start of an entity-suffix marker
+	// (H/W/T/M runtime-record and descriptor families), the grammar
+	// implicitly treats the decl-name as a protocol. The suffix handles
+	// the formal kind. Don't consume the byte here — let tryEntitySuffix
+	// see it.
+	if entitySuffixStart(k) {
+		typ := common.NewNode(common.KindType)
+		nom := common.NewNode(common.KindProtocol)
+		common.AddChildren(nom, module, common.NewIdentifier(name))
+		common.AddChildren(typ, nom)
+		return typ, nil
+	}
 	p.i++
 	var kind common.NodeKind
 	switch k {
