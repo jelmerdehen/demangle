@@ -21,8 +21,8 @@ package doc.
 
 ## Tallies
 
-- **18 schemes** registered.
-- **37 commits** on `main`; **3 tags** (v0.1.0, v0.1.1, v0.1.2).
+- **19 schemes** registered.
+- **40+ commits** on `main`; **3+ tags**.
 - **9 fuzz harnesses** across hand-written parsers. Zero panics on
   millions of execs.
 - **535 k names/sec** on the batch API (meets the ≥ 500 k/sec spec

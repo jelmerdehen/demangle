@@ -4,6 +4,27 @@ All notable changes to this project will be documented here. Format
 follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). This
 project uses semantic versioning.
 
+## [0.1.3] - 2026-04-24
+
+### Added
+
+- Swift stable: generic-parameter type references (`x` = A,
+  `q<n>_` = B..., `qd_` = A1, etc.).
+- D-lang: function-type trailer decode (F<args>Z<ret>) with
+  primitive-type-byte table.
+- MSVC: reference-type argument handling (lvalue `&`, rvalue `&&`)
+  with cv-qualifiers.
+- New scheme **gosym** — Go runtime symbol structure extraction
+  (`pkg.(*T).Method`, `pkg.Func-fm`, `pkg.Func.func1`, `type..eq.…`).
+  Annotations: `go.pkg`, `go.recv`, `go.method`, `go.name`,
+  `go.closure`, `go.kind`, `go.synthesized`.
+
+### Changed
+
+- Bench baselines refreshed.
+- Apple-corpus: 8/153 direct matches (unchanged); unsupported-trailer
+  count improves (parser gets further into more inputs).
+
 ## [0.1.2] - 2026-04-24
 
 ### Added
