@@ -128,6 +128,10 @@ func TestStableFunctionEntities(t *testing.T) {
 		{"$s4main3fooySiF", "main.foo() -> Swift.Int"},
 		// Function returning Array<Int>: () -> [Swift.Int].
 		{"$s4main3fooySaySiGF", "main.foo() -> [Swift.Int]"},
+		// Function taking Int returning void.
+		{"$s4main3fooSiyF", "main.foo(Swift.Int) -> ()"},
+		// Function taking Int returning String.
+		{"$s4main3fooSiSSF", "main.foo(Swift.Int) -> Swift.String"},
 	}
 	for _, c := range cases {
 		c := c

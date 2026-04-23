@@ -207,14 +207,21 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 	pathSteps = append(pathSteps, common.NewModule(mod))
 
 	// Walk identifier + optional (V/C/O) nominal-kind step until we
-	// hit a 'y' (function args marker).
+	// hit a function-sig marker: 'y' (empty args/return) OR the
+	// start of a type (B, S, s, A, or digit-led for a second-level
+	// path that's NOT an ident-kind pair).
 	for {
 		if p.eof() {
 			restore()
 			return nil, false, nil
 		}
 		c := p.s[p.i]
-		if c == 'y' {
+		if c == 'y' || c == 'B' || c == 'S' || c == 'A' {
+			break
+		}
+		// 's' module sub could start a type; but an ident chain
+		// step cannot start with 's' either (length-prefixed).
+		if c == 's' {
 			break
 		}
 		if !(c >= '0' && c <= '9') {
@@ -237,51 +244,55 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 		pathSteps = append(pathSteps, common.NewIdentifier(ident))
 	}
 
-	// Function type. Two common shapes handled here:
+	// Function type. Common shapes handled here:
 	//
-	//   yyF                             () -> ()
-	//   y <rettype> F                   () -> ret
-	//   <argtype> y F                   (arg) -> ()
+	//   yyF                   () -> ()
+	//   y <rettype> F         () -> <rettype>
+	//   <argtype> y F         (<argtype>) -> ()
+	//   <argtype> <rettype> F (<argtype>) -> <rettype>
 	//
-	// More general shapes (multi-arg tuples, labelled args, throws,
-	// async) land in later coverage commits.
-	if p.eof() || p.s[p.i] != 'y' {
+	// Multi-arg tuples, labelled args, throws, async, generics in
+	// signature are future-work; this branch bails on unrecognised
+	// shapes via full parser rollback.
+	if p.eof() {
 		restore()
 		return nil, false, nil
 	}
 	var args, ret *demangle.Node
-	p.i++ // consume first 'y'
-
-	// After first 'y', we might see:
-	//   y F         → args=empty, ret=empty
-	//   <type> F    → args=empty, ret=<type>
-	// Or the parsed shape was actually args-first, with the 'y' being
-	// the empty-args marker.
-	if !p.eof() && p.s[p.i] == 'y' && p.i+1 < len(p.s) && p.s[p.i+1] == 'F' {
-		p.i += 2
-		args = common.NewNode(common.KindEmptyList)
-		ret = common.NewNode(common.KindEmptyList)
-	} else if !p.eof() && p.s[p.i] == 'F' {
-		// Just 'yF' — this shouldn't really happen in stable ABI
-		// (need two slots) but handle defensively.
+	// Args slot.
+	if p.s[p.i] == 'y' {
 		p.i++
 		args = common.NewNode(common.KindEmptyList)
-		ret = common.NewNode(common.KindEmptyList)
 	} else {
-		// args is empty (the 'y' we consumed); try to parse a return type.
-		retType, err := p.parseType()
+		a, err := p.parseType()
 		if err != nil {
 			restore()
 			return nil, false, nil
 		}
-		if p.eof() || p.s[p.i] != 'F' {
+		args = a
+	}
+	// Return slot.
+	if p.eof() {
+		restore()
+		return nil, false, nil
+	}
+	if p.s[p.i] == 'y' {
+		p.i++
+		ret = common.NewNode(common.KindEmptyList)
+	} else {
+		r, err := p.parseType()
+		if err != nil {
 			restore()
 			return nil, false, nil
 		}
-		p.i++
-		args = common.NewNode(common.KindEmptyList)
-		ret = retType
+		ret = r
 	}
+	// Function marker.
+	if p.eof() || p.s[p.i] != 'F' {
+		restore()
+		return nil, false, nil
+	}
+	p.i++
 
 	path := common.NewNode(common.KindEntityPath)
 	common.AddChildren(path, pathSteps...)
