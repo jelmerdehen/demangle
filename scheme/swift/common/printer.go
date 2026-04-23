@@ -113,9 +113,10 @@ func printNominal(b *strings.Builder, n *demangle.Node, opts PrintOptions) {
 	b.WriteString(name)
 }
 
-// printFunctionEntity renders "Module.Path.name(args) -> ret".
+// printFunctionEntity renders "Module.Path.name(args) [async] [throws] -> ret".
 // Children shape: [path (EntityPath), args (Type or EmptyList),
-// ret (Type or EmptyList)].
+// ret (Type or EmptyList)]. Attrs may carry swift.async /
+// swift.throws flags.
 func printFunctionEntity(b *strings.Builder, n *demangle.Node, opts PrintOptions) {
 	if len(n.Children) < 3 {
 		b.WriteString("<FunctionEntity:malformed>")
@@ -126,7 +127,14 @@ func printFunctionEntity(b *strings.Builder, n *demangle.Node, opts PrintOptions
 	if n.Children[1] != nil && NodeKind(n.Children[1].Kind) != KindEmptyList {
 		printNode(b, n.Children[1], opts)
 	}
-	b.WriteString(") -> ")
+	b.WriteByte(')')
+	if n.Attrs["swift.async"] == "true" {
+		b.WriteString(" async")
+	}
+	if n.Attrs["swift.throws"] == "true" {
+		b.WriteString(" throws")
+	}
+	b.WriteString(" -> ")
 	if n.Children[2] == nil || NodeKind(n.Children[2].Kind) == KindEmptyList {
 		b.WriteString("()")
 	} else {

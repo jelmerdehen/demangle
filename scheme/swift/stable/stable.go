@@ -350,6 +350,25 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 		}
 		ret = r
 	}
+	// Optional function-attribute flags AFTER return, BEFORE F:
+	//   K — throws
+	//   Y — async
+	// Order in stable ABI is Y then K when both present.
+	throws := false
+	async := false
+	for !p.eof() {
+		switch p.s[p.i] {
+		case 'K':
+			throws = true
+			p.i++
+			continue
+		case 'Y':
+			async = true
+			p.i++
+			continue
+		}
+		break
+	}
 	// Function marker.
 	if p.eof() || p.s[p.i] != 'F' {
 		restore()
@@ -361,6 +380,13 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 	common.AddChildren(path, pathSteps...)
 
 	entity := common.NewNode(common.KindFunctionEntity)
+	entity.Attrs = map[string]string{}
+	if async {
+		entity.Attrs["swift.async"] = "true"
+	}
+	if throws {
+		entity.Attrs["swift.throws"] = "true"
+	}
 	common.AddChildren(entity, path, args, ret)
 	return entity, true, nil
 }
