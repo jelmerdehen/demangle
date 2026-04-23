@@ -178,6 +178,9 @@ func TestStableEntitySuffixes(t *testing.T) {
 		{"$s4main3fooyyFTj", "dispatch thunk of main.foo() -> ()"},
 		{"$s4main3FooVvp", "property main.Foo"},
 		{"$s4main3FooVvg", "getter for main.Foo"},
+		// Unmangled suffix.
+		{"$s4main3fooyyF.1", "main.foo() -> () with unmangled suffix \".1\""},
+		{"$s4main3fooyyFTA.1", "partial apply forwarder for main.foo() -> () with unmangled suffix \".1\""},
 	}
 	for _, c := range cases {
 		c := c

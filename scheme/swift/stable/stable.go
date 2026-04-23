@@ -92,6 +92,12 @@ func parseBodyWithOpts(schemeName, origin, body string, prefixBytes int, opts de
 	if err != nil {
 		return nil, err
 	}
+	// Unmangled suffix: ".<anything>" after the main parse.
+	unmangledSuffix := ""
+	if p.i < len(p.s) && p.s[p.i] == '.' {
+		unmangledSuffix = p.s[p.i:]
+		p.i = len(p.s)
+	}
 	if p.i != len(p.s) {
 		return nil, &demangle.Error{
 			Kind: demangle.ErrUnsupported, Scheme: schemeName,
@@ -112,6 +118,9 @@ func parseBodyWithOpts(schemeName, origin, body string, prefixBytes int, opts de
 		printOpts = common.DefaultPrintOptions()
 	}
 	display := common.Print(tree, printOpts)
+	if unmangledSuffix != "" {
+		display += " with unmangled suffix \"" + unmangledSuffix + "\""
+	}
 	return &demangle.Result{
 		Scheme: schemeName,
 		Input:  origin,
