@@ -8,6 +8,7 @@ package all
 
 import (
 	_ "github.com/jelmerdehen/demangle/scheme/cpp/all"
+	_ "github.com/jelmerdehen/demangle/scheme/gosym"
 	_ "github.com/jelmerdehen/demangle/scheme/java/all"
 	_ "github.com/jelmerdehen/demangle/scheme/js/all"
 	_ "github.com/jelmerdehen/demangle/scheme/rust"
