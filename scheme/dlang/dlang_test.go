@@ -28,6 +28,16 @@ func TestDLangNarrow(t *testing.T) {
 		{"_D3foo3barFZv", "foo.bar"},
 		{"_D3std3foo3barFZv", "std.foo.bar"},
 		{"_D3foo3barFiiZv", "foo.bar"},
+		// extern(C) linkage.
+		{"_D3foo3barFYaZv", "foo.bar"},
+		// nothrow @nogc attributes.
+		{"_D3foo3barFNbNaZv", "foo.bar"},
+		// Pointer-to-int arg.
+		{"_D3foo3barFPiZv", "foo.bar"},
+		// Dynamic-array of int arg.
+		{"_D3foo3barFAiZv", "foo.bar"},
+		// Associative-array [key int, value string(Aya = array of char ≈ string)].
+		{"_D3foo3barFHiAaZv", "foo.bar"},
 	}
 	for _, c := range cases {
 		c := c

@@ -104,39 +104,206 @@ func (Scheme) Demangle(_ context.Context, in string, _ demangle.Options) (*deman
 
 // decodeFunctionType reads a D function-type trailer:
 //
-//	F <linkage?> <params>* Z <return-primitive>
+//	F <linkage?> <func-attrs>* <params>* Z <return>
 //
-// Linkage prefixes: "Ya" (extern C), "Yb" (extern D), etc. We skip
-// any single-byte unknown prefix between F and the first param.
-// Params + return are single-byte primitive codes.
+// Linkage is 'Y' + one-byte suffix (`Ya` extern C, `Yb` extern D, …).
+// Function attributes are 'N' + one-byte suffix. Params + return are
+// D type codes — primitive bytes plus composite prefixes (P pointer,
+// A dynamic-array, G static-array, H associative-array, D delegate,
+// C class-ref, S struct-ref).
 func decodeFunctionType(s string) (string, bool) {
 	if s == "" || s[0] != 'F' {
 		return "", false
 	}
 	i := 1
-	// Find Z.
-	z := strings.IndexByte(s[i:], 'Z')
-	if z < 0 {
-		return "", false
+	linkage := ""
+	// Optional linkage byte pair Y<letter>.
+	if i+1 < len(s) && s[i] == 'Y' {
+		switch s[i+1] {
+		case 'a':
+			linkage = "extern(C)"
+		case 'b':
+			linkage = "extern(D)"
+		case 'c':
+			linkage = "extern(C++)"
+		case 'd':
+			linkage = "extern(Windows)"
+		case 'e':
+			linkage = "extern(Pascal)"
+		case 'f':
+			linkage = "extern(Objective-C)"
+		case 'g':
+			linkage = "extern(System)"
+		}
+		if linkage != "" {
+			i += 2
+		}
 	}
-	argSection := s[i : i+z]
-	retSection := s[i+z+1:]
-	if retSection == "" {
-		return "", false
+	// Optional function attributes: zero or more 'N<letter>'.
+	var attrs []string
+	for i+1 < len(s) && s[i] == 'N' {
+		switch s[i+1] {
+		case 'a':
+			attrs = append(attrs, "@nogc")
+		case 'b':
+			attrs = append(attrs, "nothrow")
+		case 'c':
+			attrs = append(attrs, "ref")
+		case 'd':
+			attrs = append(attrs, "@property")
+		case 'e':
+			attrs = append(attrs, "@trusted")
+		case 'f':
+			attrs = append(attrs, "@safe")
+		case 'g':
+			attrs = append(attrs, "pure")
+		case 'h':
+			attrs = append(attrs, "scope")
+		case 'i':
+			attrs = append(attrs, "return")
+		case 'j':
+			attrs = append(attrs, "live")
+		default:
+			// Unknown N-attr — stop consuming to avoid desync.
+			goto argsStart
+		}
+		i += 2
 	}
+argsStart:
+	// Params + Z + return.
 	var args []string
-	for j := 0; j < len(argSection); j++ {
-		name := dLangPrim(argSection[j])
-		if name == "" {
+	for i < len(s) {
+		if s[i] == 'Z' || s[i] == 'X' || s[i] == 'Y' {
+			break
+		}
+		arg, adv, ok := decodeType(s, i)
+		if !ok {
 			return "", false
 		}
-		args = append(args, name)
+		args = append(args, arg)
+		i = adv
 	}
-	retName := dLangPrim(retSection[0])
-	if retName == "" {
+	if i >= len(s) || (s[i] != 'Z' && s[i] != 'X' && s[i] != 'Y') {
 		return "", false
 	}
-	return "(" + strings.Join(args, ", ") + ") → " + retName, true
+	terminator := s[i]
+	i++
+	retName := ""
+	if i < len(s) {
+		r, _, ok := decodeType(s, i)
+		if !ok {
+			return "", false
+		}
+		retName = r
+	}
+	sep := " → "
+	if terminator == 'X' {
+		sep = " [variadic] → "
+	} else if terminator == 'Y' {
+		sep = " [typesafe-variadic] → "
+	}
+	prefix := ""
+	if linkage != "" {
+		prefix = linkage + " "
+	}
+	if len(attrs) > 0 {
+		prefix += strings.Join(attrs, " ") + " "
+	}
+	return " " + prefix + "(" + strings.Join(args, ", ") + ")" + sep + retName, true
+}
+
+// decodeType reads one D type starting at s[i]. Returns
+// (rendered, newIndex, ok).
+func decodeType(s string, i int) (string, int, bool) {
+	if i >= len(s) {
+		return "", i, false
+	}
+	c := s[i]
+	// Composite prefixes.
+	switch c {
+	case 'P':
+		inner, next, ok := decodeType(s, i+1)
+		if !ok {
+			return "", i, false
+		}
+		return inner + "*", next, true
+	case 'A':
+		inner, next, ok := decodeType(s, i+1)
+		if !ok {
+			return "", i, false
+		}
+		return inner + "[]", next, true
+	case 'D':
+		inner, next, ok := decodeType(s, i+1)
+		if !ok {
+			return "", i, false
+		}
+		return inner + " delegate", next, true
+	case 'G':
+		// Static-array "G<count><inner>".
+		j := i + 1
+		for j < len(s) && s[j] >= '0' && s[j] <= '9' {
+			j++
+		}
+		if j == i+1 {
+			return "", i, false
+		}
+		count := s[i+1 : j]
+		inner, next, ok := decodeType(s, j)
+		if !ok {
+			return "", i, false
+		}
+		return inner + "[" + count + "]", next, true
+	case 'H':
+		key, next, ok := decodeType(s, i+1)
+		if !ok {
+			return "", i, false
+		}
+		val, next2, ok := decodeType(s, next)
+		if !ok {
+			return "", i, false
+		}
+		return val + "[" + key + "]", next2, true
+	case 'C':
+		// Class-ref: "C<len><name>..."
+		j := i + 1
+		for j < len(s) && s[j] >= '0' && s[j] <= '9' {
+			j++
+		}
+		if j == i+1 {
+			return "", i, false
+		}
+		ln := 0
+		for _, d := range s[i+1 : j] {
+			ln = ln*10 + int(d-'0')
+		}
+		if j+ln > len(s) {
+			return "", i, false
+		}
+		return s[j : j+ln], j + ln, true
+	case 'S':
+		// Struct-ref shaped like 'C'.
+		j := i + 1
+		for j < len(s) && s[j] >= '0' && s[j] <= '9' {
+			j++
+		}
+		if j == i+1 {
+			return "", i, false
+		}
+		ln := 0
+		for _, d := range s[i+1 : j] {
+			ln = ln*10 + int(d-'0')
+		}
+		if j+ln > len(s) {
+			return "", i, false
+		}
+		return s[j : j+ln], j + ln, true
+	}
+	// Single-byte primitive.
+	if name := dLangPrim(c); name != "" {
+		return name, i + 1, true
+	}
+	return "", i, false
 }
 
 func dLangPrim(c byte) string {
