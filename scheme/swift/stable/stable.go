@@ -244,6 +244,12 @@ func (p *parser) tryEntitySuffix(inner *demangle.Node) (*demangle.Node, bool) {
 			prefix = "protocol conformance descriptor runtime record for "
 		case 'o':
 			prefix = "opaque type descriptor runtime record for "
+		case 'p':
+			prefix = "retroactive protocol conformance descriptor for "
+		case 'P':
+			prefix = "pretend protocol conformance descriptor for "
+		case 'D':
+			prefix = "protocol conformance descriptor diagnostic for "
 		}
 	case 'W':
 		switch p.s[p.i+1] {
@@ -253,6 +259,22 @@ func (p *parser) tryEntitySuffix(inner *demangle.Node) (*demangle.Node, bool) {
 			prefix = "lazy protocol witness table cache variable for "
 		case 'P':
 			prefix = "protocol witness table for "
+		case 'a':
+			prefix = "protocol witness table accessor for "
+		case 'G':
+			prefix = "generic protocol witness table for "
+		case 'I':
+			prefix = "generic protocol witness table instantiation function for "
+		case 'r':
+			prefix = "resilient protocol witness table for "
+		case 't':
+			prefix = "associated type witness table accessor for "
+		case 'T':
+			prefix = "associated type witness table accessor for "
+		case 'o':
+			prefix = "method descriptor for "
+		case 'S':
+			prefix = "self-conformance witness for "
 		}
 	case 'T':
 		// T-prefixed thunks and specialisations. Narrow: 3-byte forms
