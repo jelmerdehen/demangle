@@ -4,6 +4,26 @@ All notable changes to this project will be documented here. Format
 follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). This
 project uses semantic versioning.
 
+## [0.1.5] - 2026-04-24
+
+### Added
+
+- New scheme **objc** — Objective-C method selector extraction
+  (±[Class method:arg:], block-invoke synthetics).
+- Swift stable: variable / accessor suffixes (vp / vg / vs / vw / vW
+  / vM / va / vm); unmangled suffix (`.<anything>`) trailer render.
+- MSVC: extended primitives (bool, wchar_t, char8/16/32_t,
+  __int64, unsigned __int64, long double); reference-type args
+  (&, &&, const&).
+- JS source map: `sourcesContent` inlining — returns the actual
+  original source line when the map embeds content.
+- CLI `demangle corpus <file>` — bulk-stats over newline-delimited
+  inputs (succeed counts, by-scheme histogram, by-error-kind).
+
+### Changed
+
+- Bench baselines refreshed.
+
 ## [0.1.4] - 2026-04-24
 
 ### Added
