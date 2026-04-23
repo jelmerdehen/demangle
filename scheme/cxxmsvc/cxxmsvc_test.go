@@ -50,6 +50,10 @@ func TestMSVCBasics(t *testing.T) {
 		{"?w@@YAX_W@Z", "void __cdecl w(wchar_t)"},
 		// __int64 arg.
 		{"?i@@YAX_J@Z", "void __cdecl i(__int64)"},
+		// Variable: int foo;
+		{"?foo@@3HA", "int foo"},
+		// Variable: double v;
+		{"?v@@3NA", "double v"},
 	}
 	for _, c := range cases {
 		c := c

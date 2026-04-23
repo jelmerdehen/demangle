@@ -223,15 +223,33 @@ func (p *parser) parse() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	// After the chain we're past '@@'; the remainder is the function
-	// type encoding. For our narrow subset we recognise 'YAXXZ' =
-	// cdecl void(void), and access-modified method variants like
-	// 'AEAAXXZ'.
+	// After the chain: either a function signature (Y / access-byte
+	// start) or a data-variable marker (digit 3/4/6/7 = static member,
+	// global, etc.).
+	if !p.eof() {
+		c := p.s[p.i]
+		if c == '3' || c == '4' {
+			p.i++
+			// Variable: <type> <cv>.
+			if p.eof() {
+				return "", p.truncated()
+			}
+			base := primitiveTypeName(p.s[p.i])
+			if base == "" {
+				return "", p.grammarErr("variable type byte")
+			}
+			p.i++
+			// Optional cv byte.
+			if !p.eof() {
+				p.i++ // consume cv (A / B / C / D) without rendering for now
+			}
+			return base + " " + strings.Join(reverse(chain), "::"), nil
+		}
+	}
 	sig, err := p.parseSignature()
 	if err != nil {
 		return "", err
 	}
-	// Display: "<sig-qualifiers> reversed::chain(sig-args)"
 	joined := strings.Join(reverse(chain), "::")
 	if sig.quals != "" {
 		return sig.quals + " " + joined + "(" + sig.args + ")", nil
