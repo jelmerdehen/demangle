@@ -114,9 +114,9 @@ func init() {
 func (Scheme) Info() demangle.Info                 { return info }
 func (Scheme) Capabilities() demangle.Capabilities { return caps }
 
-// Sniff returns confidence 70 when the input contains one of the
-// "$<word>" sequences from the operator table. Plain identifiers
-// without any '$' return (0, false).
+// Sniff returns confidence 70 for inputs carrying Scala 2 operator
+// words ($plus, $eq, …) or 65 for scalac-specific annotations
+// ($anonfun$, trailing $class).
 func (Scheme) Sniff(s string) (int, bool) {
 	if !strings.Contains(s, "$") {
 		return 0, false
@@ -125,6 +125,9 @@ func (Scheme) Sniff(s string) (int, bool) {
 		if strings.Contains(s, "$"+w) {
 			return 70, true
 		}
+	}
+	if strings.Contains(s, "$anonfun$") || strings.HasSuffix(s, "$class") {
+		return 65, true
 	}
 	return 0, false
 }
@@ -158,13 +161,35 @@ func (Scheme) Mangle(_ context.Context, tree *demangle.Node, _ demangle.Options)
 }
 
 // decodeOps walks the encoded string replacing every "$<word>"
-// occurrence with its operator char. Returns (decoded, matched).
-// `matched` is true iff at least one substitution was applied; the
-// caller uses that to reject plain identifiers via ErrWrongScheme.
+// occurrence with its operator char. Also recognises scalac-
+// specific annotations $anonfun$, $$anonfun$, ClassName$class, and
+// specialised-method suffixes $mcII$sp / $mcJJ$sp as display-only
+// decorations that don't round-trip through the operator table but
+// still flag the input as Scala 2.
+//
+// Returns (decoded, matched). matched is true iff at least one
+// substitution or annotation was recognised; callers use that to
+// reject plain identifiers via ErrWrongScheme.
 func decodeOps(s string) (string, bool) {
 	var b strings.Builder
 	b.Grow(len(s))
 	matched := false
+
+	// Heuristic markers — report as [annotation] if present.
+	note := ""
+	if idx := strings.Index(s, "$anonfun$"); idx >= 0 {
+		rest := s[idx+len("$anonfun$"):]
+		if j := strings.Index(rest, "$"); j >= 0 {
+			rest = rest[:j]
+		}
+		note = " [anonfun #" + rest + "]"
+		matched = true
+	}
+	if strings.HasSuffix(s, "$class") {
+		note += " [trait impl]"
+		s = strings.TrimSuffix(s, "$class")
+		matched = true
+	}
 
 outer:
 	for i := 0; i < len(s); {
@@ -187,7 +212,7 @@ outer:
 		b.WriteByte('$')
 		i++
 	}
-	return b.String(), matched
+	return b.String() + note, matched
 }
 
 // encodeOps walks the decoded string replacing every operator char

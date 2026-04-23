@@ -5,6 +5,7 @@ package scala2_test
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	"github.com/jelmerdehen/demangle"
@@ -31,6 +32,10 @@ var cases = []struct {
 	{"foo$bang", "foo!"},
 	{"$tilde$hash$percent$up$amp$bar$times$div$plus$minus$colon$bslash$qmark$at",
 		"~#%^&|*/+-:\\?@"},
+	// Anonfun annotation.
+	{"foo$anonfun$1", "foo$anonfun$1 [anonfun #1]"},
+	// Trait impl class.
+	{"MyTrait$class", "MyTrait [trait impl]"},
 }
 
 func TestScala2Demangle(t *testing.T) {
@@ -56,6 +61,12 @@ func TestScala2RoundTrip(t *testing.T) {
 	cat := newCatalog(t)
 	for _, c := range cases {
 		c := c
+		// Annotated forms ($anonfun$, $class) are heuristic-only
+		// and not bijective; skip round-trip for them.
+		if strings.Contains(c.mangled, "$anonfun$") ||
+			strings.HasSuffix(c.mangled, "$class") {
+			continue
+		}
 		t.Run(c.mangled, func(t *testing.T) {
 			t.Parallel()
 			ctx := context.Background()
