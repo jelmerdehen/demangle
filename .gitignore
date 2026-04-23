@@ -1,0 +1,9 @@
+/bin/
+/build/
+/dist/
+*.test
+*.out
+*.pprof
+coverage.txt
+/tmp/
+.DS_Store
