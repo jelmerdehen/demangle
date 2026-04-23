@@ -117,8 +117,8 @@ func TestAppleCorpus(t *testing.T) {
 	//   their full entity trailers, bound generics, functions).
 	// - Stage 1 exit gate: equality check per line, zero tolerated
 	//   mismatches outside known-divergences.txt.
-	if matched < 4 {
-		t.Fatalf("expected ≥4 matches, got %d — parser regressed?", matched)
+	if matched < 8 {
+		t.Fatalf("expected ≥8 matches, got %d — parser regressed?", matched)
 	}
 }
 
