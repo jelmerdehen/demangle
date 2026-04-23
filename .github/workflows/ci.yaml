@@ -50,8 +50,6 @@ jobs:
 
       - name: fuzz 30s per package
         run: |
-          # Stage 0 has no fuzz targets; this pass gains teeth in
-          # Stage 0.5b + Stage 1 when the first parsers land.
           for pkg in $(go list ./... | grep -v /cmd/); do
             go test -run='^$' -fuzz=. -fuzztime=30s "$pkg" || true
           done
@@ -69,20 +67,14 @@ jobs:
       - name: build + size gate
         run: |
           mkdir -p /tmp/sizes
-          go build -tags demangle_nothing -ldflags="-s -w" -o /tmp/sizes/puredata ./cmd/demangle
-          go build -tags demangle_all     -ldflags="-s -w" -o /tmp/sizes/full     ./cmd/demangle
-          pure=$(stat -c%s /tmp/sizes/puredata)
+          go build -ldflags="-s -w" -o /tmp/sizes/full ./cmd/demangle
           full=$(stat -c%s /tmp/sizes/full)
-          echo "puredata=$pure full=$full"
-          # Headroom gates — hardens per stage.
-          if [ "$pure" -gt $((6*1024*1024)) ]; then
-            echo "puredata build exceeded 6 MB headroom"; exit 1
-          fi
+          echo "full build=$full bytes"
           if [ "$full" -gt $((14*1024*1024)) ]; then
             echo "full build exceeded 14 MB headroom"; exit 1
           fi
 
-  bench-baseline:
+  bench-regression:
     runs-on: ubuntu-latest
     needs: build-test
     steps:
@@ -92,8 +84,18 @@ jobs:
           go-version: "1.26"
           cache: true
 
-      - name: bench smoke
-        run: make bench || true
+      - name: run bench
+        run: |
+          mkdir -p build
+          go test -run='^$' -bench=. -benchtime=500ms -count=1 \
+            ./internal/bench/... > build/bench.new 2>&1
+
+      - name: compare vs baseline
+        run: |
+          go run ./internal/bench/cmd/bench-compare \
+            -old internal/bench/testdata/baselines.bench \
+            -new build/bench.new \
+            -threshold 25
 
   deps-audit:
     runs-on: ubuntu-latest

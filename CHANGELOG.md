@@ -4,7 +4,83 @@ All notable changes to this project will be documented here. Format
 follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). This
 project uses semantic versioning.
 
-## [Unreleased]
+## [0.1.0] - 2026-04-23
+
+First tagged release. **18 schemes** across 6 families, all tests
+green, end-to-end CLI + gRPC paths working.
 
 ### Added
-- Stage 0: module scaffold, LICENSE, README, CLAUDE.md.
+
+Core library (`demangle`):
+- `Scheme` interface (demangle-only) + `Mangler` interface (opt-in).
+- `Catalog` with `NewCatalog` / `Register` / `Schemes` / `Scheme` /
+  `Detect` / `Demangle` / `Mangle` / `DemangleBatch`.
+- `Node` polymorphic AST + `Walk` / `WalkFunc` / `Visitor` + canonical
+  `KindCategory` enum for cross-scheme tooling.
+- `Context` interface + `CallbackContext` + `SyncContext` +
+  `RequireContext` helper + scheme-specific extension pattern.
+- `ContextStore` interface + SQLite impl (modernc.org/sqlite, WAL +
+  pragmas + pool) + in-memory impl.
+- Structured `Error` with typed `ErrKind` taxonomy
+  (`ErrWrongScheme` / `ErrGrammarViolation` / `ErrTruncatedInput` /
+  `ErrAmbiguous` / `ErrNotInvertible` / `ErrNeedsContext` / …).
+- `BatchRequest` / `BatchResponse` / `BatchOptions` / `BatchSummary`
+  + `BatchErrorPolicy` (Collect / Drop / Propagate).
+- Tie-break spec: `AmbiguityWindow`, `Strict`, `TieBreakPolicy`.
+- `MaxInputBytes` precedence (scheme → catalog → package default 64KB).
+
+Schemes shipped (18 total):
+- swift-stable, swift-v42, swift-v40, swift-old, swift-embedded, swift-macro.
+- cpp-itanium (wraps ianlancetaylor/demangle), cpp-msvc (narrow), dlang (narrow).
+- rust (legacy + v0 via ianlancetaylor/demangle).
+- jni (full JNI §2), jvmdesc (full JVMS §4.3 + §4.7.9), kotlin (suffixes + inline hash), scala2 (operator table), proguard-map (context-backed), android-dex.
+- js-sourcemap (V3), js-minified (heuristic).
+
+CLI (`cmd/demangle`):
+- `demangle <input>`, `mangle --scheme NAME`, `detect`, `batch`,
+  `scheme list/show`, `context upload/list/delete`, `fuzz`, `version`.
+- `--context-sha` flag wires a stored Context to any scheme that
+  needs one.
+
+gRPC wrapper (`cmd/demanglegrpc`, build + test only — deploy gated
+on first real caller per v5.1 decision 4):
+- proto: `Demangle` / `Detect` / `Schemes` / `DemangleStream` +
+  `UploadContext` / `ListContexts` / `DeleteContext`. No `Mangle`
+  RPC on day one.
+- HTTP health endpoint on `:50062` with `/healthz`, `/readyz`,
+  `/metrics` (Prometheus text format).
+- Systemd unit + deploy README ready for Stage 6.5 install on lux.
+
+Tooling:
+- `internal/bench/` throughput suite — ~535k names/sec on batch,
+  under 100 ns for simple schemes.
+- `internal/bench/cmd/bench-compare/` — diff tool for the CI gate.
+- CI pipeline: vet + test (race) + staticcheck + govulncheck +
+  binary-size gate + bench-regression gate + deps-audit.
+
+Documentation:
+- `docs/architecture.md` — core types + detection + dispatch +
+  streaming + deadlines + dual delivery + scheme table.
+- `docs/writing-a-scheme.md` — 14-step contributor checklist.
+- `docs/fidelity-tiers.md` — `Exact` / `Canonical` / `BestEffort` /
+  `None` semantics.
+- `docs/native-adapters.md` — dependency inventory + binary-size
+  budgets + build-tag policy.
+- `CLAUDE.md` — onboarding + state snapshot.
+
+### Notes
+
+- Swift stable grammar is subset-coverage, not full. Stage 1 in the
+  v5.1 plan is multi-week work; the parser handles builtins, stdlib
+  substitutions, nominal types, vectors (postfix), bound generics,
+  function entities (yyF + single-arg shapes). Zero mismatches on
+  the Apple corpus — parser returns `ErrUnsupported` on unknown
+  grammar rather than emitting a wrong answer.
+- `cpp-msvc` is narrow-subset; covers `?func@@YAXXZ` free-function
+  + nested-namespace shapes. Templates and RTTI are future work.
+- `dlang` covers the module-path/name chain; type trailer is
+  annotated but not fully parsed.
+- `swift-old` (`_T`) is prefix-detect only — OldDemangler grammar
+  deferred.
+
+[0.1.0]: https://github.com/jelmerdehen/demangle/releases/tag/v0.1.0
