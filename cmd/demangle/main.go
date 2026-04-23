@@ -31,6 +31,10 @@ import (
 	"time"
 
 	"github.com/jelmerdehen/demangle"
+
+	// Register every bundled in-process scheme. Subprocess adapters
+	// (js/obfuscated) require explicit opt-in and are not imported here.
+	_ "github.com/jelmerdehen/demangle/scheme/all"
 )
 
 func main() {
