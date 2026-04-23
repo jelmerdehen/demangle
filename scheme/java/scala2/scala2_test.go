@@ -74,6 +74,20 @@ func TestScala2RoundTrip(t *testing.T) {
 	}
 }
 
+func FuzzScala2(f *testing.F) {
+	for _, c := range cases {
+		f.Add(c.mangled)
+	}
+	cat := demangle.NewCatalog()
+	cat.Register(scala2.Scheme{})
+	f.Fuzz(func(t *testing.T, in string) {
+		if len(in) > 4096 {
+			t.Skip()
+		}
+		_, _ = cat.Demangle(context.Background(), in, nil)
+	})
+}
+
 func TestScala2SniffRejectsPlain(t *testing.T) {
 	t.Parallel()
 	s := scala2.Scheme{}

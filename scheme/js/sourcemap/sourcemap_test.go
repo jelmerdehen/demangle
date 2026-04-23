@@ -89,6 +89,25 @@ func TestSourceMapNoMapping(t *testing.T) {
 	}
 }
 
+func FuzzSourceMap(f *testing.F) {
+	seeds := []string{"0:0", "0:5", "1:0", "42:0", "", "not-a-coord", "1,2"}
+	for _, s := range seeds {
+		f.Add(s)
+	}
+	// Build a catalog + map context inline (newCatalog needs *testing.T).
+	cat := demangle.NewCatalog()
+	cat.Register(sourcemap.Scheme{})
+	store := demangle.InMemoryContextStore()
+	sha, _ := store.Put(context.Background(), "js_source_map", []byte(tinyMap), nil)
+	mapCtx, _ := store.Get(context.Background(), sha)
+	f.Fuzz(func(t *testing.T, in string) {
+		if len(in) > 256 {
+			t.Skip()
+		}
+		_, _ = cat.Demangle(context.Background(), in, &demangle.Options{Context: mapCtx})
+	})
+}
+
 func TestSourceMapSniffAcceptsCoord(t *testing.T) {
 	t.Parallel()
 	s := sourcemap.Scheme{}

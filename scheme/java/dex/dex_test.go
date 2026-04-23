@@ -86,6 +86,25 @@ func TestDexSniff(t *testing.T) {
 	}
 }
 
+func FuzzDex(f *testing.F) {
+	seeds := []string{
+		"I", "V", "Lcom/Foo;", "[I", "[[Ljava/lang/String;",
+		"()V", "(IJ)V", "(Ljava/util/List;I)Ljava/util/Optional;",
+		"", "L", "(",
+	}
+	for _, s := range seeds {
+		f.Add(s)
+	}
+	cat := demangle.NewCatalog()
+	cat.Register(dex.Scheme{})
+	f.Fuzz(func(t *testing.T, in string) {
+		if len(in) > 4096 {
+			t.Skip()
+		}
+		_, _ = cat.Demangle(context.Background(), in, nil)
+	})
+}
+
 func TestDexRejectsMalformed(t *testing.T) {
 	t.Parallel()
 	cat := newCatalog(t)

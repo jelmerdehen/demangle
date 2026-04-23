@@ -95,6 +95,23 @@ func TestKotlinRoundTrip(t *testing.T) {
 	}
 }
 
+func FuzzKotlin(f *testing.F) {
+	for _, c := range cases {
+		f.Add(c.in)
+	}
+	for _, s := range []string{"", "plain", "foo$"} {
+		f.Add(s)
+	}
+	cat := demangle.NewCatalog()
+	cat.Register(kotlin.Scheme{})
+	f.Fuzz(func(t *testing.T, in string) {
+		if len(in) > 4096 {
+			t.Skip()
+		}
+		_, _ = cat.Demangle(context.Background(), in, nil)
+	})
+}
+
 func TestKotlinSniffRejectsPlain(t *testing.T) {
 	t.Parallel()
 	s := kotlin.Scheme{}

@@ -61,6 +61,21 @@ func TestMinifiedRejectsNonMinified(t *testing.T) {
 	}
 }
 
+func FuzzMinified(f *testing.F) {
+	seeds := []string{"a", "ab", "_0x1a2b", "$Ab", "", "readableName"}
+	for _, s := range seeds {
+		f.Add(s)
+	}
+	cat := demangle.NewCatalog()
+	cat.Register(minified.Scheme{})
+	f.Fuzz(func(t *testing.T, in string) {
+		if len(in) > 4096 {
+			t.Skip()
+		}
+		_, _ = cat.Demangle(context.Background(), in, nil)
+	})
+}
+
 func TestMinifiedNotInvertible(t *testing.T) {
 	t.Parallel()
 	cat := newCatalog(t)

@@ -149,6 +149,22 @@ func TestProGuardMangleUnknown(t *testing.T) {
 	}
 }
 
+func FuzzProGuard(f *testing.F) {
+	seeds := []string{"a", "a.b", "a.b(int)", "b.l", "", "nonexistent"}
+	for _, s := range seeds {
+		f.Add(s)
+	}
+	cat := demangle.NewCatalog()
+	cat.Register(proguard.Scheme{})
+	f.Fuzz(func(t *testing.T, in string) {
+		if len(in) > 4096 {
+			t.Skip()
+		}
+		// Feed with no context — scheme should reject gracefully.
+		_, _ = cat.Demangle(context.Background(), in, nil)
+	})
+}
+
 func TestProGuardEmptyClass(t *testing.T) {
 	t.Parallel()
 	cat, pgctx := newCatalog(t)
