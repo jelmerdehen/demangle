@@ -1,0 +1,114 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version: "1.26"
+          cache: true
+
+      - name: go vet
+        run: go vet ./...
+
+      - name: go build
+        run: go build ./...
+
+      - name: go test (race)
+        run: go test -race -count=1 ./...
+
+      - name: staticcheck
+        run: |
+          go install honnef.co/go/tools/cmd/staticcheck@latest
+          staticcheck ./...
+
+      - name: govulncheck
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          govulncheck ./...
+
+  fuzz-short:
+    runs-on: ubuntu-latest
+    needs: build-test
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version: "1.26"
+          cache: true
+
+      - name: fuzz 30s per package
+        run: |
+          # Stage 0 has no fuzz targets; this pass gains teeth in
+          # Stage 0.5b + Stage 1 when the first parsers land.
+          for pkg in $(go list ./... | grep -v /cmd/); do
+            go test -run='^$' -fuzz=. -fuzztime=30s "$pkg" || true
+          done
+
+  binary-size:
+    runs-on: ubuntu-latest
+    needs: build-test
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version: "1.26"
+          cache: true
+
+      - name: build + size gate
+        run: |
+          mkdir -p /tmp/sizes
+          go build -tags demangle_nothing -ldflags="-s -w" -o /tmp/sizes/puredata ./cmd/demangle
+          go build -tags demangle_all     -ldflags="-s -w" -o /tmp/sizes/full     ./cmd/demangle
+          pure=$(stat -c%s /tmp/sizes/puredata)
+          full=$(stat -c%s /tmp/sizes/full)
+          echo "puredata=$pure full=$full"
+          # Headroom gates — hardens per stage.
+          if [ "$pure" -gt $((6*1024*1024)) ]; then
+            echo "puredata build exceeded 6 MB headroom"; exit 1
+          fi
+          if [ "$full" -gt $((14*1024*1024)) ]; then
+            echo "full build exceeded 14 MB headroom"; exit 1
+          fi
+
+  bench-baseline:
+    runs-on: ubuntu-latest
+    needs: build-test
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version: "1.26"
+          cache: true
+
+      - name: bench smoke
+        run: make bench || true
+
+  deps-audit:
+    runs-on: ubuntu-latest
+    needs: build-test
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version: "1.26"
+          cache: true
+      - name: go mod tidy (no diff)
+        run: |
+          go mod tidy
+          if ! git diff --quiet go.mod go.sum; then
+            echo "go.mod/go.sum not tidy:"
+            git diff go.mod go.sum
+            exit 1
+          fi
