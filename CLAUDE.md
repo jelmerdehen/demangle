@@ -4,6 +4,22 @@ Standalone Go library for polyglot mangle/demangle. Consumed by skynet
 (direct Go import) and by behavox (GraphQL on skynet that calls the
 library directly).
 
+## Current state (2026-04-23)
+
+- **18 schemes registered** across 6 families (swift × 6, cpp × 3,
+  rust, dlang, java × 6, js × 2).
+- Stages 0, 0.5a, 0.5b, 2, 3, 4, 5, 6 shipped. Stage 1 (Swift stable
+  full corpus) is mid-build — subset coverage with zero mismatches
+  on the Apple corpus; grammar ratchets per commit.
+- Stage 6.5 (lux deploy of cmd/demanglegrpc) is ready-to-fire;
+  triggers when a non-Go non-skynet consumer appears.
+- Full-build CLI stays ~7 MB under the 12 MB budget.
+- `make all` green; 13 test packages; race + vet + fuzz clean.
+
+See `docs/architecture.md` for the scheme table + state. Per-scheme
+README under `scheme/<family>/<name>/` (when present) has the
+scheme-specific details.
+
 ## Architecture TL;DR
 
 One interface (`Scheme`), one optional extension (`Mangler`), one
