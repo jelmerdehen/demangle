@@ -8,6 +8,8 @@ package all
 import (
 	_ "github.com/jelmerdehen/demangle/scheme/java/dex"
 	_ "github.com/jelmerdehen/demangle/scheme/java/jni"
+	_ "github.com/jelmerdehen/demangle/scheme/java/jvmdesc"
 	_ "github.com/jelmerdehen/demangle/scheme/java/kotlin"
+	_ "github.com/jelmerdehen/demangle/scheme/java/proguard"
 	_ "github.com/jelmerdehen/demangle/scheme/java/scala2"
 )

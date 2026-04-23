@@ -104,6 +104,7 @@ func runDemangle(args []string) error {
 	simplified := fs.Bool("simplified", false, "simplified output (scheme-specific)")
 	tree := fs.Bool("tree", false, "include AST in output")
 	asJSON := fs.Bool("json", false, "print full Result as JSON")
+	contextSHA := fs.String("context-sha", "", "sha256 of a stored Context to attach (see `demangle context list`)")
 	_ = fs.Parse(args)
 
 	if fs.NArg() != 1 {
@@ -112,6 +113,19 @@ func runDemangle(args []string) error {
 	input := fs.Arg(0)
 
 	opts := &demangle.Options{Simplified: *simplified, ReturnTree: *tree}
+	if *contextSHA != "" {
+		store, err := openDefaultContextStore()
+		if err != nil {
+			return err
+		}
+		defer store.Close()
+		ctx, err := store.Get(context.Background(), *contextSHA)
+		if err != nil {
+			return fmt.Errorf("load context %s: %w", *contextSHA, err)
+		}
+		opts.Context = ctx
+	}
+
 	var (
 		r   *demangle.Result
 		err error
@@ -137,6 +151,14 @@ func runDemangle(args []string) error {
 		printTree(os.Stdout, r.Tree, 0)
 	}
 	return nil
+}
+
+func openDefaultContextStore() (demangle.ContextStore, error) {
+	path := os.Getenv("DEMANGLE_CONTEXT_DB")
+	if path == "" {
+		path = filepath.Join(os.TempDir(), "demangle-contexts.db")
+	}
+	return demangle.OpenContextStore(path)
 }
 
 func printTree(w io.Writer, n *demangle.Node, depth int) {
@@ -354,13 +376,7 @@ func runContext(args []string) error {
 	if len(args) == 0 {
 		return errors.New("context: expected subcommand upload|list|delete")
 	}
-	// Ephemeral store path — can be overridden via env when a real
-	// deployment wants persistence. Stage 0 uses a temp file.
-	storePath := os.Getenv("DEMANGLE_CONTEXT_DB")
-	if storePath == "" {
-		storePath = filepath.Join(os.TempDir(), "demangle-contexts.db")
-	}
-	store, err := demangle.OpenContextStore(storePath)
+	store, err := openDefaultContextStore()
 	if err != nil {
 		return err
 	}
