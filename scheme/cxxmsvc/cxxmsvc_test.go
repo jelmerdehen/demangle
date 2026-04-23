@@ -40,6 +40,10 @@ func TestMSVCBasics(t *testing.T) {
 		{"??1Foo@@QAE@XZ", "public: __thiscall Foo::~Foo(void)"},
 		// Virtual function table.
 		{"??_7Foo@@6B@", "const Foo::`vftable'"},
+		// Lvalue reference arg: int&
+		{"?ref@@YAXAAH@Z", "void __cdecl ref(int&)"},
+		// Const-lvalue reference arg: char const&
+		{"?cref@@YAXABD@Z", "void __cdecl cref(char const&)"},
 	}
 	for _, c := range cases {
 		c := c

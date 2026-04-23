@@ -527,16 +527,14 @@ func (p *parser) parseSignatureMode(ctorDtor bool) (signature, error) {
 			break
 		}
 		// Pointer shape: 'P' cv-byte primitive.
-		//   PA<prim>  → <prim>*
-		//   PB<prim>  → <prim> const*  (narrow display)
-		//   PEA<prim> → <prim>* (__ptr64-qualified far pointer)
-		if c == 'P' {
+		// Reference shape: 'A' cv-byte primitive (lvalue ref), 'Q' rvalue ref.
+		if c == 'P' || c == 'A' || c == 'Q' {
+			pointerLike := c
 			if p.i+2 >= len(p.s) {
 				return sig, p.truncated()
 			}
 			cv := p.s[p.i+1]
 			p.i += 2
-			// Optional 'E' (near/far/__ptr64 modifier).
 			if cv == 'E' && !p.eof() {
 				cv = p.s[p.i]
 				p.i++
@@ -546,7 +544,7 @@ func (p *parser) parseSignatureMode(ctorDtor bool) (signature, error) {
 			}
 			base := primitiveTypeName(p.s[p.i])
 			if base == "" {
-				return sig, p.grammarErr("pointer target primitive")
+				return sig, p.grammarErr("pointer/ref target primitive")
 			}
 			p.i++
 			qual := ""
@@ -558,7 +556,16 @@ func (p *parser) parseSignatureMode(ctorDtor bool) (signature, error) {
 			case 'D':
 				qual = " const volatile"
 			}
-			args = append(args, base+qual+"*")
+			var suffix string
+			switch pointerLike {
+			case 'P':
+				suffix = "*"
+			case 'A':
+				suffix = "&"
+			case 'Q':
+				suffix = "&&"
+			}
+			args = append(args, base+qual+suffix)
 			continue
 		}
 		if pt := primitiveTypeName(c); pt != "" {
