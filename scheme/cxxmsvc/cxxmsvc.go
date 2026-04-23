@@ -313,11 +313,17 @@ func (p *parser) parseNameChain() ([]string, error) {
 	}
 }
 
-// parseTemplate — narrow subset handling "?$<name>@<arg>@..."
-// where each arg is a single primitive-type letter. After consuming
-// as many args as we can identify by that shape, we stop and let
-// the caller continue the outer scope chain. This covers the common
-// std::vector<int>, std::basic_string<char>, …-style cases.
+// parseTemplate — "?$<name>@<arg>+@" where each arg is one of:
+//
+//   - primitive type byte (H / D / M / N / …)
+//   - two-byte primitive (_N bool / _W wchar_t / _J __int64 / …)
+//   - pointer-to-primitive  (PA<cv><prim>)
+//   - user-defined class/struct/union/enum: 'V'|'U'|'T'|'W4' followed
+//     by a scope chain "<name>@<name>@…@@" resolving to "N1::N2".
+//   - integer constant: '$0<digits>@' or '$00' / '$0?...@' (narrow).
+//
+// Covers common std::vector<int>, std::basic_string<char, ...>,
+// std::shared_ptr<Foo>, std::map<Foo, int>, container<N>, etc.
 func (p *parser) parseTemplate() (string, error) {
 	// Template name up to '@'.
 	start := p.i
@@ -332,23 +338,119 @@ func (p *parser) parseTemplate() (string, error) {
 		return "", p.grammarErr("'@' after template name")
 	}
 	p.i++ // consume '@'
-	// Collect primitive-type args one at a time. Stop at first byte
-	// that isn't a recognised primitive — remaining tokens are part
-	// of the enclosing scope chain, not this template.
 	var args []string
 	for !p.eof() {
-		ty := primitiveTypeName(p.s[p.i])
-		if ty == "" {
+		// Template arg list ends at '@' (followed by outer-scope chain
+		// continuation or '@@' end-of-chain).
+		if p.s[p.i] == '@' {
+			p.i++
 			break
 		}
-		args = append(args, ty)
+		arg, ok, err := p.parseTemplateArg()
+		if err != nil {
+			return "", err
+		}
+		if !ok {
+			break
+		}
+		args = append(args, arg)
+	}
+	return name + "<" + strings.Join(args, ", ") + ">", nil
+}
+
+// parseTemplateArg reads one template argument. Returns (text, matched,
+// err). matched=false means we hit a byte we don't know how to parse
+// as an arg; the caller stops collecting args. Always returns a clean
+// parser position on ok=true.
+func (p *parser) parseTemplateArg() (string, bool, error) {
+	if p.eof() {
+		return "", false, nil
+	}
+	c := p.s[p.i]
+	// Class/struct/union/enum: 'V'/'U'/'T' + scope + '@@'.
+	// MSVC syntax: "Vclass@ns1@@" = "ns1::class".
+	if c == 'V' || c == 'U' || c == 'T' {
+		saveI := p.i
 		p.i++
-		// Each arg is followed by '@' in the template invocation.
+		chain, err := p.parseNameChain()
+		if err != nil {
+			p.i = saveI
+			return "", false, err
+		}
+		return strings.Join(reverse(chain), "::"), true, nil
+	}
+	// Integer constant: '$0<digits>@' (positive) or '$0?<digits>@'
+	// (negative). We keep it narrow — just digits.
+	if c == '$' && p.i+1 < len(p.s) && p.s[p.i+1] == '0' {
+		saveI := p.i
+		p.i += 2
+		neg := false
+		if !p.eof() && p.s[p.i] == '?' {
+			neg = true
+			p.i++
+		}
+		digitStart := p.i
+		for !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+			p.i++
+		}
+		if digitStart == p.i {
+			// '$0?' with no digits, or bare '$0'. Back out.
+			p.i = saveI
+			return "", false, nil
+		}
+		if p.eof() || p.s[p.i] != '@' {
+			p.i = saveI
+			return "", false, nil
+		}
+		digits := p.s[digitStart:p.i]
+		p.i++ // consume '@'
+		if neg {
+			return "-" + digits, true, nil
+		}
+		return digits, true, nil
+	}
+	// Pointer to primitive: "PA<cv><prim>".
+	if c == 'P' && p.i+2 < len(p.s) {
+		// Verify shape before committing.
+		saveI := p.i
+		p.i += 2 // consume 'P' + cv byte
+		if !p.eof() {
+			if base := primitiveTypeName(p.s[p.i]); base != "" {
+				p.i++
+				if !p.eof() && p.s[p.i] == '@' {
+					p.i++
+				}
+				return base + "*", true, nil
+			}
+			if pt, n := primitiveTypeNameExt(p.s[p.i:]); pt != "" {
+				p.i += n
+				if !p.eof() && p.s[p.i] == '@' {
+					p.i++
+				}
+				return pt + "*", true, nil
+			}
+		}
+		p.i = saveI
+	}
+	// Two-byte extended primitive: '_<letter>'.
+	if c == '_' {
+		if pt, n := primitiveTypeNameExt(p.s[p.i:]); pt != "" {
+			p.i += n
+			if !p.eof() && p.s[p.i] == '@' {
+				p.i++
+			}
+			return pt, true, nil
+		}
+	}
+	// Single-byte primitive.
+	if base := primitiveTypeName(c); base != "" {
+		p.i++
 		if !p.eof() && p.s[p.i] == '@' {
 			p.i++
 		}
+		return base, true, nil
 	}
-	return name + "<" + strings.Join(args, ", ") + ">", nil
+	return "", false, nil
 }
 
 // primitiveTypeName returns the MSVC primitive-type byte's C/C++

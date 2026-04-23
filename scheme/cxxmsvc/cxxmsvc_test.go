@@ -54,6 +54,12 @@ func TestMSVCBasics(t *testing.T) {
 		{"?foo@@3HA", "int foo"},
 		// Variable: double v;
 		{"?v@@3NA", "double v"},
+		// Template with integer constant arg — MSVC encodes '$0N@' with
+		// N as decimal digits. (Our parser is narrow; rigorous MSVC
+		// literal encoding is N-1 + hex-nibble alphabet, deferred.)
+		{"?method@?$array@H$07@std@@YAXXZ", "void __cdecl std::array<int, 7>::method(void)"},
+		// Template with class-typed arg: std::shared_ptr<Foo>::get
+		{"?get@?$shared_ptr@VFoo@@@std@@YAXXZ", "void __cdecl std::shared_ptr<Foo>::get(void)"},
 	}
 	for _, c := range cases {
 		c := c
