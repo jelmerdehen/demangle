@@ -32,7 +32,8 @@ import (
 )
 
 func main() {
-	listen := flag.String("listen", "127.0.0.1:50061", "address to listen on")
+	listen := flag.String("listen", "127.0.0.1:50061", "gRPC address to listen on")
+	healthListen := flag.String("health-listen", "127.0.0.1:50062", "HTTP health/metrics address")
 	storePath := flag.String("context-db", "", "path to context SQLite DB; defaults to temp-file")
 	flag.Parse()
 
@@ -52,9 +53,14 @@ func main() {
 	}
 
 	srv := grpc.NewServer()
-	pb.RegisterDemangleServer(srv, newService(demangle.Default, store))
+	svc := newService(demangle.Default, store)
+	pb.RegisterDemangleServer(srv, svc)
 
-	fmt.Fprintf(os.Stderr, "demanglegrpc: listening on %s\n", lis.Addr())
+	// Start health + metrics HTTP server on a separate port.
+	_ = startHealthEndpoint(*healthListen, svc.health)
+
+	fmt.Fprintf(os.Stderr, "demanglegrpc: gRPC listening on %s\n", lis.Addr())
+	fmt.Fprintf(os.Stderr, "demanglegrpc: health+metrics on http://%s/healthz + /metrics\n", *healthListen)
 	if err := srv.Serve(lis); err != nil {
 		log.Fatalf("demangle: serve: %v", err)
 	}

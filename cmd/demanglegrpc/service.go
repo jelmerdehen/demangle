@@ -7,6 +7,8 @@ import (
 	"context"
 	"errors"
 	"io"
+	"sync/atomic"
+	"time"
 
 	"github.com/jelmerdehen/demangle"
 	pb "github.com/jelmerdehen/demangle/cmd/demanglegrpc/proto/demanglepb"
@@ -18,31 +20,48 @@ import (
 // lives in the library so GraphQL (on skynet) and gRPC stay in sync.
 type service struct {
 	pb.UnimplementedDemangleServer
-	cat   *demangle.Catalog
-	store demangle.ContextStore
+	cat    *demangle.Catalog
+	store  demangle.ContextStore
+	health *healthState
 }
 
 func newService(cat *demangle.Catalog, store demangle.ContextStore) *service {
-	return &service{cat: cat, store: store}
+	return &service{cat: cat, store: store, health: &healthState{startedAt: time.Now()}}
 }
 
 func (s *service) Demangle(ctx context.Context, req *pb.Request) (*pb.Response, error) {
+	s.health.requests.Add(1)
+	s.health.bytesIn.Add(uint64(len(req.GetInput())))
+
 	opts, err := s.buildOptions(ctx, req.GetOptions())
 	if err != nil {
+		s.health.errors.Add(1)
 		return nil, err
 	}
 	var (
-		r   *demangle.Result
+		r    *demangle.Result
 		dErr error
 	)
 	if sn := req.GetScheme(); sn != "" {
 		sch, ok := s.cat.Scheme(sn)
 		if !ok {
+			s.health.errors.Add(1)
 			return errorResp(req.GetId(), sn, "unknown scheme"), nil
 		}
 		r, dErr = sch.Demangle(ctx, req.GetInput(), *opts)
 	} else {
 		r, dErr = s.cat.Demangle(ctx, req.GetInput(), opts)
+	}
+	if dErr != nil {
+		s.health.errors.Add(1)
+	}
+	if r != nil {
+		s.health.bytesOut.Add(uint64(len(r.Output)))
+		// Per-scheme counter.
+		if r.Scheme != "" {
+			v, _ := s.health.perScheme.LoadOrStore(r.Scheme, &atomic.Uint64{})
+			v.(*atomic.Uint64).Add(1)
+		}
 	}
 	return wrapResult(req.GetId(), req.GetInput(), r, dErr), nil
 }

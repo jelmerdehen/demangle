@@ -1,0 +1,47 @@
+[Unit]
+Description=demangle gRPC service
+Documentation=https://github.com/jelmerdehen/demangle
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=demangle
+Group=demangle
+ExecStart=/usr/local/bin/skynet-demangle \
+    --listen=10.13.38.4:50061 \
+    --health-listen=10.13.38.4:50062 \
+    --context-db=/var/lib/skynet-demangle/contexts.db
+Restart=always
+RestartSec=5
+TimeoutStopSec=15
+
+# Resource limits.
+LimitNOFILE=65535
+
+# Hardening (matches other skynet services on lux).
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictNamespaces=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+SystemCallFilter=@system-service
+SystemCallErrorNumber=EPERM
+
+# Writable paths.
+ReadWritePaths=/var/lib/skynet-demangle
+
+# Environment.
+Environment=GOMAXPROCS=4
+Environment=GOGC=100
+
+[Install]
+WantedBy=multi-user.target
