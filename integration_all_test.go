@@ -42,6 +42,8 @@ func TestEveryRegisteredSchemeRespondsToSniff(t *testing.T) {
 		"0:0",                                      // js-sourcemap (no context, err)
 		"a",                                        // proguard-map (no context, err)
 		"pkg.Func",                                 // gosym
+		"-[NSString length]",                       // objc
+		"__cxa_throw",                              // runtime
 	}
 	ctx := context.Background()
 	for _, s := range samples {
@@ -65,8 +67,8 @@ func TestEveryRegisteredSchemeRespondsToSniff(t *testing.T) {
 func TestSchemeCountMatchesExpectation(t *testing.T) {
 	t.Parallel()
 	schemes := demangle.Default.Schemes()
-	if len(schemes) < 18 {
-		t.Fatalf("only %d schemes registered — regression? expected ≥18", len(schemes))
+	if len(schemes) < 20 {
+		t.Fatalf("only %d schemes registered — regression? expected ≥20", len(schemes))
 	}
 	t.Logf("registered schemes: %d", len(schemes))
 }
