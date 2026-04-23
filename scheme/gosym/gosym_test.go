@@ -61,6 +61,31 @@ func TestGoSymParses(t *testing.T) {
 			"type..hash.pkg.T",
 			map[string]string{"go.synthetic_op": "hash"},
 		},
+		{
+			"pkg.Foo[pkg.Bar].Method",
+			"pkg.Foo.Method",
+			map[string]string{
+				"go.generic_args": "pkg.Bar",
+				"go.pkg":          "pkg.Foo",
+				"go.name":         "Method",
+			},
+		},
+		{
+			"pkg.Foo[pkg.Bar,pkg.Baz].Method",
+			"pkg.Foo.Method",
+			map[string]string{
+				"go.generic_args": "pkg.Bar,pkg.Baz",
+			},
+		},
+		{
+			"pkg.(*Foo[pkg.Bar]).Method",
+			"pkg.(*Foo).Method",
+			map[string]string{
+				"go.generic_args": "pkg.Bar",
+				"go.recv":         "*Foo",
+				"go.method":       "Method",
+			},
+		},
 	}
 	for _, c := range cases {
 		c := c

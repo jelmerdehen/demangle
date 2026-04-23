@@ -11,6 +11,7 @@
 //	pkg.Func.func1                              → nested closure
 //	pkg.Func.func1.1                            → numbered nested closure
 //	type..eq.pkg.T                              → synthesised eq method
+//	pkg.Foo[go.shape.int].Method                → instantiated generic method
 //
 // Fidelity: None (Go names aren't mangled in a strict ABI sense;
 // this scheme normalises the Go runtime's display form into
@@ -115,6 +116,16 @@ func (Scheme) Demangle(_ context.Context, in string, _ demangle.Options) (*deman
 	if strings.HasPrefix(base, "go:typelink.") {
 		attrs["go.kind"] = "TypeLink"
 	}
+	// Generic instantiation: "pkg.Foo[...].Method" — record the
+	// bracketed type-arg list separately so the pkg/method split below
+	// doesn't see dots that live inside the brackets.
+	if lb := strings.IndexByte(base, '['); lb >= 0 {
+		if rb := matchingBracket(base, lb); rb > lb {
+			attrs["go.generic_args"] = base[lb+1 : rb]
+			// Rebuild "<head-before-[><tail-after-]>" for the split.
+			base = base[:lb] + base[rb+1:]
+		}
+	}
 	// Split pkg / method structure.
 	if strings.Contains(base, ".(*") {
 		// pkg.(*T).Method
@@ -142,6 +153,25 @@ func (Scheme) Demangle(_ context.Context, in string, _ demangle.Options) (*deman
 		},
 		Annotations: attrs,
 	}, nil
+}
+
+// matchingBracket returns the index of the `]` that closes the `[`
+// at position lb, accounting for nested brackets. Returns -1 when no
+// match is found.
+func matchingBracket(s string, lb int) int {
+	depth := 0
+	for i := lb; i < len(s); i++ {
+		switch s[i] {
+		case '[':
+			depth++
+		case ']':
+			depth--
+			if depth == 0 {
+				return i
+			}
+		}
+	}
+	return -1
 }
 
 func init() {
