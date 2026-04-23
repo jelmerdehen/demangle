@@ -385,7 +385,7 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 		}
 		c := p.s[p.i]
 		if c == 'y' || c == 'B' || c == 'S' || c == 'A' ||
-			c == 'x' || c == 'q' {
+			c == 'x' || c == 'q' || c == 'Q' {
 			break
 		}
 		// 's' module sub could start a type; but an ident chain
@@ -616,6 +616,9 @@ func (p *parser) parseType() (*demangle.Node, error) {
 	case c == 'q':
 		p.i++
 		node, err = p.parseGenericParam()
+	case c == 'Q':
+		p.i++
+		node, err = p.parseOpaqueType()
 	case c >= '0' && c <= '9':
 		node, err = p.parseNominalPath()
 	default:
@@ -800,6 +803,49 @@ func (p *parser) parseGenericParam() (*demangle.Node, error) {
 
 func (p *parser) truncated() error {
 	return demangle.TruncatedInput(p.schemeName, p.origin, p.i+p.prefixBytes)
+}
+
+// parseOpaqueType — 'Q' consumed; reads the opaque-type marker that
+// introduces an opaque return type reference. Narrow subset:
+//
+//	Qr       → an opaque return type (rendered as a placeholder token
+//	           the printer later substitutes with the function context)
+//	Qo<N>_   → opaque type N of the enclosing function (index 0,1,…).
+//	           We accept 0-digit `Qo_` and numeric variants; display
+//	           uses the containing-function annotation on entity print.
+//
+// Unknown Q-forms parse as a bare opaque placeholder so the outer
+// grammar can progress; the suffix (Ho/HO/QO) often supplies the
+// semantic wrapper anyway.
+func (p *parser) parseOpaqueType() (*demangle.Node, error) {
+	if p.eof() {
+		return nil, p.truncated()
+	}
+	c := p.s[p.i]
+	p.i++
+	placeholder := common.NewNode(common.KindType)
+	gp := common.NewNode(common.KindDependentGenericParamType)
+	switch c {
+	case 'r':
+		gp.Text = "<<opaque return type>>"
+	case 'o':
+		gp.Text = "<<opaque type>>"
+		// Optional index digits then '_'.
+		for !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+			p.i++
+		}
+		if !p.eof() && p.s[p.i] == '_' {
+			p.i++
+		}
+	case 'O':
+		// Outlined opaque type wrapper — treat as a bare placeholder so
+		// the H-suffix that usually follows can annotate it.
+		gp.Text = "<<opaque return type>>"
+	default:
+		gp.Text = "<<opaque type>>"
+	}
+	common.AddChildren(placeholder, gp)
+	return placeholder, nil
 }
 
 // entitySuffixStart reports whether b introduces a 2/3-byte entity
