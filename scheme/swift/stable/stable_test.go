@@ -116,34 +116,36 @@ func TestStableFunctionEntities(t *testing.T) {
 	cases := []struct {
 		in, want string
 	}{
-		// Top-level module function.
+		// Per Mangling.rst §function-signature: `result-type params-type`.
+		// Label-list is OMITTED when params-type is empty, present as
+		// the empty-list shortcut `y` when params are positional.
+		//
+		// Top-level module function — no params, no label-list.
 		{"$s4main3fooyyF", "main.foo() -> ()"},
-		// Method on a struct.
+		// Method on a struct — no params → no label-list.
 		{"$s4main3FooV3baryyF", "main.Foo.bar() -> ()"},
-		// Method on a class.
 		{"$s4main3FooC3baryyF", "main.Foo.bar() -> ()"},
-		// Method on an enum.
 		{"$s4main3FooO3baryyF", "main.Foo.bar() -> ()"},
-		// Function returning non-void: () -> Swift.Int.
-		{"$s4main3fooySiF", "main.foo() -> Swift.Int"},
-		// Function returning Array<Int>: () -> [Swift.Int].
-		{"$s4main3fooySaySiGF", "main.foo() -> [Swift.Int]"},
-		// Function taking Int returning void.
-		{"$s4main3fooSiyF", "main.foo(Swift.Int) -> ()"},
-		// Function taking Int returning String.
-		{"$s4main3fooSiSSF", "main.foo(Swift.Int) -> Swift.String"},
+		// () -> Swift.Int — label-list omitted, result=Si, params=y.
+		{"$s4main3fooSiyF", "main.foo() -> Swift.Int"},
+		// () -> [Swift.Int] — result is bound generic Array<Int>, params empty.
+		{"$s4main3fooSaySiGyF", "main.foo() -> [Swift.Int]"},
+		// (Swift.Int) -> () — label-list `y`, result `y`, params `Si`.
+		{"$s4main3fooyySiF", "main.foo(Swift.Int) -> ()"},
+		// (Swift.String) -> Swift.Int — label-list, result Si, params SS.
+		{"$s4main3fooySiSSF", "main.foo(Swift.String) -> Swift.Int"},
 		// Throwing function: () throws -> ()
 		{"$s4main3fooyyKF", "main.foo() throws -> ()"},
-		// Async function: () async -> ()
-		{"$s4main3fooyyYF", "main.foo() async -> ()"},
+		// Async function: () async -> () — async marker is `Ya`.
+		{"$s4main3fooyyYaF", "main.foo() async -> ()"},
 		// Async throws.
-		{"$s4main3fooyyYKF", "main.foo() async throws -> ()"},
-		// Generic-param 'x' as arg: (A) -> ()
-		{"$s4main3fooxyF", "main.foo(A) -> ()"},
-		// Generic-param 'q_' as arg: (B) -> ()
-		{"$s4main3fooq_yF", "main.foo(B) -> ()"},
-		// Generic-param as return: () -> A
-		{"$s4main3fooyxF", "main.foo() -> A"},
+		{"$s4main3fooyyYaKF", "main.foo() async throws -> ()"},
+		// Generic-param 'x' as params: (A) -> ()
+		{"$s4main3fooyyxF", "main.foo(A) -> ()"},
+		// Generic-param 'q_' as params: (B) -> ()
+		{"$s4main3fooyyq_F", "main.foo(B) -> ()"},
+		// Generic-param as result: () -> A
+		{"$s4main3fooxyF", "main.foo() -> A"},
 	}
 	for _, c := range cases {
 		c := c

@@ -288,9 +288,9 @@ func (p *parser) tryEntitySuffix(inner *demangle.Node) (*demangle.Node, bool) {
 		} else if p.s[p.i+1] == 'j' {
 			prefix = "dispatch thunk of "
 		} else if p.s[p.i+1] == 'Y' {
-			prefix = "async function pointer to "
-		} else if p.s[p.i+1] == 'u' {
 			prefix = "async await resume partial function for "
+		} else if p.s[p.i+1] == 'u' {
+			prefix = "async function pointer to "
 		}
 	case 'f':
 		// Init/deinit markers.
@@ -413,74 +413,108 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 		pathSteps = append(pathSteps, common.NewIdentifier(ident))
 	}
 
-	// Function type. Common shapes handled here:
+	// Per Swift stable ABI Mangling.rst:
 	//
-	//   yyF                   () -> ()
-	//   y <rettype> F         () -> <rettype>
-	//   <argtype> y F         (<argtype>) -> ()
-	//   <argtype> <rettype> F (<argtype>) -> <rettype>
+	//   entity-spec      ::= decl-name label-list function-signature? 'F'
+	//   function-signature ::= result-type params-type async? sendable? throws? ...
+	//   result-type      ::= type | empty-list
+	//   params-type      ::= type 'z'? 'h'? | empty-list
 	//
-	// Multi-arg tuples, labelled args, throws, async, generics in
-	// signature are future-work; this branch bails on unrecognised
-	// shapes via full parser rollback.
-	if p.eof() {
-		restore()
-		return nil, false, nil
-	}
-	var args, ret *demangle.Node
-	// Args slot.
-	if p.s[p.i] == 'y' {
-		p.i++
-		args = common.NewNode(common.KindEmptyList)
-	} else {
-		a, err := p.parseType()
-		if err != nil {
-			restore()
-			return nil, false, nil
+	// label-list is OMITTED when params-type is empty. When params are
+	// present, label-list is either the empty-list shortcut `y` (all
+	// positional, no labels) or `<identifier|x>+y` (per-param labels).
+	// We speculatively consume a leading `y` as label-list and parse
+	// result/params; on failure we rewind and try without.
+	var (
+		args, ret  *demangle.Node
+		throws     bool
+		async      bool
+		consumed   int // how much of the signature + F we consumed
+	)
+	tryPath := func(assumeLabelList bool) bool {
+		savePath := p.i
+		saveSubsLocal := p.subs
+		revert := func() {
+			p.i = savePath
+			p.subs = saveSubsLocal
 		}
-		args = a
-	}
-	// Return slot.
-	if p.eof() {
-		restore()
-		return nil, false, nil
-	}
-	if p.s[p.i] == 'y' {
-		p.i++
-		ret = common.NewNode(common.KindEmptyList)
-	} else {
-		r, err := p.parseType()
-		if err != nil {
-			restore()
-			return nil, false, nil
+		if assumeLabelList {
+			if p.eof() || p.s[p.i] != 'y' {
+				return false
+			}
+			p.i++ // consume label-list empty shortcut
 		}
+		// Result-type.
+		if p.eof() {
+			revert()
+			return false
+		}
+		var r *demangle.Node
+		if p.s[p.i] == 'y' {
+			p.i++
+			r = common.NewNode(common.KindEmptyList)
+		} else {
+			x, err := p.parseType()
+			if err != nil {
+				revert()
+				return false
+			}
+			r = x
+		}
+		// Params-type.
+		if p.eof() {
+			revert()
+			return false
+		}
+		var a *demangle.Node
+		if p.s[p.i] == 'y' {
+			p.i++
+			a = common.NewNode(common.KindEmptyList)
+		} else {
+			x, err := p.parseType()
+			if err != nil {
+				revert()
+				return false
+			}
+			a = x
+		}
+		// Async / throws markers. Spec: Ya = async (2 bytes), K = throws.
+		localAsync := false
+		localThrows := false
+		for !p.eof() {
+			if p.i+1 < len(p.s) && p.s[p.i] == 'Y' && p.s[p.i+1] == 'a' {
+				localAsync = true
+				p.i += 2
+				continue
+			}
+			if p.s[p.i] == 'K' {
+				localThrows = true
+				p.i++
+				continue
+			}
+			break
+		}
+		if p.eof() || p.s[p.i] != 'F' {
+			revert()
+			return false
+		}
+		p.i++
 		ret = r
+		args = a
+		async = localAsync
+		throws = localThrows
+		consumed = p.i - savePath
+		_ = consumed
+		return true
 	}
-	// Optional function-attribute flags AFTER return, BEFORE F:
-	//   K — throws
-	//   Y — async
-	// Order in stable ABI is Y then K when both present.
-	throws := false
-	async := false
-	for !p.eof() {
-		switch p.s[p.i] {
-		case 'K':
-			throws = true
-			p.i++
-			continue
-		case 'Y':
-			async = true
-			p.i++
-			continue
+	// Common case: has params → label-list present → try with leading y.
+	if !tryPath(true) {
+		// No-params case: label-list omitted → try without.
+		if !tryPath(false) {
+			restore()
+			return nil, false, nil
 		}
-		break
 	}
-	// Function marker.
-	if p.eof() || p.s[p.i] != 'F' {
-		restore()
-		return nil, false, nil
-	}
-	p.i++
 
 	path := common.NewNode(common.KindEntityPath)
 	common.AddChildren(path, pathSteps...)
@@ -895,11 +929,25 @@ func (p *parser) builtinTypeNamed(name string) *demangle.Node {
 }
 
 // parseStdlibSubstitution — 'S' already consumed; one letter follows.
+//
+// Special module-letter forms:
+//
+//	'o' — '__C' module (Objective-C / Clang-imported).  Continues
+//	      with <idlen><id><kind> for a nominal under __C.
+//	'C' — C module (rare).  Continues similarly.
 func (p *parser) parseStdlibSubstitution() (*demangle.Node, error) {
 	if p.eof() {
 		return nil, demangle.TruncatedInput(p.schemeName, p.origin, p.i+p.prefixBytes)
 	}
 	c := p.s[p.i]
+	// Module-letter substitutions expand into "<module> <id> <kind>" —
+	// they're the stdlib shortcut for a module name, not a complete
+	// nominal type in themselves.
+	switch c {
+	case 'o':
+		p.i++
+		return p.parseNominalWithModule(common.NewModule("__C"))
+	}
 	node, ok := common.BuildStdlibNominal(c)
 	if !ok {
 		return nil, p.grammarErr("stdlib substitution letter")
