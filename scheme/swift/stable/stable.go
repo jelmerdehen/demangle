@@ -70,25 +70,32 @@ func (Scheme) Demangle(_ context.Context, in string, opts demangle.Options) (*de
 	if !ok {
 		return nil, demangle.WrongScheme("swift-stable", in)
 	}
-	p := &parser{s: body, origin: in}
+	return ParseBody("swift-stable", in, body, prefixLen(in))
+}
+
+// ParseBody parses a post-prefix body as Swift stable-ABI mangling.
+// Exposed so the v42 / v40 / embedded subpackages (which share the
+// same grammar as stable with different prefixes) can reuse the
+// parser without duplication. `schemeName` appears in result + errors;
+// `origin` is the full input including prefix (for offset math);
+// `prefixBytes` is the length of the prefix in the origin.
+func ParseBody(schemeName, origin, body string, prefixBytes int) (*demangle.Result, error) {
+	p := &parser{s: body, origin: origin, prefixBytes: prefixBytes, schemeName: schemeName}
 	tree, err := p.parseGlobal()
 	if err != nil {
 		return nil, err
 	}
 	if p.i != len(p.s) {
-		// Stage 1 signals "parsed the head OK, don't yet understand
-		// the tail" by returning a structured Unsupported error. The
-		// tree is still populated so the caller can see what we got.
 		return nil, &demangle.Error{
-			Kind: demangle.ErrUnsupported, Scheme: "swift-stable",
-			Offset: p.i + prefixLen(in), Expected: "end of input (grammar feature not yet supported)",
+			Kind: demangle.ErrUnsupported, Scheme: schemeName,
+			Offset: p.i + prefixBytes, Expected: "end of input (grammar feature not yet supported)",
 			Window: tail(p.s, p.i),
 		}
 	}
 	display := common.Print(tree, common.DefaultPrintOptions())
 	return &demangle.Result{
-		Scheme: "swift-stable",
-		Input:  in,
+		Scheme: schemeName,
+		Input:  origin,
 		Output: display,
 		Tree:   tree,
 	}, nil
@@ -122,10 +129,12 @@ func tail(s string, from int) string {
 // --- parser ------------------------------------------------------
 
 type parser struct {
-	s      string
-	i      int
-	origin string // full input including prefix, for error windows
-	subs   common.SubstitutionTable
+	s           string
+	i           int
+	origin      string // full input including prefix, for error windows
+	prefixBytes int    // length of prefix in origin
+	schemeName  string // for error.Scheme
+	subs        common.SubstitutionTable
 }
 
 func (p *parser) eof() bool { return p.i >= len(p.s) }
@@ -296,7 +305,7 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 //	Bv<N>_     → wrap preceding type as Builtin.Vec<N>x<inner>
 func (p *parser) parseType() (*demangle.Node, error) {
 	if p.eof() {
-		return nil, demangle.TruncatedInput("swift-stable", p.origin, p.i+prefixLen(p.origin))
+		return nil, demangle.TruncatedInput(p.schemeName, p.origin, p.i+p.prefixBytes)
 	}
 	c := p.s[p.i]
 	var (
@@ -454,7 +463,7 @@ func (p *parser) parseNominalWithModule(module *demangle.Node) (*demangle.Node, 
 		return nil, err
 	}
 	if p.eof() {
-		return nil, demangle.TruncatedInput("swift-stable", p.origin, p.i+prefixLen(p.origin))
+		return nil, demangle.TruncatedInput(p.schemeName, p.origin, p.i+p.prefixBytes)
 	}
 	k := p.s[p.i]
 	p.i++
@@ -512,7 +521,7 @@ func (p *parser) parseBuiltin() (*demangle.Node, error) {
 	}
 	p.i++
 	if p.eof() {
-		return nil, demangle.TruncatedInput("swift-stable", p.origin, p.i+prefixLen(p.origin))
+		return nil, demangle.TruncatedInput(p.schemeName, p.origin, p.i+p.prefixBytes)
 	}
 	c := p.s[p.i]
 	p.i++
@@ -592,7 +601,7 @@ func (p *parser) builtinTypeNamed(name string) *demangle.Node {
 // parseStdlibSubstitution — 'S' already consumed; one letter follows.
 func (p *parser) parseStdlibSubstitution() (*demangle.Node, error) {
 	if p.eof() {
-		return nil, demangle.TruncatedInput("swift-stable", p.origin, p.i+prefixLen(p.origin))
+		return nil, demangle.TruncatedInput(p.schemeName, p.origin, p.i+p.prefixBytes)
 	}
 	c := p.s[p.i]
 	node, ok := common.BuildStdlibNominal(c)
@@ -634,7 +643,7 @@ func (p *parser) parseIdentifier() (string, error) {
 		return "", p.grammarErr("positive identifier length")
 	}
 	if p.i+length > len(p.s) {
-		return "", demangle.TruncatedInput("swift-stable", p.origin, p.i+prefixLen(p.origin))
+		return "", demangle.TruncatedInput(p.schemeName, p.origin, p.i+p.prefixBytes)
 	}
 	text := p.s[p.i : p.i+length]
 	p.i += length
@@ -651,8 +660,8 @@ func (p *parser) parseIdentifier() (string, error) {
 }
 
 func (p *parser) grammarErr(expected string) error {
-	offset := p.i + prefixLen(p.origin)
-	return demangle.GrammarViolation("swift-stable", p.origin, offset, expected)
+	offset := p.i + p.prefixBytes
+	return demangle.GrammarViolation(p.schemeName, p.origin, offset, expected)
 }
 
 func init() {

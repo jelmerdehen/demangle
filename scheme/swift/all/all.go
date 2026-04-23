@@ -6,5 +6,10 @@
 package all
 
 import (
+	_ "github.com/jelmerdehen/demangle/scheme/swift/embedded"
+	_ "github.com/jelmerdehen/demangle/scheme/swift/macro"
+	_ "github.com/jelmerdehen/demangle/scheme/swift/old"
 	_ "github.com/jelmerdehen/demangle/scheme/swift/stable"
+	_ "github.com/jelmerdehen/demangle/scheme/swift/v40"
+	_ "github.com/jelmerdehen/demangle/scheme/swift/v42"
 )
