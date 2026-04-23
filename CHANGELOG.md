@@ -4,6 +4,18 @@ All notable changes to this project will be documented here. Format
 follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). This
 project uses semantic versioning.
 
+## [0.1.7] - 2026-04-24
+
+### Added
+
+- 21st scheme **runtime** — classifier for C / C++ / toolchain
+  helper symbols (`__cxa_*`, `_Unwind_*`, `__stack_chk_*`,
+  `__asan_*` / `__msan_*` / `__tsan_*` / `__ubsan_*`, `__llvm_*`,
+  `__gcov_*`, `__Block_*`, `objc_*`, `swift_*`, `go:runtime.*`).
+- gosym: `type..eq.` / `type..hash.` / `type..lt.` /
+  `type..equal.` synthesised-op detection; `go:itab.*` +
+  `go:typelink.*` linker-section markers.
+
 ## [0.1.6] - 2026-04-24
 
 ### Added

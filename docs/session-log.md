@@ -19,12 +19,24 @@ package doc.
 | 6 — gRPC service scaffold | ✅ | proto + server + 5 integration tests |
 | 6.5 — deploy artifacts | 🚧 | healthz + metrics + TLS + keepalive + systemd unit ready; lux deploy gated on first real caller |
 
-## Tallies (updated)
+## Tallies (final)
 
-- **19 schemes** registered.
-- **50+ commits** on `main`; **4 tags** (v0.1.0 through v0.1.4).
-- **10 fuzz harnesses**.
-- Apple corpus: **11/153** direct matches, **0 mismatches**.
+- **21 schemes** registered.
+- **60+ commits** on `main`; **8 tags** (v0.1.0 through v0.1.7).
+- **11 fuzz harnesses** (every hand-written parser).
+- Apple corpus: **11/153** Swift direct matches, **0 mismatches**.
+- Full CLI binary stays under 14 MB (budget gate).
+
+## Scheme registry
+
+```
+android-dex  cpp-itanium     cpp-msvc      dlang
+gosym        jni             js-minified   js-sourcemap
+jvmdesc      kotlin          objc          proguard-map
+runtime      rust            scala2        swift-embedded
+swift-macro  swift-old       swift-stable  swift-v40
+swift-v42
+```
 - **9 fuzz harnesses** across hand-written parsers. Zero panics on
   millions of execs.
 - **535 k names/sec** on the batch API (meets the ≥ 500 k/sec spec
