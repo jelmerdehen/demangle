@@ -35,6 +35,10 @@ func TestStableBuiltins(t *testing.T) {
 		{"$sBp", "Builtin.RawPointer"},
 		{"$sBt", "Builtin.SILToken"},
 		{"_$sBf32_", "Builtin.FPIEEE32"},
+		// Postfix vectors: inner-first, then Bv<N>_.
+		{"$sBi8_Bv4_", "Builtin.Vec4xInt8"},
+		{"$sBf16_Bv4_", "Builtin.Vec4xFPIEEE16"},
+		{"$sBpBv4_", "Builtin.Vec4xRawPointer"},
 	}
 	for _, c := range cases {
 		c := c
@@ -88,6 +92,36 @@ func TestStableNominalPaths(t *testing.T) {
 		{"$s4main3BarC", "main.Bar"},
 		{"$s4main3BazO", "main.Baz"},
 		{"$s4main3QuxP", "main.Qux"},
+		// Swift module substitution 's'.
+		{"$ss5OtherV", "Swift.Other"},
+	}
+	for _, c := range cases {
+		c := c
+		t.Run(c.in, func(t *testing.T) {
+			t.Parallel()
+			r, err := cat.Demangle(context.Background(), c.in, nil)
+			if err != nil {
+				t.Fatalf("demangle: %v", err)
+			}
+			if r.Output != c.want {
+				t.Fatalf("output = %q, want %q", r.Output, c.want)
+			}
+		})
+	}
+}
+
+func TestStableBoundGenerics(t *testing.T) {
+	t.Parallel()
+	cat := newCatalog(t)
+	cases := []struct {
+		in, want string
+	}{
+		// Array<Int> → [Int] via sugar.
+		{"$sSaySiG", "[Swift.Int]"},
+		// Optional<Int> → Int? via sugar.
+		{"$sSqySiG", "Swift.Int?"},
+		// Nested: Array<Optional<Int>> → [Int?].
+		{"$sSaySqySiGG", "[Swift.Int?]"},
 	}
 	for _, c := range cases {
 		c := c

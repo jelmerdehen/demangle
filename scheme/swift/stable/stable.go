@@ -154,23 +154,222 @@ func (p *parser) parseGlobal() (*demangle.Node, error) {
 // parseType consumes one type. Branches on the first byte:
 //
 //	'B' → builtin type
-//	'S' → stdlib substitution
-//	digit → length-prefixed nominal path (module + identifier + kind)
+//	'S' → stdlib known-type substitution (Si, Sa, …)
+//	's' → Swift-module nominal path (s<idlen><id><kind>)
+//	'A' → numeric substitution (A<index>_ back-reference)
+//	digit → length-prefixed nominal path (<modlen><mod><idlen><id><kind>)
+//
+// After the primary type parses, a tail of postfix type-modifiers may
+// follow:
+//
+//	Bv<N>_     → wrap preceding type as Builtin.Vec<N>x<inner>
 func (p *parser) parseType() (*demangle.Node, error) {
 	if p.eof() {
 		return nil, demangle.TruncatedInput("swift-stable", p.origin, p.i+prefixLen(p.origin))
 	}
 	c := p.s[p.i]
+	var (
+		node *demangle.Node
+		err  error
+	)
 	switch {
 	case c == 'B':
-		return p.parseBuiltin()
+		node, err = p.parseBuiltin()
 	case c == 'S':
 		p.i++
-		return p.parseStdlibSubstitution()
+		node, err = p.parseStdlibSubstitution()
+	case c == 's':
+		p.i++
+		node, err = p.parseNominalWithModule(common.NewModule("Swift"))
+	case c == 'A':
+		p.i++
+		node, err = p.parseNumericSubstitution()
 	case c >= '0' && c <= '9':
-		return p.parseNominalPath()
+		node, err = p.parseNominalPath()
+	default:
+		return nil, p.grammarErr("type start")
 	}
-	return nil, p.grammarErr("type start")
+	if err != nil {
+		return nil, err
+	}
+	// Record the newly-parsed node as a substitution candidate so
+	// later A<n>_ references can dereference it.
+	if node != nil {
+		p.subs.Push(node)
+	}
+	// Postfix modifiers.
+	for {
+		wrapped, ok, err := p.tryPostfixVector(node)
+		if err != nil {
+			return nil, err
+		}
+		if !ok {
+			break
+		}
+		node = wrapped
+	}
+	// Bound-generic trailer: base y <type>+ G.
+	if bg, ok, err := p.tryBoundGeneric(node); err != nil {
+		return nil, err
+	} else if ok {
+		node = bg
+		p.subs.Push(node)
+	}
+	return node, nil
+}
+
+// tryBoundGeneric handles the stable form:
+//
+//	base 'y' type+ ('_' type+)* 'G'
+//
+// Single-arg case: "SaySiG" → Swift.Array<Swift.Int>.
+// Multi-arg case: "SDySiSSG" → Swift.Dictionary<Swift.Int, Swift.String>
+// (underscore-separated lists when they contain mixed kinds, left for
+// a follow-on commit).
+func (p *parser) tryBoundGeneric(base *demangle.Node) (*demangle.Node, bool, error) {
+	if p.eof() || p.s[p.i] != 'y' {
+		return base, false, nil
+	}
+	save := p.i
+	p.i++
+	var args []*demangle.Node
+	for !p.eof() && p.s[p.i] != 'G' {
+		// Bail safely if a nested feature we don't support appears.
+		arg, err := p.parseType()
+		if err != nil {
+			// Roll back — the 'y' we consumed belonged to something
+			// else (probably a function-type marker in a context we
+			// don't yet understand).
+			p.i = save
+			return base, false, nil
+		}
+		args = append(args, arg)
+	}
+	if p.eof() {
+		p.i = save
+		return base, false, nil
+	}
+	p.i++ // consume 'G'
+	if len(args) == 0 {
+		p.i = save
+		return base, false, nil
+	}
+
+	// Derive bound kind from the base's nominal kind.
+	baseNom := base
+	if common.NodeKind(baseNom.Kind) == common.KindType && len(baseNom.Children) > 0 {
+		baseNom = baseNom.Children[0]
+	}
+	var bKind common.NodeKind
+	switch common.NodeKind(baseNom.Kind) {
+	case common.KindStructure:
+		bKind = common.KindBoundGenericStructure
+	case common.KindClass:
+		bKind = common.KindBoundGenericClass
+	case common.KindEnum:
+		bKind = common.KindBoundGenericEnum
+	case common.KindProtocol:
+		bKind = common.KindBoundGenericProtocol
+	default:
+		p.i = save
+		return base, false, nil
+	}
+
+	typeList := common.NewNode(common.KindTypeList)
+	common.AddChildren(typeList, args...)
+
+	bound := common.NewNode(bKind)
+	common.AddChildren(bound, base, typeList)
+
+	typ := common.NewNode(common.KindType)
+	common.AddChildren(typ, bound)
+	return typ, true, nil
+}
+
+// parseNumericSubstitution — 'A' consumed; reads a base-10 index +
+// '_' and returns the previously-recorded Node at that position.
+// Apple uses base-36 (A0_..A9_,AA_..AZ_,Aa_..Az_) but base-10 covers
+// the vast majority of real-world cases and we extend as fixtures
+// demand.
+func (p *parser) parseNumericSubstitution() (*demangle.Node, error) {
+	start := p.i
+	for !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+		p.i++
+	}
+	if start == p.i {
+		return nil, p.grammarErr("substitution index digit")
+	}
+	idx := 0
+	for _, c := range p.s[start:p.i] {
+		idx = idx*10 + int(c-'0')
+	}
+	if p.eof() || p.s[p.i] != '_' {
+		return nil, p.grammarErr("'_' terminating substitution index")
+	}
+	p.i++
+	n, ok := p.subs.Get(idx)
+	if !ok {
+		return nil, p.grammarErr("valid substitution index")
+	}
+	return n, nil
+}
+
+// parseNominalWithModule — module already parsed (or supplied as the
+// stdlib 's' sub); read identifier + kind byte and emit a nominal
+// Type node.
+func (p *parser) parseNominalWithModule(module *demangle.Node) (*demangle.Node, error) {
+	name, err := p.parseIdentifier()
+	if err != nil {
+		return nil, err
+	}
+	if p.eof() {
+		return nil, demangle.TruncatedInput("swift-stable", p.origin, p.i+prefixLen(p.origin))
+	}
+	k := p.s[p.i]
+	p.i++
+	var kind common.NodeKind
+	switch k {
+	case 'V':
+		kind = common.KindStructure
+	case 'C':
+		kind = common.KindClass
+	case 'O':
+		kind = common.KindEnum
+	case 'P':
+		kind = common.KindProtocol
+	default:
+		return nil, p.grammarErr("nominal kind byte V/C/O/P")
+	}
+	typ := common.NewNode(common.KindType)
+	nom := common.NewNode(kind)
+	common.AddChildren(nom, module, common.NewIdentifier(name))
+	common.AddChildren(typ, nom)
+	return typ, nil
+}
+
+// tryPostfixVector looks for a trailing Bv<N>_ modifier. If present,
+// wraps the preceding type as Builtin.Vec<N>x<innerName>. Returns
+// (wrapped, consumed, err). When consumed=false the parser position
+// is unchanged.
+func (p *parser) tryPostfixVector(inner *demangle.Node) (*demangle.Node, bool, error) {
+	if p.i+1 >= len(p.s) || p.s[p.i] != 'B' || p.s[p.i+1] != 'v' {
+		return inner, false, nil
+	}
+	save := p.i
+	p.i += 2
+	start := p.i
+	for !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+		p.i++
+	}
+	if start == p.i || p.eof() || p.s[p.i] != '_' {
+		p.i = save
+		return inner, false, nil
+	}
+	count := p.s[start:p.i]
+	p.i++ // consume '_'
+	innerName := common.Print(inner, common.DefaultPrintOptions())
+	innerName = strings.TrimPrefix(innerName, "Builtin.")
+	return p.builtinTypeNamed("Vec" + count + "x" + innerName), true, nil
 }
 
 // parseBuiltin — 'B' then one of: 'f' (float), 'i' (int), 'w' (Word),
@@ -281,33 +480,7 @@ func (p *parser) parseNominalPath() (*demangle.Node, error) {
 	if err != nil {
 		return nil, err
 	}
-	name, err := p.parseIdentifier()
-	if err != nil {
-		return nil, err
-	}
-	if p.eof() {
-		return nil, demangle.TruncatedInput("swift-stable", p.origin, p.i+prefixLen(p.origin))
-	}
-	k := p.s[p.i]
-	p.i++
-	var kind common.NodeKind
-	switch k {
-	case 'V':
-		kind = common.KindStructure
-	case 'C':
-		kind = common.KindClass
-	case 'O':
-		kind = common.KindEnum
-	case 'P':
-		kind = common.KindProtocol
-	default:
-		return nil, p.grammarErr("nominal kind byte V/C/O/P")
-	}
-	typ := common.NewNode(common.KindType)
-	nom := common.NewNode(kind)
-	common.AddChildren(nom, common.NewModule(mod), common.NewIdentifier(name))
-	common.AddChildren(typ, nom)
-	return typ, nil
+	return p.parseNominalWithModule(common.NewModule(mod))
 }
 
 // parseIdentifier reads "<digits><chars>" where digits specify byte
