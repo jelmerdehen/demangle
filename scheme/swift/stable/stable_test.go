@@ -1,0 +1,137 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2026 Jelmer de Hen
+
+package stable_test
+
+import (
+	"context"
+	"testing"
+
+	"github.com/jelmerdehen/demangle"
+	"github.com/jelmerdehen/demangle/scheme/swift/stable"
+)
+
+func newCatalog(t *testing.T) *demangle.Catalog {
+	t.Helper()
+	c := demangle.NewCatalog()
+	c.Register(stable.Scheme{})
+	return c
+}
+
+func TestStableBuiltins(t *testing.T) {
+	t.Parallel()
+	cat := newCatalog(t)
+	cases := []struct {
+		in, want string
+	}{
+		{"$sBf32_", "Builtin.FPIEEE32"},
+		{"$sBf64_", "Builtin.FPIEEE64"},
+		{"$sBf80_", "Builtin.FPIEEE80"},
+		{"$sBi32_", "Builtin.Int32"},
+		{"$sBi64_", "Builtin.Int64"},
+		{"$sBw", "Builtin.Word"},
+		{"$sBo", "Builtin.NativeObject"},
+		{"$sBO", "Builtin.UnknownObject"},
+		{"$sBp", "Builtin.RawPointer"},
+		{"$sBt", "Builtin.SILToken"},
+		{"_$sBf32_", "Builtin.FPIEEE32"},
+	}
+	for _, c := range cases {
+		c := c
+		t.Run(c.in, func(t *testing.T) {
+			t.Parallel()
+			r, err := cat.Demangle(context.Background(), c.in, nil)
+			if err != nil {
+				t.Fatalf("demangle: %v", err)
+			}
+			if r.Output != c.want {
+				t.Fatalf("output = %q, want %q", r.Output, c.want)
+			}
+		})
+	}
+}
+
+func TestStableStdlibSubstitutions(t *testing.T) {
+	t.Parallel()
+	cat := newCatalog(t)
+	cases := []struct {
+		in, want string
+	}{
+		{"$sSi", "Swift.Int"},
+		{"$sSa", "Swift.Array"},
+		{"$sSb", "Swift.Bool"},
+		{"$sSd", "Swift.Double"},
+		{"$sSS", "Swift.String"},
+	}
+	for _, c := range cases {
+		c := c
+		t.Run(c.in, func(t *testing.T) {
+			t.Parallel()
+			r, err := cat.Demangle(context.Background(), c.in, nil)
+			if err != nil {
+				t.Fatalf("demangle: %v", err)
+			}
+			if r.Output != c.want {
+				t.Fatalf("output = %q, want %q", r.Output, c.want)
+			}
+		})
+	}
+}
+
+func TestStableNominalPaths(t *testing.T) {
+	t.Parallel()
+	cat := newCatalog(t)
+	cases := []struct {
+		in, want string
+	}{
+		{"$s4main3FooV", "main.Foo"},
+		{"$s4main3BarC", "main.Bar"},
+		{"$s4main3BazO", "main.Baz"},
+		{"$s4main3QuxP", "main.Qux"},
+	}
+	for _, c := range cases {
+		c := c
+		t.Run(c.in, func(t *testing.T) {
+			t.Parallel()
+			r, err := cat.Demangle(context.Background(), c.in, nil)
+			if err != nil {
+				t.Fatalf("demangle: %v", err)
+			}
+			if r.Output != c.want {
+				t.Fatalf("output = %q, want %q", r.Output, c.want)
+			}
+		})
+	}
+}
+
+func TestStableRejectsUnsupported(t *testing.T) {
+	t.Parallel()
+	cat := newCatalog(t)
+	// Function-mangle trailer 'yyF' isn't in our subset yet. We
+	// expect ErrUnsupported (parsed the type head, tail unknown).
+	_, err := cat.Demangle(context.Background(), "$s4main3fooyyF", nil)
+	if err == nil {
+		t.Fatalf("expected unsupported-trailer error")
+	}
+}
+
+func TestStableSniff(t *testing.T) {
+	t.Parallel()
+	s := stable.Scheme{}
+	for _, c := range []struct {
+		in      string
+		wantHit bool
+	}{
+		{"$sBf32_", true},
+		{"_$sBf32_", true},
+		{"_Z3fooi", false},
+		{"", false},
+	} {
+		c := c
+		t.Run(c.in, func(t *testing.T) {
+			if _, ok := s.Sniff(c.in); ok != c.wantHit {
+				t.Fatalf("sniff = %v want %v", ok, c.wantHit)
+			}
+		})
+	}
+}
