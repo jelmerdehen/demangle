@@ -176,6 +176,8 @@ func TestStableEntitySuffixes(t *testing.T) {
 		{"$s4main3fooyyFTD", "dynamic dispatch thunk of main.foo() -> ()"},
 		{"$s4main3fooyyFTA", "partial apply forwarder for main.foo() -> ()"},
 		{"$s4main3fooyyFTj", "dispatch thunk of main.foo() -> ()"},
+		{"$s4main3FooVvp", "property main.Foo"},
+		{"$s4main3FooVvg", "getter for main.Foo"},
 	}
 	for _, c := range cases {
 		c := c

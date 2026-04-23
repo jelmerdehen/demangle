@@ -295,6 +295,34 @@ func (p *parser) tryEntitySuffix(inner *demangle.Node) (*demangle.Node, bool) {
 		case 'd':
 			prefix = "__destroying_deinit "
 		}
+	case 'v':
+		// Variable / property markers. `<type>v<kind>`:
+		//   vp  — property
+		//   vg  — getter
+		//   vs  — setter
+		//   vw  — willSet
+		//   vW  — didSet
+		//   vM  — materializeForSet
+		//   va  — addressor (unsafe addressor)
+		//   vm  — modifier (mutable addressor)
+		switch p.s[p.i+1] {
+		case 'p':
+			prefix = "property "
+		case 'g':
+			prefix = "getter for "
+		case 's':
+			prefix = "setter for "
+		case 'w':
+			prefix = "willSet observer of "
+		case 'W':
+			prefix = "didSet observer of "
+		case 'M':
+			prefix = "materializeForSet for "
+		case 'a':
+			prefix = "addressor for "
+		case 'm':
+			prefix = "mutable addressor for "
+		}
 	}
 	if prefix == "" {
 		return inner, false
