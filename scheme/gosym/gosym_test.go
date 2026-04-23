@@ -86,6 +86,26 @@ func TestGoSymParses(t *testing.T) {
 				"go.method":       "Method",
 			},
 		},
+		{
+			"go:itab.net/http.Response,io.Reader",
+			"go:itab.net/http.Response,io.Reader",
+			map[string]string{"go.kind": "InterfaceTable"},
+		},
+		{
+			"go.itab.*os.File,io.Writer",
+			"go.itab.*os.File,io.Writer",
+			map[string]string{"go.kind": "InterfaceTable"},
+		},
+		{
+			"go:func.*os.File.Close",
+			"go:func.*os.File.Close",
+			map[string]string{"go.kind": "FunctionMetadata"},
+		},
+		{
+			"go.string.*",
+			"go.string.*",
+			map[string]string{"go.kind": "StringLiteral"},
+		},
 	}
 	for _, c := range cases {
 		c := c

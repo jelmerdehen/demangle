@@ -74,6 +74,8 @@ func (Scheme) Sniff(s string) (int, bool) {
 	// Go runtime markers that are highly characteristic.
 	if strings.Contains(s, "-fm") || strings.Contains(s, ".func") ||
 		strings.HasPrefix(s, "type..") || strings.HasPrefix(s, "go:") ||
+		strings.HasPrefix(s, "go.itab.") || strings.HasPrefix(s, "go.typelink.") ||
+		strings.HasPrefix(s, "go.func.") || strings.HasPrefix(s, "go.string.") ||
 		strings.Contains(s, ".(*") {
 		return 60, true
 	}
@@ -108,13 +110,31 @@ func (Scheme) Demangle(_ context.Context, in string, _ demangle.Options) (*deman
 			}
 		}
 	}
-	// go:itab — interface table sym.
-	if strings.HasPrefix(base, "go:itab.") {
-		attrs["go.kind"] = "InterfaceTable"
+	// Runtime-linker synthetics. Go ≤1.19 used `go.<kind>.<name>`
+	// with a single dot; Go 1.20+ uses `go:<kind>.<name>` with a colon.
+	// Both shapes coexist in older binaries.
+	runtimeKinds := []struct {
+		prefix, kind string
+	}{
+		{"go:itab.", "InterfaceTable"},
+		{"go.itab.", "InterfaceTable"},
+		{"go:typelink.", "TypeLink"},
+		{"go.typelink.", "TypeLink"},
+		{"go:func.", "FunctionMetadata"},
+		{"go.func.", "FunctionMetadata"},
+		{"go:string.", "StringLiteral"},
+		{"go.string.", "StringLiteral"},
+		{"go:map.", "MapHeader"},
+		{"go:buildid.", "BuildID"},
+		{"go.buildid.", "BuildID"},
+		{"go:info.", "DebugInfo"},
 	}
-	// go:typelink — type link sym.
-	if strings.HasPrefix(base, "go:typelink.") {
-		attrs["go.kind"] = "TypeLink"
+	for _, rk := range runtimeKinds {
+		if strings.HasPrefix(base, rk.prefix) {
+			attrs["go.kind"] = rk.kind
+			attrs["go.runtime_ref"] = base[len(rk.prefix):]
+			break
+		}
 	}
 	// Generic instantiation: "pkg.Foo[...].Method" — record the
 	// bracketed type-arg list separately so the pkg/method split below
