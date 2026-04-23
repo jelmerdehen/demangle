@@ -191,9 +191,9 @@ func (p *parser) tryEntitySuffix(inner *demangle.Node) (*demangle.Node, bool) {
 		return inner, false
 	}
 	prefix := ""
+	consumed := 2
 	switch p.s[p.i] {
 	case 'M':
-		// Metadata kinds.
 		switch p.s[p.i+1] {
 		case 'n':
 			prefix = "nominal type descriptor for "
@@ -207,7 +207,6 @@ func (p *parser) tryEntitySuffix(inner *demangle.Node) (*demangle.Node, bool) {
 			prefix = "type metadata pattern for "
 		}
 	case 'H':
-		// Runtime-record kinds.
 		switch p.s[p.i+1] {
 		case 'n':
 			prefix = "nominal type descriptor runtime record for "
@@ -227,11 +226,37 @@ func (p *parser) tryEntitySuffix(inner *demangle.Node) (*demangle.Node, bool) {
 		case 'P':
 			prefix = "protocol witness table for "
 		}
+	case 'T':
+		// T-prefixed thunks and specialisations. Narrow: 3-byte forms
+		// Twb / TwB / TwS plus 2-byte TO (Objective-C thunk).
+		if p.i+2 < len(p.s) && p.s[p.i+1] == 'w' {
+			consumed = 3
+			switch p.s[p.i+2] {
+			case 'b':
+				prefix = "back deployment thunk for "
+			case 'B':
+				prefix = "back deployment fallback for "
+			case 'S':
+				prefix = "#_hasSymbol query for "
+			}
+		} else if p.s[p.i+1] == 'O' {
+			prefix = "@objc thunk of "
+		} else if p.s[p.i+1] == 'o' {
+			prefix = "@nonobjc thunk of "
+		} else if p.s[p.i+1] == 'D' {
+			prefix = "dynamic dispatch thunk of "
+		} else if p.s[p.i+1] == 'E' {
+			prefix = "distributed thunk "
+		} else if p.s[p.i+1] == 'N' {
+			prefix = "default associated conformance accessor for "
+		} else if p.s[p.i+1] == 'n' {
+			prefix = "associated conformance descriptor for "
+		}
 	}
 	if prefix == "" {
 		return inner, false
 	}
-	p.i += 2
+	p.i += consumed
 	// Render inner + wrap in a TypeMangling node so the printer
 	// emits "prefix <inner-display>" form.
 	wrap := common.NewNode(common.KindTypeMangling)

@@ -170,6 +170,10 @@ func TestStableEntitySuffixes(t *testing.T) {
 		{"$ss6SimpleVHr", "protocol descriptor runtime record for Swift.Simple"},
 		{"$s4main3FooVMn", "nominal type descriptor for main.Foo"},
 		{"$s4main3FooVMa", "type metadata accessor for main.Foo"},
+		{"$s4main3fooyyFTwb", "back deployment thunk for main.foo() -> ()"},
+		{"$s4main3fooyyFTwB", "back deployment fallback for main.foo() -> ()"},
+		{"$s4main3fooyyFTO", "@objc thunk of main.foo() -> ()"},
+		{"$s4main3fooyyFTD", "dynamic dispatch thunk of main.foo() -> ()"},
 	}
 	for _, c := range cases {
 		c := c
