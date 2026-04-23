@@ -78,11 +78,17 @@ func (Scheme) Demangle(_ context.Context, in string, _ demangle.Options) (*deman
 	if r, ok := parseRuntimeSymbol(in, attrs); ok {
 		return r, nil
 	}
-	// Strip block-synthetic wrapper if present.
+	// Strip block-synthetic wrapper if present:
+	//   __<N>-[Foo bar]_block_invoke       (single block)
+	//   __<N>-[Foo bar]_block_invoke.<M>   (numbered inner)
+	//   __<N>-[Foo bar]_block_invoke_2     (Clang's additional blocks)
 	if strings.HasPrefix(in, "__") && strings.Contains(in, "_block_invoke") {
-		inner, ok := extractBlockInner(in)
+		inner, blockIdx, ok := extractBlockInnerIdx(in)
 		if ok {
 			attrs["objc.kind"] = "BlockInvoke"
+			if blockIdx != "" {
+				attrs["objc.block_index"] = blockIdx
+			}
 			in = inner
 		}
 	}
@@ -262,17 +268,59 @@ func parseRuntimeSymbol(in string, attrs map[string]string) (*demangle.Result, b
 	return nil, false
 }
 
-// extractBlockInner finds the first +[ or -[ inside the input and
-// returns the ±[...] substring.
-func extractBlockInner(s string) (string, bool) {
+// extractBlockInnerIdx finds the first +[ or -[ inside the input and
+// returns the ±[...] substring plus any numeric block index found
+// between the second '_' and `-[` (Clang emits `__<N>-[...]...` where
+// N is the enclosing-method byte-length).
+func extractBlockInnerIdx(s string) (inner, idx string, ok bool) {
+	// Pull leading __<digits> as enclosing-source offset (ignored for
+	// now) — we mainly care about the block suffix digits after
+	// _block_invoke.
 	for i := 0; i < len(s)-2; i++ {
 		if (s[i] == '+' || s[i] == '-') && s[i+1] == '[' {
 			if end := strings.IndexByte(s[i:], ']'); end > 0 {
-				return s[i : i+end+1], true
+				inner = s[i : i+end+1]
+				tail := s[i+end+1:]
+				// Optional block index: "_block_invoke_<N>" or
+				// "_block_invoke.<N>".
+				if m := blockIdxTail(tail); m != "" {
+					idx = m
+				}
+				return inner, idx, true
 			}
 		}
 	}
-	return "", false
+	return "", "", false
+}
+
+// blockIdxTail extracts the trailing numeric block index from the
+// part of the symbol after the closing `]`. Supports both
+// `_block_invoke_N` and `_block_invoke.N`. Returns "" when absent.
+func blockIdxTail(tail string) string {
+	const marker = "_block_invoke"
+	i := strings.Index(tail, marker)
+	if i < 0 {
+		return ""
+	}
+	rest := tail[i+len(marker):]
+	if rest == "" {
+		return ""
+	}
+	sep := rest[0]
+	if sep != '_' && sep != '.' {
+		return ""
+	}
+	rest = rest[1:]
+	// All trailing bytes must be digits.
+	if rest == "" {
+		return ""
+	}
+	for i := 0; i < len(rest); i++ {
+		if rest[i] < '0' || rest[i] > '9' {
+			return ""
+		}
+	}
+	return rest
 }
 
 func init() {

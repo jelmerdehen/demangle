@@ -54,15 +54,32 @@ func TestObjCSelectors(t *testing.T) {
 func TestObjCBlockInvoke(t *testing.T) {
 	t.Parallel()
 	cat := newCatalog(t)
-	r, err := cat.Demangle(context.Background(), "__48-[Foo bar]_block_invoke", nil)
-	if err != nil {
-		t.Fatalf("demangle: %v", err)
+	cases := []struct {
+		in       string
+		wantIdx  string
+	}{
+		{"__48-[Foo bar]_block_invoke", ""},
+		{"__48-[Foo bar]_block_invoke_2", "2"},
+		{"__48-[Foo bar]_block_invoke.15", "15"},
 	}
-	if r.Annotations["objc.kind"] != "BlockInvoke" {
-		t.Fatalf("kind = %q", r.Annotations["objc.kind"])
-	}
-	if r.Annotations["objc.class"] != "Foo" {
-		t.Fatalf("class = %q", r.Annotations["objc.class"])
+	for _, c := range cases {
+		c := c
+		t.Run(c.in, func(t *testing.T) {
+			t.Parallel()
+			r, err := cat.Demangle(context.Background(), c.in, nil)
+			if err != nil {
+				t.Fatalf("demangle: %v", err)
+			}
+			if r.Annotations["objc.kind"] != "BlockInvoke" {
+				t.Fatalf("kind = %q", r.Annotations["objc.kind"])
+			}
+			if r.Annotations["objc.class"] != "Foo" {
+				t.Fatalf("class = %q", r.Annotations["objc.class"])
+			}
+			if r.Annotations["objc.block_index"] != c.wantIdx {
+				t.Fatalf("block_index = %q want %q", r.Annotations["objc.block_index"], c.wantIdx)
+			}
+		})
 	}
 }
 
