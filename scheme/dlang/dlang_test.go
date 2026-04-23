@@ -44,6 +44,21 @@ func TestDLangNarrow(t *testing.T) {
 	}
 }
 
+func FuzzDLang(f *testing.F) {
+	seeds := []string{"_D3foo3bar", "_D3std3foo3barFZv", "_D", "_Dfoo", ""}
+	for _, s := range seeds {
+		f.Add(s)
+	}
+	cat := demangle.NewCatalog()
+	cat.Register(dlang.Scheme{})
+	f.Fuzz(func(t *testing.T, in string) {
+		if len(in) > 4096 {
+			t.Skip()
+		}
+		_, _ = cat.Demangle(context.Background(), in, nil)
+	})
+}
+
 func TestDLangSniff(t *testing.T) {
 	t.Parallel()
 	s := dlang.Scheme{}

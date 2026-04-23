@@ -126,6 +126,23 @@ func TestJNISniff(t *testing.T) {
 	}
 }
 
+func FuzzJNI(f *testing.F) {
+	for _, c := range demangleCases {
+		f.Add(c.mangled)
+	}
+	f.Add("")
+	f.Add("Java_")
+	f.Add("not-jni")
+	cat := demangle.NewCatalog()
+	cat.Register(jni.Scheme{})
+	f.Fuzz(func(t *testing.T, in string) {
+		if len(in) > 4096 {
+			t.Skip()
+		}
+		_, _ = cat.Demangle(context.Background(), in, nil)
+	})
+}
+
 func TestJNIMangleRejectsBadTree(t *testing.T) {
 	t.Parallel()
 	cat := newCatalog(t)

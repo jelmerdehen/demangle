@@ -74,3 +74,25 @@ func TestMSVCRejectsNonMangled(t *testing.T) {
 		t.Fatalf("expected error")
 	}
 }
+
+func FuzzMSVC(f *testing.F) {
+	seeds := []string{
+		"?foo@@YAXXZ",
+		"?baz@Bar@Foo@@YAXXZ",
+		"?bar@Foo@@AEAAXXZ",
+		"",
+		"?",
+		"?invalid",
+	}
+	for _, s := range seeds {
+		f.Add(s)
+	}
+	cat := demangle.NewCatalog()
+	cat.Register(cxxmsvc.Scheme{})
+	f.Fuzz(func(t *testing.T, in string) {
+		if len(in) > 4096 {
+			t.Skip()
+		}
+		_, _ = cat.Demangle(context.Background(), in, nil)
+	})
+}
