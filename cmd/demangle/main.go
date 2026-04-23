@@ -230,19 +230,27 @@ func runDetect(args []string) error {
 
 func runBatch(args []string) error {
 	fs := flag.NewFlagSet("batch", flag.ExitOnError)
-	corpus := fs.String("corpus", "", "path to newline-delimited input file")
+	corpus := fs.String("corpus", "", `path to newline-delimited input file; "-" for stdin`)
 	scheme := fs.String("scheme", "", "scheme name; empty = auto-detect per input")
 	workers := fs.Int("workers", 0, "worker count; 0 = NumCPU")
+	format := fs.String("format", "text", `output format: text | jsonl`)
+	onlyOK := fs.Bool("only-ok", false, "suppress rows that errored")
 	_ = fs.Parse(args)
 
 	if *corpus == "" {
-		return errors.New("batch: --corpus FILE is required")
+		return errors.New("batch: --corpus FILE (or - for stdin) is required")
 	}
-	f, err := os.Open(*corpus)
-	if err != nil {
-		return err
+	var f *os.File
+	if *corpus == "-" {
+		f = os.Stdin
+	} else {
+		var err error
+		f, err = os.Open(*corpus)
+		if err != nil {
+			return err
+		}
+		defer f.Close()
 	}
-	defer f.Close()
 
 	in := make(chan demangle.BatchRequest, 256)
 	out := make(chan demangle.BatchResponse, 256)
@@ -274,12 +282,35 @@ func runBatch(args []string) error {
 
 	bw := bufio.NewWriter(os.Stdout)
 	defer bw.Flush()
+	enc := json.NewEncoder(bw)
 	for resp := range out {
 		if resp.Err != nil {
-			fmt.Fprintf(bw, "%d\t%s\tERROR\t%s\n", resp.ID, resp.Input, resp.Err.Kind.String())
+			if *onlyOK {
+				continue
+			}
+			switch *format {
+			case "jsonl":
+				_ = enc.Encode(struct {
+					ID     uint64 `json:"id"`
+					Input  string `json:"input"`
+					Error  string `json:"error"`
+				}{resp.ID, resp.Input, resp.Err.Kind.String()})
+			default:
+				fmt.Fprintf(bw, "%d\t%s\tERROR\t%s\n", resp.ID, resp.Input, resp.Err.Kind.String())
+			}
 			continue
 		}
-		fmt.Fprintf(bw, "%d\t%s\t%s\t%s\n", resp.ID, resp.Input, resp.Scheme, resp.Result.Output)
+		switch *format {
+		case "jsonl":
+			_ = enc.Encode(struct {
+				ID     uint64 `json:"id"`
+				Input  string `json:"input"`
+				Scheme string `json:"scheme"`
+				Output string `json:"output"`
+			}{resp.ID, resp.Input, resp.Scheme, resp.Result.Output})
+		default:
+			fmt.Fprintf(bw, "%d\t%s\t%s\t%s\n", resp.ID, resp.Input, resp.Scheme, resp.Result.Output)
+		}
 	}
 	summary := <-done
 	fmt.Fprintf(os.Stderr,
