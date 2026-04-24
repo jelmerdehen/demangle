@@ -4,6 +4,25 @@ All notable changes to this project will be documented here. Format
 follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). This
 project uses semantic versioning.
 
+## [0.1.12] - 2026-04-22
+
+### Added
+
+- **swift-stable**
+  - More T-suffixes on function entities: Tm (merged), Tc (curry
+    thunk), Tq (unique witness), TH (key path thunk helper),
+    TK/Tk (key path getter/setter), Te (extension entity).
+- **rust** — surface legacy h-hash and v0 Cs-hash as annotations
+  (`rust.hash`, `rust.crate_hash`) for downstream dedup / grouping.
+- **runtime** — more toolchain prefixes: glibc __fortify_*,
+  __tls_get_addr, __dso_handle, __stack_protector_*, Apple
+  __synch_* and _NSConcrete*.
+- **cxxmsvc** — return-type can be pointer/ref (`PAH`, `AAH`, `QAH`)
+  with 64-bit E modifier support. Primitive + extended-primitive
+  matrix sweeps added to the test suite.
+- **examples** — go-consumer fixture set expanded to 14 inputs
+  covering 10 schemes.
+
 ## [0.1.11] - 2026-04-22
 
 ### Added
