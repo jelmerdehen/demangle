@@ -4,6 +4,21 @@ All notable changes to this project will be documented here. Format
 follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). This
 project uses semantic versioning.
 
+## [0.1.38] - 2026-04-24
+
+### Added
+
+- **swift-stable** — init-entity Struct/Class kind-aware terminal.
+  - tryInitDeinitEntity now tracks last nominal kind byte and emits
+    plain 'init' for struct/protocol, `__allocating_init`/
+    `__nonallocating_init` only for class. Label-list parse reads
+    digit-led idents before result-type. Optional trailing '_t'
+    consumed as single-labeled-tuple terminator. Sub-table pushes
+    ident + cumulative Type per chain step.
+  - parseGenericParam accepts trailing '__' double-underscore for
+    pack-gp index-0 form (qd__, q__).
+  - Apple corpus: 115 → **116/153** direct matches (75.8 %).
+
 ## [0.1.37] - 2026-04-24
 
 ### Added
