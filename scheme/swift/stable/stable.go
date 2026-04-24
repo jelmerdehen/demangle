@@ -368,19 +368,53 @@ func (p *parser) tryImplFunctionType() (*demangle.Node, bool) {
 			idx++
 		}
 	}
+	// Callee convention: y=unowned, g=guaranteed, x=owned, t=convention(thin).
+	// Per Apple's ImplConvention table. 't' is actually a FUNCTION
+	// convention attr rendered as "@convention(thin)", not a callee-
+	// ownership kind. The remaining three map to "@callee_<kind>".
+	calleeKind := "guaranteed"
 	if idx < len(attrs) {
 		switch attrs[idx] {
 		case 'g':
-			calleeConv = "callee_guaranteed"
+			calleeKind = "guaranteed"
 			idx++
 		case 'y':
-			calleeConv = "callee_unowned"
-			idx++
-		case 't':
-			calleeConv = "thick"
+			calleeKind = "unowned"
 			idx++
 		case 'x':
-			calleeConv = "thin"
+			calleeKind = "owned"
+			idx++
+		case 't':
+			// 't' alone means @convention(thin); no @callee_ prefix.
+			calleeConv = "convention(thin)"
+			idx++
+			calleeKind = ""
+		}
+	}
+	if calleeKind != "" {
+		calleeConv = "callee_" + calleeKind
+	}
+	// Optional function convention byte after callee-conv: B/C/M/O/K/W.
+	funcConv := ""
+	if idx < len(attrs) {
+		switch attrs[idx] {
+		case 'B':
+			funcConv = "@convention(block)"
+			idx++
+		case 'C':
+			funcConv = "@convention(c)"
+			idx++
+		case 'M':
+			funcConv = "@convention(method)"
+			idx++
+		case 'O':
+			funcConv = "@convention(objc_method)"
+			idx++
+		case 'K':
+			funcConv = "@convention(closure)"
+			idx++
+		case 'W':
+			funcConv = "@convention(witness_method)"
 			idx++
 		}
 	}
@@ -393,31 +427,109 @@ func (p *parser) tryImplFunctionType() (*demangle.Node, bool) {
 		prefixParts = append(prefixParts, "@differentiable"+diffKind)
 	}
 	prefixParts = append(prefixParts, "@"+calleeConv)
-	// Build args + results from types. Heuristic: if attrs contain 'n'
-	// before 'r', split types into params/results by matching: each
-	// type+param-mode consumes one type, then each result-mode consumes
-	// one type.
+	if funcConv != "" {
+		prefixParts = append(prefixParts, funcConv)
+	}
+	// Decode modeAttrs per Apple's grammar:
+	//   <param-mode> (w|l)? T? I? L? → N params
+	//   <result-mode> (w|l)?          → M results
+	// Total types consumed = N + M.
 	opts := common.DefaultPrintOptions()
 	var params []string
 	var results []string
-	// modeAttrs contains per-param modes then per-result modes.
-	// Narrow: if the letter-count matches 'n' + 'r' exactly we
-	// render with @in_guaranteed / @out labels; otherwise we use a
-	// generic @unowned label + last-type-is-result heuristic which
-	// covers the S<N><letter> diff-attr corpus cases.
-	nCount := strings.Count(modeAttrs, "n")
-	rCount := strings.Count(modeAttrs, "r")
-	if nCount+rCount == len(types) && nCount+rCount > 0 {
-		for i, t := range types {
-			if i < nCount {
-				params = append(params, "@in_guaranteed "+common.Print(t, opts))
-			} else {
-				results = append(results, "@out "+common.Print(t, opts))
-			}
+	paramMode := func(c byte) (string, bool) {
+		switch c {
+		case 'i':
+			return "@in", true
+		case 'c':
+			return "@in_constant", true
+		case 'l':
+			return "@inout", true
+		case 'b':
+			return "@inout_aliasable", true
+		case 'n':
+			return "@in_guaranteed", true
+		case 'X':
+			return "@in_cxx", true
+		case 'x':
+			return "@owned", true
+		case 'g':
+			return "@guaranteed", true
+		case 'e':
+			return "@deallocating", true
+		case 'y':
+			return "@unowned", true
+		case 'v':
+			return "@pack_owned", true
+		case 'p':
+			return "@pack_guaranteed", true
+		case 'm':
+			return "@pack_inout", true
 		}
-	} else {
-		// Can't confidently label per-type modes — bail so we don't
-		// emit something that looks authoritative but is wrong.
+		return "", false
+	}
+	resultMode := func(c byte) (string, bool) {
+		switch c {
+		case 'r':
+			return "@out", true
+		case 'o':
+			return "@owned", true
+		case 'd':
+			return "@unowned", true
+		case 'u':
+			return "@unowned_inner_pointer", true
+		case 'a':
+			return "@autoreleased", true
+		case 'k':
+			return "@pack_out", true
+		}
+		return "", false
+	}
+	k := 0          // mode-attr byte index
+	ti := 0         // types index
+	// Params.
+	for k < len(modeAttrs) && ti < len(types) {
+		attr, ok := paramMode(modeAttrs[k])
+		if !ok {
+			break
+		}
+		k++
+		// Optional differentiability (w = @noDerivative, l = @noDerivative too).
+		diff := ""
+		if k < len(modeAttrs) && (modeAttrs[k] == 'w' || modeAttrs[k] == 'l') {
+			diff = " @noDerivative"
+			k++
+		}
+		// Optional sending (T).
+		sending := ""
+		if k < len(modeAttrs) && modeAttrs[k] == 'T' {
+			sending = " sending"
+			k++
+		}
+		params = append(params, attr+diff+sending+" "+common.Print(types[ti], opts))
+		ti++
+	}
+	// Results.
+	for k < len(modeAttrs) && ti < len(types) {
+		attr, ok := resultMode(modeAttrs[k])
+		if !ok {
+			break
+		}
+		k++
+		diff := ""
+		if k < len(modeAttrs) && (modeAttrs[k] == 'w' || modeAttrs[k] == 'l') {
+			diff = " @noDerivative"
+			k++
+		}
+		results = append(results, attr+diff+" "+common.Print(types[ti], opts))
+		ti++
+	}
+	// Must have consumed all modes + all types cleanly.
+	if k != len(modeAttrs) || ti != len(types) {
+		revert()
+		return nil, false
+	}
+	if len(params) == 0 && len(results) == 0 {
 		revert()
 		return nil, false
 	}
