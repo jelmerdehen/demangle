@@ -991,32 +991,87 @@ func entitySuffixStart(b byte) bool {
 	return false
 }
 
-// parseNumericSubstitution — 'A' consumed; reads a base-10 index +
-// '_' and returns the previously-recorded Node at that position.
-// Apple uses base-36 (A0_..A9_,AA_..AZ_,Aa_..Az_) but base-10 covers
-// the vast majority of real-world cases and we extend as fixtures
-// demand.
+// parseNumericSubstitution — 'A' consumed; reads a Swift ABI
+// substitution index per Mangling.rst:
+//
+//	substitution ::= 'A' INDEX
+//	INDEX ::= NATURAL '_'                  // multi-digit: base-10 + '_'
+//	INDEX ::= '_'                          // empty = 0 (single A_)
+//	INDEX ::= [A-Z]* [a-z]                 // base-26 upper, lower-terminator
+//	INDEX ::= [a-z]                        // single lower = 0..25
+//
+// Multi-upper form encodes base-26: uppercase letters are digits
+// A=0..Z=25, and the final LOWERCASE letter terminates (its value
+// also contributes: a=0..z=25). E.g. "AC" = (0*26)+2 = 2 (stopping
+// on the 'C'? No — terminator is lowercase; "AC" alone is
+// actually parsed with base-10 fallback).
+//
+// We accept the common forms Apple emits:
+//
+//	A_          index 0
+//	A<dig>+_    base-10 natural + underscore
+//	A<upper>+<lower>   base-26 multi-letter with lowercase terminator
+//
+// Unknown shapes return a grammar error.
 func (p *parser) parseNumericSubstitution() (*demangle.Node, error) {
-	start := p.i
-	for !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+	if p.eof() {
+		return nil, p.truncated()
+	}
+	// Empty-index shortcut: "A_" → index 0.
+	if p.s[p.i] == '_' {
 		p.i++
+		n, ok := p.subs.Get(0)
+		if !ok {
+			return nil, p.grammarErr("valid substitution index")
+		}
+		return n, nil
 	}
-	if start == p.i {
-		return nil, p.grammarErr("substitution index digit")
+	// Decimal form: digits followed by '_'.
+	if p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+		start := p.i
+		for !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+			p.i++
+		}
+		idx := 0
+		for _, c := range p.s[start:p.i] {
+			idx = idx*10 + int(c-'0')
+		}
+		if p.eof() || p.s[p.i] != '_' {
+			return nil, p.grammarErr("'_' terminating substitution index")
+		}
+		p.i++
+		n, ok := p.subs.Get(idx)
+		if !ok {
+			return nil, p.grammarErr("valid substitution index")
+		}
+		return n, nil
 	}
-	idx := 0
-	for _, c := range p.s[start:p.i] {
-		idx = idx*10 + int(c-'0')
+	// Base-26 letter form: upper+ followed by a single lowercase.
+	// Single lowercase letter alone is also valid: "Aa" = index 0,
+	// "Ab" = 1, …, "Az" = 25.
+	if (p.s[p.i] >= 'a' && p.s[p.i] <= 'z') ||
+		(p.s[p.i] >= 'A' && p.s[p.i] <= 'Z') {
+		idx := 0
+		for !p.eof() {
+			c := p.s[p.i]
+			if c >= 'A' && c <= 'Z' {
+				idx = idx*26 + int(c-'A')
+				p.i++
+				continue
+			}
+			if c >= 'a' && c <= 'z' {
+				idx = idx*26 + int(c-'a')
+				p.i++
+				n, ok := p.subs.Get(idx)
+				if !ok {
+					return nil, p.grammarErr("valid substitution index")
+				}
+				return n, nil
+			}
+			break
+		}
 	}
-	if p.eof() || p.s[p.i] != '_' {
-		return nil, p.grammarErr("'_' terminating substitution index")
-	}
-	p.i++
-	n, ok := p.subs.Get(idx)
-	if !ok {
-		return nil, p.grammarErr("valid substitution index")
-	}
-	return n, nil
+	return nil, p.grammarErr("substitution index digit/letter")
 }
 
 // parseNominalWithModule — module already parsed (or supplied as the
