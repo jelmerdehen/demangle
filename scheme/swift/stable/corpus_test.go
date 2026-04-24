@@ -115,10 +115,11 @@ func TestAppleCorpus(t *testing.T) {
 	// - Stage 1 grammar build-out: this gate is raised commit-by-
 	//   commit as coverage expands (stdlib subs, nominal paths with
 	//   their full entity trailers, bound generics, functions).
+	// - R1: retroactive inverse-req HD/HI chain in conformance tail.
 	// - Stage 1 exit gate: equality check per line, zero tolerated
 	//   mismatches outside known-divergences.txt.
-	if matched < 139 {
-		t.Fatalf("expected ≥139 matches, got %d — parser regressed?", matched)
+	if matched < 140 {
+		t.Fatalf("expected ≥140 matches, got %d — parser regressed?", matched)
 	}
 	if mismatch > 0 {
 		t.Fatalf("%d mismatches — parser produced wrong output on a real fixture", mismatch)

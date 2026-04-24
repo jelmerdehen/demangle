@@ -4482,9 +4482,11 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 		return true
 	}
 	// Common case: has params → label-list present → try with leading y.
-	if !tryPath(true) {
+	tp1 := tryPath(true)
+	if !tp1 {
 		// No-params case: label-list omitted → try without.
-		if !tryPath(false) {
+		tp2 := tryPath(false)
+		if !tp2 {
 			restore()
 			return nil, false, nil
 		}
@@ -4781,8 +4783,26 @@ func (p *parser) parseType() (*demangle.Node, error) {
 	}
 	// Record the newly-parsed node as a substitution candidate so
 	// later A<n>_ references can dereference it.
+	// Mirror Apple: generic params and raw stdlib types are NOT added to
+	// the substitutions table (only bound-generics of stdlib types are,
+	// via the postfix tryBoundGeneric push at line ~4219).
 	if node != nil {
-		p.subs.Push(node)
+		nk := common.NodeKind(node.Kind)
+		// Generic-param: DependentGenericParamType directly, or a KindType
+		// wrapper around one (genericParam/parseGenericParam wrap in Type).
+		isGenParam := nk == common.KindDependentGenericParamType ||
+			(nk == common.KindType && len(node.Children) == 1 &&
+				common.NodeKind(node.Children[0].Kind) == common.KindDependentGenericParamType)
+		// Raw stdlib type: KindType wrapping one of the known stdlib
+		// nominals (Struct/Class/Enum) that came from BuildStdlibNominal.
+		isRawStdlib := false
+		if (nk == common.KindType || nk == common.KindStructure ||
+			nk == common.KindClass || nk == common.KindEnum) && c == 'S' {
+			isRawStdlib = true
+		}
+		if !isGenParam && !isRawStdlib {
+			p.subs.Push(node)
+		}
 	}
 	// Postfix modifiers.
 	for {
@@ -5133,6 +5153,35 @@ func (p *parser) skipConformanceRef() bool {
 			k++
 		}
 		if k < len(p.s) && p.s[k] == '_' {
+			// Before advancing, push any protocol identifiers embedded in
+			// the conformance block so our subs table stays aligned with
+			// Apple's. Apple calls addSubstitution for every identifier it
+			// parses (including 's<len><name>' protocol refs inside the
+			// block). Scan for 's<digits><name>' patterns and push each.
+			block := p.s[start : k+1]
+			for bi := 0; bi < len(block); bi++ {
+				if block[bi] != 's' {
+					continue
+				}
+				ni := bi + 1
+				digStart := ni
+				for ni < len(block) && block[ni] >= '0' && block[ni] <= '9' {
+					ni++
+				}
+				if ni == digStart || ni >= len(block) {
+					continue
+				}
+				nameLen := 0
+				for _, d := range block[digStart:ni] {
+					nameLen = nameLen*10 + int(d-'0')
+				}
+				if nameLen <= 0 || ni+nameLen > len(block) {
+					continue
+				}
+				name := block[ni : ni+nameLen]
+				p.subs.Push(common.NewIdentifier(name))
+				bi = ni + nameLen - 1
+			}
 			p.i = k + 1
 			return true
 		}
@@ -6446,9 +6495,34 @@ func (p *parser) parseMultiSubstitution() (*demangle.Node, int, bool) {
 // stdlib 's' sub); read identifier + kind byte and emit a nominal
 // Type node.
 func (p *parser) parseNominalWithModule(module *demangle.Node) (*demangle.Node, error) {
-	name, err := p.parseIdentifier()
-	if err != nil {
-		return nil, err
+	var name string
+	// Multi-sub identifier form: 'A<letter>' resolves an Identifier from
+	// the subs table. Apple's demangler accepts this when the nominal name
+	// position holds a substitution reference instead of a length-prefixed
+	// string (e.g. 'sAF' = Swift module + sub['F'-'A'] = Identifier("Error")).
+	if !p.eof() && p.s[p.i] == 'A' && p.i+1 < len(p.s) {
+		next := p.s[p.i+1]
+		if next >= 'A' && next <= 'Z' {
+			// Uppercase terminal: single-letter final sub-ref.
+			idx := int(next - 'A')
+			if n, ok := p.subs.Get(idx); ok {
+				switch common.NodeKind(n.Kind) {
+				case common.KindIdentifier:
+					name = n.Text
+					p.i += 2 // consume 'A' + letter
+				case common.KindModule:
+					name = n.Text
+					p.i += 2
+				}
+			}
+		}
+	}
+	if name == "" {
+		var err error
+		name, err = p.parseIdentifier()
+		if err != nil {
+			return nil, err
+		}
 	}
 	// Push the identifier to subs (mirror Apple's addSubstitution on
 	// every parsed Identifier). Keeps A<idx> index alignment.
