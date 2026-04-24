@@ -1303,6 +1303,19 @@ func (p *parser) tryImplFunctionType() (*demangle.Node, bool) {
 		results = append(results, attr+diff+" "+common.Print(types[ti], opts))
 		ti++
 	}
+	// Optional error-result: 'z<conv-letter>' — renders as
+	// '@error <conv> <type>'.
+	if k < len(modeAttrs) && ti < len(types) && modeAttrs[k] == 'z' {
+		k++
+		if k < len(modeAttrs) {
+			attr, ok := resultMode(modeAttrs[k])
+			if ok {
+				k++
+				results = append(results, "@error "+attr+" "+common.Print(types[ti], opts))
+				ti++
+			}
+		}
+	}
 	// Must have consumed all modes + all types cleanly.
 	if k != len(modeAttrs) || ti != len(types) {
 		revert()
