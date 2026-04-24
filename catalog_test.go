@@ -122,3 +122,83 @@ func TestCatalogSchemesList(t *testing.T) {
 		t.Fatalf("Schemes len = %d want 2", len(infos))
 	}
 }
+
+// negativeScheme accepts "X" prefix but deducts via registered
+// negatives — used to exercise matchNegative's Regex + BodyShape
+// branches in Detect.
+type negativeScheme struct {
+	name      string
+	prefix    string
+	conf      int
+	negatives []demangle.Negative
+}
+
+func (s negativeScheme) Info() demangle.Info {
+	return demangle.Info{Name: s.name, Family: "test", Version: "1", Negatives: s.negatives}
+}
+func (s negativeScheme) Capabilities() demangle.Capabilities { return demangle.Capabilities{} }
+func (s negativeScheme) Sniff(in string) (int, bool) {
+	if strings.HasPrefix(in, s.prefix) {
+		return s.conf, true
+	}
+	return 0, false
+}
+func (s negativeScheme) Demangle(_ context.Context, in string, _ demangle.Options) (*demangle.Result, error) {
+	return &demangle.Result{Scheme: s.name, Input: in, Output: in}, nil
+}
+
+func TestDetectNegativeRegex(t *testing.T) {
+	t.Parallel()
+	cat := demangle.NewCatalog()
+	cat.Register(negativeScheme{
+		name:   "neg",
+		prefix: "X",
+		conf:   80,
+		negatives: []demangle.Negative{
+			{Kind: demangle.NegRegex, Pattern: `^Xforbidden`, Penalty: 100},
+		},
+	})
+	// Matches sniff but also regex-negative → net 0 → ErrUnrecognised.
+	if _, err := cat.Demangle(context.Background(), "Xforbidden_input", nil); err == nil {
+		t.Fatal("expected regex-negative to knock out match")
+	}
+	// Sniffs match AND regex does NOT match → accepted.
+	if _, err := cat.Demangle(context.Background(), "Xallowed", nil); err != nil {
+		t.Fatalf("expected positive match: %v", err)
+	}
+}
+
+func TestDetectInvalidRegexNegativeIgnored(t *testing.T) {
+	t.Parallel()
+	// Malformed regex must NOT crash Detect — treat as non-matching.
+	cat := demangle.NewCatalog()
+	cat.Register(negativeScheme{
+		name:   "neg",
+		prefix: "X",
+		conf:   80,
+		negatives: []demangle.Negative{
+			{Kind: demangle.NegRegex, Pattern: `[unclosed`, Penalty: 100},
+		},
+	})
+	if _, err := cat.Demangle(context.Background(), "Xanything", nil); err != nil {
+		t.Fatalf("malformed regex should be silently ignored, got %v", err)
+	}
+}
+
+func TestDetectBodyShapeIsNoop(t *testing.T) {
+	t.Parallel()
+	// NegBodyShape is reserved but a no-op in v1; ensure schemes using
+	// it don't trigger a penalty accidentally.
+	cat := demangle.NewCatalog()
+	cat.Register(negativeScheme{
+		name:   "neg",
+		prefix: "X",
+		conf:   80,
+		negatives: []demangle.Negative{
+			{Kind: demangle.NegBodyShape, Pattern: "anything", Penalty: 100},
+		},
+	})
+	if _, err := cat.Demangle(context.Background(), "Xhello", nil); err != nil {
+		t.Fatalf("NegBodyShape should not block match: %v", err)
+	}
+}
