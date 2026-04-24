@@ -4,6 +4,24 @@ All notable changes to this project will be documented here. Format
 follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). This
 project uses semantic versioning.
 
+## [0.1.39] - 2026-04-24
+
+### Added
+
+- **swift-stable** — extension-method entity + tighter conformance-
+  ref heuristic + punycode-as-literal.
+  - tryExtensionEntity handles `<mod><host><constraints>*E<decl><sig>F`
+    pattern. Renders `(extension in <mod>):<host><sig>.<decl>(<params>)
+    -> <ret>`. Narrow Rj inverse-requirement decode via
+    extractConstraintSig.
+  - tryBoundGeneric args loop tries parseType first, falls back to
+    skipConformanceRef on failure. skipConformanceRef tightened to
+    require V/C/O/P kind byte directly preceding H<P|C|p> (single-
+    block conformance-ref; chained forms still parked).
+  - parseIdentifier accepts `00<length><chars>` punycode-as-literal
+    for ASCII macro-file ident.
+  - Apple corpus: 116 → **117/153** direct matches (76.5 %).
+
 ## [0.1.38] - 2026-04-24
 
 ### Added
