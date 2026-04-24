@@ -294,6 +294,10 @@ func (p *parser) parseGlobal() (*demangle.Node, error) {
 		inner = wrapped
 	}
 	for {
+		if wrapped, ok := p.tryConformanceDescriptorMc(inner); ok {
+			inner = wrapped
+			continue
+		}
 		if wrapped, ok := p.trySubscriptEntity(inner); ok {
 			inner = wrapped
 			continue
@@ -319,6 +323,100 @@ func (p *parser) parseGlobal() (*demangle.Node, error) {
 
 	common.AddChildren(g, inner)
 	return g, nil
+}
+
+// tryConformanceDescriptorMc matches the protocol-conformance-
+// descriptor shape
+//
+//   <Type> <Module-ident> <Proto-ident> (AB|AC|...) (Ri<idx>_z)? (rl)? Mc
+//
+// Renders as "protocol conformance descriptor for <sig> <Type> :
+// <Module>.<Proto> in <Module>". Narrow: only 1-constraint Ri inverse
+// requirement form + depth-0 generic sig.
+func (p *parser) tryConformanceDescriptorMc(inner *demangle.Node) (*demangle.Node, bool) {
+	if p.eof() || !(p.s[p.i] >= '0' && p.s[p.i] <= '9') {
+		return inner, false
+	}
+	save := p.i
+	saveSubs := p.subs
+	revert := func() { p.i = save; p.subs = saveSubs }
+	modName, err := p.parseIdentifier()
+	if err != nil {
+		revert()
+		return inner, false
+	}
+	protoName, err := p.parseIdentifier()
+	if err != nil {
+		revert()
+		return inner, false
+	}
+	// Optional multi-sub (AB/AC/etc.) pointing back to the type; we
+	// consume but ignore.
+	if !p.eof() && p.s[p.i] == 'A' {
+		p.i++
+		if !p.eof() && p.s[p.i] >= 'A' && p.s[p.i] <= 'Z' {
+			p.i++
+		}
+	}
+	// Optional inverse-req `Ri<idx>_<subject>` + generic sig.
+	constraintStr := ""
+	if !p.eof() && p.s[p.i] == 'R' && p.i+1 < len(p.s) && p.s[p.i+1] == 'i' {
+		p.i += 2
+		idx := 0
+		digStart := p.i
+		for !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+			p.i++
+		}
+		if !p.eof() && p.s[p.i] == '_' {
+			if p.i > digStart {
+				n := 0
+				for k := digStart; k < p.i; k++ {
+					n = n*10 + int(p.s[k]-'0')
+				}
+				idx = n + 1
+			}
+			p.i++
+			// Optional trailing subject-gp marker (z/x).
+			if !p.eof() && (p.s[p.i] == 'z' || p.s[p.i] == 'x') {
+				p.i++
+			}
+			proto := "Swift.Copyable"
+			if idx == 1 {
+				proto = "Swift.Escapable"
+			} else if idx > 1 {
+				proto = fmt.Sprintf("Swift.<bit %d>", idx)
+			}
+			constraintStr = "A: ~" + proto
+		}
+	}
+	// Consume 'rl' or 'l' generic sig terminator.
+	if !p.eof() && p.s[p.i] == 'r' {
+		p.i++
+		for !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+			p.i++
+		}
+		if !p.eof() && p.s[p.i] == '_' {
+			p.i++
+		}
+	}
+	if !p.eof() && p.s[p.i] == 'l' {
+		p.i++
+	}
+	// Require 'Mc'.
+	if p.i+1 >= len(p.s) || p.s[p.i] != 'M' || p.s[p.i+1] != 'c' {
+		revert()
+		return inner, false
+	}
+	p.i += 2
+	innerStr := common.Print(inner, common.DefaultPrintOptions())
+	sig := ""
+	if constraintStr != "" {
+		sig = "< where " + constraintStr + "> "
+	}
+	wrap := common.NewNode(common.KindTypeMangling)
+	wrap.Text = "protocol conformance descriptor for " + sig + innerStr + " : " +
+		modName + "." + protoName + " in " + modName
+	return wrap, true
 }
 
 // trySubscriptEntity matches the subscript-entity shape
