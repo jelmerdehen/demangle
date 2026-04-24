@@ -4,6 +4,23 @@ All notable changes to this project will be documented here. Format
 follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). This
 project uses semantic versioning.
 
+## [0.1.27] - 2026-04-24
+
+### Added / Fixed
+
+- **swift-stable** — opaque-return wrappers + compact tuples.
+  - Qr now renders as 'some' in function-entity result slot.
+  - Postfix 'QO' wraps entity as "<<opaque return type of <inner>>>"
+    (pairs with the H-family runtime-record suffixes).
+  - tryPostfixCompactTuple: '<type>_S<N><letter>(_...)t' builds a
+    variadic-free tuple. Unblocks variable-entity types like
+    Sd_S2dt → (Double, Double, Double).
+  - tryPostfixLabeledTuple: '<N><name>d?_t' after a type builds
+    '(name: type[...])' with optional variadic marker.
+  - fP suffix renders as 'property wrapper backing initializer of '
+    (was 'initial value of ').
+  - Apple corpus: 72 → **75/153** direct matches (49.0 %).
+
 ## [0.1.26] - 2026-04-24
 
 ### Added / Fixed
