@@ -1133,17 +1133,26 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 			}
 			break
 		}
-		// Optional generic-signature trailer. Common shapes:
-		//   l              un-constrained depth-0 generic (<A>)
-		//   <digit>l       depth-0 generic with N+1 params (<A, A1, ...>)
-		//   r<N>_l         generic-requirement count prefix (narrow:
-		//                  consume without rendering constraints)
-		//   r<N>_l<digit>? requirement + depth-indexed params
+		// Optional generic-signature + inline-requirements trailer.
+		// Common shapes (narrow: consume without rendering constraints):
+		//   l                un-constrained depth-0 generic (<A>)
+		//   <digit>l         depth-0 generic with N+1 params
+		//   r<N>_l           requirement count prefix
+		//   <type>R<kind>    inline requirement (conforms-to etc.)
+		//   R<kind>          requirement kind byte alone
 		localGeneric := false
 		for !p.eof() {
 			c := p.s[p.i]
+			// Eat any inline requirement: a type ref followed by R<k>.
+			if c == 'R' {
+				// R<z|l|p|c|...> — single-byte req kind.
+				if p.i+1 < len(p.s) {
+					p.i += 2
+					continue
+				}
+				break
+			}
 			if c == 'r' {
-				// r<N>_ : count of requirements.
 				j := p.i + 1
 				for j < len(p.s) && p.s[j] >= '0' && p.s[j] <= '9' {
 					j++
@@ -1157,11 +1166,37 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 			if c == 'l' {
 				p.i++
 				localGeneric = true
-				// Optional depth count trailing 'l'.
 				for !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
 					p.i++
 				}
 				break
+			}
+			// Any digit / A / x / q / s / S / B starting a type-ref is
+			// probably a requirement's constraining-type prefix. Try
+			// parseType speculatively and if the next byte is R,
+			// consume the requirement.
+			if c == 'A' || c == 'x' || c == 'q' || c == 'B' ||
+				c == 's' || c == 'S' || (c >= '0' && c <= '9') {
+				saveReq := p.i
+				saveSubsReq := p.subs
+				if _, err := p.parseType(); err != nil {
+					p.i = saveReq
+					p.subs = saveSubsReq
+					break
+				}
+				if p.eof() || p.s[p.i] != 'R' {
+					p.i = saveReq
+					p.subs = saveSubsReq
+					break
+				}
+				p.i++ // consume R
+				if p.eof() {
+					p.i = saveReq
+					p.subs = saveSubsReq
+					break
+				}
+				p.i++ // consume req-kind byte
+				continue
 			}
 			break
 		}
