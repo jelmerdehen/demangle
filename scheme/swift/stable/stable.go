@@ -322,6 +322,55 @@ func (p *parser) tryReabstractionThunk(inner *demangle.Node) (*demangle.Node, bo
 	return wrap, true
 }
 
+// tryPostfixFunctionTypeWithParams matches the pattern
+//
+//   <params-type> (YT)? c
+//
+// where 'node' is the result-type already parsed and the following
+// bytes are another type serving as params, optional YT (sending
+// result), and 'c' marking escaping function-type.
+func (p *parser) tryPostfixFunctionTypeWithParams(node *demangle.Node) (*demangle.Node, bool) {
+	if p.eof() {
+		return node, false
+	}
+	// Only try when the current byte could start a type — conservative.
+	c := p.s[p.i]
+	if !(c == 'A' || c == 'S' || c == 's' || c == 'B' || c == 'x' ||
+		c == 'q' || c == 'Q' || (c >= '0' && c <= '9')) {
+		return node, false
+	}
+	save := p.i
+	saveSubs := p.subs
+	revert := func() { p.i = save; p.subs = saveSubs }
+	params, err := p.parseType()
+	if err != nil {
+		revert()
+		return node, false
+	}
+	sendingResultFlag := false
+	if p.i+1 < len(p.s) && p.s[p.i] == 'Y' && p.s[p.i+1] == 'T' {
+		sendingResultFlag = true
+		p.i += 2
+	}
+	if p.eof() || p.s[p.i] != 'c' {
+		revert()
+		return node, false
+	}
+	p.i++
+	resultStr := common.Print(node, common.DefaultPrintOptions())
+	paramsStr := common.Print(params, common.DefaultPrintOptions())
+	sendPrefix := ""
+	if sendingResultFlag {
+		sendPrefix = "sending "
+	}
+	display := "(" + paramsStr + ") -> " + sendPrefix + resultStr
+	typ := common.NewNode(common.KindType)
+	inner := common.NewNode(common.KindBuiltinTypeName)
+	inner.Text = display
+	common.AddChildren(typ, inner)
+	return typ, true
+}
+
 // tryAssociatedConformanceDescriptor matches the pattern
 //
 //   <Protocol-Type> 'x' 'A' <sub-letter> <ident> 'T' ('n'|'N')
@@ -3010,20 +3059,40 @@ func (p *parser) parseNumericSubstitution() (*demangle.Node, error) {
 		}
 		return n, nil
 	}
-	// Base-26 letter form: uppercase-only digits. First non-upper byte
-	// terminates the index (and is NOT consumed — it belongs to the
-	// following production).
-	if p.s[p.i] >= 'A' && p.s[p.i] <= 'Z' {
-		idx := 0
-		for !p.eof() && p.s[p.i] >= 'A' && p.s[p.i] <= 'Z' {
-			idx = idx*26 + int(p.s[p.i]-'A')
-			p.i++
+	// Letter form — Apple's demangleMultiSubstitutions:
+	//   lowercase a-z → sub at (c-'a'), push, continue.
+	//   uppercase A-Z → sub at (c-'A'), LAST. return.
+	//
+	// Loops internally so 'AbcD' reads as sub b, sub c, final sub D.
+	// Lowercase refs between the outer 'A' prefix and the terminator
+	// push copies into the subs table (Apple's addSubstitution model).
+	if (p.s[p.i] >= 'a' && p.s[p.i] <= 'z') || (p.s[p.i] >= 'A' && p.s[p.i] <= 'Z') {
+		for {
+			if p.eof() {
+				return nil, p.grammarErr("substitution terminator")
+			}
+			c := p.s[p.i]
+			if c >= 'a' && c <= 'z' {
+				p.i++
+				idx := int(c - 'a')
+				n, ok := p.subs.Get(idx)
+				if !ok {
+					return nil, p.grammarErr("valid substitution index")
+				}
+				p.subs.Push(n)
+				continue
+			}
+			if c >= 'A' && c <= 'Z' {
+				p.i++
+				idx := int(c - 'A')
+				n, ok := p.subs.Get(idx)
+				if !ok {
+					return nil, p.grammarErr("valid substitution index")
+				}
+				return n, nil
+			}
+			return nil, p.grammarErr("substitution letter")
 		}
-		n, ok := p.subs.Get(idx)
-		if !ok {
-			return nil, p.grammarErr("valid substitution index")
-		}
-		return n, nil
 	}
 	return nil, p.grammarErr("substitution index digit/letter")
 }
@@ -3115,6 +3184,9 @@ func (p *parser) parseNominalWithModule(module *demangle.Node) (*demangle.Node, 
 	if err != nil {
 		return nil, err
 	}
+	// Push the identifier to subs (mirror Apple's addSubstitution on
+	// every parsed Identifier). Keeps A<idx> index alignment.
+	p.subs.Push(common.NewIdentifier(name))
 	if p.eof() {
 		return nil, demangle.TruncatedInput(p.schemeName, p.origin, p.i+p.prefixBytes)
 	}
@@ -3308,6 +3380,12 @@ func (p *parser) tryStdlibCompactFunctionType() (*demangle.Node, bool) {
 // annotation pushes, then X<conv> trigger. Returns (wrapped, true)
 // on match with parser advanced; unchanged on mismatch.
 func (p *parser) tryPostfixFunctionType(node *demangle.Node) (*demangle.Node, bool) {
+	// Variant 2: '<params-type> (YT)? c' — escaping function-type
+	// where both result (=node) and params are real types (not
+	// empty). No X<conv> prefix — 'c' alone is escaping.
+	if wrapped, ok := p.tryPostfixFunctionTypeWithParams(node); ok {
+		return wrapped, true
+	}
 	if p.eof() || p.s[p.i] != 'y' {
 		return node, false
 	}
