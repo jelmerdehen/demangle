@@ -1644,6 +1644,15 @@ func (p *parser) parseType() (*demangle.Node, error) {
 		node = wrapType
 	}
 afterYAnnotations:
+	// Postfix function-type constructor: 'y (Y<ann>)* X<conv>'. When
+	// the preceding type was pushed as the result and 'y' represents
+	// empty params, the X<conv> byte pops and builds a NoEscape or
+	// @convention function-type. Narrow: params always empty. Supports
+	// YA (@isolated(any)), Yb (@Sendable), Ya (async), YC (nonisolated
+	// (nonsending)), Yj<v> (@differentiable variants), K (throws).
+	if wrapped, ok := p.tryPostfixFunctionType(node); ok {
+		node = wrapped
+	}
 	// Bound-generic trailer: base y <type>+ G.
 	if bg, ok, err := p.tryBoundGeneric(node); err != nil {
 		return nil, err
@@ -2361,6 +2370,103 @@ func (p *parser) tryStdlibCompactFunctionType() (*demangle.Node, bool) {
 		annotationStr = strings.Join(annotations, " ") + " "
 	}
 	display := convPrefix + annotationStr + paramsStr + " -> " + resultStr
+	typ := common.NewNode(common.KindType)
+	inner := common.NewNode(common.KindBuiltinTypeName)
+	inner.Text = display
+	common.AddChildren(typ, inner)
+	return typ, true
+}
+
+// tryPostfixFunctionType constructs a function-type whose RESULT is
+// the given pre-parsed node, params are empty, and optional
+// annotations + convention are read from the input. Apple's push
+// order: result pushed first, then 'y' for empty params, then
+// annotation pushes, then X<conv> trigger. Returns (wrapped, true)
+// on match with parser advanced; unchanged on mismatch.
+func (p *parser) tryPostfixFunctionType(node *demangle.Node) (*demangle.Node, bool) {
+	if p.eof() || p.s[p.i] != 'y' {
+		return node, false
+	}
+	save := p.i
+	saveSubs := p.subs
+	revert := func() { p.i = save; p.subs = saveSubs }
+	p.i++ // consume 'y' (empty params marker)
+	var annotations []string
+	for !p.eof() {
+		c := p.s[p.i]
+		if c == 'K' {
+			annotations = append(annotations, "throws")
+			p.i++
+			continue
+		}
+		if c != 'Y' || p.i+1 >= len(p.s) {
+			break
+		}
+		tag := p.s[p.i+1]
+		switch tag {
+		case 'A':
+			annotations = append(annotations, "@isolated(any)")
+			p.i += 2
+		case 'a':
+			annotations = append(annotations, "async")
+			p.i += 2
+		case 'b':
+			annotations = append(annotations, "@Sendable")
+			p.i += 2
+		case 'C':
+			annotations = append(annotations, "nonisolated(nonsending)")
+			p.i += 2
+		case 'j':
+			if p.i+2 >= len(p.s) {
+				revert()
+				return node, false
+			}
+			v := p.s[p.i+2]
+			p.i += 3
+			switch v {
+			case 'd':
+				annotations = append(annotations, "@differentiable")
+			case 'f':
+				annotations = append(annotations, "@differentiable(_forward)")
+			case 'r':
+				annotations = append(annotations, "@differentiable(reverse)")
+			case 'l':
+				annotations = append(annotations, "@differentiable(_linear)")
+			default:
+				revert()
+				return node, false
+			}
+		default:
+			revert()
+			return node, false
+		}
+	}
+	if p.i+1 >= len(p.s) || p.s[p.i] != 'X' {
+		revert()
+		return node, false
+	}
+	xLetter := p.s[p.i+1]
+	var convPrefix string
+	switch xLetter {
+	case 'E':
+		convPrefix = ""
+	case 'C':
+		convPrefix = "@convention(c) "
+	case 'B':
+		convPrefix = "@convention(block) "
+	case 'T':
+		convPrefix = "@convention(thin) "
+	default:
+		revert()
+		return node, false
+	}
+	p.i += 2
+	nodeStr := common.Print(node, common.DefaultPrintOptions())
+	annotationStr := ""
+	if len(annotations) > 0 {
+		annotationStr = strings.Join(annotations, " ") + " "
+	}
+	display := convPrefix + annotationStr + "() -> " + nodeStr
 	typ := common.NewNode(common.KindType)
 	inner := common.NewNode(common.KindBuiltinTypeName)
 	inner.Text = display
