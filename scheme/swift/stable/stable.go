@@ -198,6 +198,10 @@ func (p *parser) parseGlobal() (*demangle.Node, error) {
 		return nil, err
 	} else if ok {
 		inner = varEntity
+	} else if initEntity, ok, err := p.tryInitDeinitEntity(); err != nil {
+		return nil, err
+	} else if ok {
+		inner = initEntity
 	} else {
 		t, err := p.parseType()
 		if err != nil {
@@ -323,6 +327,123 @@ func (p *parser) tryVariableEntity() (*demangle.Node, bool, error) {
 	typeStr := common.Print(typ, opts)
 	wrap := common.NewNode(common.KindTypeMangling)
 	wrap.Text = prefix + pathStr + pathSuffix + " : " + typeStr
+	return wrap, true, nil
+}
+
+// tryInitDeinitEntity matches:
+//
+//	<context> <result-type> <params-type> 'c' f <C|c|d|D>
+//
+// Render:  '<prefix> <path>(<params>) -> <result>' where prefix is:
+//	fC   __allocating_init
+//	fc   __nonallocating_init
+//	fD   __deallocating_deinit
+//	fd   __destroying_deinit
+func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
+	save := p.i
+	saveSubs := p.subs
+	restore := func() { p.i = save; p.subs = saveSubs }
+	if p.eof() || !(p.s[p.i] >= '0' && p.s[p.i] <= '9') {
+		return nil, false, nil
+	}
+	mod, err := p.parseIdentifier()
+	if err != nil {
+		restore()
+		return nil, false, nil
+	}
+	var pathSteps []*demangle.Node
+	pathSteps = append(pathSteps, common.NewModule(mod))
+	for {
+		if p.eof() || !(p.s[p.i] >= '0' && p.s[p.i] <= '9') {
+			restore()
+			return nil, false, nil
+		}
+		ident, err := p.parseIdentifier()
+		if err != nil {
+			restore()
+			return nil, false, nil
+		}
+		if p.eof() {
+			restore()
+			return nil, false, nil
+		}
+		peek := p.s[p.i]
+		if peek == 'V' || peek == 'C' || peek == 'O' {
+			p.i++
+			pathSteps = append(pathSteps, common.NewIdentifier(ident))
+			continue
+		}
+		pathSteps = append(pathSteps, common.NewIdentifier(ident))
+		break
+	}
+	// Result-type.
+	var retType *demangle.Node
+	if !p.eof() && p.s[p.i] == 'y' {
+		p.i++
+		retType = common.NewNode(common.KindEmptyList)
+	} else {
+		t, err := p.parseType()
+		if err != nil {
+			restore()
+			return nil, false, nil
+		}
+		retType = t
+	}
+	// Params-type.
+	var paramsType *demangle.Node
+	if !p.eof() && p.s[p.i] == 'y' {
+		p.i++
+		paramsType = common.NewNode(common.KindEmptyList)
+	} else {
+		t, err := p.parseType()
+		if err != nil {
+			restore()
+			return nil, false, nil
+		}
+		paramsType = t
+	}
+	// Require 'c' f <C|c|d|D>.
+	if p.i+2 >= len(p.s) || p.s[p.i] != 'c' || p.s[p.i+1] != 'f' {
+		restore()
+		return nil, false, nil
+	}
+	prefix := ""
+	switch p.s[p.i+2] {
+	case 'C':
+		prefix = "__allocating_init "
+	case 'c':
+		prefix = "__nonallocating_init "
+	case 'D':
+		prefix = "__deallocating_deinit "
+	case 'd':
+		prefix = "__destroying_deinit "
+	default:
+		restore()
+		return nil, false, nil
+	}
+	p.i += 3
+	// Render display.
+	opts := common.DefaultPrintOptions()
+	path := common.NewNode(common.KindEntityPath)
+	common.AddChildren(path, pathSteps...)
+	pathStr := common.Print(path, opts)
+	paramsStr := "()"
+	if common.NodeKind(paramsType.Kind) != common.KindEmptyList {
+		paramsStr = "(" + common.Print(paramsType, opts) + ")"
+	}
+	retStr := "()"
+	if common.NodeKind(retType.Kind) != common.KindEmptyList {
+		retStr = common.Print(retType, opts)
+	}
+	// Init: Foo.init(args) -> Foo. Deinit: Foo.deinit().
+	// Use "init" / "deinit" as the terminal path segment.
+	terminal := "init"
+	if prefix == "__deallocating_deinit " || prefix == "__destroying_deinit " {
+		terminal = "deinit"
+	}
+	display := prefix + pathStr + "." + terminal + paramsStr + " -> " + retStr
+	wrap := common.NewNode(common.KindTypeMangling)
+	wrap.Text = display
 	return wrap, true, nil
 }
 
