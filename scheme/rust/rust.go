@@ -135,6 +135,25 @@ func (Scheme) Demangle(_ context.Context, in string, opts demangle.Options) (*de
 	if strings.HasPrefix(in, "_R") {
 		variant = "v0"
 	}
+	annotations := map[string]string{
+		"rust.mangling_version": variant,
+		"rust.backend":          "ianlancetaylor/demangle",
+	}
+	// Surface the legacy h-hash disambiguator as a separate annotation
+	// so callers can strip it when grouping similar symbols.
+	if variant == "legacy" {
+		if hash := extractLegacyHash(in); hash != "" {
+			annotations["rust.hash"] = hash
+		}
+	}
+	// Crate-level identity for v0: bytes after "_R" up to the first
+	// letter-terminator block provide a stable crate-disambiguator
+	// hash (Cs{N}_{crate-name}).
+	if variant == "v0" {
+		if crate := extractV0CrateHash(in); crate != "" {
+			annotations["rust.crate_hash"] = crate
+		}
+	}
 	return &demangle.Result{
 		Scheme: "rust",
 		Input:  in,
@@ -144,11 +163,63 @@ func (Scheme) Demangle(_ context.Context, in string, opts demangle.Options) (*de
 			Kind:   KindSymbol,
 			Text:   out,
 		},
-		Annotations: map[string]string{
-			"rust.mangling_version": variant,
-			"rust.backend":          "ianlancetaylor/demangle",
-		},
+		Annotations: annotations,
 	}, nil
+}
+
+// extractLegacyHash finds the "17h<16hex>E" block near the end of a
+// legacy Rust symbol and returns the hash portion. Empty when no
+// h-hash is present.
+func extractLegacyHash(s string) string {
+	// Walk backwards from trailing 'E'; find "17h<16hex>".
+	if !strings.HasSuffix(s, "E") {
+		return ""
+	}
+	body := s[:len(s)-1]
+	h := strings.LastIndexByte(body, 'h')
+	if h < 2 {
+		return ""
+	}
+	hex := body[h+1:]
+	if len(hex) != 16 {
+		return ""
+	}
+	for _, c := range hex {
+		switch {
+		case c >= '0' && c <= '9', c >= 'a' && c <= 'f':
+		default:
+			return ""
+		}
+	}
+	return hex
+}
+
+// extractV0CrateHash finds the "Cs<hash>_<crate>" block in a v0
+// symbol. Returns the hash portion only (the base-62 encoded crate
+// disambiguator). Empty when the symbol doesn't start that way.
+func extractV0CrateHash(s string) string {
+	if !strings.HasPrefix(s, "_R") {
+		return ""
+	}
+	rest := s[2:]
+	// Namespace-byte then "Cs<hash>_" prefix.
+	if len(rest) < 4 {
+		return ""
+	}
+	// Skip the namespace byte (N = path, etc.) + sub-namespace if present.
+	for len(rest) > 0 && rest[0] >= 'A' && rest[0] <= 'Z' {
+		rest = rest[1:]
+		break
+	}
+	if !strings.HasPrefix(rest, "Cs") {
+		return ""
+	}
+	rest = rest[2:]
+	end := strings.IndexByte(rest, '_')
+	if end < 0 || end == 0 {
+		return ""
+	}
+	return rest[:end]
 }
 
 func init() {

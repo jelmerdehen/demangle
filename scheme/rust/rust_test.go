@@ -73,6 +73,23 @@ func TestRustSniff(t *testing.T) {
 	}
 }
 
+func TestRustHashAnnotations(t *testing.T) {
+	t.Parallel()
+	cat := newCatalog(t)
+	// Legacy with h-hash.
+	r, err := cat.Demangle(context.Background(),
+		"_ZN4core3fmt5Write9write_fmt17h09fbbd14876613edE", nil)
+	if err != nil {
+		t.Fatalf("demangle: %v", err)
+	}
+	if r.Annotations["rust.hash"] != "09fbbd14876613ed" {
+		t.Errorf("rust.hash = %q", r.Annotations["rust.hash"])
+	}
+	if r.Annotations["rust.mangling_version"] != "legacy" {
+		t.Errorf("variant = %q", r.Annotations["rust.mangling_version"])
+	}
+}
+
 func FuzzRust(f *testing.F) {
 	seeds := []string{
 		"_RNvCsno73SFvQKx_3foo16example_function",
