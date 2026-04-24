@@ -333,6 +333,44 @@ func (p *parser) tryReabstractionThunk(inner *demangle.Node) (*demangle.Node, bo
 	return wrap, true
 }
 
+// tryPostfixLabeledTuple matches '<N><name>d?_t' or '<name>d?_t'
+// after a type, building a 1-element tuple with optional label and
+// variadic marker. Renders as "(name: <type>[...])".
+func (p *parser) tryPostfixLabeledTuple(node *demangle.Node) (*demangle.Node, bool) {
+	if p.eof() || !(p.s[p.i] >= '0' && p.s[p.i] <= '9') {
+		return node, false
+	}
+	save := p.i
+	saveSubs := p.subs
+	revert := func() { p.i = save; p.subs = saveSubs }
+	name, err := p.parseIdentifier()
+	if err != nil {
+		revert()
+		return node, false
+	}
+	variadic := false
+	if !p.eof() && p.s[p.i] == 'd' {
+		p.i++
+		variadic = true
+	}
+	if p.i+1 >= len(p.s) || p.s[p.i] != '_' || p.s[p.i+1] != 't' {
+		revert()
+		return node, false
+	}
+	p.i += 2
+	typeStr := common.Print(node, common.DefaultPrintOptions())
+	suffix := ""
+	if variadic {
+		suffix = "..."
+	}
+	display := "(" + name + ": " + typeStr + suffix + ")"
+	wrap := common.NewNode(common.KindType)
+	inner := common.NewNode(common.KindBuiltinTypeName)
+	inner.Text = display
+	common.AddChildren(wrap, inner)
+	return wrap, true
+}
+
 // tryPostfixCompactTuple matches '<type>_S<N><letter>...t' where
 // <type> is the already-parsed node and the remaining bytes are
 // compact-stdlib types separated by '_' and closed by 't'. Returns
@@ -2480,6 +2518,12 @@ func (p *parser) parseType() (*demangle.Node, error) {
 	// with <type> as the first element and subsequent compact-stdlib
 	// types as later elements. Renders as "(T1, T2, ...)".
 	if wrapped, ok := p.tryPostfixCompactTuple(node); ok {
+		node = wrapped
+	}
+	// Postfix labeled single-element tuple: '<type><N><name>d?_t'
+	// builds a single-element tuple with name and optional variadic
+	// marker. Renders as "(name: <type>[...])".
+	if wrapped, ok := p.tryPostfixLabeledTuple(node); ok {
 		node = wrapped
 	}
 	if wrapped, ok := p.tryPostfixBorrow(node); ok {
