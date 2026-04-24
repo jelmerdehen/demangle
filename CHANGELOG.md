@@ -4,6 +4,21 @@ All notable changes to this project will be documented here. Format
 follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). This
 project uses semantic versioning.
 
+## [0.1.13] - 2026-04-22
+
+### Added
+
+- **swift-stable** — 3-part init-entity fix
+  - Numeric substitution base-26 reader takes ONLY uppercase digits
+    (matches Apple's demangleIndex); no lowercase terminator.
+  - tryInitDeinitEntity populates the subs table with the class +
+    placeholders so short backrefs (AC etc.) resolve to the class.
+  - Init entity renders in Apple's path-suffix format:
+    `test.Str.__allocating_init() -> test.Str` instead of the
+    earlier `__allocating_init test.Str.init() -> test.Str`.
+  - Trailing type-mangling `D` marker consumed silently.
+  - Apple corpus: 24/153 → 26/153 direct matches, 0 mismatches.
+
 ## [0.1.12] - 2026-04-22
 
 ### Added
