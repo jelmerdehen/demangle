@@ -529,10 +529,8 @@ func (p *parser) tryImplFunctionType() (*demangle.Node, bool) {
 		revert()
 		return nil, false
 	}
-	if len(params) == 0 && len(results) == 0 {
-		revert()
-		return nil, false
-	}
+	// len(params) == 0 && len(results) == 0 is OK — void function
+	// Ieg_ → @escaping @callee_guaranteed () -> ().
 	paramsStr := "(" + strings.Join(params, ", ") + ")"
 	resultsStr := "(" + strings.Join(results, ", ") + ")"
 	display := strings.Join(prefixParts, " ") + " " + paramsStr + " -> " + resultsStr
