@@ -160,3 +160,85 @@ func TestPrintOptionsDefault(t *testing.T) {
 		t.Error("default should synthesise sugar")
 	}
 }
+
+func TestPrintNominal(t *testing.T) {
+	t.Parallel()
+	node, _ := BuildStdlibNominal('i')
+	// With qualified mode.
+	out := Print(node, DefaultPrintOptions())
+	if out != "Swift.Int" {
+		t.Errorf("qualified out = %q", out)
+	}
+	// Without qualification.
+	opts := DefaultPrintOptions()
+	opts.QualifyEntities = false
+	out = Print(node, opts)
+	if out != "Int" {
+		t.Errorf("unqualified out = %q", out)
+	}
+}
+
+func TestPrintBoundGenericSugar(t *testing.T) {
+	t.Parallel()
+	// Array<Int> → [Int]
+	intType, _ := BuildStdlibNominal('i')
+	arrType, _ := BuildStdlibNominal('a')
+	args := NewNode(KindTypeList)
+	AddChildren(args, intType)
+	bound := NewNode(KindBoundGenericStructure)
+	AddChildren(bound, arrType, args)
+	typ := NewNode(KindType)
+	AddChildren(typ, bound)
+	out := Print(typ, DefaultPrintOptions())
+	if out != "[Swift.Int]" {
+		t.Errorf("sugar out = %q want [Swift.Int]", out)
+	}
+	// Without sugar: plain angle brackets.
+	opts := DefaultPrintOptions()
+	opts.SynthesizeSugar = false
+	out = Print(typ, opts)
+	if out != "Swift.Array<Swift.Int>" {
+		t.Errorf("no-sugar out = %q", out)
+	}
+}
+
+func TestPrintNilNode(t *testing.T) {
+	t.Parallel()
+	if s := Print(nil, DefaultPrintOptions()); s != "" {
+		t.Errorf("nil → %q want ''", s)
+	}
+}
+
+func TestPrintOptionalSugar(t *testing.T) {
+	t.Parallel()
+	// Swift.Optional<Int> → Int?
+	intType, _ := BuildStdlibNominal('i')
+	optType, _ := BuildStdlibNominal('q')
+	args := NewNode(KindTypeList)
+	AddChildren(args, intType)
+	bound := NewNode(KindBoundGenericEnum)
+	AddChildren(bound, optType, args)
+	typ := NewNode(KindType)
+	AddChildren(typ, bound)
+	out := Print(typ, DefaultPrintOptions())
+	if out != "Swift.Int?" {
+		t.Errorf("optional sugar = %q", out)
+	}
+}
+
+func TestPrintDictionarySugar(t *testing.T) {
+	t.Parallel()
+	intType, _ := BuildStdlibNominal('i')
+	strType, _ := BuildStdlibNominal('S')
+	dictType, _ := BuildStdlibNominal('D')
+	args := NewNode(KindTypeList)
+	AddChildren(args, intType, strType)
+	bound := NewNode(KindBoundGenericStructure)
+	AddChildren(bound, dictType, args)
+	typ := NewNode(KindType)
+	AddChildren(typ, bound)
+	out := Print(typ, DefaultPrintOptions())
+	if out != "[Swift.Int : Swift.String]" {
+		t.Errorf("dict sugar = %q", out)
+	}
+}
