@@ -418,6 +418,44 @@ func (p *parser) tryImplFunctionType() (*demangle.Node, bool) {
 			idx++
 		}
 	}
+	// Optional coroutine kind byte: A/I/G.
+	coroAttr := ""
+	if idx < len(attrs) {
+		switch attrs[idx] {
+		case 'A':
+			coroAttr = "@yield_once"
+			idx++
+		case 'I':
+			coroAttr = "@yield_once_2"
+			idx++
+		case 'G':
+			coroAttr = "@yield_many"
+			idx++
+		}
+	}
+	// Optional h (@Sendable), H (@async), T (sending-result) markers.
+	sendable := false
+	asyncFlag := false
+	sendingResultFlag := false
+	for idx < len(attrs) {
+		c := attrs[idx]
+		if c == 'h' {
+			sendable = true
+			idx++
+			continue
+		}
+		if c == 'H' {
+			asyncFlag = true
+			idx++
+			continue
+		}
+		if c == 'T' {
+			sendingResultFlag = true
+			idx++
+			continue
+		}
+		break
+	}
 	// Remaining attrs after idx are per-param / per-result modes.
 	modeAttrs := attrs[idx:]
 	if escaping {
@@ -430,6 +468,16 @@ func (p *parser) tryImplFunctionType() (*demangle.Node, bool) {
 	if funcConv != "" {
 		prefixParts = append(prefixParts, funcConv)
 	}
+	if coroAttr != "" {
+		prefixParts = append(prefixParts, coroAttr)
+	}
+	if sendable {
+		prefixParts = append(prefixParts, "@Sendable")
+	}
+	if asyncFlag {
+		prefixParts = append(prefixParts, "@async")
+	}
+	_ = sendingResultFlag // rendered per-result when types are split
 	// Decode modeAttrs per Apple's grammar:
 	//   <param-mode> (w|l)? T? I? L? → N params
 	//   <result-mode> (w|l)?          → M results
