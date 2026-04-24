@@ -4,6 +4,22 @@ All notable changes to this project will be documented here. Format
 follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). This
 project uses semantic versioning.
 
+## [0.1.23] - 2026-04-24
+
+### Added
+
+- **swift-stable** — autodiff thunks + generic-sig param count.
+  - TJ<variant><subset>p<subset>r entity suffix — autodiff
+    forward/reverse/differential/pullback with bitset-encoded
+    parameter/result index subsets.
+  - TJV<variant>... — vtable-thunk prefix for autodiff variants.
+  - WJ<kind><subset>p<subset>r — differentiability witness suffix.
+  - Compound compact tuple `S<N><letter>_S<M><letter>...t` at
+    function-entity sig-slot (yS2f_S2ftF form).
+  - Generic-sig depth-0 param count tracking: `r<N>_l` now renders
+    <A, B, C, ...> with correct width; plain `l` stays <A>.
+  - Apple corpus: 60 → **62/153** direct matches.
+
 ## [0.1.22] - 2026-04-24
 
 ### Added
