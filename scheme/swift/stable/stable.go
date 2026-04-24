@@ -271,7 +271,10 @@ func (p *parser) tryVariableEntity() (*demangle.Node, bool, error) {
 		return nil, false, nil
 	}
 	var pathSteps []*demangle.Node
-	pathSteps = append(pathSteps, common.NewModule(mod))
+	moduleNode := common.NewModule(mod)
+	pathSteps = append(pathSteps, moduleNode)
+	// Push module to subs so AA back-refs can reach it.
+	p.subs.Push(moduleNode)
 	// Walk identifier + optional (V/C/O) nominal-kind step until we
 	// have a terminating plain-ident (decl-name).
 	for {
