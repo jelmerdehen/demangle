@@ -1199,6 +1199,44 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 			return false
 		}
 		var r *demangle.Node
+		var a *demangle.Node
+		// Compact result+params via 'S<digits><letter>' — unpacks N
+		// copies of the letter-type. First goes to result; the rest
+		// form the params list. Matches Apple's compact sub grammar
+		// which pushes N types on the stack in one shot.
+		if p.s[p.i] == 'S' && p.i+2 < len(p.s) &&
+			p.s[p.i+1] >= '0' && p.s[p.i+1] <= '9' {
+			digStart := p.i + 1
+			j := digStart
+			for j < len(p.s) && p.s[j] >= '0' && p.s[j] <= '9' {
+				j++
+			}
+			if j < len(p.s) {
+				letter := p.s[j]
+				if one, ok := common.BuildStdlibNominal(letter); ok {
+					n := 0
+					for _, d := range p.s[digStart:j] {
+						n = n*10 + int(d-'0')
+					}
+					if n >= 2 {
+						p.i = j + 1
+						r = one
+						if n == 2 {
+							a = one
+						} else {
+							tup := common.NewNode(common.KindTypeList)
+							els := make([]*demangle.Node, n-1)
+							for k := range els {
+								els[k] = one
+							}
+							common.AddChildren(tup, els...)
+							a = tup
+						}
+						goto afterSigSlots
+					}
+				}
+			}
+		}
 		if p.s[p.i] == 'y' {
 			p.i++
 			r = common.NewNode(common.KindEmptyList)
@@ -1221,7 +1259,6 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 			revert()
 			return false
 		}
-		var a *demangle.Node
 		if p.s[p.i] == 'y' {
 			p.i++
 			a = common.NewNode(common.KindEmptyList)
@@ -1332,6 +1369,7 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 			}
 		paramModsDone:
 		}
+	afterSigSlots:
 		// Async / throws markers. Spec: Ya = async (2 bytes), K = throws.
 		localAsync := false
 		localThrows := false
