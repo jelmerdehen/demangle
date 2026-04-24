@@ -294,6 +294,10 @@ func (p *parser) parseGlobal() (*demangle.Node, error) {
 		inner = wrapped
 	}
 	for {
+		if wrapped, ok := p.tryNestedPrivateDecl(inner); ok {
+			inner = wrapped
+			continue
+		}
 		if wrapped, ok := p.tryMacroExpansion(inner); ok {
 			inner = wrapped
 			continue
@@ -311,6 +315,58 @@ func (p *parser) parseGlobal() (*demangle.Node, error) {
 
 	common.AddChildren(g, inner)
 	return g, nil
+}
+
+// tryNestedPrivateDecl matches '<N><name> L <idx>_ <kind>' where
+// <kind> is V/C/O/P. Represents a private/local nested-decl that
+// extends the context chain of inner. Wraps as "<name> #<idx+1> in
+// <inner>". Apple's demangleIndex: '_' alone = 0, '<N>_' = N+1, so
+// '#<idx+1>' renders 1-based counter.
+func (p *parser) tryNestedPrivateDecl(inner *demangle.Node) (*demangle.Node, bool) {
+	if p.eof() || !(p.s[p.i] >= '0' && p.s[p.i] <= '9') {
+		return inner, false
+	}
+	save := p.i
+	saveSubs := p.subs
+	revert := func() { p.i = save; p.subs = saveSubs }
+	name, err := p.parseIdentifier()
+	if err != nil {
+		revert()
+		return inner, false
+	}
+	if p.eof() || p.s[p.i] != 'L' {
+		revert()
+		return inner, false
+	}
+	p.i++
+	idx := 0
+	digStart := p.i
+	for !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+		p.i++
+	}
+	if p.eof() || p.s[p.i] != '_' {
+		revert()
+		return inner, false
+	}
+	if p.i > digStart {
+		n := 0
+		for k := digStart; k < p.i; k++ {
+			n = n*10 + int(p.s[k]-'0')
+		}
+		idx = n + 1
+	}
+	p.i++ // consume '_'
+	// Consume optional nominal-kind byte (V/C/O/P).
+	if !p.eof() {
+		k := p.s[p.i]
+		if k == 'V' || k == 'C' || k == 'O' || k == 'P' {
+			p.i++
+		}
+	}
+	innerStr := common.Print(inner, common.DefaultPrintOptions())
+	wrap := common.NewNode(common.KindTypeMangling)
+	wrap.Text = fmt.Sprintf("%s #%d in %s", name, idx+1, innerStr)
+	return wrap, true
 }
 
 // tryKeyPathSuffix matches '<owner-type> T K [k|q]?' key path
@@ -1650,7 +1706,7 @@ func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 			return nil, false, nil
 		}
 		peek := p.s[p.i]
-		if peek == 'V' || peek == 'C' || peek == 'O' {
+		if peek == 'V' || peek == 'C' || peek == 'O' || peek == 'P' {
 			p.i++
 			pathSteps = append(pathSteps, common.NewIdentifier(ident))
 			continue
