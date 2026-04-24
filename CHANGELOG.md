@@ -4,6 +4,36 @@ All notable changes to this project will be documented here. Format
 follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). This
 project uses semantic versioning.
 
+## [0.1.9] - 2026-04-22
+
+### Added
+
+- **swift-stable** — more grammar coverage.
+  - Spec-aligned stdlib-substitution table (fixes `Sb`, `SE`/`Se`,
+    `SF`/`Sf`, `Ss` entries that carried wrong mappings).
+  - `Sc<X>` second-level lookup for the 17 concurrency-adjacent
+    stdlib types introduced in Swift 5.5+ (Actor, Task, TaskGroup,
+    CheckedContinuation, Executor, …).
+  - Q-family opaque-type placeholders (`Qr`, `Qo<N>_`, `QO`).
+  - Optional `l` generic-signature trailer between params and `F`.
+  - Specialization T-suffix family: `Tg<N>`, `TB<N>`, `Ti<N>`,
+    `Tt<N>`, `Tf<N>`.
+  - H/W suffix expansion (retroactive / pretend / diagnostic
+    conformance descriptors; witness-table variants).
+  - Apple fixture corpus: 19/153 direct matches; 0 mismatches.
+- **gosym** — expanded runtime-linker synthetic prefix table
+  (go:itab., go.itab., go:func., go.func., go:string., go.string.,
+  go:map., go:buildid., go:info., go:typelink., go.typelink.).
+- **objc** — extract block index from `_block_invoke_N` /
+  `_block_invoke.N` into `objc.block_index`.
+- **runtime** — Swift force-load (`_swift_FORCE_LOAD_$_<mod>`)
+  and fixed-size-metadata markers.
+- **core tests** — coverage 57.7% → 86.6%. Added explicit tests
+  for CallbackContext / SyncContext, catalog options, error
+  constructors + Error.Is/Unwrap, enum String() methods,
+  AmbiguousError rendering, and DemangleBatch pinned / cancel
+  paths.
+
 ## [0.1.8] - 2026-04-22
 
 ### Added
