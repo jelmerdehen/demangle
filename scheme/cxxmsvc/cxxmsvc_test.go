@@ -107,6 +107,66 @@ func TestMSVCRejectsNonMangled(t *testing.T) {
 	}
 }
 
+// TestMSVCAccessQualifiers sweeps the access-class byte space so the
+// private/protected/public + const/volatile combinations render.
+func TestMSVCAccessQualifiers(t *testing.T) {
+	t.Parallel()
+	cat := newCatalog(t)
+	cases := []struct {
+		in   string
+		want string
+	}{
+		// A = private, cv none
+		{"?m@C@@AAAXXZ", "private: void __cdecl C::m(void)"},
+		// B = private, method (same as A in narrow parser).
+		{"?m@C@@BAAXXZ", "private: void __cdecl C::m(void)"},
+		// C = protected, cv none
+		{"?m@C@@CAAXXZ", "protected: void __cdecl C::m(void)"},
+		// I = private static
+		{"?m@C@@IAAXXZ", "private: static void __cdecl C::m(void)"},
+		// K = protected static
+		{"?m@C@@KAAXXZ", "protected: static void __cdecl C::m(void)"},
+		// M = public static
+		{"?m@C@@MAAXXZ", "public: static void __cdecl C::m(void)"},
+	}
+	for _, c := range cases {
+		c := c
+		t.Run(c.in, func(t *testing.T) {
+			t.Parallel()
+			r, err := cat.Demangle(context.Background(), c.in, nil)
+			if err != nil {
+				t.Fatalf("demangle: %v", err)
+			}
+			if r.Output != c.want {
+				t.Fatalf("output = %q, want %q", r.Output, c.want)
+			}
+		})
+	}
+}
+
+// TestMSVCRTTI covers the ??_R0 RTTI type-descriptor path.
+func TestMSVCRTTI(t *testing.T) {
+	t.Parallel()
+	cat := newCatalog(t)
+	r, err := cat.Demangle(context.Background(), "??_R0?AVFoo@@", nil)
+	if err != nil {
+		t.Fatalf("demangle: %v", err)
+	}
+	if r.Output != "Foo `RTTI Type Descriptor'" {
+		t.Fatalf("output = %q", r.Output)
+	}
+}
+
+// TestMSVCRejectsOther verifies the scheme doesn't crash on
+// adversarial input.
+func TestMSVCRejectsOther(t *testing.T) {
+	t.Parallel()
+	cat := newCatalog(t)
+	for _, in := range []string{"?", "??", "?@@", "?foo", "?foo@"} {
+		_, _ = cat.Demangle(context.Background(), in, nil)
+	}
+}
+
 func FuzzMSVC(f *testing.F) {
 	seeds := []string{
 		"?foo@@YAXXZ",
