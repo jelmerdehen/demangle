@@ -194,6 +194,11 @@ func TestStableFunctionEntities(t *testing.T) {
 		// Optional shortcuts (Sg): Int?, [Int]?, Dict<Int,Str>?
 		{"$s4main4thisSiSgvp", "main.this : Swift.Int?"},
 		{"$s4main3arrSaySiGSgvp", "main.arr : [Swift.Int]?"},
+		// Nested var: main.Foo.b : String (struct Foo holding a property b)
+		{"$s4main3FooV1bSSvp", "main.Foo.b : Swift.String"},
+		// Nested var getter: class Foo's property n getter
+		{"$s4main3FooC1nSivg", "getter for main.Foo.n : Swift.Int"},
+		{"$s4main3FooC1nSivs", "setter for main.Foo.n : Swift.Int"},
 	}
 	for _, c := range varGeneric {
 		c := c
