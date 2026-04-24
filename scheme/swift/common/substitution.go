@@ -163,6 +163,19 @@ func (t *SubstitutionTable) GetFromTop(d int) (*demangle.Node, bool) {
 	return t.entries[i], true
 }
 
+// TruncateTo returns a SubstitutionTable with at most n entries.
+// If n >= current length the original value is returned unchanged.
+// Used by the impl-function-type parser to undo substitutions that
+// parseType pushed so that an 'Sg' Optional-wrap can replace them.
+func (t SubstitutionTable) TruncateTo(n int) SubstitutionTable {
+	if n >= len(t.entries) {
+		return t
+	}
+	cp := make([]*demangle.Node, n)
+	copy(cp, t.entries[:n])
+	return SubstitutionTable{entries: cp}
+}
+
 // Clone makes a defensive copy — parsers fork the table when they
 // speculatively match.
 func (t *SubstitutionTable) Clone() *SubstitutionTable {

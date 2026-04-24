@@ -120,6 +120,15 @@ func parseBodyWithOpts(schemeName, origin, body string, prefixBytes int, opts de
 	if err != nil {
 		return nil, err
 	}
+	// Optional trailing 'Sg' — the top-level result is an Optional-
+	// wrapped impl-function-type (e.g. $s...IetCyyyd_SgD). Wrap the
+	// parsed tree in Swift.Optional before the 'D' end-marker check.
+	if p.i+1 < len(p.s) && p.s[p.i] == 'S' && p.s[p.i+1] == 'g' {
+		p.i += 2
+		if len(tree.Children) == 1 {
+			tree.Children[0] = wrapImplFnOptional(tree.Children[0])
+		}
+	}
 	// Optional trailing 'D' — type-mangling end marker. Consume
 	// silently; Apple's demangle doesn't render anything extra for
 	// it.
@@ -214,7 +223,20 @@ type parser struct {
 	// Captured identifier word-fragments for '0'-prefixed identifiers
 	// that carry word substitutions. Mirrors Apple's Words[] vector.
 	words []string
+	// depth tracks recursive call depth for parseType (and callers that
+	// recurse through it). Prevents stack exhaustion on adversarial
+	// inputs like repeated 'B' bytes that drive tryPostfixFixedArray
+	// into O(n) recursion.
+	depth int
+	// parseOps counts total parseType invocations. Caps the total
+	// work done to O(MaxParseOps) regardless of input shape. Prevents
+	// exponential blowup from speculative postfix chains (tryPostfix-
+	// FixedArray ↔ tryPostfixFunctionTypeWithParams interleaving).
+	parseOps int
 }
+
+const maxParseDepth = 64
+const maxParseOps = 65536
 
 func (p *parser) eof() bool { return p.i >= len(p.s) }
 
@@ -1461,6 +1483,427 @@ func (p *parser) tryClosureEntity(inner *demangle.Node) (*demangle.Node, bool) {
 	return wrap, true
 }
 
+// implFnAttrsModeStart returns the index into attrs where per-param /
+// per-result mode bytes begin (i.e. past the header attr bytes).
+func implFnAttrsModeStart(attrs string) int {
+	idx := 0
+	if idx < len(attrs) && attrs[idx] == 'e' {
+		idx++
+	}
+	if idx < len(attrs) && attrs[idx] == 'A' {
+		idx++
+	}
+	if idx < len(attrs) && attrs[idx] == 'N' {
+		idx++
+	}
+	if idx < len(attrs) {
+		switch attrs[idx] {
+		case 'f', 'r', 'd', 'l':
+			idx++
+		}
+	}
+	if idx < len(attrs) {
+		switch attrs[idx] {
+		case 'g', 'y', 'x', 't':
+			idx++
+		}
+	}
+	if idx < len(attrs) {
+		switch attrs[idx] {
+		case 'B', 'C', 'M', 'O', 'K', 'W':
+			idx++
+		}
+	}
+	if idx < len(attrs) {
+		switch attrs[idx] {
+		case 'A', 'I', 'G':
+			idx++
+		}
+	}
+	for idx < len(attrs) {
+		switch attrs[idx] {
+		case 'h', 'H', 'T':
+			idx++
+			continue
+		}
+		break
+	}
+	return idx
+}
+
+// implFnTypesNeeded returns the total number of type slots consumed by
+// the attrs string (params + results + error). Returns -1 if attrs
+// is malformed / unconsumed bytes remain.
+func implFnTypesNeeded(attrs string) int {
+	modeAttrs := attrs[implFnAttrsModeStart(attrs):]
+	k, n := 0, 0
+	// Param modes.
+	for k < len(modeAttrs) {
+		switch modeAttrs[k] {
+		case 'i', 'c', 'l', 'b', 'n', 'X', 'x', 'g', 'e', 'y', 'v', 'p', 'm':
+			k++
+			if k < len(modeAttrs) && (modeAttrs[k] == 'w' || modeAttrs[k] == 'l') {
+				k++
+			}
+			if k < len(modeAttrs) && modeAttrs[k] == 'T' {
+				k++
+			}
+			if k < len(modeAttrs) && modeAttrs[k] == 'I' {
+				k++
+			}
+			if k < len(modeAttrs) && modeAttrs[k] == 'L' {
+				k++
+			}
+			n++
+			continue
+		}
+		break
+	}
+	// Result modes.
+	for k < len(modeAttrs) {
+		switch modeAttrs[k] {
+		case 'r', 'o', 'd', 'u', 'a', 'k':
+			k++
+			if k < len(modeAttrs) && (modeAttrs[k] == 'w' || modeAttrs[k] == 'l') {
+				k++
+			}
+			n++
+			continue
+		}
+		break
+	}
+	// Error result: z<conv>.
+	if k < len(modeAttrs) && modeAttrs[k] == 'z' {
+		k++
+		if k < len(modeAttrs) {
+			switch modeAttrs[k] {
+			case 'r', 'o', 'd', 'u', 'a', 'k':
+				k++
+				n++
+			}
+		}
+	}
+	if k != len(modeAttrs) {
+		return -1
+	}
+	return n
+}
+
+// isImplFnOptionalType reports whether n is a Type wrapping a
+// BoundGenericEnum whose base is Swift.Optional. Used to detect when
+// parseType internally consumed an 'Sg' suffix and pushed both the
+// bare type and the Optional-wrapped type to substitutions.
+func isImplFnOptionalType(n *demangle.Node) bool {
+	if n == nil {
+		return false
+	}
+	cur := n
+	if common.NodeKind(cur.Kind) == common.KindType && len(cur.Children) > 0 {
+		cur = cur.Children[0]
+	}
+	if common.NodeKind(cur.Kind) != common.KindBoundGenericEnum {
+		return false
+	}
+	if len(cur.Children) < 1 {
+		return false
+	}
+	base := cur.Children[0]
+	if common.NodeKind(base.Kind) == common.KindType && len(base.Children) > 0 {
+		base = base.Children[0]
+	}
+	if common.NodeKind(base.Kind) != common.KindEnum {
+		return false
+	}
+	for _, c := range base.Children {
+		if common.NodeKind(c.Kind) == common.KindIdentifier && c.Text == "Optional" {
+			return true
+		}
+	}
+	return false
+}
+
+// wrapImplFnOptional wraps node in Swift.Optional (BoundGenericEnum).
+func wrapImplFnOptional(node *demangle.Node) *demangle.Node {
+	optBase, _ := common.BuildStdlibNominal('q')
+	typeList := common.NewNode(common.KindTypeList)
+	common.AddChildren(typeList, node)
+	bound := common.NewNode(common.KindBoundGenericEnum)
+	common.AddChildren(bound, optBase, typeList)
+	wrap := common.NewNode(common.KindType)
+	common.AddChildren(wrap, bound)
+	return wrap
+}
+
+// buildImplFnDisplay parses attrs and builds a KindTypeMangling node
+// for the rendered impl-function-type display string. types must
+// contain exactly the number of type nodes implied by attrs.
+// Returns (nil, false) on any parse failure or type count mismatch.
+func buildImplFnDisplay(attrs string, types []*demangle.Node) (*demangle.Node, bool) {
+	prefixParts := []string{}
+	escaping := false
+	erasedIsolation := false
+	nonisolatedNonsending := false
+	diffKind := ""
+	diffExplicit := false
+	calleeConv := "callee_guaranteed"
+	idx := 0
+	if idx < len(attrs) && attrs[idx] == 'e' {
+		escaping = true
+		idx++
+	}
+	if idx < len(attrs) && attrs[idx] == 'A' {
+		erasedIsolation = true
+		idx++
+	}
+	if idx < len(attrs) && attrs[idx] == 'N' {
+		nonisolatedNonsending = true
+		idx++
+	}
+	if idx < len(attrs) {
+		switch attrs[idx] {
+		case 'f':
+			diffKind = "(_forward)"
+			diffExplicit = true
+			idx++
+		case 'r':
+			diffKind = "(reverse)"
+			diffExplicit = true
+			idx++
+		case 'd':
+			diffKind = ""
+			diffExplicit = true
+			idx++
+		case 'l':
+			diffKind = "(_linear)"
+			diffExplicit = true
+			idx++
+		}
+	}
+	calleeKind := "guaranteed"
+	if idx < len(attrs) {
+		switch attrs[idx] {
+		case 'g':
+			calleeKind = "guaranteed"
+			idx++
+		case 'y':
+			calleeKind = "unowned"
+			idx++
+		case 'x':
+			calleeKind = "owned"
+			idx++
+		case 't':
+			calleeConv = "convention(thin)"
+			idx++
+			calleeKind = ""
+		}
+	}
+	if calleeKind != "" {
+		calleeConv = "callee_" + calleeKind
+	}
+	funcConv := ""
+	if idx < len(attrs) {
+		switch attrs[idx] {
+		case 'B':
+			funcConv = "@convention(block)"
+			idx++
+		case 'C':
+			funcConv = "@convention(c)"
+			idx++
+		case 'M':
+			funcConv = "@convention(method)"
+			idx++
+		case 'O':
+			funcConv = "@convention(objc_method)"
+			idx++
+		case 'K':
+			funcConv = "@convention(closure)"
+			idx++
+		case 'W':
+			funcConv = "@convention(witness_method)"
+			idx++
+		}
+	}
+	coroAttr := ""
+	if idx < len(attrs) {
+		switch attrs[idx] {
+		case 'A':
+			coroAttr = "@yield_once"
+			idx++
+		case 'I':
+			coroAttr = "@yield_once_2"
+			idx++
+		case 'G':
+			coroAttr = "@yield_many"
+			idx++
+		}
+	}
+	sendable := false
+	asyncFlag := false
+	sendingResultFlag := false
+	for idx < len(attrs) {
+		c := attrs[idx]
+		if c == 'h' {
+			sendable = true
+			idx++
+			continue
+		}
+		if c == 'H' {
+			asyncFlag = true
+			idx++
+			continue
+		}
+		if c == 'T' {
+			sendingResultFlag = true
+			idx++
+			continue
+		}
+		break
+	}
+	modeAttrs := attrs[idx:]
+	if escaping {
+		prefixParts = append(prefixParts, "@escaping")
+	}
+	if erasedIsolation {
+		prefixParts = append(prefixParts, "@isolated(any)")
+	}
+	if nonisolatedNonsending {
+		prefixParts = append(prefixParts, "@caller_isolated")
+	}
+	if diffExplicit {
+		prefixParts = append(prefixParts, "@differentiable"+diffKind)
+	}
+	prefixParts = append(prefixParts, "@"+calleeConv)
+	if funcConv != "" {
+		prefixParts = append(prefixParts, funcConv)
+	}
+	if coroAttr != "" {
+		prefixParts = append(prefixParts, coroAttr)
+	}
+	if sendable {
+		prefixParts = append(prefixParts, "@Sendable")
+	}
+	if asyncFlag {
+		prefixParts = append(prefixParts, "@async")
+	}
+	_ = sendingResultFlag
+	opts := common.DefaultPrintOptions()
+	var params []string
+	var results []string
+	paramMode := func(c byte) (string, bool) {
+		switch c {
+		case 'i':
+			return "@in", true
+		case 'c':
+			return "@in_constant", true
+		case 'l':
+			return "@inout", true
+		case 'b':
+			return "@inout_aliasable", true
+		case 'n':
+			return "@in_guaranteed", true
+		case 'X':
+			return "@in_cxx", true
+		case 'x':
+			return "@owned", true
+		case 'g':
+			return "@guaranteed", true
+		case 'e':
+			return "@deallocating", true
+		case 'y':
+			return "@unowned", true
+		case 'v':
+			return "@pack_owned", true
+		case 'p':
+			return "@pack_guaranteed", true
+		case 'm':
+			return "@pack_inout", true
+		}
+		return "", false
+	}
+	resultMode := func(c byte) (string, bool) {
+		switch c {
+		case 'r':
+			return "@out", true
+		case 'o':
+			return "@owned", true
+		case 'd':
+			return "@unowned", true
+		case 'u':
+			return "@unowned_inner_pointer", true
+		case 'a':
+			return "@autoreleased", true
+		case 'k':
+			return "@pack_out", true
+		}
+		return "", false
+	}
+	k := 0
+	ti := 0
+	for k < len(modeAttrs) && ti < len(types) {
+		attr, ok := paramMode(modeAttrs[k])
+		if !ok {
+			break
+		}
+		k++
+		diff := ""
+		if k < len(modeAttrs) && (modeAttrs[k] == 'w' || modeAttrs[k] == 'l') {
+			diff = " @noDerivative"
+			k++
+		}
+		sending := ""
+		if k < len(modeAttrs) && modeAttrs[k] == 'T' {
+			sending = " sending"
+			k++
+		}
+		if k < len(modeAttrs) && modeAttrs[k] == 'I' {
+			k++
+		}
+		if k < len(modeAttrs) && modeAttrs[k] == 'L' {
+			k++
+		}
+		params = append(params, attr+diff+sending+" "+common.Print(types[ti], opts))
+		ti++
+	}
+	for k < len(modeAttrs) && ti < len(types) {
+		attr, ok := resultMode(modeAttrs[k])
+		if !ok {
+			break
+		}
+		k++
+		diff := ""
+		if k < len(modeAttrs) && (modeAttrs[k] == 'w' || modeAttrs[k] == 'l') {
+			diff = " @noDerivative"
+			k++
+		}
+		results = append(results, attr+diff+" "+common.Print(types[ti], opts))
+		ti++
+	}
+	if k < len(modeAttrs) && ti < len(types) && modeAttrs[k] == 'z' {
+		k++
+		if k < len(modeAttrs) {
+			attr, ok := resultMode(modeAttrs[k])
+			if ok {
+				k++
+				results = append(results, "@error "+attr+" "+common.Print(types[ti], opts))
+				ti++
+			}
+		}
+	}
+	if k != len(modeAttrs) || ti != len(types) {
+		return nil, false
+	}
+	paramsStr := "(" + strings.Join(params, ", ") + ")"
+	sendingPrefix := ""
+	if sendingResultFlag {
+		sendingPrefix = "sending "
+	}
+	resultsStr := sendingPrefix + "(" + strings.Join(results, ", ") + ")"
+	display := strings.Join(prefixParts, " ") + " " + paramsStr + " -> " + resultsStr
+	wrap := common.NewNode(common.KindTypeMangling)
+	wrap.Text = display
+	return wrap, true
+}
+
 // tryImplFunctionType matches SIL impl-function-type:
 //
 //	<type>* 'I' <attrs> '_'
@@ -1484,8 +1927,65 @@ func (p *parser) tryImplFunctionType() (*demangle.Node, bool) {
 	// Parse 0-or-more leading types. Inside this loop we also
 	// recognise 'S<digits><letter>' multi-count stdlib shortcut and
 	// expand inline as N copies of the letter-typed stdlib sub.
+	// We also handle nested impl-fn-types: when we see 'I' followed
+	// eventually by '_Sg' and another 'I' later, that 'I' is the start
+	// of an inner impl-fn-type that appears as one of our type slots.
 	var types []*demangle.Node
-	for !p.eof() && p.s[p.i] != 'I' {
+	for !p.eof() {
+		if p.s[p.i] == 'I' {
+			// Speculatively try to parse a nested impl-fn-type.
+			// Heuristic: only commit if '_' is immediately followed by 'Sg'
+			// (the Optional postfix) AND there is another 'I' further along
+			// (the outer impl-fn terminator). This avoids mis-parsing simple
+			// fixtures where 'I' is the outer terminator itself.
+			innerSave := p.i
+			p.i++ // consume inner 'I'
+			innerAttrStart := p.i
+			for !p.eof() && p.s[p.i] != '_' {
+				p.i++
+			}
+			if p.eof() {
+				p.i = innerSave
+				break
+			}
+			innerAttrs := p.s[innerAttrStart:p.i]
+			p.i++ // consume '_'
+			// Check: '_' must be immediately followed by 'Sg'.
+			if p.i+1 >= len(p.s) || p.s[p.i] != 'S' || p.s[p.i+1] != 'g' {
+				p.i = innerSave
+				break
+			}
+			// Check: another 'I' must exist after 'Sg'.
+			hasOuterI := false
+			for j := p.i + 2; j < len(p.s); j++ {
+				if p.s[j] == 'I' {
+					hasOuterI = true
+					break
+				}
+			}
+			if !hasOuterI {
+				p.i = innerSave
+				break
+			}
+			// Count types needed by inner attrs.
+			needed := implFnTypesNeeded(innerAttrs)
+			if needed < 0 || needed > len(types) {
+				p.i = innerSave
+				break
+			}
+			innerTypes := types[len(types)-needed:]
+			innerNode, ok := buildImplFnDisplay(innerAttrs, innerTypes)
+			if !ok {
+				p.i = innerSave
+				break
+			}
+			types = types[:len(types)-needed]
+			// Consume the 'Sg' postfix and wrap inner node in Optional.
+			p.i += 2 // consume 'Sg'
+			innerNode = wrapImplFnOptional(innerNode)
+			types = append(types, innerNode)
+			continue
+		}
 		if p.s[p.i] == 'S' && p.i+1 < len(p.s) &&
 			p.s[p.i+1] >= '0' && p.s[p.i+1] <= '9' {
 			// 'S<digits><letter>' inline expansion.
@@ -1561,10 +2061,27 @@ func (p *parser) tryImplFunctionType() (*demangle.Node, bool) {
 			p.i = savePos
 			p.subs = saveSubsPos
 		}
+		subsBeforeParse := p.subs.Len()
 		t, err := p.parseType()
 		if err != nil {
 			revert()
 			return nil, false
+		}
+		// External 'Sg' postfix not yet consumed by parseType.
+		if p.i+1 < len(p.s) && p.s[p.i] == 'S' && p.s[p.i+1] == 'g' {
+			p.i += 2
+			t = wrapImplFnOptional(t)
+			// Truncate subs back and push only the Optional-wrapped type.
+			p.subs = p.subs.TruncateTo(subsBeforeParse)
+			p.subs.Push(t)
+		} else if p.subs.Len() == subsBeforeParse+2 && isImplFnOptionalType(t) {
+			// parseType internally consumed an 'Sg' suffix, pushing two
+			// entries: the bare type then the Optional. Apple's model
+			// records only the Optional as one substitution. Normalise so
+			// A<N><letter> back-refs resolve to the Optional, not the bare
+			// inner type.
+			p.subs = p.subs.TruncateTo(subsBeforeParse)
+			p.subs.Push(t)
 		}
 		types = append(types, t)
 	}
@@ -1584,303 +2101,12 @@ func (p *parser) tryImplFunctionType() (*demangle.Node, bool) {
 	}
 	attrs := p.s[attrStart:p.i]
 	p.i++ // consume '_'
-	// Interpret attrs positionally.
-	// Position 0: optional 'e' (escaping).
-	// Position 0 or 1: optional diff-kind (f/r/d/l).
-	// Then: callee conv (g/y/t/x).
-	// Then: param modes + result modes.
-	prefixParts := []string{}
-	escaping := false
-	erasedIsolation := false
-	nonisolatedNonsending := false
-	diffKind := ""
-	diffExplicit := false
-	calleeConv := "callee_guaranteed"
-	idx := 0
-	if idx < len(attrs) && attrs[idx] == 'e' {
-		escaping = true
-		idx++
-	}
-	// 'A' → @isolated(any), 'N' → @caller_isolated (non-isolated /
-	// nonsending isolation). Both placed between escape and diff.
-	if idx < len(attrs) && attrs[idx] == 'A' {
-		erasedIsolation = true
-		idx++
-	}
-	if idx < len(attrs) && attrs[idx] == 'N' {
-		nonisolatedNonsending = true
-		idx++
-	}
-	if idx < len(attrs) {
-		switch attrs[idx] {
-		case 'f':
-			diffKind = "(_forward)"
-			diffExplicit = true
-			idx++
-		case 'r':
-			diffKind = "(reverse)"
-			diffExplicit = true
-			idx++
-		case 'd':
-			diffKind = ""
-			diffExplicit = true
-			idx++
-		case 'l':
-			diffKind = "(_linear)"
-			diffExplicit = true
-			idx++
-		}
-	}
-	// Callee convention: y=unowned, g=guaranteed, x=owned, t=convention(thin).
-	// Per Apple's ImplConvention table. 't' is actually a FUNCTION
-	// convention attr rendered as "@convention(thin)", not a callee-
-	// ownership kind. The remaining three map to "@callee_<kind>".
-	calleeKind := "guaranteed"
-	if idx < len(attrs) {
-		switch attrs[idx] {
-		case 'g':
-			calleeKind = "guaranteed"
-			idx++
-		case 'y':
-			calleeKind = "unowned"
-			idx++
-		case 'x':
-			calleeKind = "owned"
-			idx++
-		case 't':
-			// 't' alone means @convention(thin); no @callee_ prefix.
-			calleeConv = "convention(thin)"
-			idx++
-			calleeKind = ""
-		}
-	}
-	if calleeKind != "" {
-		calleeConv = "callee_" + calleeKind
-	}
-	// Optional function convention byte after callee-conv: B/C/M/O/K/W.
-	funcConv := ""
-	if idx < len(attrs) {
-		switch attrs[idx] {
-		case 'B':
-			funcConv = "@convention(block)"
-			idx++
-		case 'C':
-			funcConv = "@convention(c)"
-			idx++
-		case 'M':
-			funcConv = "@convention(method)"
-			idx++
-		case 'O':
-			funcConv = "@convention(objc_method)"
-			idx++
-		case 'K':
-			funcConv = "@convention(closure)"
-			idx++
-		case 'W':
-			funcConv = "@convention(witness_method)"
-			idx++
-		}
-	}
-	// Optional coroutine kind byte: A/I/G.
-	coroAttr := ""
-	if idx < len(attrs) {
-		switch attrs[idx] {
-		case 'A':
-			coroAttr = "@yield_once"
-			idx++
-		case 'I':
-			coroAttr = "@yield_once_2"
-			idx++
-		case 'G':
-			coroAttr = "@yield_many"
-			idx++
-		}
-	}
-	// Optional h (@Sendable), H (@async), T (sending-result) markers.
-	sendable := false
-	asyncFlag := false
-	sendingResultFlag := false
-	for idx < len(attrs) {
-		c := attrs[idx]
-		if c == 'h' {
-			sendable = true
-			idx++
-			continue
-		}
-		if c == 'H' {
-			asyncFlag = true
-			idx++
-			continue
-		}
-		if c == 'T' {
-			sendingResultFlag = true
-			idx++
-			continue
-		}
-		break
-	}
-	// Remaining attrs after idx are per-param / per-result modes.
-	modeAttrs := attrs[idx:]
-	if escaping {
-		prefixParts = append(prefixParts, "@escaping")
-	}
-	if erasedIsolation {
-		prefixParts = append(prefixParts, "@isolated(any)")
-	}
-	if nonisolatedNonsending {
-		prefixParts = append(prefixParts, "@caller_isolated")
-	}
-	if diffExplicit {
-		prefixParts = append(prefixParts, "@differentiable"+diffKind)
-	}
-	prefixParts = append(prefixParts, "@"+calleeConv)
-	if funcConv != "" {
-		prefixParts = append(prefixParts, funcConv)
-	}
-	if coroAttr != "" {
-		prefixParts = append(prefixParts, coroAttr)
-	}
-	if sendable {
-		prefixParts = append(prefixParts, "@Sendable")
-	}
-	if asyncFlag {
-		prefixParts = append(prefixParts, "@async")
-	}
-	_ = sendingResultFlag // rendered per-result when types are split
-	// Decode modeAttrs per Apple's grammar:
-	//   <param-mode> (w|l)? T? I? L? → N params
-	//   <result-mode> (w|l)?          → M results
-	// Total types consumed = N + M.
-	opts := common.DefaultPrintOptions()
-	var params []string
-	var results []string
-	paramMode := func(c byte) (string, bool) {
-		switch c {
-		case 'i':
-			return "@in", true
-		case 'c':
-			return "@in_constant", true
-		case 'l':
-			return "@inout", true
-		case 'b':
-			return "@inout_aliasable", true
-		case 'n':
-			return "@in_guaranteed", true
-		case 'X':
-			return "@in_cxx", true
-		case 'x':
-			return "@owned", true
-		case 'g':
-			return "@guaranteed", true
-		case 'e':
-			return "@deallocating", true
-		case 'y':
-			return "@unowned", true
-		case 'v':
-			return "@pack_owned", true
-		case 'p':
-			return "@pack_guaranteed", true
-		case 'm':
-			return "@pack_inout", true
-		}
-		return "", false
-	}
-	resultMode := func(c byte) (string, bool) {
-		switch c {
-		case 'r':
-			return "@out", true
-		case 'o':
-			return "@owned", true
-		case 'd':
-			return "@unowned", true
-		case 'u':
-			return "@unowned_inner_pointer", true
-		case 'a':
-			return "@autoreleased", true
-		case 'k':
-			return "@pack_out", true
-		}
-		return "", false
-	}
-	k := 0          // mode-attr byte index
-	ti := 0         // types index
-	// Params.
-	for k < len(modeAttrs) && ti < len(types) {
-		attr, ok := paramMode(modeAttrs[k])
-		if !ok {
-			break
-		}
-		k++
-		// Optional differentiability (w / l → @noDerivative).
-		diff := ""
-		if k < len(modeAttrs) && (modeAttrs[k] == 'w' || modeAttrs[k] == 'l') {
-			diff = " @noDerivative"
-			k++
-		}
-		// Optional sending (T).
-		sending := ""
-		if k < len(modeAttrs) && modeAttrs[k] == 'T' {
-			sending = " sending"
-			k++
-		}
-		// Optional isolated (I) and implicit-leading (L) — Apple's
-		// demangler captures these as nodes but the NodePrinter for
-		// the fixture corpus ignores them in the rendered param
-		// attribute string. Consume the bytes silently to match.
-		if k < len(modeAttrs) && modeAttrs[k] == 'I' {
-			k++
-		}
-		if k < len(modeAttrs) && modeAttrs[k] == 'L' {
-			k++
-		}
-		params = append(params, attr+diff+sending+" "+common.Print(types[ti], opts))
-		ti++
-	}
-	// Results.
-	for k < len(modeAttrs) && ti < len(types) {
-		attr, ok := resultMode(modeAttrs[k])
-		if !ok {
-			break
-		}
-		k++
-		diff := ""
-		if k < len(modeAttrs) && (modeAttrs[k] == 'w' || modeAttrs[k] == 'l') {
-			diff = " @noDerivative"
-			k++
-		}
-		results = append(results, attr+diff+" "+common.Print(types[ti], opts))
-		ti++
-	}
-	// Optional error-result: 'z<conv-letter>' — renders as
-	// '@error <conv> <type>'.
-	if k < len(modeAttrs) && ti < len(types) && modeAttrs[k] == 'z' {
-		k++
-		if k < len(modeAttrs) {
-			attr, ok := resultMode(modeAttrs[k])
-			if ok {
-				k++
-				results = append(results, "@error "+attr+" "+common.Print(types[ti], opts))
-				ti++
-			}
-		}
-	}
-	// Must have consumed all modes + all types cleanly.
-	if k != len(modeAttrs) || ti != len(types) {
+	node, ok := buildImplFnDisplay(attrs, types)
+	if !ok {
 		revert()
 		return nil, false
 	}
-	// len(params) == 0 && len(results) == 0 is OK — void function
-	// Ieg_ → @escaping @callee_guaranteed () -> ().
-	paramsStr := "(" + strings.Join(params, ", ") + ")"
-	sendingPrefix := ""
-	if sendingResultFlag {
-		sendingPrefix = "sending "
-	}
-	resultsStr := sendingPrefix + "(" + strings.Join(results, ", ") + ")"
-	display := strings.Join(prefixParts, " ") + " " + paramsStr + " -> " + resultsStr
-	wrap := common.NewNode(common.KindTypeMangling)
-	wrap.Text = display
-	return wrap, true
+	return node, true
 }
 
 // tryVariableEntity matches the variable-entity shape:
@@ -3908,6 +4134,15 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 //
 //	Bv<N>_     → wrap preceding type as Builtin.Vec<N>x<inner>
 func (p *parser) parseType() (*demangle.Node, error) {
+	if p.depth >= maxParseDepth {
+		return nil, p.grammarErr("parse depth limit exceeded")
+	}
+	p.parseOps++
+	if p.parseOps > maxParseOps {
+		return nil, p.grammarErr("parse ops limit exceeded")
+	}
+	p.depth++
+	defer func() { p.depth-- }()
 	if p.eof() {
 		return nil, demangle.TruncatedInput(p.schemeName, p.origin, p.i+p.prefixBytes)
 	}
