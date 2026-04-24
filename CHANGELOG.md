@@ -4,6 +4,27 @@ All notable changes to this project will be documented here. Format
 follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). This
 project uses semantic versioning.
 
+## [0.1.26] - 2026-04-24
+
+### Added / Fixed
+
+- **swift-stable** — numeric-sub single-uppercase + more postfix
+  function-type shapes.
+  - parseNumericSubstitution corrected: Apple's letter-form is
+    `<lower>*<upper>` where each lowercase pushes a sub and
+    uppercase is the LAST (single letter). Previous greedy-uppercase
+    base-26 decode was wrong for multi-letter refs like 'AC' where
+    'C' alone indexes sub[2].
+  - tryPostfixFunctionTypeWithParams: after parseType returns a Type,
+    accept `<params-type> (YT)? c` and build
+    "(params) -> [sending ]result" for escaping function-types.
+  - parseNominalWithModule pushes the parsed Identifier to subs
+    (addSubstitution-on-Identifier alignment with Apple).
+  - 'fm' macro-entity suffix in tryVariableEntity.
+  - label-list speculative backtrack when ident is followed by
+    V/C/O/P (it's a nested type, not a label).
+  - Apple corpus: 70 → **72/153** direct matches (47.1 %).
+
 ## [0.1.25] - 2026-04-24
 
 ### Added
