@@ -4,6 +4,23 @@ All notable changes to this project will be documented here. Format
 follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). This
 project uses semantic versioning.
 
+## [0.1.24] - 2026-04-24
+
+### Added
+
+- **swift-stable** — associated-conformance descriptors + word-sub
+  identifier continuation fix.
+  - tryAssociatedConformanceDescriptor matches `<Proto> x A<idx>
+    <ident> T(n|N)` → "associated conformance descriptor for
+    <proto>.A: <mod>.<ident>" (Tn) or "default associated
+    conformance accessor for ..." (TN).
+  - parseIdentifier fix: after an upper-letter word-ref sets
+    hasWordSubsts=false, the do-while body still runs one more
+    iteration to read a trailing length-prefixed literal chunk
+    (Apple's '0A12DeployedFunc' must yield 'backDeployedFunc', not
+    just 'back').
+  - Apple corpus: 62 → **66/153** direct matches.
+
 ## [0.1.23] - 2026-04-24
 
 ### Added
