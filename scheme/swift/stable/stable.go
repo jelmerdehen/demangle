@@ -333,6 +333,41 @@ func (p *parser) tryReabstractionThunk(inner *demangle.Node) (*demangle.Node, bo
 	return wrap, true
 }
 
+// tryPostfixFixedArray matches '<size-type><element-type>BV' where
+// <size-type> is already parsed as `node`. Wraps as
+// "Builtin.FixedArray<size, element>".
+func (p *parser) tryPostfixFixedArray(node *demangle.Node) (*demangle.Node, bool) {
+	if p.eof() {
+		return node, false
+	}
+	save := p.i
+	saveSubs := p.subs
+	revert := func() { p.i = save; p.subs = saveSubs }
+	// Must be a type-start byte for the element.
+	c := p.s[p.i]
+	if !(c == 'A' || c == 'S' || c == 's' || c == 'B' || c == 'x' ||
+		c == 'q' || c == 'Q' || (c >= '0' && c <= '9')) {
+		return node, false
+	}
+	element, err := p.parseType()
+	if err != nil {
+		revert()
+		return node, false
+	}
+	if p.i+1 >= len(p.s) || p.s[p.i] != 'B' || p.s[p.i+1] != 'V' {
+		revert()
+		return node, false
+	}
+	p.i += 2
+	sizeStr := common.Print(node, common.DefaultPrintOptions())
+	elemStr := common.Print(element, common.DefaultPrintOptions())
+	wrap := common.NewNode(common.KindType)
+	inner := common.NewNode(common.KindBuiltinTypeName)
+	inner.Text = "Builtin.FixedArray<" + sizeStr + ", " + elemStr + ">"
+	common.AddChildren(wrap, inner)
+	return wrap, true
+}
+
 // tryPostfixLabeledTuple matches '<N><name>d?_t' or '<name>d?_t'
 // after a type, building a 1-element tuple with optional label and
 // variadic marker. Renders as "(name: <type>[...])".
@@ -2486,27 +2521,55 @@ func (p *parser) parseType() (*demangle.Node, error) {
 		// Could be either function-type or empty-tuple-in-type-context.
 		node, err = p.parseFunctionType()
 	case c == '$':
-		// Integer type literal — '$<base36-digit>' where the digit's
-		// 0-based value encodes N-1, so the literal's display form is
-		// (value + 1). Covers small-integer generic parameters like
-		// Slab<2, T> → "Vy$1_SiG".
+		// Integer type literal. Forms:
+		//   $<base36-digit>       → single digit, value = digit+1
+		//   $n<digits>_           → negative multi-digit, value = -(digits+1)
 		p.i++
 		if p.eof() {
 			return nil, p.grammarErr("'$' integer literal digit")
 		}
-		d := p.s[p.i]
+		negative := false
+		if p.s[p.i] == 'n' {
+			negative = true
+			p.i++
+			if p.eof() {
+				return nil, p.grammarErr("'$' integer literal digit")
+			}
+		}
+		// Multi-digit '_' terminated form.
 		var v int
-		switch {
-		case d >= '0' && d <= '9':
-			v = int(d - '0')
-		case d >= 'a' && d <= 'z':
-			v = 10 + int(d-'a')
-		default:
+		if p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+			start := p.i
+			for !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+				p.i++
+			}
+			if !p.eof() && p.s[p.i] == '_' {
+				// Multi-digit decimal (value = digits+1).
+				num := 0
+				for _, d := range p.s[start:p.i] {
+					num = num*10 + int(d-'0')
+				}
+				v = num + 1
+				p.i++ // consume '_'
+			} else if p.i == start+1 && !negative {
+				// Single-digit shortcut: value = digit+1.
+				v = int(p.s[start]-'0') + 1
+			} else {
+				return nil, p.grammarErr("'$' integer literal terminator")
+			}
+		} else if p.s[p.i] >= 'a' && p.s[p.i] <= 'z' && !negative {
+			// Single base36 letter: value = 10 + (letter-'a') + 1.
+			v = 10 + int(p.s[p.i]-'a') + 1
+			p.i++
+		} else {
 			return nil, p.grammarErr("'$' integer literal digit")
 		}
-		p.i++
+		display := itoa(v)
+		if negative {
+			display = "-" + display
+		}
 		lit := common.NewNode(common.KindBuiltinTypeName)
-		lit.Text = itoa(v + 1)
+		lit.Text = display
 		typ := common.NewNode(common.KindType)
 		common.AddChildren(typ, lit)
 		node = typ
@@ -2544,6 +2607,11 @@ func (p *parser) parseType() (*demangle.Node, error) {
 	// builds a single-element tuple with name and optional variadic
 	// marker. Renders as "(name: <type>[...])".
 	if wrapped, ok := p.tryPostfixLabeledTuple(node); ok {
+		node = wrapped
+	}
+	// Postfix Builtin.FixedArray: '<size-type><element-type>BV'
+	// where size is typically a '$<digits>_' integer literal.
+	if wrapped, ok := p.tryPostfixFixedArray(node); ok {
 		node = wrapped
 	}
 	if wrapped, ok := p.tryPostfixBorrow(node); ok {
@@ -3763,6 +3831,23 @@ func (p *parser) parseBuiltin() (*demangle.Node, error) {
 		return p.builtinTypeNamed("Job"), nil
 	case 'P':
 		return p.builtinTypeNamed("PackIndex"), nil
+	case 'V':
+		// Builtin.FixedArray<size, element> — requires 2 preceding
+		// types on the sub stack (size and element). Apple's popNode
+		// model: pop element, pop size. We mirror by popping the two
+		// most recently pushed Type subs.
+		size, sok := p.subs.GetFromTop(1)
+		element, eok := p.subs.GetFromTop(0)
+		if !sok || !eok {
+			return nil, p.grammarErr("Builtin.FixedArray needs size and element subs")
+		}
+		sizeStr := common.Print(size, common.DefaultPrintOptions())
+		elemStr := common.Print(element, common.DefaultPrintOptions())
+		typ := common.NewNode(common.KindType)
+		inner := common.NewNode(common.KindBuiltinTypeName)
+		inner.Text = "Builtin.FixedArray<" + sizeStr + ", " + elemStr + ">"
+		common.AddChildren(typ, inner)
+		return typ, nil
 	}
 	return nil, p.grammarErr("builtin type class char")
 }

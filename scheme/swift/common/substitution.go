@@ -153,6 +153,16 @@ func (t *SubstitutionTable) Get(n int) (*demangle.Node, bool) {
 // Len reports the number of stored entries.
 func (t *SubstitutionTable) Len() int { return len(t.entries) }
 
+// GetFromTop returns the entry at depth d from the end of the
+// table (0 = most recent push). Returns (nil, false) if out of range.
+func (t *SubstitutionTable) GetFromTop(d int) (*demangle.Node, bool) {
+	i := len(t.entries) - 1 - d
+	if i < 0 || i >= len(t.entries) {
+		return nil, false
+	}
+	return t.entries[i], true
+}
+
 // Clone makes a defensive copy — parsers fork the table when they
 // speculatively match.
 func (t *SubstitutionTable) Clone() *SubstitutionTable {
