@@ -1492,6 +1492,31 @@ func (p *parser) parseType() (*demangle.Node, error) {
 	case c == 'y':
 		// Could be either function-type or empty-tuple-in-type-context.
 		node, err = p.parseFunctionType()
+	case c == '$':
+		// Integer type literal — '$<base36-digit>' where the digit's
+		// 0-based value encodes N-1, so the literal's display form is
+		// (value + 1). Covers small-integer generic parameters like
+		// Slab<2, T> → "Vy$1_SiG".
+		p.i++
+		if p.eof() {
+			return nil, p.grammarErr("'$' integer literal digit")
+		}
+		d := p.s[p.i]
+		var v int
+		switch {
+		case d >= '0' && d <= '9':
+			v = int(d - '0')
+		case d >= 'a' && d <= 'z':
+			v = 10 + int(d-'a')
+		default:
+			return nil, p.grammarErr("'$' integer literal digit")
+		}
+		p.i++
+		lit := common.NewNode(common.KindBuiltinTypeName)
+		lit.Text = itoa(v + 1)
+		typ := common.NewNode(common.KindType)
+		common.AddChildren(typ, lit)
+		node = typ
 	case c >= '0' && c <= '9':
 		node, err = p.parseNominalPath()
 	default:
@@ -1564,6 +1589,12 @@ func (p *parser) tryBoundGeneric(base *demangle.Node) (*demangle.Node, bool, err
 	p.i++
 	var args []*demangle.Node
 	for !p.eof() && p.s[p.i] != 'G' {
+		// Skip '_' separators between args (used when the list mixes
+		// integer literals / generic params with nominals).
+		if p.s[p.i] == '_' {
+			p.i++
+			continue
+		}
 		// Bail safely if a nested feature we don't support appears.
 		arg, err := p.parseType()
 		if err != nil {
