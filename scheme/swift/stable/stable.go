@@ -1570,7 +1570,71 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 			return nil, false, nil
 		}
 		c := p.s[p.i]
-		if c == 'y' || c == 'B' || c == 'S' || c == 'A' ||
+		// 'A<sub>' in chain position — multi-substitution providing
+		// the decl-name (or nested-context ident) via sub back-ref.
+		// Push any repeat-count extras for later A<idx> resolution.
+		if c == 'A' {
+			saveSub := p.i
+			saveSubsSub := p.subs
+			p.i++ // consume 'A'
+			subNode, extras, mok := p.parseMultiSubstitution()
+			if !mok {
+				p.i = saveSub
+				p.subs = saveSubsSub
+				break
+			}
+			var identText string
+			switch common.NodeKind(subNode.Kind) {
+			case common.KindIdentifier, common.KindModule:
+				identText = subNode.Text
+			default:
+				p.i = saveSub
+				p.subs = saveSubsSub
+				break
+			}
+			if identText == "" {
+				p.i = saveSub
+				p.subs = saveSubsSub
+				break
+			}
+			// Push extras: each extra copy goes into subs for later
+			// A<idx> resolution to keep Apple index alignment.
+			for k := 0; k < extras; k++ {
+				p.subs.Push(subNode)
+			}
+			// Push the last one too (Apple pushes return value).
+			p.subs.Push(subNode)
+			identNode := common.NewIdentifier(identText)
+			if p.eof() {
+				restore()
+				return nil, false, nil
+			}
+			peek := p.s[p.i]
+			if peek == 'V' || peek == 'C' || peek == 'O' || peek == 'P' {
+				p.i++
+				pathSteps = append(pathSteps, identNode)
+				var kind common.NodeKind
+				switch peek {
+				case 'V':
+					kind = common.KindStructure
+				case 'C':
+					kind = common.KindClass
+				case 'O':
+					kind = common.KindEnum
+				case 'P':
+					kind = common.KindProtocol
+				}
+				nom := common.NewNode(kind)
+				common.AddChildren(nom, moduleNode, identNode)
+				typ := common.NewNode(common.KindType)
+				common.AddChildren(typ, nom)
+				p.subs.Push(typ)
+				continue
+			}
+			pathSteps = append(pathSteps, identNode)
+			break
+		}
+		if c == 'y' || c == 'B' || c == 'S' ||
 			c == 'x' || c == 'q' || c == 'Q' {
 			break
 		}
@@ -2863,6 +2927,85 @@ func (p *parser) parseNumericSubstitution() (*demangle.Node, error) {
 		return n, nil
 	}
 	return nil, p.grammarErr("substitution index digit/letter")
+}
+
+// parseMultiSubstitution mirrors Apple's demangleMultiSubstitutions:
+// reads an optional repeat count, then a letter indexing a sub. For
+// uppercase (last), returns the sub and caller pushes it. For
+// lowercase, keeps looping. The RepeatCount causes N-1 extra pushes
+// via a caller-supplied pushExtra callback — our recursive model
+// doesn't have a global node stack, so callers thread the extras
+// through a second path.
+//
+// Returns (lastSub, extraRepeatCount, ok). extraRepeatCount is N-1
+// for N>=2 (only meaningful when the caller wants extra pushes).
+func (p *parser) parseMultiSubstitution() (*demangle.Node, int, bool) {
+	save := p.i
+	repeatCount := -1
+	for {
+		if p.eof() {
+			p.i = save
+			return nil, 0, false
+		}
+		c := p.s[p.i]
+		if c >= 'a' && c <= 'z' {
+			p.i++
+			idx := int(c - 'a')
+			n, ok := p.subs.Get(idx)
+			if !ok {
+				p.i = save
+				return nil, 0, false
+			}
+			// Push the lowercase ref (non-last) as its own sub, then
+			// continue reading more refs.
+			p.subs.Push(n)
+			repeatCount = -1
+			continue
+		}
+		if c >= 'A' && c <= 'Z' {
+			p.i++
+			idx := int(c - 'A')
+			n, ok := p.subs.Get(idx)
+			if !ok {
+				p.i = save
+				return nil, 0, false
+			}
+			extras := 0
+			if repeatCount > 1 {
+				extras = repeatCount - 1
+			}
+			return n, extras, true
+		}
+		if c == '_' {
+			p.i++
+			if repeatCount < 0 {
+				p.i = save
+				return nil, 0, false
+			}
+			idx := repeatCount + 27
+			n, ok := p.subs.Get(idx)
+			if !ok {
+				p.i = save
+				return nil, 0, false
+			}
+			return n, 0, true
+		}
+		if c >= '0' && c <= '9' {
+			// Natural-number repeat count.
+			start := p.i
+			for !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+				p.i++
+			}
+			n := 0
+			for _, d := range p.s[start:p.i] {
+				n = n*10 + int(d-'0')
+			}
+			repeatCount = n
+			continue
+		}
+		p.i = save
+		return nil, 0, false
+	}
 }
 
 // parseNominalWithModule — module already parsed (or supplied as the
