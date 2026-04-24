@@ -57,13 +57,32 @@ swift-v42
 Honest list of things still open at the end of this push:
 
 - **Stage 1 full Swift grammar.** 100% Apple corpus coverage is
-  multi-week per the plan. Current state: 8/153 direct matches,
-  0 mismatches. Every commit ratchets up; parser never emits a
-  wrong answer. Known gaps: multi-arg tuples, generic parameter
-  refs (x/q_), protocol witness tables (Wl/WP partial), key paths,
-  symbolic references at runtime, opaque types (Qr/QO), initializers
-  (fC/fc), thunks (Tj/TJ/TO/TA), specializations (Tg/TG/TS), SIL-type
-  annotations, function-signature specializations.
+  multi-week per the plan. Current state: 129/153 direct matches
+  (84.3 %), 0 mismatches. Every commit ratchets up; parser never
+  emits a wrong answer. Remaining 24 fixtures cluster into 5
+  outstanding grammar features:
+  - Tf function-signature specialization — spec-arg grammar + 5+
+    constant-kind sub-forms (c/p<kind>/C<idx>/n/d/...). 3 fixtures.
+  - Autodiff subset-params thunk (TJSd/TJSp/TJSr + param/result
+    mask bytes SpSrSUSP) combined with dependent-member-type
+    rendering (Qz/Qy_<idx>). 5 fixtures.
+  - Reverse-mode derivative entity wrapper (TJr/TJVr/TSTJr) +
+    autodiff parameter/result subset masks. 3 fixtures.
+  - Retroactive-conformance chains with inverse-requirement
+    markers (HD/HI + Ri<n>_ inverse bits). 2 fixtures ($s3red).
+  - Nested impl-fn-type inside Optional<Impl-fn-type?> chains
+    with A<N><letter> repeat-count subs. 1 fixture ($sSvSg...).
+  - Nested typealias inside static extension. 1 fixture
+    ($s6Foobar...Vector2...simdMatrix).
+  - Generic specialization on stdlib-proto extension (SUssExt +
+    Tg5 suffix). 1 fixture ($sSUss...FixedWidthInteger).
+  - Outlined-consume wrapper on Optional<impl-fn-sub> chain with
+    retroactive markers. 1 fixture ($s3Bar3Foo...WOe).
+  - Opaque return type nested references (Qr/QO/Qo_<idx>). 1
+    fixture ($s4test3fooV4blah...QryFQOy_Qo_AHF).
+  - KeyPath function-sig spec (Tf3npk). 1 fixture ($s1t1fyyF...).
+  - Function-sig spec with Struct/Integer constants
+    (Tf3npSSi3Si0_n). 1 fixture.
 - **Stage 4 MSVC full.** LLVM reference is 2560 LOC; we ship ~600.
   Known gaps: string-literal names ??_C, template arg backrefs,
   calling-convention variations beyond the common five, reference
