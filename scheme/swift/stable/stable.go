@@ -2105,6 +2105,7 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 		sendingResult  bool
 		genericSig     bool
 		genericCount   int
+		constraints    []string
 		consumed       int // how much of the signature + F we consumed
 	)
 	tryPath := func(assumeLabelList bool) bool {
@@ -2484,6 +2485,7 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 		// Track generic-sig depth-0 param count; defaults to 1 when
 		// 'l' alone, or (demangleIndex+1) when 'r<idx>_l' form.
 		localGenericCount := 1
+		var localConstraints []string
 		for !p.eof() {
 			c := p.s[p.i]
 			// Eat any inline requirement: a type ref followed by R<k>.
@@ -2533,7 +2535,8 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 				c == 's' || c == 'S' || (c >= '0' && c <= '9') {
 				saveReq := p.i
 				saveSubsReq := p.subs
-				if _, err := p.parseType(); err != nil {
+				constraint, err := p.parseType()
+				if err != nil {
 					p.i = saveReq
 					p.subs = saveSubsReq
 					break
@@ -2549,7 +2552,15 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 					p.subs = saveSubsReq
 					break
 				}
-				p.i++ // consume req-kind byte
+				reqKind := p.s[p.i]
+				p.i++
+				// Narrow constraint rendering for common shapes:
+				//   z → '<subject>: <constraint>' (Conforms-to, subject
+				//        is the outermost generic param A by default).
+				if reqKind == 'z' {
+					cstr := common.Print(constraint, common.DefaultPrintOptions())
+					localConstraints = append(localConstraints, "A: "+cstr)
+				}
 				continue
 			}
 			break
@@ -2566,6 +2577,7 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 		sendingResult = localSendingResult
 		genericSig = localGeneric
 		genericCount = localGenericCount
+		constraints = localConstraints
 		consumed = p.i - savePath
 		_ = consumed
 		return true
@@ -2594,7 +2606,7 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 		entity.Attrs["swift.sendingResult"] = "true"
 	}
 	if genericSig {
-		entity.Attrs["swift.generic"] = renderGenericSig(genericCount)
+		entity.Attrs["swift.generic"] = renderGenericSigWithConstraints(genericCount, constraints)
 	}
 	common.AddChildren(entity, path, args, ret)
 	return entity, true, nil
@@ -3231,6 +3243,12 @@ func digitRun(s string, i int) int {
 // renderGenericSig builds "<A>" / "<A, B>" / "<A, B, C, ...>" based
 // on a depth-0 param count.
 func renderGenericSig(count int) string {
+	return renderGenericSigWithConstraints(count, nil)
+}
+
+// renderGenericSigWithConstraints adds an optional ' where ...' clause
+// listing collected generic requirements (e.g. "A: assoc.P").
+func renderGenericSigWithConstraints(count int, constraints []string) string {
 	if count < 1 {
 		count = 1
 	}
@@ -3241,6 +3259,10 @@ func renderGenericSig(count int) string {
 			b.WriteString(", ")
 		}
 		b.WriteByte(byte('A' + i))
+	}
+	if len(constraints) > 0 {
+		b.WriteString(" where ")
+		b.WriteString(strings.Join(constraints, ", "))
 	}
 	b.WriteByte('>')
 	return b.String()
@@ -3616,6 +3638,16 @@ func (p *parser) parseNominalWithModule(module *demangle.Node) (*demangle.Node, 
 	// existential wrapper is consumed by the postfix '_p' handler in
 	// parseType and displays identically to the bare protocol.
 	if k == '_' && p.i+1 < len(p.s) && p.s[p.i+1] == 'p' {
+		typ := common.NewNode(common.KindType)
+		nom := common.NewNode(common.KindProtocol)
+		common.AddChildren(nom, module, common.NewIdentifier(name))
+		common.AddChildren(typ, nom)
+		return typ, nil
+	}
+	// Generic-requirement context — 'R' byte after ident means the
+	// ident is being used as a Protocol in a constraint; leave 'R'
+	// for the outer parser.
+	if k == 'R' {
 		typ := common.NewNode(common.KindType)
 		nom := common.NewNode(common.KindProtocol)
 		common.AddChildren(nom, module, common.NewIdentifier(name))
