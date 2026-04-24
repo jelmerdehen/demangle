@@ -1122,12 +1122,37 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 			}
 			break
 		}
-		// Optional generic-signature trailer: 'l' (un-constrained) or
-		// 'r<N>_l' (with <N> constraints, handled as a future commit).
+		// Optional generic-signature trailer. Common shapes:
+		//   l              un-constrained depth-0 generic (<A>)
+		//   <digit>l       depth-0 generic with N+1 params (<A, A1, ...>)
+		//   r<N>_l         generic-requirement count prefix (narrow:
+		//                  consume without rendering constraints)
+		//   r<N>_l<digit>? requirement + depth-indexed params
 		localGeneric := false
-		if !p.eof() && p.s[p.i] == 'l' {
-			p.i++
-			localGeneric = true
+		for !p.eof() {
+			c := p.s[p.i]
+			if c == 'r' {
+				// r<N>_ : count of requirements.
+				j := p.i + 1
+				for j < len(p.s) && p.s[j] >= '0' && p.s[j] <= '9' {
+					j++
+				}
+				if j < len(p.s) && p.s[j] == '_' {
+					p.i = j + 1
+					continue
+				}
+				break
+			}
+			if c == 'l' {
+				p.i++
+				localGeneric = true
+				// Optional depth count trailing 'l'.
+				for !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+					p.i++
+				}
+				break
+			}
+			break
 		}
 		if p.eof() || p.s[p.i] != 'F' {
 			revert()
@@ -1222,6 +1247,7 @@ func (p *parser) parseType() (*demangle.Node, error) {
 		p.i++
 		node, err = p.parseOpaqueType()
 	case c == 'y':
+		// Could be either function-type or empty-tuple-in-type-context.
 		node, err = p.parseFunctionType()
 	case c >= '0' && c <= '9':
 		node, err = p.parseNominalPath()
