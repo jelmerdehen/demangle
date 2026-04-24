@@ -64,6 +64,7 @@ func TestMSVCBasics(t *testing.T) {
 		{"?data@?$basic_string@D@std@@YAPADXZ", "char* __cdecl std::basic_string<char>::data(void)"},
 		// Ref-return: Foo::at() → int&
 		{"?at@Foo@@YAAAHXZ", "int& __cdecl Foo::at(void)"},
+	}
 	for _, c := range cases {
 		c := c
 		t.Run(c.in, func(t *testing.T) {
