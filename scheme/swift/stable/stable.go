@@ -2967,6 +2967,91 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 				}
 				break
 			}
+			// DependentMember subject: a bare '<digits><name>' or
+			// 's<digits><name>' (Swift-qualified assoc-type access) or
+			// '0<word-sub>' followed directly by 'R' denotes an assoc-
+			// type requirement on the outer generic A (e.g. 'A.Element
+			// : ~Copyable'). The '<name>' identifies the assoc-type.
+			if c == 's' || (c >= '0' && c <= '9') {
+				saveReq := p.i
+				saveSubsReq := p.subs
+				constraintProtoStr := ""
+				if c == 's' {
+					// 's<id1><id2>Rp z' form: Swift-qualified assoc-
+					// type requirement. id1 = constraining proto, id2
+					// = assoc-type name, subject is implicit.
+					p.i++ // consume 's'
+					proto, err := p.parseIdentifier()
+					if err != nil {
+						p.i = saveReq
+						p.subs = saveSubsReq
+					} else {
+						constraintProtoStr = "Swift." + proto
+					}
+				}
+				name, err := p.parseIdentifier()
+				if err == nil && !p.eof() && p.s[p.i] == 'R' {
+					p.i++
+					if !p.eof() {
+						reqKind := p.s[p.i]
+						p.i++
+						// 'j<idx>_' inverse requirement: remove auto-
+						// conformance; idx 0 = Copyable, 1 = Escapable.
+						if reqKind == 'j' {
+							idx := 0
+							start := p.i
+							for !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+								p.i++
+							}
+							if !p.eof() && p.s[p.i] == '_' {
+								if p.i > start {
+									num := 0
+									for k := start; k < p.i; k++ {
+										num = num*10 + int(p.s[k]-'0')
+									}
+									idx = num + 1
+								}
+								p.i++
+								// Optional trailing subject-gp marker:
+								// 'z' = Self/gp(0,0), 'x' variants, etc.
+								// Consume silently when present.
+								if !p.eof() && (p.s[p.i] == 'z' ||
+									p.s[p.i] == 'x') {
+									p.i++
+								}
+								proto := "Swift.Copyable"
+								if idx == 1 {
+									proto = "Swift.Escapable"
+								} else if idx > 1 {
+									proto = fmt.Sprintf("Swift.<bit %d>", idx+1)
+								}
+								localConstraints = append(localConstraints,
+									"A."+name+": ~"+proto)
+								continue
+							}
+						}
+						// 'p' pack-conforms-to: subject is implicit (A).
+						// Constraint type was parsed before R (s<proto>
+						// case) or is the preceding ident via special
+						// form. Trailing 'z' = subject-from-stack marker.
+						if reqKind == 'p' {
+							if !p.eof() && p.s[p.i] == 'z' {
+								p.i++
+							}
+							if constraintProtoStr != "" {
+								localConstraints = append(localConstraints,
+									"A."+name+": "+constraintProtoStr)
+							} else {
+								localConstraints = append(localConstraints,
+									"A."+name+": <constraint>")
+							}
+							continue
+						}
+					}
+				}
+				p.i = saveReq
+				p.subs = saveSubsReq
+			}
 			// Any digit / A / x / q / s / S / B starting a type-ref is
 			// probably a requirement's constraining-type prefix. Try
 			// parseType speculatively and if the next byte is R,
