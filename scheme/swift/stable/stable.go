@@ -562,11 +562,20 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 			}
 			break
 		}
+		// Optional generic-signature trailer: 'l' (un-constrained) or
+		// 'r<N>_l' (with <N> constraints, handled as a future commit).
+		// For now we accept bare 'l' before F and annotate the entity.
+		hasGenericSig := false
+		if !p.eof() && p.s[p.i] == 'l' {
+			p.i++
+			hasGenericSig = true
+		}
 		if p.eof() || p.s[p.i] != 'F' {
 			revert()
 			return false
 		}
 		p.i++
+		_ = hasGenericSig
 		ret = r
 		args = a
 		async = localAsync
