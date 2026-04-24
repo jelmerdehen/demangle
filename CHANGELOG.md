@@ -4,6 +4,25 @@ All notable changes to this project will be documented here. Format
 follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). This
 project uses semantic versioning.
 
+## [0.1.25] - 2026-04-24
+
+### Added
+
+- **swift-stable** — multi-sub chain + TR reabstraction thunk +
+  TJ variants + Tt<N> dropped-args.
+  - parseMultiSubstitution + 'A' branch in tryFunctionEntity chain —
+    accepts Apple's A<N>A<letter> multi-substitution as chain-step
+    providing decl-name (or nested-context ident) via sub back-ref.
+  - tryReabstractionThunk (TR) — composes two impl-fn-types as
+    "reabstraction thunk helper from <first> to <second>".
+  - TJV<variant> — vtable-thunk wrapper on autodiff TJ suffix.
+  - WJ<kind><subset>p<subset>r — differentiability-witness suffix.
+  - Tt<N>...(g|G|B) — dropped-arguments prefix in spec-suffix.
+  - Impl-fn-type: silently consume I (isolated) and L
+    (implicit-leading) param attrs — Apple NodePrinter suppresses
+    them in corpus-expected output.
+  - Apple corpus: 66 → **70/153** direct matches (45.8 %).
+
 ## [0.1.24] - 2026-04-24
 
 ### Added
