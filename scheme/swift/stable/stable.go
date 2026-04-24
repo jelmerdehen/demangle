@@ -3162,11 +3162,50 @@ func (p *parser) tryStdlibExtensionAllocator() (*demangle.Node, bool, error) {
 	// Extract extension constraint sig from raw bytes.
 	extConstraint := extractStdlibExtConstraintSig(constraintBytes)
 
-	// Parse the function type: y<result><params>c
-	ft, ferr := p.parseFunctionType()
-	if ferr != nil {
-		restore()
-		return nil, false, nil
+	// Parse the function body manually as "y <result-type> <params-type> c"
+	// to avoid tryPostfixFunctionTypeWithParams greedily consuming the
+	// params type as part of the result type's postfix chain.
+	//
+	// Shape: y x q<depth-enc>_ c  (or similar bare generic param types).
+	// We parse result and params as bare types (no postfix modifiers) to
+	// prevent the result-type postfix pass from gobbling "<params>c".
+	var paramsStr, resultStr string
+	{
+		if p.eof() || p.s[p.i] != 'y' {
+			restore()
+			return nil, false, nil
+		}
+		p.i++ // consume 'y'
+
+		// Result type: parse one bare (no-postfix) type.
+		res, rerr := p.parseBareType()
+		if rerr != nil {
+			restore()
+			return nil, false, nil
+		}
+		resultStr = common.Print(res, common.DefaultPrintOptions())
+
+		// Params type: if next byte is 'c' (or 'X'), params are empty.
+		// Otherwise parse one bare type.
+		if p.eof() {
+			restore()
+			return nil, false, nil
+		}
+		if p.s[p.i] == 'c' {
+			paramsStr = "()"
+		} else {
+			par, perr := p.parseBareType()
+			if perr != nil {
+				restore()
+				return nil, false, nil
+			}
+			paramsStr = "(" + common.Print(par, common.DefaultPrintOptions()) + ")"
+			if p.eof() || p.s[p.i] != 'c' {
+				restore()
+				return nil, false, nil
+			}
+		}
+		p.i++ // consume 'c' (escape marker)
 	}
 
 	// Parse local generic sig trailer: [<type> R <subject-enc>]* l [u ...]
@@ -3248,19 +3287,6 @@ func (p *parser) tryStdlibExtensionAllocator() (*demangle.Node, bool, error) {
 		return nil, false, nil
 	}
 	p.i += 2
-
-	// Render.
-	opts := common.DefaultPrintOptions()
-	ftStr := common.Print(ft, opts)
-	// ftStr is "(params) -> result" from parseFunctionType.
-	var paramsStr, resultStr string
-	if idx := strings.Index(ftStr, " -> "); idx >= 0 {
-		paramsStr = ftStr[:idx]
-		resultStr = ftStr[idx+4:]
-	} else {
-		paramsStr = ftStr
-		resultStr = "()"
-	}
 
 	localSig := ""
 	if len(localConstraints) > 0 {
@@ -6045,6 +6071,54 @@ func entitySuffixStart(b byte) bool {
 		return true
 	}
 	return false
+}
+
+// parseBareType parses a single type production WITHOUT running any
+// postfix modifier chain. Used by tryStdlibExtensionAllocator to avoid
+// tryPostfixFunctionTypeWithParams greedily consuming the params-type
+// as part of the result type's postfix expansion.
+//
+// Handles the types that appear in extension-allocator function bodies:
+//
+//	'x'        → DependentGenericParamType(0,0)   = A
+//	'q' <enc>  → DependentGenericParamType(depth,idx) = A1, B, …
+//	'S' <let>  → stdlib-sub type (e.g. Sz = Swift.BinaryInteger)
+//	's' <let>  → stdlib-sub type with 's' prefix (e.g. Si = Swift.Int)
+//
+// Returns an error on unrecognised leads — caller reverts on error.
+func (p *parser) parseBareType() (*demangle.Node, error) {
+	if p.eof() {
+		return nil, p.truncated()
+	}
+	c := p.s[p.i]
+	switch c {
+	case 'x':
+		p.i++
+		node := p.genericParam(0, 0)
+		p.subs.Push(node)
+		return node, nil
+	case 'q':
+		p.i++
+		node, err := p.parseGenericParam()
+		if err != nil {
+			return nil, err
+		}
+		p.subs.Push(node)
+		return node, nil
+	case 'S':
+		if p.i+1 >= len(p.s) {
+			return nil, p.truncated()
+		}
+		node, ok := common.BuildStdlibNominal(p.s[p.i+1])
+		if !ok {
+			return nil, p.grammarErr("stdlib substitution letter")
+		}
+		p.i += 2
+		p.subs.Push(node)
+		return node, nil
+	default:
+		return nil, p.grammarErr("bare type start (x/q/S)")
+	}
 }
 
 // parseFunctionType handles function-TYPE (as distinct from function-
