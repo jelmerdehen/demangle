@@ -231,8 +231,14 @@ func (p *parser) parseGlobal() (*demangle.Node, error) {
 	// check because the shape consumes multiple types.
 	if wrapped, ok := p.tryConformanceDescriptor(inner); ok {
 		inner = wrapped
-	} else if wrapped, ok := p.tryEntitySuffix(inner); ok {
-		// Optional entity-suffix marker wraps inner.
+	}
+	// Entity-suffix markers can stack (e.g. TwdTwc = coro fn ptr to
+	// default override). Loop until no more matches.
+	for {
+		wrapped, ok := p.tryEntitySuffix(inner)
+		if !ok {
+			break
+		}
 		inner = wrapped
 	}
 
