@@ -727,11 +727,30 @@ func (p *parser) parseSignatureMode(ctorDtor bool) (signature, error) {
 			if p.eof() {
 				return sig, p.truncated()
 			}
-			base := primitiveTypeName(p.s[p.i])
-			if base == "" {
-				return sig, p.grammarErr("pointer/ref target primitive")
+			var base string
+			switch tb := p.s[p.i]; {
+			case tb == 'V' || tb == 'U' || tb == 'T':
+				p.i++
+				subChain, err := p.parseNameChain()
+				if err != nil {
+					return sig, err
+				}
+				base = strings.Join(reverse(subChain), "::")
+			default:
+				base = primitiveTypeName(tb)
+				if base == "" {
+					// Extended primitive _<letter>?
+					if tb == '_' {
+						if pt, n := primitiveTypeNameExt(p.s[p.i:]); pt != "" {
+							base = pt
+							p.i += n
+							break
+						}
+					}
+					return sig, p.grammarErr("pointer/ref target primitive")
+				}
+				p.i++
 			}
-			p.i++
 			qual := ""
 			switch cv {
 			case 'B':
