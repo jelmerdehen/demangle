@@ -86,6 +86,12 @@ func TestDLangCompositeTypes(t *testing.T) {
 		{"_D3foo3barFZDi", "int delegate"},
 		// Delegate-of-function return: delegate (int) → void.
 		{"_D3foo3barFZDFiZv", "delegate"},
+		// Double-nested types: int[][], int**, static-array int[20][10].
+		{"_D3foo3barFAAiZv", "int[][]"},
+		{"_D3foo3barFPPiZv", "int**"},
+		{"_D3foo3barFG10G20iZv", "int[20][10]"},
+		// Associative array of class: Foo[int[]]
+		{"_D3foo3barFHAiC3FooZv", "Foo[int[]]"},
 		// Static-array return: G<len><inner> — int[4]
 		{"_D3foo3barFZG4i", "int[4]"},
 		// Associative-array: H<key><value> — int[int]
