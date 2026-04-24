@@ -2268,12 +2268,68 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 			p.i++
 			r = common.NewNode(common.KindEmptyList)
 		} else {
-			x, err := p.parseType()
-			if err != nil {
-				revert()
-				return false
+			// Speculative: '<digits><chars><V/C/O/P>' at result slot
+			// when we have a recent module sub (e.g. from A-branch
+			// multi-sub) means a nested nominal using that module as
+			// context. parseNominalPath would misread the first ident
+			// as a new module, so handle it explicitly.
+			if p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+				sp := p.i
+				savedSubs := p.subs
+				nameTry, err := p.parseIdentifier()
+				if err == nil && !p.eof() &&
+					(p.s[p.i] == 'V' || p.s[p.i] == 'C' ||
+						p.s[p.i] == 'O' || p.s[p.i] == 'P') {
+					k := p.s[p.i]
+					// Use most recent Module sub as context.
+					var ctx *demangle.Node
+					for ii := p.subs.Len() - 1; ii >= 0; ii-- {
+						n, _ := p.subs.Get(ii)
+						if common.NodeKind(n.Kind) == common.KindModule ||
+							common.NodeKind(n.Kind) == common.KindIdentifier {
+							ctxNode := n
+							if common.NodeKind(ctxNode.Kind) == common.KindIdentifier {
+								ctxNode = common.NewModule(ctxNode.Text)
+							}
+							ctx = ctxNode
+							break
+						}
+					}
+					if ctx != nil {
+						p.i++
+						var nk common.NodeKind
+						switch k {
+						case 'V':
+							nk = common.KindStructure
+						case 'C':
+							nk = common.KindClass
+						case 'O':
+							nk = common.KindEnum
+						case 'P':
+							nk = common.KindProtocol
+						}
+						nom := common.NewNode(nk)
+						common.AddChildren(nom, ctx, common.NewIdentifier(nameTry))
+						nt := common.NewNode(common.KindType)
+						common.AddChildren(nt, nom)
+						p.subs.Push(nt)
+						r = nt
+					}
+				}
+				if r == nil {
+					p.i = sp
+					p.subs = savedSubs
+				}
 			}
-			r = x
+			if r == nil {
+				x, err := p.parseType()
+				if err != nil {
+					revert()
+					return false
+				}
+				r = x
+			}
+			_ = 0 // resultDone label removed; r==nil guard handles fallthrough
 		}
 		// Params-type — may be a tuple for multi-param functions:
 		//
