@@ -143,6 +143,17 @@ func FuzzJNI(f *testing.F) {
 	})
 }
 
+// TestJNITruncatedUnicodeEscape exercises the _0<4hex> error path.
+func TestJNITruncatedUnicodeEscape(t *testing.T) {
+	t.Parallel()
+	cat := newCatalog(t)
+	// _0 followed by fewer than 4 hex digits — truncated unicode.
+	_, err := cat.Demangle(context.Background(), "Java_foo_0AB", nil)
+	if err == nil {
+		t.Fatal("expected error on truncated _0")
+	}
+}
+
 func TestJNIMangleRejectsBadTree(t *testing.T) {
 	t.Parallel()
 	cat := newCatalog(t)
