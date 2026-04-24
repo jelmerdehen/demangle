@@ -1146,35 +1146,38 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 			p.subs = saveSubsLocal
 		}
 		var labels []string
+		// Apple mangling: when labels are non-empty, each label is
+		// pushed as a raw Identifier with NO terminating marker.
+		// popFunctionParamLabels consumes them by param count AFTER
+		// the function-type is known. When labels are empty, a single
+		// EmptyList shortcut 'y' is pushed.
+		//
+		// For our recursive-descent parser we read labels greedily
+		// (digit-led idents + 'x' for blank). The trailing 'y' (or
+		// whatever comes next) belongs to the RESULT-TYPE slot, not
+		// the label list.
 		if assumeLabelList {
-			// Label-list is either:
-			//   - empty-list shortcut `y` (all params positional-no-label)
-			//   - <identifier|x>+ `y` (per-param labels; 'x' = no label)
 			if p.eof() {
 				return false
 			}
 			if p.s[p.i] == 'y' {
-				p.i++ // empty-list shortcut
+				// Empty-list shortcut. Consume.
+				p.i++
 			} else if p.s[p.i] >= '0' && p.s[p.i] <= '9' || p.s[p.i] == 'x' {
-				// Named label-list: sequence of length-prefixed
-				// identifiers (or 'x' for blank label) terminated by 'y'.
 				for {
 					if p.eof() {
 						revert()
 						return false
 					}
-					if p.s[p.i] == 'y' {
-						p.i++
-						break
-					}
+					// Labels end where a non-digit-non-'x' byte appears
+					// (that's the result-type slot starting).
 					if p.s[p.i] == 'x' {
 						labels = append(labels, "_")
 						p.i++
 						continue
 					}
 					if p.s[p.i] < '0' || p.s[p.i] > '9' {
-						revert()
-						return false
+						break
 					}
 					lbl, err := p.parseIdentifier()
 					if err != nil {
@@ -1229,9 +1232,19 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 				return false
 			}
 			if !p.eof() && p.s[p.i] == '_' {
-				// Multi-element tuple. Gather remaining elements + 't'.
+				// Multi-element tuple OR single-element labeled tuple.
+				// Single-element form: '<type>_t' closes directly
+				// (Apple emits '_t' even for 1-element tuples when
+				// the element is labeled or otherwise needs the
+				// explicit tuple wrapper).
 				elements := []*demangle.Node{x}
 				for !p.eof() && p.s[p.i] == '_' {
+					// '_t' — direct tuple closer for the elements
+					// collected so far. Consume both bytes + break.
+					if p.i+1 < len(p.s) && p.s[p.i+1] == 't' {
+						p.i += 2
+						goto tupleClosed
+					}
 					p.i++
 					y, err := p.parseType()
 					if err != nil {
@@ -1245,6 +1258,7 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 					return false
 				}
 				p.i++ // consume 't'
+			tupleClosed:
 				// Apply label-list labels in order to each tuple element.
 				for i, el := range elements {
 					if i >= len(pathLabels) {
@@ -1552,6 +1566,33 @@ func (p *parser) parseType() (*demangle.Node, error) {
 	if wrapped, ok := p.tryPostfixBorrow(node); ok {
 		node = wrapped
 	}
+	// Postfix type annotations: Yt = _const, Yk = @noDerivative,
+	// Yu = sending. Wraps the preceding type by re-rendering with
+	// a prefix — display-only, no structural typing.
+	for p.i+1 < len(p.s) && p.s[p.i] == 'Y' {
+		ylet := p.s[p.i+1]
+		var prefix string
+		switch ylet {
+		case 't':
+			prefix = "_const "
+		case 'k':
+			prefix = "@noDerivative "
+		case 'u':
+			prefix = "sending "
+		default:
+			// Not a type-postfix Y — leave for outer parser
+			// (e.g. Yb/Ya/Yi are function-type or param-slot markers).
+			goto afterYAnnotations
+		}
+		p.i += 2
+		innerStr := common.Print(node, common.DefaultPrintOptions())
+		wrapType := common.NewNode(common.KindType)
+		wrapInner := common.NewNode(common.KindBuiltinTypeName)
+		wrapInner.Text = prefix + innerStr
+		common.AddChildren(wrapType, wrapInner)
+		node = wrapType
+	}
+afterYAnnotations:
 	// Bound-generic trailer: base y <type>+ G.
 	if bg, ok, err := p.tryBoundGeneric(node); err != nil {
 		return nil, err

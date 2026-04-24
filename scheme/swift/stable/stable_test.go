@@ -170,9 +170,12 @@ func TestStableFunctionEntities(t *testing.T) {
 		// Three-arg tuple: (Swift.Int, Swift.Int, Swift.Int) -> Swift.Bool
 		{"$s4main3fooSbSi_Si_SitF", "main.foo(Swift.Int, Swift.Int, Swift.Int) -> Swift.Bool"},
 		// Single-arg with named label: foo(x: Swift.Int) -> ()
-		{"$s4main3foo1xyySiF", "main.foo(x: Swift.Int) -> ()"},
+		// Labels are pushed raw (no terminator). The single 'y'
+		// between labels and params is the EMPTY-RESULT marker —
+		// Apple's mangler emits no separate label-list-end byte.
+		{"$s4main3foo1xySiF", "main.foo(x: Swift.Int) -> ()"},
 		// Two-arg with named labels: foo(x: Int, y: Int) -> ()
-		{"$s4main3foo1x1yyySi_SitF", "main.foo(x: Swift.Int, y: Swift.Int) -> ()"},
+		{"$s4main3foo1x1yySi_SitF", "main.foo(x: Swift.Int, y: Swift.Int) -> ()"},
 	}
 	// Verify: module-level variable gets the property-entity shape.
 	r, err := cat.Demangle(context.Background(), "$s4main1xSivp", nil)
