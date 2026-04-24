@@ -49,10 +49,18 @@ func demangleOne(input string) string {
 
 // _ZN4llvm5Value4dumpEv                → llvm::Value::dump()
 // $s4main3fooyyF                       → main.foo() -> ()
+// $s4main1xSivp                        → main.x : Swift.Int
+// $sScA                                → Swift.Actor
+// $s4test3StrCACycfC                   → test.Str.__allocating_init() -> test.Str
 // Java_com_example_Foo_bar              → com.example.Foo.bar
 // _RNvCshIBIgx2Am2k_3std4open           → std::open
 // ?foo@@YAXXZ                          → void __cdecl foo(void)
+// ??HFoo@@QEAAHH@Z                     → public: int __cdecl Foo::operator+(int)
 // com.example.Foo$default              → com.example.Foo (kotlin.suffix=$default)
+// -[NSString length]                    → -[NSString length] (objc.class=NSString)
+// pkg.Foo[pkg.Bar].Method               → pkg.Foo.Method (go.generic_args=pkg.Bar)
+// __cxa_throw                           → Itanium C++ ABI helper: throw
+// _D3foo3barFiZv                        → foo.bar (int) → void
 ```
 
 ## CLI
