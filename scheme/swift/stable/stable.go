@@ -242,6 +242,16 @@ func (p *parser) parseGlobal() (*demangle.Node, error) {
 	if wrapped, ok := p.tryConformanceDescriptor(inner); ok {
 		inner = wrapped
 	}
+	// Associated conformance descriptor shape:
+	//
+	//   <Protocol-Type> x A<idx> <ident> T(n|N)
+	//
+	// Renders as "associated conformance descriptor for
+	// <proto-type>.A: <module>.<requirement-ident>" (Tn) or
+	// "default associated conformance accessor for ..." (TN).
+	if wrapped, ok := p.tryAssociatedConformanceDescriptor(inner); ok {
+		inner = wrapped
+	}
 	// Entity-suffix markers can stack (e.g. TwdTwc = coro fn ptr to
 	// default override). Loop until no more matches.
 	// Closure sub-entity: after the main entity, the mangling may
@@ -261,6 +271,97 @@ func (p *parser) parseGlobal() (*demangle.Node, error) {
 
 	common.AddChildren(g, inner)
 	return g, nil
+}
+
+// tryAssociatedConformanceDescriptor matches the pattern
+//
+//   <Protocol-Type> 'x' 'A' <sub-letter> <ident> 'T' ('n'|'N')
+//
+// where the sub-letter is an uppercase-letter-terminated
+// substitution reference (typically the module-ident), and <ident>
+// is the requirement protocol. Renders as:
+//
+//   "associated conformance descriptor for <proto-type>.A: <mod>.<ident>"   (Tn)
+//   "default associated conformance accessor for ..."                       (TN)
+//
+// Narrow: only the direct 'A<upper>' + simple identifier form. More
+// complex subject paths are a follow-on.
+func (p *parser) tryAssociatedConformanceDescriptor(inner *demangle.Node) (*demangle.Node, bool) {
+	// inner must be a Type wrapping a Protocol.
+	innerProto := inner
+	if common.NodeKind(innerProto.Kind) == common.KindType && len(innerProto.Children) > 0 {
+		innerProto = innerProto.Children[0]
+	}
+	if common.NodeKind(innerProto.Kind) != common.KindProtocol {
+		return inner, false
+	}
+	save := p.i
+	saveSubs := p.subs
+	revert := func() {
+		p.i = save
+		p.subs = saveSubs
+	}
+	// Expect 'x'.
+	if p.eof() || p.s[p.i] != 'x' {
+		return inner, false
+	}
+	p.i++
+	// Expect 'A' then an uppercase letter as sub index.
+	if p.i+1 >= len(p.s) || p.s[p.i] != 'A' {
+		revert()
+		return inner, false
+	}
+	p.i++
+	if p.eof() || !(p.s[p.i] >= 'A' && p.s[p.i] <= 'Z') {
+		revert()
+		return inner, false
+	}
+	idx := int(p.s[p.i] - 'A')
+	p.i++
+	subNode, ok := p.subs.Get(idx)
+	if !ok {
+		revert()
+		return inner, false
+	}
+	// Sub should resolve to a Module or Identifier.
+	var modName string
+	if common.NodeKind(subNode.Kind) == common.KindModule {
+		modName = subNode.Text
+	} else if common.NodeKind(subNode.Kind) == common.KindIdentifier {
+		modName = subNode.Text
+	} else {
+		revert()
+		return inner, false
+	}
+	// Next: identifier (the requirement protocol name). Accepts '0'
+	// word-sub form too.
+	reqName, err := p.parseIdentifier()
+	if err != nil {
+		revert()
+		return inner, false
+	}
+	// Expect 'T' ('n'|'N').
+	if p.i+1 >= len(p.s) || p.s[p.i] != 'T' {
+		revert()
+		return inner, false
+	}
+	suffix := p.s[p.i+1]
+	if suffix != 'n' && suffix != 'N' {
+		revert()
+		return inner, false
+	}
+	p.i += 2
+	var prefix string
+	switch suffix {
+	case 'n':
+		prefix = "associated conformance descriptor for "
+	case 'N':
+		prefix = "default associated conformance accessor for "
+	}
+	protoName := common.Print(inner, common.DefaultPrintOptions())
+	wrap := common.NewNode(common.KindTypeMangling)
+	wrap.Text = prefix + protoName + ".A: " + modName + "." + reqName
+	return wrap, true
 }
 
 // tryClosureEntity matches the closure-sub-entity mangling:
@@ -3313,6 +3414,7 @@ func (p *parser) parseIdentifier() (string, error) {
 			}
 		}
 	}
+	wasWordSubMode := hasWordSubsts
 	for {
 		// Word-ref letters (only when hasWordSubsts).
 		for hasWordSubsts && !p.eof() {
@@ -3336,8 +3438,9 @@ func (p *parser) parseIdentifier() (string, error) {
 				break
 			}
 		}
-		// Break on '0' terminator (Apple: if (nextIf('0')) break).
-		if hasWordSubsts && !p.eof() && p.s[p.i] == '0' {
+		// '0' terminator — Apple: nextIf('0') on every outer iter
+		// when we were in word-sub mode.
+		if wasWordSubMode && !p.eof() && p.s[p.i] == '0' {
 			p.i++
 			break
 		}
@@ -3366,6 +3469,9 @@ func (p *parser) parseIdentifier() (string, error) {
 		p.i += length
 		buf.WriteString(chunk)
 		captureWords(chunk)
+		// Non-word-sub identifiers have exactly one literal chunk.
+		// Also exits when an upper-letter ref inside the word-sub
+		// loop set hasWordSubsts=false (Apple's do-while condition).
 		if !hasWordSubsts {
 			break
 		}
