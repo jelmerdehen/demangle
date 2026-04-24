@@ -216,7 +216,17 @@ func printBoundGeneric(b *strings.Builder, n *demangle.Node, opts PrintOptions) 
 			switch name {
 			case "Optional":
 				if len(args.Children) == 1 {
-					printNode(b, args.Children[0], opts)
+					// Wrap fn-types / sugar-ambiguous inners in parens
+					// so the '?' binds tighter than '->' or '& '.
+					inner := args.Children[0]
+					innerStr := Print(inner, opts)
+					if needsOptionalParens(innerStr) {
+						b.WriteByte('(')
+						b.WriteString(innerStr)
+						b.WriteByte(')')
+					} else {
+						b.WriteString(innerStr)
+					}
 					b.WriteByte('?')
 					return
 				}
@@ -243,6 +253,32 @@ func printBoundGeneric(b *strings.Builder, n *demangle.Node, opts PrintOptions) 
 	b.WriteByte('<')
 	printNode(b, args, opts)
 	b.WriteByte('>')
+}
+
+// needsOptionalParens reports whether a type string has a top-level
+// operator (arrow, existential '&', unconstrained '->' inside paren
+// group) that requires wrapping before appending '?'. Simple heuristic:
+// an unparenthesised ' -> ' or leading '@' annotation at top level.
+func needsOptionalParens(s string) bool {
+	depth := 0
+	for i := 0; i < len(s); i++ {
+		switch s[i] {
+		case '(':
+			depth++
+		case ')':
+			depth--
+		case '-':
+			if depth == 0 && i+1 < len(s) && s[i+1] == '>' {
+				return true
+			}
+		}
+	}
+	// An attribute prefix like "@..." at top level denotes an annotated
+	// fn-type (e.g. "@Swift.MainActor () -> A") that needs parens.
+	if len(s) > 0 && s[0] == '@' {
+		return true
+	}
+	return false
 }
 
 // nominalIdent extracts (name, module, ok) from a Type wrapping a

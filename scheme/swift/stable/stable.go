@@ -4011,7 +4011,23 @@ func (p *parser) tryPostfixFunctionType(node *demangle.Node) (*demangle.Node, bo
 			p.i++
 			continue
 		}
-		if c != 'Y' || p.i+1 >= len(p.s) {
+		// Global-actor isolation: '<actor-type>Yc' pops a type and
+		// renders as '@<qualified-actor>'. Speculatively parse a type
+		// and require Yc; on mismatch, roll back.
+		if c != 'Y' {
+			specSave := p.i
+			specSubs := p.subs
+			if at, terr := p.parseType(); terr == nil && !p.eof() &&
+				p.i+1 < len(p.s) && p.s[p.i] == 'Y' && p.s[p.i+1] == 'c' {
+				p.i += 2
+				preAnns = append(preAnns, "@"+common.Print(at, common.DefaultPrintOptions()))
+				continue
+			}
+			p.i = specSave
+			p.subs = specSubs
+			break
+		}
+		if p.i+1 >= len(p.s) {
 			break
 		}
 		tag := p.s[p.i+1]
@@ -4028,6 +4044,14 @@ func (p *parser) tryPostfixFunctionType(node *demangle.Node) (*demangle.Node, bo
 		case 'C':
 			preAnns = append(preAnns, "nonisolated(nonsending)")
 			p.i += 2
+		case 'K':
+			// YK — typed throws. Caller already consumed the throws
+			// type as a pre-annotation candidate; here we only see YK
+			// alone when typed-throws appears in fn-type postfix shape.
+			// Fall through to default revert — a future commit can
+			// extend if real fixtures demand.
+			revert()
+			return node, false
 		case 'j':
 			if p.i+2 >= len(p.s) {
 				revert()
@@ -4053,26 +4077,31 @@ func (p *parser) tryPostfixFunctionType(node *demangle.Node) (*demangle.Node, bo
 			return node, false
 		}
 	}
-	if p.i+1 >= len(p.s) || p.s[p.i] != 'X' {
-		revert()
-		return node, false
-	}
-	xLetter := p.s[p.i+1]
+	// Accept both 'c' (plain escaping, no convention) and X<conv>.
 	var convPrefix string
-	switch xLetter {
-	case 'E':
-		convPrefix = ""
-	case 'C':
-		convPrefix = "@convention(c) "
-	case 'B':
-		convPrefix = "@convention(block) "
-	case 'T':
-		convPrefix = "@convention(thin) "
-	default:
-		revert()
-		return node, false
+	if !p.eof() && p.s[p.i] == 'c' {
+		p.i++
+	} else {
+		if p.i+1 >= len(p.s) || p.s[p.i] != 'X' {
+			revert()
+			return node, false
+		}
+		xLetter := p.s[p.i+1]
+		switch xLetter {
+		case 'E':
+			convPrefix = ""
+		case 'C':
+			convPrefix = "@convention(c) "
+		case 'B':
+			convPrefix = "@convention(block) "
+		case 'T':
+			convPrefix = "@convention(thin) "
+		default:
+			revert()
+			return node, false
+		}
+		p.i += 2
 	}
-	p.i += 2
 	nodeStr := common.Print(node, common.DefaultPrintOptions())
 	preStr := ""
 	if len(preAnns) > 0 {
