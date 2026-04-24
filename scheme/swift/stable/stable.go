@@ -4004,6 +4004,7 @@ func (p *parser) tryPostfixFunctionType(node *demangle.Node) (*demangle.Node, bo
 	// throws) render AFTER ')' and before '->'.
 	var preAnns []string
 	var postAnns []string
+	sendingResultFlag := false
 	for !p.eof() {
 		c := p.s[p.i]
 		if c == 'K' {
@@ -4043,6 +4044,9 @@ func (p *parser) tryPostfixFunctionType(node *demangle.Node) (*demangle.Node, bo
 			p.i += 2
 		case 'C':
 			preAnns = append(preAnns, "nonisolated(nonsending)")
+			p.i += 2
+		case 'T':
+			sendingResultFlag = true
 			p.i += 2
 		case 'K':
 			// YK — typed throws. Caller already consumed the throws
@@ -4111,7 +4115,11 @@ func (p *parser) tryPostfixFunctionType(node *demangle.Node) (*demangle.Node, bo
 	if len(postAnns) > 0 {
 		postStr = " " + strings.Join(postAnns, " ")
 	}
-	display := convPrefix + preStr + "()" + postStr + " -> " + nodeStr
+	sendPrefix := ""
+	if sendingResultFlag {
+		sendPrefix = "sending "
+	}
+	display := convPrefix + preStr + "()" + postStr + " -> " + sendPrefix + nodeStr
 	typ := common.NewNode(common.KindType)
 	inner := common.NewNode(common.KindBuiltinTypeName)
 	inner.Text = display
