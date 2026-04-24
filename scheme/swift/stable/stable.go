@@ -298,6 +298,10 @@ func (p *parser) parseGlobal() (*demangle.Node, error) {
 			inner = wrapped
 			continue
 		}
+		if wrapped, ok := p.tryKeyPathSuffix(inner); ok {
+			inner = wrapped
+			continue
+		}
 		wrapped, ok := p.tryEntitySuffix(inner)
 		if !ok {
 			break
@@ -307,6 +311,60 @@ func (p *parser) parseGlobal() (*demangle.Node, error) {
 
 	common.AddChildren(g, inner)
 	return g, nil
+}
+
+// tryKeyPathSuffix matches '<owner-type> T K [k|q]?' key path
+// getter/setter entity suffixes, where <owner-type> is a type
+// reference (typically an 'A<sub>' multi-sub). Wraps as
+// "key path <accessor> for <inner> : <owner>[, serialized]".
+//
+//   TK  → getter
+//   Tk  → setter
+//   TKq → getter, serialized
+//   Tkq → setter, serialized
+func (p *parser) tryKeyPathSuffix(inner *demangle.Node) (*demangle.Node, bool) {
+	if p.eof() {
+		return inner, false
+	}
+	// Need a type-start byte that can resolve to the owner.
+	c := p.s[p.i]
+	if !(c == 'A' || c == 'S' || c == 's' || c == 'x' ||
+		c == 'q' || c == 'B' || (c >= '0' && c <= '9')) {
+		return inner, false
+	}
+	save := p.i
+	saveSubs := p.subs
+	revert := func() { p.i = save; p.subs = saveSubs }
+	owner, err := p.parseType()
+	if err != nil {
+		revert()
+		return inner, false
+	}
+	if p.i+1 >= len(p.s) || p.s[p.i] != 'T' {
+		revert()
+		return inner, false
+	}
+	accessor := ""
+	switch p.s[p.i+1] {
+	case 'K':
+		accessor = "getter"
+	case 'k':
+		accessor = "setter"
+	default:
+		revert()
+		return inner, false
+	}
+	p.i += 2
+	serialized := ""
+	if !p.eof() && p.s[p.i] == 'q' {
+		serialized = ", serialized"
+		p.i++
+	}
+	innerStr := common.Print(inner, common.DefaultPrintOptions())
+	ownerStr := common.Print(owner, common.DefaultPrintOptions())
+	wrap := common.NewNode(common.KindTypeMangling)
+	wrap.Text = "key path " + accessor + " for " + innerStr + " : " + ownerStr + serialized
+	return wrap, true
 }
 
 // tryMacroExpansion matches the pattern
@@ -1275,7 +1333,28 @@ func (p *parser) tryVariableEntity() (*demangle.Node, bool, error) {
 		peek := p.s[p.i]
 		if peek == 'V' || peek == 'C' || peek == 'O' || peek == 'P' {
 			p.i++
-			pathSteps = append(pathSteps, common.NewIdentifier(ident))
+			identNode := common.NewIdentifier(ident)
+			pathSteps = append(pathSteps, identNode)
+			// Push identifier + nominal-Type to subs so later A<idx>
+			// back-refs resolve against the same indices Apple's
+			// demangler uses (identifier goes first, nominal second).
+			p.subs.Push(identNode)
+			var nKind common.NodeKind
+			switch peek {
+			case 'V':
+				nKind = common.KindStructure
+			case 'C':
+				nKind = common.KindClass
+			case 'O':
+				nKind = common.KindEnum
+			case 'P':
+				nKind = common.KindProtocol
+			}
+			nom := common.NewNode(nKind)
+			common.AddChildren(nom, moduleNode, identNode)
+			nomTyp := common.NewNode(common.KindType)
+			common.AddChildren(nomTyp, nom)
+			p.subs.Push(nomTyp)
 			continue
 		}
 		pathSteps = append(pathSteps, common.NewIdentifier(ident))
