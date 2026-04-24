@@ -294,6 +294,10 @@ func (p *parser) parseGlobal() (*demangle.Node, error) {
 		inner = wrapped
 	}
 	for {
+		if wrapped, ok := p.tryMacroExpansion(inner); ok {
+			inner = wrapped
+			continue
+		}
 		wrapped, ok := p.tryEntitySuffix(inner)
 		if !ok {
 			break
@@ -303,6 +307,87 @@ func (p *parser) parseGlobal() (*demangle.Node, error) {
 
 	common.AddChildren(g, inner)
 	return g, nil
+}
+
+// tryMacroExpansion matches the pattern
+//
+//   <N><name> f M <kind> <idx>_
+//
+// where <kind> is one of:
+//   f  → freestanding macro expansion
+//   u  → unique name
+//   a  → accessor macro expansion
+//   m  → member macro expansion
+//   e  → extension macro expansion
+//   p  → peer macro expansion
+//   r  → member-attribute macro expansion
+//
+// Wraps inner as "<kind-text> #<idx+1> of <name> in <inner>".
+// Apple's demangleIndex convention: bare '_' = 0, '<N>_' = N+1.
+func (p *parser) tryMacroExpansion(inner *demangle.Node) (*demangle.Node, bool) {
+	if p.eof() || !(p.s[p.i] >= '0' && p.s[p.i] <= '9') {
+		return inner, false
+	}
+	save := p.i
+	saveSubs := p.subs
+	revert := func() { p.i = save; p.subs = saveSubs }
+	name, err := p.parseIdentifier()
+	if err != nil {
+		revert()
+		return inner, false
+	}
+	if p.i+2 >= len(p.s) || p.s[p.i] != 'f' || p.s[p.i+1] != 'M' {
+		revert()
+		return inner, false
+	}
+	kindByte := p.s[p.i+2]
+	var kindText string
+	switch kindByte {
+	case 'f':
+		kindText = "freestanding macro expansion"
+	case 'u':
+		kindText = "unique name"
+	case 'a':
+		kindText = "accessor macro expansion"
+	case 'm':
+		kindText = "member macro expansion"
+	case 'e':
+		kindText = "extension macro expansion"
+	case 'p':
+		kindText = "peer macro expansion"
+	case 'r':
+		kindText = "member attribute macro expansion"
+	case 'b':
+		kindText = "body macro expansion"
+	case 'B':
+		kindText = "preamble macro expansion"
+	default:
+		revert()
+		return inner, false
+	}
+	p.i += 3 // consume 'fM<kind>'
+	// Index: zero-or-more digits + '_'.
+	idx := 0
+	digStart := p.i
+	for !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+		p.i++
+	}
+	if p.eof() || p.s[p.i] != '_' {
+		revert()
+		return inner, false
+	}
+	if p.i > digStart {
+		for k := digStart; k < p.i; k++ {
+			idx = idx*10 + int(p.s[k]-'0')
+		}
+		idx++ // Apple demangleIndex: N_ → N+1
+	}
+	p.i++ // consume '_'
+	// Apple renders the 1-based counter: #<idx+1>.
+	innerStr := common.Print(inner, common.DefaultPrintOptions())
+	wrap := common.NewNode(common.KindTypeMangling)
+	wrap.Text = fmt.Sprintf("%s #%d of %s in %s", kindText, idx+1, name, innerStr)
+	return wrap, true
 }
 
 // tryNestedLocalVariable matches the pattern
