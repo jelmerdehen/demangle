@@ -273,7 +273,7 @@ func (p *parser) tryVariableEntity() (*demangle.Node, bool, error) {
 			return nil, false, nil
 		}
 		peek := p.s[p.i]
-		if peek == 'V' || peek == 'C' || peek == 'O' {
+		if peek == 'V' || peek == 'C' || peek == 'O' || peek == 'P' {
 			p.i++
 			pathSteps = append(pathSteps, common.NewIdentifier(ident))
 			continue
@@ -325,14 +325,20 @@ func (p *parser) tryVariableEntity() (*demangle.Node, bool, error) {
 		return nil, false, nil
 	}
 	p.i += 2
-	// Build display: <prefix><path joined by "."><suffix?> : <type>
+	// Optional 'Z' marker = static member.
+	staticPrefix := ""
+	if !p.eof() && p.s[p.i] == 'Z' {
+		p.i++
+		staticPrefix = "static "
+	}
+	// Build display: <prefix><static?><path><suffix?> : <type>
 	opts := common.DefaultPrintOptions()
 	path := common.NewNode(common.KindEntityPath)
 	common.AddChildren(path, pathSteps...)
 	pathStr := common.Print(path, opts)
 	typeStr := common.Print(typ, opts)
 	wrap := common.NewNode(common.KindTypeMangling)
-	wrap.Text = prefix + pathStr + pathSuffix + " : " + typeStr
+	wrap.Text = prefix + staticPrefix + pathStr + pathSuffix + " : " + typeStr
 	return wrap, true, nil
 }
 
@@ -840,12 +846,12 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 			return nil, false, nil
 		}
 		peek := p.s[p.i]
-		if peek == 'V' || peek == 'C' || peek == 'O' {
+		if peek == 'V' || peek == 'C' || peek == 'O' || peek == 'P' {
 			p.i++ // consume nominal-context kind; keep iterating.
 			pathSteps = append(pathSteps, common.NewIdentifier(ident))
 			continue
 		}
-		// No V/C/O → this identifier is the decl-name. Subsequent
+		// No V/C/O/P → this identifier is the decl-name. Subsequent
 		// digit-led bytes belong to the label-list, NOT the chain.
 		pathSteps = append(pathSteps, common.NewIdentifier(ident))
 		break
