@@ -4,6 +4,28 @@ All notable changes to this project will be documented here. Format
 follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). This
 project uses semantic versioning.
 
+## [0.1.35] - 2026-04-24
+
+### Added
+
+- **swift-stable** — assoc-type constraints, nested private decls,
+  subscript-entity, Mc conformance-descriptor.
+  - Constraint-loop DependentMember subject: accepts bare digit-led
+    ident (`<N><name>R...`) or `s<proto><name>R...` as A.<name>
+    requirement. Rj<idx>_ inverse (~Swift.Copyable / ~Swift.Escapable)
+    and Rpz pack-conforms-to with Swift-qualified proto.
+  - Nested private-decl chain `<N><name>L<idx>_<kind>` in entity-
+    suffix loop renders `<name> #<idx+1> in <inner>`. Enables deep
+    macro + nested-struct contexts.
+  - Subscript-entity `<T>xi<kind>[<local>P]` renders `<local> in
+    <T>.subscript : A`.
+  - tryConformanceDescriptorMc: `<Type><Mod><Proto> Ri<idx>_ rl Mc`
+    → 'protocol conformance descriptor for <sig> <Type> : <Mod>.
+    <Proto> in <Mod>'. Ri idx decoding: 0/1/2+ = Copyable/Escapable/
+    `<bit idx>`.
+  - tryInitDeinitEntity chain also accepts P (Protocol) as kind byte.
+  - Apple corpus: 103 → **111/153** direct matches (72.5 %).
+
 ## [0.1.34] - 2026-04-24
 
 ### Added
