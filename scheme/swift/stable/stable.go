@@ -1929,6 +1929,69 @@ func (p *parser) parseType() (*demangle.Node, error) {
 		node = wrapType
 	}
 afterYAnnotations:
+	// Postfix nominal-step: '<digits><chars><kind>' appends a nested
+	// nominal Type using the current node as the parent context.
+	// Matches Apple's popContext-from-Type-of-context-kind flow for
+	// nested types (e.g. Swift.Dictionary.Index via 'SD5IndexV').
+	for {
+		if p.eof() || !(p.s[p.i] >= '0' && p.s[p.i] <= '9') {
+			// Also accept '0' word-sub lead-in.
+			if p.eof() || p.s[p.i] != '0' {
+				break
+			}
+		}
+		saveNest := p.i
+		saveSubsNest := p.subs
+		nestedIdent, err := p.parseIdentifier()
+		if err != nil || p.eof() {
+			p.i = saveNest
+			p.subs = saveSubsNest
+			break
+		}
+		kb := p.s[p.i]
+		var nestKind common.NodeKind
+		switch kb {
+		case 'V':
+			nestKind = common.KindStructure
+		case 'C':
+			nestKind = common.KindClass
+		case 'O':
+			nestKind = common.KindEnum
+		case 'P':
+			nestKind = common.KindProtocol
+		default:
+			p.i = saveNest
+			p.subs = saveSubsNest
+			break
+		}
+		if nestKind == 0 {
+			break
+		}
+		// Parent must be a nominal-context Type.
+		parent := node
+		if common.NodeKind(parent.Kind) == common.KindType && len(parent.Children) > 0 {
+			parent = parent.Children[0]
+		}
+		switch common.NodeKind(parent.Kind) {
+		case common.KindStructure, common.KindClass, common.KindEnum, common.KindProtocol,
+			common.KindBoundGenericStructure, common.KindBoundGenericClass,
+			common.KindBoundGenericEnum, common.KindBoundGenericProtocol:
+		default:
+			p.i = saveNest
+			p.subs = saveSubsNest
+			goto afterNestedLoop
+		}
+		p.i++ // consume kind byte
+		identNode := common.NewIdentifier(nestedIdent)
+		p.subs.Push(identNode)
+		nom := common.NewNode(nestKind)
+		common.AddChildren(nom, parent, identNode)
+		newTyp := common.NewNode(common.KindType)
+		common.AddChildren(newTyp, nom)
+		p.subs.Push(newTyp)
+		node = newTyp
+	}
+afterNestedLoop:
 	// Postfix function-type constructor: 'y (Y<ann>)* X<conv>'. When
 	// the preceding type was pushed as the result and 'y' represents
 	// empty params, the X<conv> byte pops and builds a NoEscape or

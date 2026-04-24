@@ -101,8 +101,11 @@ func printNode(b *strings.Builder, n *demangle.Node, opts PrintOptions) {
 }
 
 // printNominal renders "Module.Name" or just "Name" depending on
-// opts.QualifyEntities.
+// opts.QualifyEntities. Nested-nominal parents (Structure / Class /
+// Enum / Protocol) render recursively so e.g. Swift.Dictionary.Index
+// displays the full qualified chain.
 func printNominal(b *strings.Builder, n *demangle.Node, opts PrintOptions) {
+	var parent *demangle.Node
 	var mod, name string
 	for _, c := range n.Children {
 		switch NodeKind(c.Kind) {
@@ -110,9 +113,26 @@ func printNominal(b *strings.Builder, n *demangle.Node, opts PrintOptions) {
 			mod = c.Text
 		case KindIdentifier:
 			name = c.Text
+		case KindStructure, KindClass, KindEnum, KindProtocol,
+			KindBoundGenericStructure, KindBoundGenericClass,
+			KindBoundGenericEnum, KindBoundGenericProtocol:
+			parent = c
+		case KindType:
+			if len(c.Children) > 0 {
+				kk := NodeKind(c.Children[0].Kind)
+				switch kk {
+				case KindStructure, KindClass, KindEnum, KindProtocol,
+					KindBoundGenericStructure, KindBoundGenericClass,
+					KindBoundGenericEnum, KindBoundGenericProtocol:
+					parent = c.Children[0]
+				}
+			}
 		}
 	}
-	if opts.QualifyEntities && mod != "" {
+	if parent != nil {
+		printNode(b, parent, opts)
+		b.WriteByte('.')
+	} else if opts.QualifyEntities && mod != "" {
 		b.WriteString(mod)
 		b.WriteByte('.')
 	}
