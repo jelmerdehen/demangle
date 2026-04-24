@@ -4,6 +4,27 @@ All notable changes to this project will be documented here. Format
 follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). This
 project uses semantic versioning.
 
+## [0.1.40] - 2026-04-24
+
+### Added
+
+- **swift-stable** — macro-entity fn terminator + init-entity
+  kind-aware rendering.
+  - tryPath accepts 'cfm' as fn-entity terminator alongside 'F' —
+    Apple's macro-entity fn variant renders as plain function.
+  - tryPostfixFunctionTypeWithParams defers to 'cf<C|c|D|d|m>'
+    entity suffixes (disambiguates fn-type 'c' escape from init /
+    deinit / macro-entity terminators).
+  - Label rewrite for BuiltinTypeName-wrapped tuple params: when
+    params is inline "(T1, T2, ...)" text and labels exist, rewrite
+    to "(l1: T1, l2: T2, ...)".
+  - printFunctionEntity prints inline-text tuple params as-is,
+    avoiding double-paren wrap.
+  - tryInitDeinitEntity tracks last chain-kind and emits plain
+    'init' for struct/protocol, `__allocating_init` for class.
+    Single-labeled-tuple terminator '_t' consumed.
+  - Apple corpus: 115 → **118/153** direct matches (77.1 %).
+
 ## [0.1.39] - 2026-04-24
 
 ### Added
