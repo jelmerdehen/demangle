@@ -101,9 +101,14 @@ func parseBodyWithOpts(schemeName, origin, body string, prefixBytes int, opts de
 	}
 	// Specialization trailer: "<spec-args>_T<letter><digits>?" wraps
 	// the main entity with a "generic specialization of" prefix.
+	// Can stack — loop until no more matches.
 	specPrefix := ""
-	if specWrap, ok := p.trySpecializationSuffix(); ok {
-		specPrefix = specWrap
+	for {
+		wrap, ok := p.trySpecializationSuffix()
+		if !ok {
+			break
+		}
+		specPrefix = wrap + specPrefix
 	}
 	// Unmangled suffix: ".<anything>" after the main parse.
 	unmangledSuffix := ""
