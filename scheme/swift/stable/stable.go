@@ -659,6 +659,14 @@ func (p *parser) tryEntitySuffix(inner *demangle.Node) (*demangle.Node, bool) {
 			prefix = "pretend protocol conformance descriptor for "
 		case 'D':
 			prefix = "protocol conformance descriptor diagnostic for "
+		case 'F':
+			prefix = "accessible function runtime record for "
+		case 'f':
+			prefix = "accessible function record for "
+		case 'a':
+			prefix = "opaque type descriptor accessor impl for "
+		case 'A':
+			prefix = "opaque type descriptor accessor for "
 		}
 	case 'W':
 		switch p.s[p.i+1] {
@@ -761,6 +769,12 @@ func (p *parser) tryEntitySuffix(inner *demangle.Node) (*demangle.Node, bool) {
 			prefix = "key path setter for "
 		} else if p.s[p.i+1] == 'e' {
 			prefix = "extension entity for "
+		} else if p.s[p.i+1] == 'F' {
+			prefix = "distributed accessor for "
+		} else if p.s[p.i+1] == 'M' {
+			prefix = "modify accessor for "
+		} else if p.s[p.i+1] == 'X' {
+			prefix = "async throwing function for "
 		} else if p.s[p.i+1] == 'g' {
 			// Tg<N> — generic specialization, N = pass count digits.
 			prefix = "generic specialization of "
