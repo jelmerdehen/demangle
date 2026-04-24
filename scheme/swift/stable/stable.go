@@ -1715,6 +1715,17 @@ func (p *parser) trySpecializationSuffix() (string, bool) {
 		}
 		p.i++
 	}
+	// Optional tuple terminator 't' — renders spec-args as a tuple
+	// instead of a flat type list.
+	tupleArgs := false
+	if !p.eof() && p.s[p.i] == 't' {
+		p.i++
+		tupleArgs = true
+		// Optional extra '_' separator before T.
+		if !p.eof() && p.s[p.i] == '_' {
+			p.i++
+		}
+	}
 	// Expect 'T' + letter + optional digit count.
 	if p.eof() || p.s[p.i] != 'T' || p.i+1 >= len(p.s) {
 		revert()
@@ -1752,7 +1763,11 @@ func (p *parser) trySpecializationSuffix() (string, bool) {
 		for _, a := range specArgs {
 			parts = append(parts, common.Print(a, opts))
 		}
-		display += " <" + strings.Join(parts, ", ") + ">"
+		if tupleArgs {
+			display += " <(" + strings.Join(parts, ", ") + ")>"
+		} else {
+			display += " <" + strings.Join(parts, ", ") + ">"
+		}
 	}
 	display += " of "
 	return display, true
