@@ -4,6 +4,21 @@ All notable changes to this project will be documented here. Format
 follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). This
 project uses semantic versioning.
 
+## [0.1.36] - 2026-04-24
+
+### Added
+
+- **swift-stable** — autodiff-sig before TJ/WJ + Tq fix.
+  - tryAutodiffSigBeforeTJ consumes `A<multi-sub> Rz + r<N>_l`
+    autodiff-specific generic-sig trailer preceding TJ/WJ thunks.
+    Derives the constraint protocol from inner's rendered where-
+    clause (the body's sig) and applies to all N generic params
+    in the autodiff sig. Unlocks 4 pullback / dispatch-thunk /
+    method-descriptor / differentiability-witness fixtures.
+  - `Tq` entity-suffix now renders 'method descriptor for' (was
+    incorrectly 'unique protocol witness requirement for').
+  - Apple corpus: 111 → **115/153** direct matches (75.2 %).
+
 ## [0.1.35] - 2026-04-24
 
 ### Added
