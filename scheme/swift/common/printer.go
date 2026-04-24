@@ -145,6 +145,9 @@ func printFunctionEntity(b *strings.Builder, n *demangle.Node, opts PrintOptions
 		if n.Children[1].Attrs["swift.isolated"] == "true" {
 			b.WriteString("isolated ")
 		}
+		if n.Children[1].Attrs["swift.sending"] == "true" {
+			b.WriteString("sending ")
+		}
 		if n.Children[1].Attrs["swift.owned"] == "true" {
 			b.WriteString("__owned ")
 		}

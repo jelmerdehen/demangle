@@ -1285,48 +1285,52 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 				}
 				a = x
 			}
-			// params-type ::= type 'z'? 'h'?  —  inout / shared modifiers.
-			// Annotate but don't reject; printer can render "inout T"
-			// etc. in a future commit. For now we consume without
-			// displaying so the grammar match succeeds.
-			if !p.eof() && p.s[p.i] == 'z' {
-				p.i++
+			// params-type modifiers — can appear in any order: z
+			// (inout), h (__shared), Yi (isolated), YT (sending-result),
+			// Yu (sending), n (__owned). Loop until no more match.
+			ensureAttrs := func() {
 				if a.Attrs == nil {
 					a.Attrs = map[string]string{}
 				}
-				a.Attrs["swift.inout"] = "true"
 			}
-			if !p.eof() && p.s[p.i] == 'h' {
-				p.i++
-				if a.Attrs == nil {
-					a.Attrs = map[string]string{}
+			for !p.eof() {
+				c := p.s[p.i]
+				switch {
+				case c == 'z':
+					p.i++
+					ensureAttrs()
+					a.Attrs["swift.inout"] = "true"
+				case c == 'h':
+					p.i++
+					ensureAttrs()
+					a.Attrs["swift.shared"] = "true"
+				case c == 'n':
+					p.i++
+					ensureAttrs()
+					a.Attrs["swift.owned"] = "true"
+				case c == 'Y' && p.i+1 < len(p.s):
+					next := p.s[p.i+1]
+					switch next {
+					case 'i':
+						p.i += 2
+						ensureAttrs()
+						a.Attrs["swift.isolated"] = "true"
+					case 'T':
+						p.i += 2
+						ensureAttrs()
+						a.Attrs["swift.sending"] = "true"
+					case 'u':
+						p.i += 2
+						ensureAttrs()
+						a.Attrs["swift.sending"] = "true"
+					default:
+						goto paramModsDone
+					}
+				default:
+					goto paramModsDone
 				}
-				a.Attrs["swift.shared"] = "true"
 			}
-			// Yi — isolated param (Swift 5.5+ actor isolation).
-			if p.i+1 < len(p.s) && p.s[p.i] == 'Y' && p.s[p.i+1] == 'i' {
-				p.i += 2
-				if a.Attrs == nil {
-					a.Attrs = map[string]string{}
-				}
-				a.Attrs["swift.isolated"] = "true"
-			}
-			// YT — sending-result marker.
-			if p.i+1 < len(p.s) && p.s[p.i] == 'Y' && p.s[p.i+1] == 'T' {
-				p.i += 2
-				if a.Attrs == nil {
-					a.Attrs = map[string]string{}
-				}
-				a.Attrs["swift.sending"] = "true"
-			}
-			// n — __owned param marker (result modifier context).
-			if !p.eof() && p.s[p.i] == 'n' {
-				p.i++
-				if a.Attrs == nil {
-					a.Attrs = map[string]string{}
-				}
-				a.Attrs["swift.owned"] = "true"
-			}
+		paramModsDone:
 		}
 		// Async / throws markers. Spec: Ya = async (2 bytes), K = throws.
 		localAsync := false
