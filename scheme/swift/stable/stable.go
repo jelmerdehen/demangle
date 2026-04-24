@@ -2080,6 +2080,23 @@ func (p *parser) tryEntitySuffix(inner *demangle.Node) (*demangle.Node, bool) {
 		} else if p.s[p.i+1] == 'k' {
 			prefix = "key path setter for "
 		} else if p.s[p.i+1] == 'e' {
+			// 'Tem<letters>_' = outlined bridged method; variant
+			// letters describe the bridging kind. Apple renders as
+			// "outlined bridged method (m<letters>) of <inner>".
+			if p.i+3 < len(p.s) && p.s[p.i+2] == 'm' {
+				j := p.i + 3
+				for j < len(p.s) && p.s[j] != '_' {
+					j++
+				}
+				if j < len(p.s) && p.s[j] == '_' {
+					variant := "m" + p.s[p.i+3:j]
+					innerStr := common.Print(inner, common.DefaultPrintOptions())
+					wrap := common.NewNode(common.KindTypeMangling)
+					wrap.Text = "outlined bridged method (" + variant + ") of " + innerStr
+					p.i = j + 1
+					return wrap, true
+				}
+			}
 			prefix = "extension entity for "
 		} else if p.s[p.i+1] == 'F' {
 			prefix = "distributed accessor for "
@@ -2633,7 +2650,7 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 			p.i = saveCompact
 			p.subs = saveSubsCompact
 		}
-		if p.s[p.i] == 'y' {
+		if p.s[p.i] == 'y' && !(p.i+1 < len(p.s) && p.s[p.i+1] == 'p') {
 			p.i++
 			r = common.NewNode(common.KindEmptyList)
 		} else {
@@ -3131,6 +3148,17 @@ func (p *parser) parseType() (*demangle.Node, error) {
 		p.i++
 		node, err = p.parseOpaqueType()
 	case c == 'y':
+		// Apple's 'yp' = Any (existential without protocols).
+		// 'yP' = similar with some variant (protocol-list shortcut).
+		if p.i+1 < len(p.s) && p.s[p.i+1] == 'p' {
+			p.i += 2
+			typ := common.NewNode(common.KindType)
+			tn := common.NewNode(common.KindBuiltinTypeName)
+			tn.Text = "Any"
+			common.AddChildren(typ, tn)
+			node = typ
+			break
+		}
 		// Could be either function-type or empty-tuple-in-type-context.
 		node, err = p.parseFunctionType()
 	case c == '$':
