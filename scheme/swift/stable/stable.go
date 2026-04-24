@@ -3249,6 +3249,29 @@ func digitRun(s string, i int) int {
 	return n
 }
 
+// sortPreAnns orders the pre-params fn-type annotations: diff >
+// Sendable > others. Apple's NodePrinter renders in that sequence.
+func sortPreAnns(anns []string) {
+	rank := func(s string) int {
+		switch {
+		case strings.HasPrefix(s, "@differentiable"):
+			return 0
+		case s == "@Sendable":
+			return 1
+		case s == "@isolated(any)":
+			return 2
+		case s == "nonisolated(nonsending)":
+			return 3
+		}
+		return 10
+	}
+	for i := 1; i < len(anns); i++ {
+		for j := i; j > 0 && rank(anns[j-1]) > rank(anns[j]); j-- {
+			anns[j-1], anns[j] = anns[j], anns[j-1]
+		}
+	}
+}
+
 // renderGenericSig builds "<A>" / "<A, B>" / "<A, B, C, ...>" based
 // on a depth-0 param count.
 func renderGenericSig(count int) string {
@@ -3736,8 +3759,91 @@ func (p *parser) tryStdlibCompactFunctionType() (*demangle.Node, bool) {
 		return nil, false
 	}
 	p.i = j + 1
+	// Annotations split into pre-params (diff, Sendable) and post-
+	// params (async, throws) later on the render path.
+	_ = j
+	// Extended form: 'S<N><letter>_S<M><letter>(Y<noderiv>)?t' builds
+	// a tuple of (F2..FN, F_N+1..F_N+M with optional NoDeriv wrap
+	// on the last), leaves F1 as the function-type result. Handled
+	// here to keep all compact fn-type logic in one place.
+	baseStr := common.Print(base, common.DefaultPrintOptions())
+	var tupleParts []string
+	if !p.eof() && p.s[p.i] == '_' && p.i+2 < len(p.s) &&
+		p.s[p.i+1] == 'S' {
+		// Collect F2..FN for tuple.
+		for k := 1; k < n; k++ {
+			tupleParts = append(tupleParts, baseStr)
+		}
+		// Consume '_'.
+		p.i++
+		// Read second compact chunk.
+		if p.i >= len(p.s) || p.s[p.i] != 'S' {
+			revert()
+			return nil, false
+		}
+		p.i++
+		ds2 := p.i
+		for p.i < len(p.s) && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+			p.i++
+		}
+		if p.eof() {
+			revert()
+			return nil, false
+		}
+		letter2 := p.s[p.i]
+		base2, ok2 := common.BuildStdlibNominal(letter2)
+		if !ok2 {
+			revert()
+			return nil, false
+		}
+		m := 1 // default if no digits present
+		if p.i > ds2 {
+			m = 0
+			for _, d := range p.s[ds2:p.i] {
+				m = m*10 + int(d-'0')
+			}
+			if m < 1 {
+				revert()
+				return nil, false
+			}
+		}
+		p.i++
+		base2Str := common.Print(base2, common.DefaultPrintOptions())
+		// Optional NoDeriv-wrap chain (Yk / Yz / Yn) on the last type.
+		wrapPrefix := ""
+		for p.i+1 < len(p.s) && p.s[p.i] == 'Y' {
+			tag := p.s[p.i+1]
+			switch tag {
+			case 'k':
+				wrapPrefix = "@noDerivative " + wrapPrefix
+			case 'z':
+				wrapPrefix = "inout " + wrapPrefix
+			case 'n':
+				wrapPrefix = "__owned " + wrapPrefix
+			default:
+				wrapPrefix = ""
+			}
+			if wrapPrefix == "" {
+				break
+			}
+			p.i += 2
+		}
+		for k := 0; k < m-1; k++ {
+			tupleParts = append(tupleParts, base2Str)
+		}
+		tupleParts = append(tupleParts, wrapPrefix+base2Str)
+		// Expect 't' tuple-close.
+		if p.eof() || p.s[p.i] != 't' {
+			revert()
+			return nil, false
+		}
+		p.i++
+	}
+	_ = tupleParts // used below if non-empty
 	// Collect Y-annotations + throws marker K before the X<conv> byte.
-	var annotations []string
+	// Pre-params (diff, Sendable) and post-params (async, throws).
+	var preAnns []string
+	var postAnns []string
 	for !p.eof() {
 		if p.s[p.i] == 'Y' {
 			if p.i+1 >= len(p.s) {
@@ -3748,9 +3854,9 @@ func (p *parser) tryStdlibCompactFunctionType() (*demangle.Node, bool) {
 			p.i += 2
 			switch tag {
 			case 'b':
-				annotations = append(annotations, "@Sendable")
+				preAnns = append(preAnns, "@Sendable")
 			case 'a':
-				annotations = append(annotations, "async")
+				postAnns = append(postAnns, "async")
 			case 'j':
 				if p.eof() {
 					revert()
@@ -3760,13 +3866,13 @@ func (p *parser) tryStdlibCompactFunctionType() (*demangle.Node, bool) {
 				p.i++
 				switch v {
 				case 'd':
-					annotations = append(annotations, "@differentiable")
+					preAnns = append(preAnns, "@differentiable")
 				case 'f':
-					annotations = append(annotations, "@differentiable(_forward)")
+					preAnns = append(preAnns, "@differentiable(_forward)")
 				case 'r':
-					annotations = append(annotations, "@differentiable(reverse)")
+					preAnns = append(preAnns, "@differentiable(reverse)")
 				case 'l':
-					annotations = append(annotations, "@differentiable(_linear)")
+					preAnns = append(preAnns, "@differentiable(_linear)")
 				default:
 					revert()
 					return nil, false
@@ -3778,12 +3884,14 @@ func (p *parser) tryStdlibCompactFunctionType() (*demangle.Node, bool) {
 			continue
 		}
 		if p.s[p.i] == 'K' {
-			annotations = append(annotations, "throws")
+			postAnns = append(postAnns, "throws")
 			p.i++
 			continue
 		}
 		break
 	}
+	// Apple prints diff BEFORE Sendable. Sort pre-anns to enforce.
+	sortPreAnns(preAnns)
 	if p.i+1 >= len(p.s) || p.s[p.i] != 'X' {
 		revert()
 		return nil, false
@@ -3805,16 +3913,25 @@ func (p *parser) tryStdlibCompactFunctionType() (*demangle.Node, bool) {
 	}
 	p.i += 2
 	baseName := common.Print(base, common.DefaultPrintOptions())
-	// n = 2: types[0] = params, types[1] = result — both the same
-	// letter-type. Generalise to larger N only when a corpus fixture
-	// demands it (currently none do).
+	// Simple N=2: types[0] = params, types[1] = result. Extended
+	// form (tupleParts populated): F1 = result, F2..FN + extra =
+	// tuple-of-params. Tuple children already captured in order.
 	resultStr := baseName
-	paramsStr := "(" + baseName + ")"
-	annotationStr := ""
-	if len(annotations) > 0 {
-		annotationStr = strings.Join(annotations, " ") + " "
+	var paramsStr string
+	if len(tupleParts) > 0 {
+		paramsStr = "(" + strings.Join(tupleParts, ", ") + ")"
+	} else {
+		paramsStr = "(" + baseName + ")"
 	}
-	display := convPrefix + annotationStr + paramsStr + " -> " + resultStr
+	preStr := ""
+	if len(preAnns) > 0 {
+		preStr = strings.Join(preAnns, " ") + " "
+	}
+	postStr := ""
+	if len(postAnns) > 0 {
+		postStr = " " + strings.Join(postAnns, " ")
+	}
+	display := convPrefix + preStr + paramsStr + postStr + " -> " + resultStr
 	typ := common.NewNode(common.KindType)
 	inner := common.NewNode(common.KindBuiltinTypeName)
 	inner.Text = display
