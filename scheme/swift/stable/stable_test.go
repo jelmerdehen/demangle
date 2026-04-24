@@ -191,6 +191,9 @@ func TestStableFunctionEntities(t *testing.T) {
 		{"$s4main3optSiSgvp", "main.opt : Swift.Int?"},
 		{"$s4main1gyySiXCvp", "main.g : @convention(c) (Swift.Int) -> ()"},
 		{"$s4main1gyySiXBvp", "main.g : @convention(block) (Swift.Int) -> ()"},
+		// Optional shortcuts (Sg): Int?, [Int]?, Dict<Int,Str>?
+		{"$s4main4thisSiSgvp", "main.this : Swift.Int?"},
+		{"$s4main3arrSaySiGSgvp", "main.arr : [Swift.Int]?"},
 	}
 	for _, c := range varGeneric {
 		c := c
