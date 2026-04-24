@@ -1115,6 +1115,65 @@ func (p *parser) tryEntitySuffix(inner *demangle.Node) (*demangle.Node, bool) {
 			prefix = "method descriptor for "
 		case 'S':
 			prefix = "self-conformance witness for "
+		case 'J':
+			// WJ<variant><subset>p<subset>r — differentiability witness.
+			// Mirrors the TJ form but renders as "<variant> mode
+			// differentiability witness for".
+			if p.i+2 < len(p.s) {
+				kindByte := p.s[p.i+2]
+				var variant string
+				switch kindByte {
+				case 'f':
+					variant = "forward-mode"
+				case 'r':
+					variant = "reverse-mode"
+				}
+				if variant != "" {
+					pi := p.i + 3
+					start := pi
+					for pi < len(p.s) && (p.s[pi] == 'S' || p.s[pi] == 'U') {
+						pi++
+					}
+					if pi > start && pi < len(p.s) && p.s[pi] == 'p' {
+						paramsSubset := p.s[start:pi]
+						pi++
+						rStart := pi
+						for pi < len(p.s) && (p.s[pi] == 'S' || p.s[pi] == 'U') {
+							pi++
+						}
+						if pi > rStart && pi < len(p.s) && p.s[pi] == 'r' {
+							resultsSubset := p.s[rStart:pi]
+							pi++
+							renderSubset := func(s string) string {
+								var b strings.Builder
+								b.WriteByte('{')
+								first := true
+								for i := 0; i < len(s); i++ {
+									if s[i] != 'S' {
+										continue
+									}
+									if !first {
+										b.WriteString(", ")
+									}
+									b.WriteString(itoa(i))
+									first = false
+								}
+								b.WriteByte('}')
+								return b.String()
+							}
+							consumed = pi - p.i
+							innerStr := common.Print(inner, common.DefaultPrintOptions())
+							wrapDisplay := variant + " differentiability witness for " + innerStr +
+								" with respect to parameters " + renderSubset(paramsSubset) +
+								" and results " + renderSubset(resultsSubset)
+							p.i += consumed
+							wrap := common.NewNode(common.KindTypeMangling)
+							wrap.Text = wrapDisplay
+							return wrap, true
+						}
+					}
+				}
+			}
 		}
 	case 'T':
 		// T-prefixed thunks and specialisations. Narrow: 3-byte forms
