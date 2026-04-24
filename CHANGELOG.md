@@ -4,6 +4,20 @@ All notable changes to this project will be documented here. Format
 follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). This
 project uses semantic versioning.
 
+## [0.1.14] - 2026-04-22
+
+### Added
+
+- **swift-stable** — context-chain + var-entity polish
+  - `P` (protocol) accepted as nominal-context kind byte alongside
+    V/C/O in the chain loops of tryFunctionEntity + tryVariableEntity.
+  - Variable-entity `vZ` suffix recognises static members,
+    rendering 'static ' before the path.
+  - M-suffix table gained 9 more entries (protocol conformance
+    descriptor, reflection-class descriptor, etc.).
+- **docs** — `docs/error-kinds.md` — full 16-kind taxonomy with
+  routing + Error struct field reference.
+
 ## [0.1.13] - 2026-04-22
 
 ### Added
