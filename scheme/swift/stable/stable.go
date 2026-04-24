@@ -476,17 +476,45 @@ func (p *parser) tryAutodiffSigBeforeTJ(inner *demangle.Node) (*demangle.Node, b
 				}
 				break
 			}
-			// Optional R<kind>
+			// Optional R<kind>[<subject>]
 			if !p.eof() && p.s[p.i] == 'R' {
 				p.i++
 				if !p.eof() {
 					reqKind := p.s[p.i]
 					p.i++
-					// Consume optional subject-idx for '_'.
-					if reqKind == '_' {
-						// no index follows — subject implicit.
+					// For assoc-type requirement kinds (p, c, t, m and
+					// their compound variants P, C, T, M), the generic
+					// requirement encodes a subject via
+					// demangleGenericParamIndex: 'z'→A, 's'→self,
+					// 'd<N>_<M>_'→deep, else demangleIndex→N_.
+					// Consume those bytes here so the outer loop stays
+					// in sync with Apple's parser.
+					switch reqKind {
+					case 'p', 'c', 't', 'm', 'P', 'C', 'T', 'M':
+						if !p.eof() {
+							if p.s[p.i] == 'z' || p.s[p.i] == 's' {
+								p.i++ // single-byte subject
+							} else if p.s[p.i] == 'd' {
+								p.i++ // depth form: 'd' + two demangleIndex sequences
+								for range [2]struct{}{} {
+									for !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+										p.i++
+									}
+									if !p.eof() && p.s[p.i] == '_' {
+										p.i++
+									}
+								}
+							} else {
+								// demangleIndex: optional digits then '_'
+								for !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+									p.i++
+								}
+								if !p.eof() && p.s[p.i] == '_' {
+									p.i++
+								}
+							}
+						}
 					}
-					_ = reqKind
 					constraintCount++
 				}
 			}
@@ -498,47 +526,120 @@ func (p *parser) tryAutodiffSigBeforeTJ(inner *demangle.Node) (*demangle.Node, b
 		revert()
 		return inner, false
 	}
-	// Extract the constraint-proto from inner's text. Inner already
-	// rendered with "where X: <proto>" clause (the body's sig).
-	innerStr := common.Print(inner, common.DefaultPrintOptions())
-	proto := ""
-	if idx := strings.LastIndex(innerStr, ": "); idx >= 0 {
-		rest := innerStr[idx+2:]
-		if j := strings.Index(rest, ">"); j > 0 {
-			proto = strings.TrimSpace(rest[:j])
-		}
-	}
-	if proto == "" {
-		// Fall back — scan subs for Type(Protocol).
-		for i := p.subs.Len() - 1; i >= 0; i-- {
-			n, _ := p.subs.Get(i)
-			if n == nil || common.NodeKind(n.Kind) != common.KindType ||
-				len(n.Children) == 0 {
-				continue
-			}
-			if common.NodeKind(n.Children[0].Kind) == common.KindProtocol {
-				proto = common.Print(n, common.DefaultPrintOptions())
+	// Build the autodiff trailing-sig constraints from the inner
+	// function's generic-sig. The trailing sig takes each constraint
+	// from the inner sig and applies it to ALL generic params.
+	//
+	// E.g. inner "<A, B where B: Foo>" becomes "<A, B where A: Foo, B: Foo>"
+	// and  "<A, B where B: Foo, B.T: Bar>" becomes
+	//   "<A, B where A: Foo, B: Foo, A.T: Bar, B.T: Bar>".
+	//
+	// Read the where clause from inner.Attrs["swift.generic"], parse
+	// each constraint to extract its "suffix" (everything after the
+	// leading parameter name, e.g. ": Foo" or ".T: Bar"), then expand
+	// that suffix over all genericCount parameters.
+	var trailingConstraints []string
+	innerGenericSig := ""
+	// Walk through any KindTypeMangling wrapper nodes (e.g. from TS / F
+	// entity suffixes) to find the KindFunctionEntity that carries the
+	// swift.generic attr.
+	for cur := inner; cur != nil; {
+		if cur.Attrs != nil {
+			if g := cur.Attrs["swift.generic"]; g != "" {
+				innerGenericSig = g
 				break
 			}
 		}
+		if common.NodeKind(cur.Kind) == common.KindTypeMangling && len(cur.Children) > 0 {
+			cur = cur.Children[0]
+		} else {
+			break
+		}
 	}
-	if proto == "" {
+	if innerGenericSig == "" {
+		// No generic sig attr on inner — fall back to extracting proto
+		// from the rendered text (single-constraint case only).
+		innerStr := common.Print(inner, common.DefaultPrintOptions())
+		proto := ""
+		if idx := strings.LastIndex(innerStr, ": "); idx >= 0 {
+			rest := innerStr[idx+2:]
+			if j := strings.Index(rest, ">"); j > 0 {
+				proto = strings.TrimSpace(rest[:j])
+			}
+		}
+		if proto == "" {
+			for i := p.subs.Len() - 1; i >= 0; i-- {
+				n, _ := p.subs.Get(i)
+				if n == nil || common.NodeKind(n.Kind) != common.KindType ||
+					len(n.Children) == 0 {
+					continue
+				}
+				if common.NodeKind(n.Children[0].Kind) == common.KindProtocol {
+					proto = common.Print(n, common.DefaultPrintOptions())
+					break
+				}
+			}
+		}
+		if proto == "" {
+			revert()
+			return inner, false
+		}
+		for i := 0; i < genericCount; i++ {
+			letter := byte('A' + i)
+			trailingConstraints = append(trailingConstraints, string(letter)+": "+proto)
+		}
+	} else {
+		// Extract the where clause and derive per-constraint suffixes.
+		// innerGenericSig looks like "<A, B where B: Foo, B.T: Bar>".
+		whereIdx := strings.Index(innerGenericSig, " where ")
+		if whereIdx < 0 {
+			revert()
+			return inner, false
+		}
+		whereClause := innerGenericSig[whereIdx+7:]
+		if len(whereClause) > 0 && whereClause[len(whereClause)-1] == '>' {
+			whereClause = whereClause[:len(whereClause)-1]
+		}
+		// Split by ", " to get individual constraints. Naive split is
+		// safe because protocol-qualified names don't contain ", ".
+		innerConstraints := strings.Split(whereClause, ", ")
+		for _, ic := range innerConstraints {
+			if len(ic) < 3 {
+				continue
+			}
+			// Extract the "suffix" — everything after the leading
+			// parameter letter(s). For "B: Foo" the suffix is ": Foo";
+			// for "B.TangentVector: Bar" it is ".TangentVector: Bar".
+			dotIdx := strings.Index(ic, ".")
+			colonIdx := strings.Index(ic, ":")
+			var suffix string
+			switch {
+			case dotIdx >= 0 && (colonIdx < 0 || dotIdx < colonIdx):
+				// Assoc-type form: "B.T: Bar" → ".T: Bar"
+				suffix = ic[dotIdx:]
+			case colonIdx >= 0:
+				// Plain conformance: "B: Foo" → ": Foo"
+				suffix = ic[colonIdx:]
+			default:
+				continue
+			}
+			for i := 0; i < genericCount; i++ {
+				letter := byte('A' + i)
+				trailingConstraints = append(trailingConstraints, string(letter)+suffix)
+			}
+		}
+	}
+	if len(trailingConstraints) == 0 {
 		revert()
 		return inner, false
 	}
-	// Now invoke the normal entity-suffix loop to consume TJ/WJ +
-	// subsets.
+	// Consume TJ/WJ + subsets via the entity-suffix loop.
 	wrapped, ok := p.tryEntitySuffix(inner)
 	if !ok {
 		revert()
 		return inner, false
 	}
-	var constraints []string
-	for i := 0; i < genericCount; i++ {
-		letter := byte('A' + i)
-		constraints = append(constraints, string(letter)+": "+proto)
-	}
-	sig := renderGenericSigWithConstraints(genericCount, constraints)
+	sig := renderGenericSigWithConstraints(genericCount, trailingConstraints)
 	wrappedStr := common.Print(wrapped, common.DefaultPrintOptions())
 	w := common.NewNode(common.KindTypeMangling)
 	w.Text = wrappedStr + " with " + sig
@@ -2859,6 +2960,10 @@ func (p *parser) tryEntitySuffix(inner *demangle.Node) (*demangle.Node, bool) {
 			// Tt<N> — merged thunk pass.
 			prefix = "merged thunk for "
 			consumed = 2 + digitRun(p.s, p.i+2)
+		} else if p.s[p.i+1] == 'S' {
+			// TS — protocol self-conformance witness. Renders as
+			// "protocol self-conformance witness for <inner>".
+			prefix = "protocol self-conformance witness for "
 		} else if p.s[p.i+1] == 'f' {
 			// Tf<N><spec-info> — function-signature specialization. We
 			// consume the T and the letter and stop; the spec-info
@@ -3006,6 +3111,203 @@ func (p *parser) tryEntitySuffix(inner *demangle.Node) (*demangle.Node, bool) {
 	return wrap, true
 }
 
+// tryStdlibExtensionAllocator handles the extension-allocator shape where
+// the extended type is a stdlib known-type substitution (S<letter>):
+//
+//	S<letter> <constraint-bytes> E y <fn-type> <local-gen-sig> f C|c|D|d
+//
+// Example: $sSUss17FixedWidthIntegerRzrlEyxqd__cSzRd__lufC
+//
+// Renders as:
+//
+//	(extension in Swift):<extended-type><ext-constraint>.<init-name><local-sig>(<params>) -> <result>
+func (p *parser) tryStdlibExtensionAllocator() (*demangle.Node, bool, error) {
+	save := p.i
+	saveSubs := p.subs
+	restore := func() { p.i = save; p.subs = saveSubs }
+
+	// Require S<letter> stdlib-sub extended type.
+	if p.eof() || p.s[p.i] != 'S' || p.i+1 >= len(p.s) {
+		return nil, false, nil
+	}
+	extNode, ok := common.BuildStdlibNominal(p.s[p.i+1])
+	if !ok {
+		return nil, false, nil
+	}
+	p.i += 2
+	p.subs.Push(extNode)
+
+	// Extended type module is always "Swift" for stdlib subs.
+	extMod := "Swift"
+	extTypePrinted := common.Print(extNode, common.DefaultPrintOptions())
+
+	// Scan for E followed by 'y' (init body) within a bounded window.
+	scan := p.i
+	eFound := -1
+	for k := scan; k < len(p.s)-1 && k < scan+80; k++ {
+		if p.s[k] == 'E' && (p.s[k+1] == 'y' ||
+			(p.s[k+1] >= '0' && p.s[k+1] <= '9')) {
+			eFound = k
+			break
+		}
+	}
+	if eFound < 0 {
+		restore()
+		return nil, false, nil
+	}
+
+	constraintBytes := p.s[scan:eFound]
+	p.i = eFound + 1 // past 'E'
+
+	// Extract extension constraint sig from raw bytes.
+	extConstraint := extractStdlibExtConstraintSig(constraintBytes)
+
+	// Parse the function type: y<result><params>c
+	ft, ferr := p.parseFunctionType()
+	if ferr != nil {
+		restore()
+		return nil, false, nil
+	}
+
+	// Parse local generic sig trailer: [<type> R <subject-enc>]* l [u ...]
+	var localConstraints []string
+	for !p.eof() {
+		c := p.s[p.i]
+		if c == 'l' {
+			p.i++
+			break
+		}
+		if c == 'S' || c == 's' || c == 'x' || c == 'q' || c == 'A' ||
+			c == 'B' || (c >= '0' && c <= '9') {
+			saveSig := p.i
+			saveSubsSig := p.subs
+			constraint, cerr := p.parseType()
+			if cerr != nil {
+				p.i = saveSig
+				p.subs = saveSubsSig
+				break
+			}
+			if p.eof() || p.s[p.i] != 'R' {
+				p.i = saveSig
+				p.subs = saveSubsSig
+				break
+			}
+			p.i++ // consume R
+			if p.eof() {
+				p.i = saveSig
+				p.subs = saveSubsSig
+				break
+			}
+			reqKind := p.s[p.i]
+			p.i++
+			cstr := common.Print(constraint, common.DefaultPrintOptions())
+			switch reqKind {
+			case 'z':
+				localConstraints = append(localConstraints, "A: "+cstr)
+			case '_':
+				localConstraints = append(localConstraints, "B: "+cstr)
+			case 'd':
+				// d__ = DependentGenericParamType(depth=1, idx=0) = A1.
+				if !p.eof() && p.s[p.i] == '_' {
+					p.i++
+					if !p.eof() && p.s[p.i] == '_' {
+						p.i++
+					}
+				}
+				localConstraints = append(localConstraints, "A1: "+cstr)
+			default:
+				p.i = saveSig
+				p.subs = saveSubsSig
+			}
+			continue
+		}
+		break
+	}
+	// Consume optional trailing bytes before terminal: 'u' (param-count), 'r', digits.
+	for !p.eof() && (p.s[p.i] == 'u' || p.s[p.i] == 'r' ||
+		(p.s[p.i] >= '0' && p.s[p.i] <= '9')) {
+		p.i++
+	}
+
+	// Require f<C|c|D|d> terminal.
+	if p.i+2 > len(p.s) || p.s[p.i] != 'f' {
+		restore()
+		return nil, false, nil
+	}
+	terminalKind := p.s[p.i+1]
+	var initName string
+	switch terminalKind {
+	case 'C', 'c':
+		initName = "init"
+	case 'D':
+		initName = "__deallocating_deinit"
+	case 'd':
+		initName = "__destroying_deinit"
+	default:
+		restore()
+		return nil, false, nil
+	}
+	p.i += 2
+
+	// Render.
+	opts := common.DefaultPrintOptions()
+	ftStr := common.Print(ft, opts)
+	// ftStr is "(params) -> result" from parseFunctionType.
+	var paramsStr, resultStr string
+	if idx := strings.Index(ftStr, " -> "); idx >= 0 {
+		paramsStr = ftStr[:idx]
+		resultStr = ftStr[idx+4:]
+	} else {
+		paramsStr = ftStr
+		resultStr = "()"
+	}
+
+	localSig := ""
+	if len(localConstraints) > 0 {
+		localSig = "<A where " + strings.Join(localConstraints, ", ") + ">"
+	}
+
+	display := "(extension in " + extMod + "):" + extTypePrinted +
+		extConstraint + "." + initName + localSig + paramsStr + " -> " + resultStr
+
+	wrap := common.NewNode(common.KindTypeMangling)
+	wrap.Text = display
+	return wrap, true, nil
+}
+
+// extractStdlibExtConstraintSig parses raw extension-generic-sig bytes of
+// the form "ss<N><name>Rzrl" and returns a "< where A: Swift.<name>>"
+// string, or "" if no recognized Rz constraint is found.
+func extractStdlibExtConstraintSig(b string) string {
+	rz := strings.Index(b, "Rz")
+	if rz < 0 {
+		return ""
+	}
+	// Protocol name is encoded as ss<N><name> or s<N><name> before Rz.
+	// Skip leading 's' module-marker bytes.
+	i := 0
+	for i < rz && b[i] == 's' {
+		i++
+	}
+	// Read decimal length prefix.
+	start := i
+	for i < rz && b[i] >= '0' && b[i] <= '9' {
+		i++
+	}
+	if start == i {
+		return "" // no digits
+	}
+	length := 0
+	for k := start; k < i; k++ {
+		length = length*10 + int(b[k]-'0')
+	}
+	if length <= 0 || i+length > rz {
+		return ""
+	}
+	name := b[i : i+length]
+	return "< where A: Swift." + name + ">"
+}
+
 // tryExtensionEntity matches the extension-method shape:
 //
 //   <module><nominal-chain><constraints>*E<decl-name>
@@ -3017,6 +3319,10 @@ func (p *parser) tryEntitySuffix(inner *demangle.Node) (*demangle.Node, bool) {
 //
 // Narrow: single 'Rj_' inverse constraint + depth-0 gen-sig.
 func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
+	// Try stdlib-sub extended type (S<letter>) allocator form first.
+	if n, ok, err := p.tryStdlibExtensionAllocator(); err != nil || ok {
+		return n, ok, err
+	}
 	save := p.i
 	saveSubs := p.subs
 	restore := func() { p.i = save; p.subs = saveSubs }
@@ -4019,6 +4325,58 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 					p.subs = saveSubsReq
 					break
 				}
+				// Special case: <module><proto-ident><assoc-ident>Rp<subj>
+				// encodes an associated-type conformance requirement of the
+				// form "<subj-param>.<assoc>: <module>.<proto>". Apple's
+				// stack-based demangler pushes the module (from A-sub), the
+				// protocol identifier, then the assoc-type identifier as
+				// three separate ops, then processes Rp as a generic
+				// requirement. Recognise this when parseType returned a
+				// Module and the next byte is a digit (proto-ident length).
+				if common.NodeKind(constraint.Kind) == common.KindModule &&
+					!p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+					moduleName := constraint.Text
+					saveAssoc := p.i
+					saveSubsAssoc := p.subs
+					protoName, perr := p.parseIdentifier()
+					if perr == nil && !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+						assocName, aerr := p.parseIdentifier()
+						if aerr == nil && p.i+1 < len(p.s) &&
+							p.s[p.i] == 'R' && p.s[p.i+1] == 'p' {
+							p.i += 2 // consume Rp
+							subj := "A"
+							if !p.eof() {
+								sk := p.s[p.i]
+								p.i++
+								switch {
+								case sk == 'z':
+									subj = "A"
+								case sk == '_':
+									subj = "B"
+								default:
+									if sk >= '0' && sk <= '9' {
+										idx := int(sk - '0')
+										for !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+											idx = idx*10 + int(p.s[p.i]-'0')
+											p.i++
+										}
+										if !p.eof() && p.s[p.i] == '_' {
+											p.i++
+										}
+										if idx+1 < 26 {
+											subj = string(rune('B' + idx))
+										}
+									}
+								}
+							}
+							localConstraints = append(localConstraints,
+								subj+"."+assocName+": "+moduleName+"."+protoName)
+							continue
+						}
+					}
+					p.i = saveAssoc
+					p.subs = saveSubsAssoc
+				}
 				if p.eof() || p.s[p.i] != 'R' {
 					p.i = saveReq
 					p.subs = saveSubsReq
@@ -4269,7 +4627,20 @@ func (p *parser) parseType() (*demangle.Node, error) {
 			// byte is a signature marker (y, F, etc.) the module is
 			// itself being used as a back-reference — return it as-is.
 			if !p.eof() && (p.s[p.i] >= '0' && p.s[p.i] <= '9') {
+				saveMod := p.i
+				saveSubsMod := p.subs
 				node, err = p.parseNominalWithModule(sub)
+				if err != nil {
+					// parseNominalWithModule failed — the digit is not the
+					// start of a kind-byte-terminated nominal (e.g. it is
+					// the assoc-type ident length in an 'Rp' requirement).
+					// Fall back to returning the module itself so callers
+					// can recognise the assoc-type constraint pattern.
+					p.i = saveMod
+					p.subs = saveSubsMod
+					node = sub
+					err = nil
+				}
 			} else {
 				node = sub
 			}
@@ -4672,6 +5043,47 @@ func (p *parser) skipConformanceRef() bool {
 							break
 						}
 					}
+				}
+			}
+		}
+		// Direct HC/HP/Hp + g form: HD<n>_ InverseRequirement markers and
+		// other conformance-chain bytes precede _HCg_/_HPg_/_Hpg_ without
+		// a 'y' or V/C/O/P hint. Handles blocks like 'AEs5ErrorAAq_sAFHD1__HCg_'
+		// where no 'y' or kind-byte appears before the HC conformance tag.
+		// Guard: no 'G' between start and the H position prevents consuming
+		// nested bound-generic argument lists.
+		if !looksLike {
+			for k := start + 1; k+2 < len(p.s) && k-start < limit; k++ {
+				if p.s[k] != 'H' {
+					continue
+				}
+				hn := p.s[k+1]
+				if hn != 'C' && hn != 'P' && hn != 'p' {
+					continue
+				}
+				// Immediately followed by 'g'.
+				if p.s[k+2] != 'g' {
+					continue
+				}
+				// 'g' followed by optional digits then '_'.
+				m := k + 3
+				for m < len(p.s) && p.s[m] >= '0' && p.s[m] <= '9' {
+					m++
+				}
+				if m >= len(p.s) || p.s[m] != '_' {
+					continue
+				}
+				// No 'G' between start and this H.
+				hasG := false
+				for q := start; q < k; q++ {
+					if p.s[q] == 'G' {
+						hasG = true
+						break
+					}
+				}
+				if !hasG {
+					looksLike = true
+					break
 				}
 			}
 		}
