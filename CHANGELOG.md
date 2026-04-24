@@ -4,6 +4,21 @@ All notable changes to this project will be documented here. Format
 follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). This
 project uses semantic versioning.
 
+## [0.1.45] - 2026-04-24
+
+### Added
+
+- **swift-stable** — dependent-member-type `Qz` / `Qy_` speculative
+  postfix.
+  - parseType digit-led case now speculatively tries
+    tryDependentMemberType before falling back to parseNominalPath.
+  - Grammar: `<assoc-ident> <proto-path-type> 'Q' ('z' | 'y' digits? '_')`
+    → renders "<gen-param>.<proto-path>.<assoc-name>" where gen-param
+    is 'A' for Qz, 'B'+N for Qy<N>_.
+  - No corpus score delta on its own (autodiff fixtures also need the
+    TJS subset-mask decoder to match the expected output); this ships
+    as groundwork. Safe: 129/153 holds, zero regressions.
+
 ## [0.1.44] - 2026-04-24
 
 ### Added

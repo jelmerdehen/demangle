@@ -4035,6 +4035,14 @@ func (p *parser) parseType() (*demangle.Node, error) {
 		common.AddChildren(typ, lit)
 		node = typ
 	case c >= '0' && c <= '9':
+		// Speculative: dependent-member-type shape —
+		//   <assoc-ident> <proto-path-type> 'Q' ('z' | 'y' digits? '_')
+		// Renders as "<gen-param>.<proto-path>.<assoc-name>" where
+		// gen-param is 'A' for Qz, 'B' for Qy_, 'B'+<N> for Qy<N>_.
+		if dm, ok := p.tryDependentMemberType(); ok {
+			node = dm
+			break
+		}
 		node, err = p.parseNominalPath()
 	default:
 		return nil, p.grammarErr("type start")
@@ -6021,6 +6029,95 @@ func (p *parser) parseIdentifier() (string, error) {
 func (p *parser) grammarErr(expected string) error {
 	offset := p.i + p.prefixBytes
 	return demangle.GrammarViolation(p.schemeName, p.origin, offset, expected)
+}
+
+// tryDependentMemberType speculatively parses the Swift stable-ABI
+// dependent-member-type shape at the current parseType dispatch:
+//
+//   <assoc-ident> <proto-path-type> 'Q' ('z' | 'y' digits? '_')
+//
+// The 'Q' + param-ref combiner pops the proto type and the assoc-name
+// ident (Apple demangler style) and builds a dependent-member. We
+// render it as "<gen-param>.<proto-path>.<assoc-name>" where
+// gen-param is 'A' for Qz, 'B' for Qy_, 'B'+N for Qy<N>_.
+//
+// On any mismatch parser state is fully restored.
+func (p *parser) tryDependentMemberType() (*demangle.Node, bool) {
+	save := p.i
+	saveSubs := p.subs
+	revert := func() { p.i = save; p.subs = saveSubs }
+	if p.eof() || !(p.s[p.i] >= '0' && p.s[p.i] <= '9') {
+		return nil, false
+	}
+	// Scan forward looking for 'Q' ('z' | 'y') within a small window.
+	// Cheap reject before committing to a full parse.
+	found := false
+	for k := p.i + 1; k < len(p.s) && k-p.i < 80; k++ {
+		if p.s[k] == 'Q' && k+1 < len(p.s) &&
+			(p.s[k+1] == 'z' || p.s[k+1] == 'y') {
+			found = true
+			break
+		}
+	}
+	if !found {
+		return nil, false
+	}
+	assocName, err := p.parseIdentifier()
+	if err != nil {
+		revert()
+		return nil, false
+	}
+	// Push ident to subs (mirror normal ident handling).
+	p.subs.Push(common.NewIdentifier(assocName))
+	proto, perr := p.parseType()
+	if perr != nil {
+		revert()
+		return nil, false
+	}
+	if p.eof() || p.s[p.i] != 'Q' {
+		revert()
+		return nil, false
+	}
+	p.i++ // 'Q'
+	if p.eof() {
+		revert()
+		return nil, false
+	}
+	kind := p.s[p.i]
+	p.i++
+	var paramName string
+	switch kind {
+	case 'z':
+		paramName = "A"
+	case 'y':
+		start := p.i
+		for !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+			p.i++
+		}
+		if p.eof() || p.s[p.i] != '_' {
+			revert()
+			return nil, false
+		}
+		n := 0
+		if p.i > start {
+			for _, d := range p.s[start:p.i] {
+				n = n*10 + int(d-'0')
+			}
+			n++ // Apple: Qy<digit>_ = idx N+1
+		}
+		p.i++ // '_'
+		// y_ without digit → idx 1 (B). With digit N → idx N+1.
+		paramName = string(rune('B' + byte(n)))
+	default:
+		revert()
+		return nil, false
+	}
+	protoText := common.Print(proto, common.DefaultPrintOptions())
+	wrap := common.NewNode(common.KindType)
+	tn := common.NewNode(common.KindBuiltinTypeName)
+	tn.Text = paramName + "." + protoText + "." + assocName
+	common.AddChildren(wrap, tn)
+	return wrap, true
 }
 
 // tryParameterizedExistentialTail matches the constrained-
