@@ -182,6 +182,29 @@ func TestStableFunctionEntities(t *testing.T) {
 	if r.Output != "main.x : Swift.Int" {
 		t.Errorf("var entity output = %q", r.Output)
 	}
+	// M/H entity-suffix matrix — spot checks on the common bundled
+	// stdlib + Sc concurrency types.
+	mCases := []struct {
+		in, want string
+	}{
+		{"$sScAMp", "protocol descriptor for Swift.Actor"},
+		{"$sSiMn", "nominal type descriptor for Swift.Int"},
+		{"$sSaMa", "type metadata accessor for Swift.Array"},
+		{"$sScTMp", "protocol descriptor for Swift.Task"},
+		{"$sSiMf", "metaclass for Swift.Int"},
+	}
+	for _, c := range mCases {
+		c := c
+		t.Run("MSuffix/"+c.in, func(t *testing.T) {
+			r, err := cat.Demangle(context.Background(), c.in, nil)
+			if err != nil {
+				t.Fatalf("demangle %q: %v", c.in, err)
+			}
+			if r.Output != c.want {
+				t.Errorf("out = %q want %q", r.Output, c.want)
+			}
+		})
+	}
 	for _, c := range cases {
 		c := c
 		t.Run(c.in, func(t *testing.T) {
