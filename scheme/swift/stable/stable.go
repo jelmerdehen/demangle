@@ -25,6 +25,7 @@ package stable
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 	"unicode"
 
@@ -282,11 +283,20 @@ func (p *parser) parseGlobal() (*demangle.Node, error) {
 	} else if implFn, ok := p.tryImplFunctionType(); ok {
 		inner = implFn
 	} else {
+		saveFallback := p.i
+		saveSubsFallback := p.subs
 		t, err := p.parseType()
 		if err != nil {
-			return nil, err
+			p.i = saveFallback
+			p.subs = saveSubsFallback
+			if ident2, ok2 := p.tryBareModuleIdent(); ok2 {
+				inner = ident2
+			} else {
+				return nil, err
+			}
+		} else {
+			inner = t
 		}
-		inner = t
 	}
 
 	// Protocol-conformance shape: <Type> <Protocol> <SourceModule> Hc
@@ -4993,6 +5003,15 @@ func (p *parser) trySpecializationSuffix() (string, bool) {
 	if p.eof() {
 		return "", false
 	}
+	// Fast-path for Tf (function-signature specialization) when the
+	// remaining body starts with a digit (identifier prefix) — the
+	// Apple stack-based demangler pushes identifiers and types
+	// separately before 'Tf'; our parser handles all of it inline.
+	if p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+		if result, ok := p.tryTfSpecializationSuffix(save, saveSubs); ok {
+			return result, true
+		}
+	}
 	var specArgs []*demangle.Node
 	for {
 		startArg := p.i
@@ -5069,7 +5088,86 @@ func (p *parser) trySpecializationSuffix() (string, bool) {
 	case 't':
 		prefix = "merged thunk"
 	case 'f':
-		prefix = "function signature specialization"
+		// Function-signature specialization: 'Tf<count>?<spec-params>_n'.
+		// Spec-param codes follow the optional digit count:
+		//   'n'    — not specialized (bump arg index)
+		//   'c'    — ClosurePropagated (uses closure ident + arg types)
+		//   'C<N>' — ClosurePropPreviousArg (references Arg[N])
+		p.i += 2 // consume 'Tf'
+		for !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+			p.i++
+		}
+		// Look up the closure name from substitution table.
+		opts := common.DefaultPrintOptions()
+		closureName := ""
+		for k := p.subs.Len() - 1; k >= 0; k-- {
+			n, ok := p.subs.Get(k)
+			if ok && common.NodeKind(n.Kind) == common.KindIdentifier {
+				closureName = n.Text
+				break
+			}
+		}
+		var argParts []string
+		argNum := 0
+		unknownKind := false
+		for !p.eof() && p.s[p.i] != '_' {
+			ch := p.s[p.i]
+			p.i++
+			switch ch {
+			case 'n':
+				argNum++
+			case 'c':
+				var typeParts []string
+				for _, a := range specArgs {
+					typeParts = append(typeParts, common.Print(a, opts))
+				}
+				entry := "[Closure Propagated : " + closureName +
+					", Argument Types : [" + strings.Join(typeParts, ", ") + "]"
+				argParts = append(argParts, "Arg["+strconv.Itoa(argNum)+"] = "+entry)
+				argNum++
+			case 'C':
+				if p.eof() || p.s[p.i] < '0' || p.s[p.i] > '9' {
+					unknownKind = true
+					break
+				}
+				idx := int(p.s[p.i] - '0')
+				p.i++
+				for !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+					idx = idx*10 + int(p.s[p.i]-'0')
+					p.i++
+				}
+				entry := "[Same As Argument " + strconv.Itoa(idx) + "]"
+				argParts = append(argParts, "Arg["+strconv.Itoa(argNum)+"] = "+entry)
+				argNum++
+			default:
+				unknownKind = true
+			}
+			if unknownKind {
+				break
+			}
+		}
+		if unknownKind {
+			revert()
+			return "", false
+		}
+		if !p.eof() && p.s[p.i] == '_' {
+			p.i++
+		} else {
+			revert()
+			return "", false
+		}
+		if !p.eof() && p.s[p.i] == 'n' {
+			p.i++
+		} else if !p.eof() {
+			revert()
+			return "", false
+		}
+		display := "function signature specialization"
+		if len(argParts) > 0 {
+			display += " <" + strings.Join(argParts, ", ") + ">"
+		}
+		display += " of "
+		return display, true
 	default:
 		revert()
 		return "", false
@@ -5176,6 +5274,221 @@ func (p *parser) paramsSlotIsEmpty() bool {
 		return true
 	}
 	return false
+}
+
+// tryBareModuleIdent parses a single length-prefixed identifier when
+// the body starts with a digit (identifier length prefix) and a 'Tf'
+// function-signature specialization marker is detectable within the
+// next 256 bytes. Used as a last-resort fallback in parseGlobal when
+// tryFunctionEntity/parseType both fail — this handles the shape:
+//
+//	$s<N><func-name><M><closure-name>...<types>...Tf<spec-params>_n
+//
+// where the Apple stack-based demangler pushes identifiers separately.
+// We parse just the leading <N><func-name> here and let the subsequent
+// trySpecializationSuffix handle the full Tf payload.
+func (p *parser) tryBareModuleIdent() (*demangle.Node, bool) {
+	if p.eof() || p.s[p.i] < '0' || p.s[p.i] > '9' {
+		return nil, false
+	}
+	// Must have 'Tf' somewhere within a bounded horizon.
+	found := false
+	limit := len(p.s)
+	if p.i+256 < limit {
+		limit = p.i + 256
+	}
+	for j := p.i; j+1 < limit; j++ {
+		if p.s[j] == 'T' && p.s[j+1] == 'f' {
+			found = true
+			break
+		}
+	}
+	if !found {
+		return nil, false
+	}
+	save := p.i
+	saveSubs := p.subs
+	ident, err := p.parseIdentifier()
+	if err != nil {
+		p.i = save
+		p.subs = saveSubs
+		return nil, false
+	}
+	identNode := common.NewIdentifier(ident)
+	p.subs.Push(identNode)
+	return identNode, true
+}
+
+// tryTfSpecializationSuffix handles the full Tf (function-signature
+// specialization) payload when it is preceded by identifiers and
+// types that the Apple stack-based demangler pushes separately. On
+// entry, p.i is just past the leading function-name identifier that
+// parseGlobal accepted via tryBareModuleIdent.
+//
+// Grammar (simplified):
+//
+//	<closure-idents>* <arg-types>* 'Tf' <count>? <spec-params> '_' 'n'
+//
+// spec-param codes:
+//
+//	'n'  — no-op / not specialized (increments arg index, renders nothing)
+//	'c'  — ClosurePropagated: uses the last closure ident + accumulated types
+//	'C<N>' — ClosurePropPreviousArg: references Arg[N]
+//
+// Returns (display-prefix, true) on success; reverts on failure.
+func (p *parser) tryTfSpecializationSuffix(save int, saveSubs common.SubstitutionTable) (string, bool) {
+	revert := func() { p.i = save; p.subs = saveSubs }
+	// Find 'Tf' within bounded horizon.
+	tfPos := -1
+	limit := len(p.s)
+	if p.i+256 < limit {
+		limit = p.i + 256
+	}
+	for j := p.i; j+1 < limit; j++ {
+		if p.s[j] == 'T' && p.s[j+1] == 'f' {
+			tfPos = j
+			break
+		}
+	}
+	if tfPos < 0 {
+		return "", false
+	}
+	// Parse identifiers (closure names) and types between current pos and 'Tf'.
+	var closureIdents []string
+	var specArgs []*demangle.Node
+	opts := common.DefaultPrintOptions()
+	for p.i < tfPos {
+		if p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+			startI := p.i
+			ident, err := p.parseIdentifier()
+			if err != nil || p.i > tfPos {
+				p.i = startI
+				revert()
+				return "", false
+			}
+			closureIdents = append(closureIdents, ident)
+			continue
+		}
+		startType := p.i
+		typ, err := p.parseType()
+		if err != nil || p.i > tfPos {
+			p.i = startType
+			revert()
+			return "", false
+		}
+		specArgs = append(specArgs, typ)
+	}
+	if p.i != tfPos {
+		revert()
+		return "", false
+	}
+	p.i += 2 // consume 'Tf'
+	// Optional pass count (digits after 'Tf').
+	for !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+		p.i++
+	}
+	// Function name: from the subs table (pushed by tryBareModuleIdent
+	// before tryTfSpecializationSuffix was called). Scan from the start
+	// of the ORIGINAL save state subs to find the first identifier.
+	funcName := ""
+	for k := 0; k < saveSubs.Len(); k++ {
+		n, ok := saveSubs.Get(k)
+		if ok && common.NodeKind(n.Kind) == common.KindIdentifier {
+			funcName = n.Text
+			break
+		}
+	}
+	if funcName == "" {
+		// Fallback: newest identifier in current subs that isn't a closure ident.
+		for k := 0; k < p.subs.Len(); k++ {
+			n, ok := p.subs.Get(k)
+			if ok && common.NodeKind(n.Kind) == common.KindIdentifier {
+				funcName = n.Text
+				break
+			}
+		}
+	}
+	// Closure name: last identifier parsed in the preamble, or fall back to subs.
+	closureName := ""
+	if len(closureIdents) > 0 {
+		closureName = closureIdents[len(closureIdents)-1]
+	} else {
+		for k := p.subs.Len() - 1; k >= 0; k-- {
+			n, ok := p.subs.Get(k)
+			if ok && common.NodeKind(n.Kind) == common.KindIdentifier {
+				closureName = n.Text
+				break
+			}
+		}
+	}
+	// Parse spec-param codes until '_'.
+	var argParts []string
+	argNum := 0
+	unknownKind := false
+	for !p.eof() && p.s[p.i] != '_' {
+		ch := p.s[p.i]
+		p.i++
+		switch ch {
+		case 'n':
+			// no-op: not specialized, just bump arg index
+			argNum++
+		case 'c':
+			// ClosurePropagated
+			var typeParts []string
+			for _, a := range specArgs {
+				typeParts = append(typeParts, common.Print(a, opts))
+			}
+			// Apple's NodePrinter intentionally does NOT close the outer '['.
+			entry := "[Closure Propagated : " + closureName +
+				", Argument Types : [" + strings.Join(typeParts, ", ") + "]"
+			argParts = append(argParts, "Arg["+strconv.Itoa(argNum)+"] = "+entry)
+			argNum++
+		case 'C':
+			// ClosurePropPreviousArg: references a previous argument by index.
+			if p.eof() || p.s[p.i] < '0' || p.s[p.i] > '9' {
+				unknownKind = true
+				break
+			}
+			idx := int(p.s[p.i] - '0')
+			p.i++
+			for !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+				idx = idx*10 + int(p.s[p.i]-'0')
+				p.i++
+			}
+			entry := "[Same As Argument " + strconv.Itoa(idx) + "]"
+			argParts = append(argParts, "Arg["+strconv.Itoa(argNum)+"] = "+entry)
+			argNum++
+		default:
+			unknownKind = true
+		}
+		if unknownKind {
+			break
+		}
+	}
+	if unknownKind {
+		revert()
+		return "", false
+	}
+	// Consume '_'.
+	if !p.eof() && p.s[p.i] == '_' {
+		p.i++
+	} else {
+		revert()
+		return "", false
+	}
+	// Consume trailing 'n' (return-not-specialized marker).
+	if !p.eof() && p.s[p.i] == 'n' {
+		p.i++
+	} else if !p.eof() {
+		revert()
+		return "", false
+	}
+	display := "function signature specialization"
+	if len(argParts) > 0 {
+		display += " <" + strings.Join(argParts, ", ") + ">"
+	}
+	display += " of "
+	return display, true
 }
 
 // entitySuffixStart reports whether b introduces a 2/3-byte entity
