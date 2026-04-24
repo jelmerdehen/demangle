@@ -210,6 +210,12 @@ func TestStableFunctionEntities(t *testing.T) {
 		// Static property + static getter (Z marker).
 		{"$s4main3FooV4propSivpZ", "static main.Foo.prop : Swift.Int"},
 		{"$s4main3FooV4propSivgZ", "getter for static main.Foo.prop : Swift.Int"},
+		// Generic-param tuple: foo(A, B) -> ()
+		{"$s4main3fooyyx_q_tF", "main.foo(A, B) -> ()"},
+		// Mixed: Int + generic-param A as params.
+		{"$s4main3fooyySi_xtF", "main.foo(Swift.Int, A) -> ()"},
+		// Generic-param as result.
+		{"$s4main3fooxSiF", "main.foo(Swift.Int) -> A"},
 	}
 	for _, c := range varGeneric {
 		c := c
