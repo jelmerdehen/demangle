@@ -1046,6 +1046,10 @@ func (p *parser) tryEntitySuffix(inner *demangle.Node) (*demangle.Node, bool) {
 			case 'c':
 				prefix = "coro function pointer to "
 			}
+		} else if p.s[p.i+1] == 'C' {
+			prefix = "coroutine continuation prototype for "
+		} else if p.s[p.i+1] == 'R' {
+			prefix = "reabstraction thunk helper "
 		} else if p.s[p.i+1] == 'O' {
 			prefix = "@objc thunk of "
 		} else if p.s[p.i+1] == 'o' {
