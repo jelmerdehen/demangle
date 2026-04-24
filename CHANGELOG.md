@@ -4,6 +4,19 @@ All notable changes to this project will be documented here. Format
 follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). This
 project uses semantic versioning.
 
+## [0.1.44] - 2026-04-24
+
+### Added
+
+- **swift-stable** — constrained-parameterized-existential `XP` tail.
+  - After `_p` existential marker, tryParameterizedExistentialTail
+    consumes `(<rhs-type> <ident> <proto-path-ref>? 'Rts')+ '_'? 'XP'`
+    and emits `any <proto><Self[.path].<ident> == <rhs>, ...>`.
+  - Handles both the bare form `Self.T == A` (no proto-path-ref)
+    and the qualified form `Self.test.P.T == Swift.String` (sub-ref
+    for proto-path between ident and Rts).
+  - Apple corpus: 127 → **129/153** direct matches (84.3 %).
+
 ## [0.1.43] - 2026-04-24
 
 ### Added

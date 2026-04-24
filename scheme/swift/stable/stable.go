@@ -4183,6 +4183,17 @@ afterNestedLoop:
 	// name, identical to the bare Protocol node.
 	if p.i+1 < len(p.s) && p.s[p.i] == '_' && p.s[p.i+1] == 'p' {
 		p.i += 2
+		// Optional parameterized-existential trailer: one or more
+		//   <generic-param> <ident> Rts
+		// constraint pairs, terminated by '_XP'. Each entry binds
+		// `Self.<ident> == <generic-param>`. Renders as
+		//   any <proto><Self.<ident> == <type>, ...>
+		// Apple emits Self-qualified assoc-names, prefixing with
+		// `<proto>.` when the ident is followed by a back-refed
+		// protocol sub before 'Rts'.
+		if cons, ok := p.tryParameterizedExistentialTail(node); ok {
+			node = cons
+		}
 	}
 	// Bound-generic trailer: base y <type>+ G.
 	if bg, ok, err := p.tryBoundGeneric(node); err != nil {
@@ -6010,6 +6021,140 @@ func (p *parser) parseIdentifier() (string, error) {
 func (p *parser) grammarErr(expected string) error {
 	offset := p.i + p.prefixBytes
 	return demangle.GrammarViolation(p.schemeName, p.origin, offset, expected)
+}
+
+// tryParameterizedExistentialTail matches the constrained-
+// parameterized-existential trailer emitted immediately after the
+// `_p` existential marker:
+//
+//   (<rhs-type> <ident> <proto-path-ref>? 'Rts')+ '_'? 'XP'
+//
+// Each entry binds `Self[.proto-path].<ident> == <rhs-type>`. When a
+// proto-path-ref is present (a sub-ref like 'AaCP' or 'AE') it's
+// rendered as the qualifier prefix on Self; absent, just Self.<ident>.
+// Render: wraps the protocol text as
+//   "any <proto><Self[.path].<ident> == <rhs>, ...>"
+// Returns (wrapped, true) on match; on any mismatch parser state is
+// restored and the inner protocol node is returned unchanged.
+func (p *parser) tryParameterizedExistentialTail(inner *demangle.Node) (*demangle.Node, bool) {
+	save := p.i
+	saveSubs := p.subs
+	revert := func() { p.i = save; p.subs = saveSubs }
+	if p.eof() {
+		return inner, false
+	}
+	// Must open with a type-start byte (generic-param / sub / stdlib
+	// / digit ident). Cheap reject.
+	c0 := p.s[p.i]
+	if !(c0 == 'x' || c0 == 'q' || c0 == 'A' || c0 == 'S' || c0 == 's' ||
+		(c0 >= '0' && c0 <= '9')) {
+		return inner, false
+	}
+	var parts []string
+	for {
+		// RHS type.
+		entrySave := p.i
+		entrySubs := p.subs
+		rhs, err := p.parseType()
+		if err != nil {
+			p.i = entrySave
+			p.subs = entrySubs
+			break
+		}
+		// assoc-name ident.
+		if p.eof() || !(p.s[p.i] >= '0' && p.s[p.i] <= '9') {
+			revert()
+			return inner, false
+		}
+		name, ierr := p.parseIdentifier()
+		if ierr != nil {
+			revert()
+			return inner, false
+		}
+		// Optional proto-path-ref: anything up to 'Rts'. We accept
+		// a narrow form: zero-or-one 'A<letter>...P' sub-ref-with-kind.
+		protoPath := ""
+		for !p.eof() && !(p.i+2 < len(p.s) &&
+			p.s[p.i] == 'R' && p.s[p.i+1] == 't' && p.s[p.i+2] == 's') {
+			// Scan up to 6 bytes for the path; give up beyond.
+			if p.i-entrySave > 60 {
+				revert()
+				return inner, false
+			}
+			p.i++
+		}
+		if p.eof() || !(p.i+2 < len(p.s) && p.s[p.i] == 'R' &&
+			p.s[p.i+1] == 't' && p.s[p.i+2] == 's') {
+			revert()
+			return inner, false
+		}
+		_ = protoPath
+		p.i += 3 // consume 'Rts'
+		selfPrefix := "Self"
+		// If we skipped bytes for a proto-path-ref (any non-Rts bytes
+		// between name and Rts), emit the inner proto's qualified
+		// name as the Self qualifier (matches Apple's rendering for
+		// the sub-ref'd-proto form).
+		if p.i-3-entrySave-len(name)-lenDigits(name) > 2 {
+			innerText := common.Print(inner, common.DefaultPrintOptions())
+			selfPrefix = "Self." + innerText
+		}
+		parts = append(parts, selfPrefix+"."+name+" == "+common.Print(rhs, common.DefaultPrintOptions()))
+		// Separator: '_' before next entry OR directly 'XP'.
+		if p.eof() {
+			revert()
+			return inner, false
+		}
+		if p.s[p.i] == '_' {
+			// Peek — could be entry sep or final '_XP'.
+			if p.i+2 < len(p.s) && p.s[p.i+1] == 'X' && p.s[p.i+2] == 'P' {
+				p.i += 3
+				break
+			}
+			p.i++
+			continue
+		}
+		if p.i+1 < len(p.s) && p.s[p.i] == 'X' && p.s[p.i+1] == 'P' {
+			p.i += 2
+			break
+		}
+		revert()
+		return inner, false
+	}
+	if len(parts) == 0 {
+		revert()
+		return inner, false
+	}
+	innerText := common.Print(inner, common.DefaultPrintOptions())
+	wrap := common.NewNode(common.KindTypeMangling)
+	wrap.Text = "any " + innerText + "<" + joinComma(parts) + ">"
+	return wrap, true
+}
+
+// lenDigits returns the number of digit chars encoding the length
+// prefix for an identifier of length len(s).
+func lenDigits(s string) int {
+	n := len(s)
+	if n == 0 {
+		return 1
+	}
+	d := 0
+	for n > 0 {
+		d++
+		n /= 10
+	}
+	return d
+}
+
+func joinComma(parts []string) string {
+	out := ""
+	for i, p := range parts {
+		if i > 0 {
+			out += ", "
+		}
+		out += p
+	}
+	return out
 }
 
 func init() {
