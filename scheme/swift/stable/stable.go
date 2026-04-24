@@ -520,13 +520,14 @@ func (p *parser) tryReabstractionThunk(inner *demangle.Node) (*demangle.Node, bo
 		p.i = save
 		p.subs = saveSubs
 	}
+	if p.eof() {
+		return inner, false
+	}
 	// Try to parse another type. Prefer impl-fn-type first — that
 	// parser reads its own leading type prefix + 'I' + attrs + '_'.
 	var second *demangle.Node
 	if implFn, ok := p.tryImplFunctionType(); ok {
 		second = implFn
-	} else if p.eof() {
-		return inner, false
 	} else {
 		t, err := p.parseType()
 		if err != nil {
@@ -980,6 +981,38 @@ func (p *parser) tryImplFunctionType() (*demangle.Node, bool) {
 			types = append(types, emptyTup)
 			continue
 		}
+		// 'A<digits><letter>' — repeat-count multi-sub expands to N+1
+		// identical types in the impl-fn's types list (mirrors Apple's
+		// parse-stack push of repeat+1 copies).
+		if p.s[p.i] == 'A' && p.i+1 < len(p.s) &&
+			p.s[p.i+1] >= '0' && p.s[p.i+1] <= '9' {
+			savePos := p.i
+			saveSubsPos := p.subs
+			p.i++ // consume 'A'
+			digStart := p.i
+			for p.i < len(p.s) && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+				p.i++
+			}
+			if p.i < len(p.s) && p.s[p.i] >= 'A' && p.s[p.i] <= 'Z' {
+				num := 0
+				for k := digStart; k < p.i; k++ {
+					num = num*10 + int(p.s[k]-'0')
+				}
+				idx := int(p.s[p.i] - 'A')
+				if n, ok := p.subs.Get(idx); ok {
+					p.i++
+					// Apple's pushMultiSubstitutions pushes RepeatCount
+					// copies total onto the parse stack for A<N><letter>
+					// (N-1 extras inside + 1 final from caller).
+					for k := 0; k < num; k++ {
+						types = append(types, n)
+					}
+					continue
+				}
+			}
+			p.i = savePos
+			p.subs = saveSubsPos
+		}
 		t, err := p.parseType()
 		if err != nil {
 			revert()
@@ -1278,7 +1311,11 @@ func (p *parser) tryImplFunctionType() (*demangle.Node, bool) {
 	// len(params) == 0 && len(results) == 0 is OK — void function
 	// Ieg_ → @escaping @callee_guaranteed () -> ().
 	paramsStr := "(" + strings.Join(params, ", ") + ")"
-	resultsStr := "(" + strings.Join(results, ", ") + ")"
+	sendingPrefix := ""
+	if sendingResultFlag {
+		sendingPrefix = "sending "
+	}
+	resultsStr := sendingPrefix + "(" + strings.Join(results, ", ") + ")"
 	display := strings.Join(prefixParts, " ") + " " + paramsStr + " -> " + resultsStr
 	wrap := common.NewNode(common.KindTypeMangling)
 	wrap.Text = display
@@ -3800,20 +3837,35 @@ func (p *parser) parseNumericSubstitution() (*demangle.Node, error) {
 		return n, nil
 	}
 	// Decimal form: digits followed by '_'.
+	// OR repeat-count letter form: digits followed by uppercase letter
+	// (mirrors Apple's demangleMultiSubstitutions repeat-count path —
+	// extra copies are pushed into subs by the 'A' prefix branch).
 	if p.s[p.i] >= '0' && p.s[p.i] <= '9' {
 		start := p.i
 		for !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
 			p.i++
 		}
-		idx := 0
+		num := 0
 		for _, c := range p.s[start:p.i] {
-			idx = idx*10 + int(c-'0')
+			num = num*10 + int(c-'0')
+		}
+		if !p.eof() && p.s[p.i] >= 'A' && p.s[p.i] <= 'Z' {
+			letter := p.s[p.i]
+			idx := int(letter - 'A')
+			n, ok := p.subs.Get(idx)
+			if !ok {
+				return nil, p.grammarErr("valid substitution index")
+			}
+			p.i++
+			_ = num // repeat count ignored here — callers that care
+			// (tryImplFunctionType) read the repeat form inline.
+			return n, nil
 		}
 		if p.eof() || p.s[p.i] != '_' {
 			return nil, p.grammarErr("'_' terminating substitution index")
 		}
 		p.i++
-		n, ok := p.subs.Get(idx)
+		n, ok := p.subs.Get(num)
 		if !ok {
 			return nil, p.grammarErr("valid substitution index")
 		}
