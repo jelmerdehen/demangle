@@ -4,6 +4,20 @@ All notable changes to this project will be documented here. Format
 follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). This
 project uses semantic versioning.
 
+## [0.1.29] - 2026-04-24
+
+### Added
+
+- **swift-stable** — impl-fn isolation attrs + inline empty tuple.
+  - tryImplFunctionType accepts 'A' (@isolated(any)) and 'N'
+    (@caller_isolated) after escape. Both render as distinct
+    prefixes between @escaping and callee convention.
+  - Types-loop before 'I' recognises 'yt' as inline empty tuple
+    '()'.
+  - Unlocks compound reabstraction thunk fixtures like
+    $sBAIeNghHgIL_BAytIeNghHgILr_TR.
+  - Apple corpus: 77 → **78/153** direct matches (51.0 %).
+
 ## [0.1.28] - 2026-04-24
 
 ### Added / Fixed
