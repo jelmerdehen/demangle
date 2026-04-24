@@ -283,8 +283,8 @@ func TestStableFunctionEntities(t *testing.T) {
 	thunkCases := []struct {
 		in, want string
 	}{
-		{"$s4main3fooyyFTO", "@objc thunk of main.foo() -> ()"},
-		{"$s4main3fooyyFTo", "@nonobjc thunk of main.foo() -> ()"},
+		{"$s4main3fooyyFTO", "@nonobjc main.foo() -> ()"},
+		{"$s4main3fooyyFTo", "@objc main.foo() -> ()"},
 		{"$s4main3fooyyFTD", "dynamic dispatch thunk of main.foo() -> ()"},
 		{"$s4main3fooyyFTE", "distributed thunk main.foo() -> ()"},
 		{"$s4main3fooyyFTj", "dispatch thunk of main.foo() -> ()"},
@@ -348,7 +348,7 @@ func TestStableEntitySuffixes(t *testing.T) {
 		{"$s4main3FooVMa", "type metadata accessor for main.Foo"},
 		{"$s4main3fooyyFTwb", "back deployment thunk for main.foo() -> ()"},
 		{"$s4main3fooyyFTwB", "back deployment fallback for main.foo() -> ()"},
-		{"$s4main3fooyyFTO", "@objc thunk of main.foo() -> ()"},
+		{"$s4main3fooyyFTO", "@nonobjc main.foo() -> ()"},
 		{"$s4main3fooyyFTD", "dynamic dispatch thunk of main.foo() -> ()"},
 		{"$s4main3fooyyFTA", "partial apply forwarder for main.foo() -> ()"},
 		{"$s4main3fooyyFTj", "dispatch thunk of main.foo() -> ()"},
