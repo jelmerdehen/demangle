@@ -129,6 +129,9 @@ func printFunctionEntity(b *strings.Builder, n *demangle.Node, opts PrintOptions
 		return
 	}
 	printNode(b, n.Children[0], opts) // path
+	if g := n.Attrs["swift.generic"]; g != "" {
+		b.WriteString(g)
+	}
 	b.WriteByte('(')
 	if n.Children[1] != nil && NodeKind(n.Children[1].Kind) != KindEmptyList {
 		// inout/shared params-modifier attributes come through on the

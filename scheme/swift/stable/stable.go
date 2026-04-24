@@ -98,10 +98,12 @@ func parseBodyWithOpts(schemeName, origin, body string, prefixBytes int, opts de
 	if p.i < len(p.s) && p.s[p.i] == 'D' {
 		p.i++
 	}
-	// Specialization trailer would go here — requires proper subs
-	// table to resolve "AA8MystructV_" style args; deferred until
-	// module-substitution parsing is in place.
+	// Specialization trailer: "<spec-args>_T<letter><digits>?" wraps
+	// the main entity with a "generic specialization of" prefix.
 	specPrefix := ""
+	if specWrap, ok := p.trySpecializationSuffix(); ok {
+		specPrefix = specWrap
+	}
 	// Unmangled suffix: ".<anything>" after the main parse.
 	unmangledSuffix := ""
 	if p.i < len(p.s) && p.s[p.i] == '.' {
@@ -818,7 +820,10 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 	}
 
 	var pathSteps []*demangle.Node
-	pathSteps = append(pathSteps, common.NewModule(mod))
+	moduleNode := common.NewModule(mod)
+	pathSteps = append(pathSteps, moduleNode)
+	// Push module to subs so subsequent A<idx>_ can resolve to it.
+	p.subs.Push(moduleNode)
 
 	// Walk identifier + optional (V/C/O) nominal-kind step until we
 	// hit a function-sig marker: 'y' (empty args/return) OR the
@@ -877,10 +882,11 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 	// We speculatively consume a leading `y` as label-list and parse
 	// result/params; on failure we rewind and try without.
 	var (
-		args, ret  *demangle.Node
-		throws     bool
-		async      bool
-		consumed   int // how much of the signature + F we consumed
+		args, ret     *demangle.Node
+		throws        bool
+		async         bool
+		genericSig    bool
+		consumed      int // how much of the signature + F we consumed
 	)
 	tryPath := func(assumeLabelList bool) bool {
 		savePath := p.i
@@ -1052,22 +1058,21 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 		}
 		// Optional generic-signature trailer: 'l' (un-constrained) or
 		// 'r<N>_l' (with <N> constraints, handled as a future commit).
-		// For now we accept bare 'l' before F and annotate the entity.
-		hasGenericSig := false
+		localGeneric := false
 		if !p.eof() && p.s[p.i] == 'l' {
 			p.i++
-			hasGenericSig = true
+			localGeneric = true
 		}
 		if p.eof() || p.s[p.i] != 'F' {
 			revert()
 			return false
 		}
 		p.i++
-		_ = hasGenericSig
 		ret = r
 		args = a
 		async = localAsync
 		throws = localThrows
+		genericSig = localGeneric
 		consumed = p.i - savePath
 		_ = consumed
 		return true
@@ -1091,6 +1096,9 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 	}
 	if throws {
 		entity.Attrs["swift.throws"] = "true"
+	}
+	if genericSig {
+		entity.Attrs["swift.generic"] = "<A>"
 	}
 	common.AddChildren(entity, path, args, ret)
 	return entity, true, nil
@@ -1128,7 +1136,16 @@ func (p *parser) parseType() (*demangle.Node, error) {
 		node, err = p.parseNominalWithModule(common.NewModule("Swift"))
 	case c == 'A':
 		p.i++
-		node, err = p.parseNumericSubstitution()
+		sub, subErr := p.parseNumericSubstitution()
+		if subErr != nil {
+			err = subErr
+		} else if common.NodeKind(sub.Kind) == common.KindModule {
+			// Sub resolved to a module → treat as module prefix and
+			// parse the following ident + kind as a nominal path.
+			node, err = p.parseNominalWithModule(sub)
+		} else {
+			node = sub
+		}
 	case c == 'x':
 		p.i++
 		node = p.genericParam(0, 0)
@@ -1430,7 +1447,7 @@ func (p *parser) trySpecializationSuffix() (string, bool) {
 	case 'G':
 		prefix = "generic specialization (preserving fragile)"
 	case 'B':
-		prefix = "generic specialization (serialized)"
+		prefix = "generic specialization"
 	case 'i':
 		prefix = "inlined generic function"
 	case 't':
