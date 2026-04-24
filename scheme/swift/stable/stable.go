@@ -4082,7 +4082,16 @@ func (p *parser) tryPostfixFunctionType(node *demangle.Node) (*demangle.Node, bo
 		}
 	}
 	// Accept both 'c' (plain escaping, no convention) and X<conv>.
+	// Exception: 'cf<C|c|D|d>' is an init/deinit entity suffix, not
+	// an escaping fn-type marker — leave for tryInitDeinitEntity.
 	var convPrefix string
+	cfAhead := !p.eof() && p.s[p.i] == 'c' && p.i+2 < len(p.s) &&
+		p.s[p.i+1] == 'f' && (p.s[p.i+2] == 'C' || p.s[p.i+2] == 'c' ||
+			p.s[p.i+2] == 'D' || p.s[p.i+2] == 'd')
+	if cfAhead {
+		revert()
+		return node, false
+	}
 	if !p.eof() && p.s[p.i] == 'c' {
 		p.i++
 	} else {
