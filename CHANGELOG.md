@@ -4,6 +4,19 @@ All notable changes to this project will be documented here. Format
 follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). This
 project uses semantic versioning.
 
+## [0.1.17] - 2026-04-22
+
+### Added
+
+- **swift-stable** — more suffix coverage (33 → 34).
+  - TF → distributed accessor for
+  - TM → modify accessor for
+  - TX → async throwing function for
+  - HF → accessible function runtime record for
+  - Hf → accessible function record for
+  - Ha → opaque type descriptor accessor impl for
+  - HA → opaque type descriptor accessor for
+
 ## [0.1.16] - 2026-04-22
 
 ### Added
