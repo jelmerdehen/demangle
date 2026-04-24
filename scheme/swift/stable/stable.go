@@ -5346,12 +5346,26 @@ func (p *parser) tryTfSpecializationSuffix(save int, saveSubs common.Substitutio
 		return "", false
 	}
 	// Parse identifiers (closure names) and types between current pos and 'Tf'.
+	// When a digit is encountered, try parseType first (handles
+	// '<module-ident><name-ident><kind>' nominal paths like 4main1SV →
+	// main.S). If parseType fails or overshoots Tf, fall back to
+	// parseIdentifier for bare closure-name identifiers.
 	var closureIdents []string
 	var specArgs []*demangle.Node
 	opts := common.DefaultPrintOptions()
 	for p.i < tfPos {
 		if p.s[p.i] >= '0' && p.s[p.i] <= '9' {
 			startI := p.i
+			startSubs := p.subs
+			typ, err := p.parseType()
+			if err == nil && p.i <= tfPos {
+				// Parsed successfully as a type (e.g. 4main1SV → main.S).
+				specArgs = append(specArgs, typ)
+				continue
+			}
+			// Roll back and try as a bare identifier (closure name).
+			p.i = startI
+			p.subs = startSubs
 			ident, err := p.parseIdentifier()
 			if err != nil || p.i > tfPos {
 				p.i = startI
@@ -5448,6 +5462,52 @@ func (p *parser) tryTfSpecializationSuffix(save int, saveSubs common.Substitutio
 				p.i++
 			}
 			entry := "[Same As Argument " + strconv.Itoa(idx) + "]"
+			argParts = append(argParts, "Arg["+strconv.Itoa(argNum)+"] = "+entry)
+			argNum++
+		case 'p':
+			// ConstantProp block: sequence of kind+payload items until '_' or
+			// an unrecognised sub-byte. Types are popped from specArgs in
+			// forward order (first pushed = first popped).
+			var items []string
+			specArgIdx := 0
+		pLoop:
+			for !p.eof() && p.s[p.i] != '_' {
+				sub := p.s[p.i]
+				p.i++
+				switch sub {
+				case 'S':
+					// ConstantPropStruct: pop one type from specArgs.
+					if specArgIdx >= len(specArgs) {
+						unknownKind = true
+						break pLoop
+					}
+					t := specArgs[specArgIdx]
+					specArgIdx++
+					items = append(items, "[Constant Propagated Struct : "+common.Print(t, opts)+"]")
+				case 'i':
+					// ConstantPropInteger: read decimal digits.
+					start := p.i
+					for !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+						p.i++
+					}
+					items = append(items, "[Constant Propagated Integer : "+p.s[start:p.i]+"]")
+				case 'f', 'd':
+					// ConstantPropFloat/Double: read decimal digits.
+					start := p.i
+					for !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+						p.i++
+					}
+					items = append(items, "[Constant Propagated Float : "+p.s[start:p.i]+"]")
+				default:
+					// Unrecognised sub-kind: push byte back and stop the sub-loop.
+					p.i--
+					break pLoop
+				}
+			}
+			if unknownKind {
+				break
+			}
+			entry := strings.Join(items, "")
 			argParts = append(argParts, "Arg["+strconv.Itoa(argNum)+"] = "+entry)
 			argNum++
 		default:
