@@ -4,6 +4,27 @@ All notable changes to this project will be documented here. Format
 follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). This
 project uses semantic versioning.
 
+## [0.1.21] - 2026-04-24
+
+### Added
+
+- **swift-stable** — impl-function-type full attr/mode coverage.
+  - Param modes: i/c/l/b/n/X/x/g/e/y/v/p/m (full Apple table).
+  - Result modes: r/o/d/u/a/k.
+  - Per-param/result `w`/`l` differentiability byte → @noDerivative.
+  - Per-param `T` byte → sending.
+  - Callee-convention fix: `t` → @convention(thin) (not @thick),
+    x → @callee_owned, g → @callee_guaranteed, y → @callee_unowned.
+  - Function-convention byte after callee-conv: B/C/M/O/K/W.
+  - Coroutine kind: A (yield_once), I (yield_once_2), G (yield_many).
+  - h (@Sendable), H (@async), T (sending-result) attr markers.
+  - Void impl-function-type (`Ieg_`) accepted.
+  - TC (coroutine continuation prototype) + TR (reabstraction thunk
+    helper) entity suffixes.
+  - corpus_test trims whitespace from mangled string (Apple fixture
+    quirk with trailing space).
+  - Apple corpus: 50 → **57/153** direct matches.
+
 ## [0.1.20] - 2026-04-24
 
 ### Added
