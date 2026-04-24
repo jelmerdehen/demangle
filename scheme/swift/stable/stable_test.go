@@ -227,6 +227,30 @@ func TestStableFunctionEntities(t *testing.T) {
 			}
 		})
 	}
+	// W-suffix witness-table + accessor matrix.
+	wCases := []struct {
+		in, want string
+	}{
+		{"$s4main3FooVWP", "protocol witness table for main.Foo"},
+		{"$s4main3FooVWl", "lazy protocol witness table accessor for main.Foo"},
+		{"$s4main3FooVWa", "protocol witness table accessor for main.Foo"},
+		{"$s4main3FooVWo", "method descriptor for main.Foo"},
+		{"$s4main3FooVMn", "nominal type descriptor for main.Foo"},
+		{"$s4main3FooVMa", "type metadata accessor for main.Foo"},
+		{"$s4main3FooVMp", "protocol descriptor for main.Foo"},
+	}
+	for _, c := range wCases {
+		c := c
+		t.Run("W/"+c.in, func(t *testing.T) {
+			r, err := cat.Demangle(context.Background(), c.in, nil)
+			if err != nil {
+				t.Fatalf("demangle %q: %v", c.in, err)
+			}
+			if r.Output != c.want {
+				t.Errorf("out = %q want %q", r.Output, c.want)
+			}
+		})
+	}
 	// Thunk T-suffixes on function entities.
 	thunkCases := []struct {
 		in, want string
