@@ -198,6 +198,13 @@ func printFunctionEntity(b *strings.Builder, n *demangle.Node, opts PrintOptions
 	}
 	if n.Children[2] == nil || NodeKind(n.Children[2].Kind) == KindEmptyList {
 		b.WriteString("()")
+	} else if NodeKind(n.Children[2].Kind) == KindTypeList {
+		// Multi-element tuple result needs parentheses when rendered
+		// inline after '-> '; single-element/non-tuple types render
+		// without wrapping.
+		b.WriteByte('(')
+		printNode(b, n.Children[2], opts)
+		b.WriteByte(')')
 	} else {
 		printNode(b, n.Children[2], opts)
 	}

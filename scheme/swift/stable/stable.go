@@ -2344,6 +2344,45 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 			}
 			_ = 0 // resultDone label removed; r==nil guard handles fallthrough
 		}
+		// Post-result tuple: '<result>_<type>(_<type>)*t' where the
+		// result slot holds a multi-element tuple. Apple reduces
+		// single-elements to the bare type; multi-element tuples in
+		// the result appear as '<t0>_<t1>(_<tN>)*t'. Convert into a
+		// KindTypeList so the renderer prints "(T1, T2, ...)".
+		if r != nil && !p.eof() && p.s[p.i] == '_' &&
+			common.NodeKind(r.Kind) != common.KindEmptyList {
+			tupSave := p.i
+			tupSubs := p.subs
+			elements := []*demangle.Node{r}
+			tupleOK := false
+			for !p.eof() && p.s[p.i] == '_' {
+				if p.i+1 < len(p.s) && p.s[p.i+1] == 't' {
+					p.i += 2
+					tupleOK = true
+					break
+				}
+				p.i++
+				y, terr := p.parseType()
+				if terr != nil {
+					tupleOK = false
+					break
+				}
+				elements = append(elements, y)
+				if !p.eof() && p.s[p.i] == 't' {
+					p.i++
+					tupleOK = true
+					break
+				}
+			}
+			if tupleOK && len(elements) >= 2 {
+				tup := common.NewNode(common.KindTypeList)
+				common.AddChildren(tup, elements...)
+				r = tup
+			} else {
+				p.i = tupSave
+				p.subs = tupSubs
+			}
+		}
 		// Params-type — may be a tuple for multi-param functions:
 		//
 		//   params-type ::= tuple-element-list 't'
@@ -2697,6 +2736,20 @@ func (p *parser) parseType() (*demangle.Node, error) {
 			// itself being used as a back-reference — return it as-is.
 			if !p.eof() && (p.s[p.i] >= '0' && p.s[p.i] <= '9') {
 				node, err = p.parseNominalWithModule(sub)
+			} else {
+				node = sub
+			}
+		} else if common.NodeKind(sub.Kind) == common.KindIdentifier &&
+			(p.eof() || !(p.s[p.i] >= '0' && p.s[p.i] <= '9')) {
+			// Sub-ref to a bare Identifier not followed by a digit (so
+			// it's being used as a type, not as a module-prefix for a
+			// nested name). Our parser double-pushes identifiers and
+			// nominal Types into subs where Apple pushes identifiers
+			// only and builds the Type on demand; promote the Ident to
+			// the matching Type if one exists in subs so A<idx> lookups
+			// produce the correct type-valued node.
+			if t, ok := p.findTypeForIdent(sub.Text); ok {
+				node = t
 			} else {
 				node = sub
 			}
@@ -3103,6 +3156,30 @@ func (p *parser) parseGenericParam() (*demangle.Node, error) {
 
 func (p *parser) truncated() error {
 	return demangle.TruncatedInput(p.schemeName, p.origin, p.i+p.prefixBytes)
+}
+
+// findTypeForIdent scans subs for a Type node whose nominal leaf's
+// identifier text equals name. Used to promote a bare-Identifier
+// multi-sub result to its matching Type when the surrounding grammar
+// expects a type — our parser double-pushes identifier + type into
+// subs but Apple tracks types only.
+func (p *parser) findTypeForIdent(name string) (*demangle.Node, bool) {
+	for i := p.subs.Len() - 1; i >= 0; i-- {
+		n, _ := p.subs.Get(i)
+		if n == nil || common.NodeKind(n.Kind) != common.KindType {
+			continue
+		}
+		if len(n.Children) == 0 {
+			continue
+		}
+		leaf := n.Children[0]
+		for _, c := range leaf.Children {
+			if common.NodeKind(c.Kind) == common.KindIdentifier && c.Text == name {
+				return n, true
+			}
+		}
+	}
+	return nil, false
 }
 
 // parseOpaqueType — 'Q' consumed; reads the opaque-type marker that
