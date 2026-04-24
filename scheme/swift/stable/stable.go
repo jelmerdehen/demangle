@@ -4184,6 +4184,12 @@ afterYAnnotations:
 		node = newTyp
 	}
 afterNestedLoop:
+	// Postfix inline opaque-return-type reference: <context> <fn-ident>
+	// 'Qr' 'y' 'F' 'QO' 'y' '_' 'Qo' <index>. The C++ stack-based
+	// demangler builds this by pushing/popping; we parse it inline.
+	if ot, ok := p.tryOpaqueContextPostfix(node); ok {
+		node = ot
+	}
 	// Postfix function-type constructor: 'y (Y<ann>)* X<conv>'. When
 	// the preceding type was pushed as the result and 'y' represents
 	// empty params, the X<conv> byte pops and builds a NoEscape or
@@ -4614,6 +4620,130 @@ func (p *parser) parseOpaqueType() (*demangle.Node, error) {
 	}
 	common.AddChildren(placeholder, gp)
 	return placeholder, nil
+}
+
+// tryOpaqueContextPostfix handles the inline opaque-return-type reference
+// that the C++ stack-based demangler builds via QO + Qo<N>_. Called
+// after parseType has returned a nominal context type (ctx) and pushed
+// it to subs. Consumes the sequence:
+//
+//	<fn-ident> 'Qr' 'y' 'F' 'QO' 'y' '_' 'Qo' <index>
+//
+// where <index> is '_' (→ 0) or digits + '_' (→ digits+1).
+//
+// On success, pushes the OpaqueType to subs (mirrors C++ addSubstitution
+// for the Qo case) and returns the display node.
+// On any mismatch, restores parser state and returns (nil, false).
+func (p *parser) tryOpaqueContextPostfix(ctx *demangle.Node) (*demangle.Node, bool) {
+	save := p.i
+	saveSubs := p.subs
+	revert := func() {
+		p.i = save
+		p.subs = saveSubs
+	}
+
+	// Must start with a digit (identifier length prefix for fn name).
+	if p.eof() || p.s[p.i] < '0' || p.s[p.i] > '9' {
+		return nil, false
+	}
+	// Parse the inner function name.
+	fnName, err := p.parseIdentifier()
+	if err != nil {
+		revert()
+		return nil, false
+	}
+	// Push identifier to subs — mirrors C++ demangleIdentifier→addSubstitution.
+	p.subs.Push(common.NewIdentifier(fnName))
+
+	// Expect 'Qr' (opaque return type for the inner function).
+	// We consume manually — parseType would push to subs which would
+	// shift the index Apple assigns to the final OpaqueType.
+	if p.i+1 >= len(p.s) || p.s[p.i] != 'Q' || p.s[p.i+1] != 'r' {
+		revert()
+		return nil, false
+	}
+	p.i += 2 // consume 'Qr'
+
+	// Expect 'y' then 'F' — empty params + inner function entity marker.
+	if p.eof() || p.s[p.i] != 'y' {
+		revert()
+		return nil, false
+	}
+	p.i++ // consume 'y'
+	if p.eof() || p.s[p.i] != 'F' {
+		revert()
+		return nil, false
+	}
+	p.i++ // consume 'F'
+
+	// Expect 'QO' — OpaqueReturnTypeOf wrapper.
+	if p.i+1 >= len(p.s) || p.s[p.i] != 'Q' || p.s[p.i+1] != 'O' {
+		revert()
+		return nil, false
+	}
+	p.i += 2 // consume 'QO'
+
+	// Expect 'y' '_' — empty bound-generic list (demangleBoundGenerics
+	// with EmptyList + FirstElementMarker in C++).
+	if p.eof() || p.s[p.i] != 'y' {
+		revert()
+		return nil, false
+	}
+	p.i++ // consume 'y'
+	if p.eof() || p.s[p.i] != '_' {
+		revert()
+		return nil, false
+	}
+	p.i++ // consume '_'
+
+	// Expect 'Qo' followed by the index.
+	if p.i+1 >= len(p.s) || p.s[p.i] != 'Q' || p.s[p.i+1] != 'o' {
+		revert()
+		return nil, false
+	}
+	p.i += 2 // consume 'Qo'
+
+	// Parse index: '_' → 0, digits+'_' → digits+1 (Apple's demangleIndex).
+	if p.eof() {
+		revert()
+		return nil, false
+	}
+	idx := 0
+	if p.s[p.i] == '_' {
+		idx = 0
+		p.i++ // consume '_'
+	} else if p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+		start := p.i
+		for !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+			p.i++
+		}
+		if p.eof() || p.s[p.i] != '_' {
+			revert()
+			return nil, false
+		}
+		n := 0
+		for _, d := range p.s[start:p.i] {
+			n = n*10 + int(d-'0')
+		}
+		idx = n + 1
+		p.i++ // consume '_'
+	} else {
+		revert()
+		return nil, false
+	}
+
+	// Build display: "<<opaque return type of <ctx>.<fn>() -> some>>.<idx>"
+	ctxStr := common.Print(ctx, common.DefaultPrintOptions())
+	display := fmt.Sprintf("<<opaque return type of %s.%s() -> some>>.%d", ctxStr, fnName, idx)
+
+	inner := common.NewNode(common.KindTypeMangling)
+	inner.Text = display
+	typ := common.NewNode(common.KindType)
+	common.AddChildren(typ, inner)
+
+	// Push to subs — mirrors C++ addSubstitution in the Qo branch.
+	p.subs.Push(typ)
+	return typ, true
 }
 
 // trySpecializationSuffix scans the tail of the body for the
