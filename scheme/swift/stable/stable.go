@@ -944,6 +944,8 @@ func (p *parser) parseType() (*demangle.Node, error) {
 	case c == 'Q':
 		p.i++
 		node, err = p.parseOpaqueType()
+	case c == 'y':
+		node, err = p.parseFunctionType()
 	case c >= '0' && c <= '9':
 		node, err = p.parseNominalPath()
 	default:
@@ -1193,6 +1195,135 @@ func entitySuffixStart(b byte) bool {
 		return true
 	}
 	return false
+}
+
+// parseFunctionType handles function-TYPE (as distinct from function-
+// entity). Shape:
+//
+//	y <result> y <params-type> c                      // escaping
+//	y <result> y <params-type> X<conv-letter>          // @convention
+//	y <result> y <params-type> X<conv-letter> <escape?> // @convention + mods
+//
+// Convention letters: C=c, B=block, T=thin, F=method, K=objc_method.
+// Parser is speculative — rolls back if the shape doesn't match.
+func (p *parser) parseFunctionType() (*demangle.Node, error) {
+	save := p.i
+	saveSubs := p.subs
+	if p.eof() || p.s[p.i] != 'y' {
+		return nil, p.grammarErr("function-type y")
+	}
+	p.i++
+	// Result-type.
+	var r *demangle.Node
+	if !p.eof() && p.s[p.i] == 'y' {
+		p.i++
+		r = common.NewNode(common.KindEmptyList)
+	} else {
+		t, err := p.parseType()
+		if err != nil {
+			p.i = save
+			p.subs = saveSubs
+			return nil, err
+		}
+		r = t
+	}
+	// Params-type.
+	var a *demangle.Node
+	if !p.eof() && p.s[p.i] == 'y' {
+		p.i++
+		a = common.NewNode(common.KindEmptyList)
+	} else {
+		t, err := p.parseType()
+		if err != nil {
+			p.i = save
+			p.subs = saveSubs
+			return nil, err
+		}
+		// Check for tuple-_-separator repeat.
+		if !p.eof() && p.s[p.i] == '_' {
+			elements := []*demangle.Node{t}
+			for !p.eof() && p.s[p.i] == '_' {
+				p.i++
+				y, err := p.parseType()
+				if err != nil {
+					p.i = save
+					p.subs = saveSubs
+					return nil, err
+				}
+				elements = append(elements, y)
+			}
+			if p.eof() || p.s[p.i] != 't' {
+				p.i = save
+				p.subs = saveSubs
+				return nil, p.grammarErr("tuple 't' terminator")
+			}
+			p.i++
+			tup := common.NewNode(common.KindTypeList)
+			common.AddChildren(tup, elements...)
+			a = tup
+		} else {
+			a = t
+		}
+	}
+	// Function-type marker: 'c' (escaping) or 'X' + convention letter.
+	conv := ""
+	if p.eof() {
+		p.i = save
+		p.subs = saveSubs
+		return nil, p.grammarErr("function-type marker")
+	}
+	switch p.s[p.i] {
+	case 'c':
+		p.i++
+	case 'X':
+		if p.i+1 >= len(p.s) {
+			p.i = save
+			p.subs = saveSubs
+			return nil, p.grammarErr("X convention letter")
+		}
+		switch p.s[p.i+1] {
+		case 'C':
+			conv = "c"
+		case 'B':
+			conv = "block"
+		case 'T':
+			conv = "thin"
+		case 'F':
+			conv = "method"
+		case 'K':
+			conv = "objc_method"
+		case 'E':
+			conv = "thick"
+		default:
+			p.i = save
+			p.subs = saveSubs
+			return nil, p.grammarErr("X convention letter")
+		}
+		p.i += 2
+	default:
+		p.i = save
+		p.subs = saveSubs
+		return nil, p.grammarErr("function-type marker (c or X)")
+	}
+	// Render as "(<params>) -> <result>" with optional @convention prefix.
+	opts := common.DefaultPrintOptions()
+	paramsStr := "()"
+	if common.NodeKind(a.Kind) != common.KindEmptyList {
+		paramsStr = "(" + common.Print(a, opts) + ")"
+	}
+	retStr := "()"
+	if common.NodeKind(r.Kind) != common.KindEmptyList {
+		retStr = common.Print(r, opts)
+	}
+	display := paramsStr + " -> " + retStr
+	if conv != "" {
+		display = "@convention(" + conv + ") " + display
+	}
+	typ := common.NewNode(common.KindType)
+	inner := common.NewNode(common.KindBuiltinTypeName)
+	inner.Text = display
+	common.AddChildren(typ, inner)
+	return typ, nil
 }
 
 // parseNumericSubstitution — 'A' consumed; reads a Swift ABI
