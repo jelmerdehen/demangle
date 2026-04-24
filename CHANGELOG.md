@@ -4,6 +4,30 @@ All notable changes to this project will be documented here. Format
 follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). This
 project uses semantic versioning.
 
+## [0.1.10] - 2026-04-22
+
+### Added
+
+- **swift-stable** — new grammar coverage unlocking more corpus matches.
+  - Named label-list: `<identifier|x>+y` threaded to printer as
+    `label: Type` inside function-entity parens.
+  - Q-family opaque types + specialization T-suffixes + generic-sig
+    `l` trailer.
+  - Protocol-conformance `Hc`/`Hp` (Type + Protocol + source-module).
+  - Variable-entity `<ctx><decl><type>v<kind>` for p/g/s/w/W/M/a/m
+    + r/y/x/i coroutine accessor kinds.
+  - Function-type with `@convention(c/block/thin/method/objc_method)`
+    markers via the `X<letter>` terminator.
+  - Base-26 numeric substitution (`A<upper>+` optional lowercase
+    terminator) plus empty-index `A_` shortcut.
+  - Apple corpus: 19/153 → 24/153 direct matches, 0 mismatches.
+- **cxxmsvc** — full operator-overload table (30 codes: + - * / etc.)
+  plus 64-bit `E` (__ptr64) modifier handling and pointer/ref target
+  extended to class-ref (V/U/T scope) + `_<letter>` primitives.
+- **dlang** — delegate-of-function `D<F...Z<ret>>` recursion.
+- **core** — 91.9% unit-test coverage, CI gate at 88%; 23 fuzz
+  harnesses (21 per-scheme + 2 core).
+
 ## [0.1.9] - 2026-04-22
 
 ### Added
