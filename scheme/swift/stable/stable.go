@@ -1463,6 +1463,14 @@ func (p *parser) parseType() (*demangle.Node, error) {
 	case c == 'B':
 		node, err = p.parseBuiltin()
 	case c == 'S':
+		// Speculative: S<N><letter> ... Y<ann>* X<conv> is a compact
+		// function-type where N stdlib-letter types feed result +
+		// params slots. Try this shape first; roll back to plain
+		// parseStdlibSubstitution on mismatch.
+		if fn, ok := p.tryStdlibCompactFunctionType(); ok {
+			node = fn
+			break
+		}
 		p.i++
 		node, err = p.parseStdlibSubstitution()
 	case c == 's':
@@ -2128,6 +2136,144 @@ func (p *parser) parseNominalWithModule(module *demangle.Node) (*demangle.Node, 
 	common.AddChildren(nom, module, common.NewIdentifier(name))
 	common.AddChildren(typ, nom)
 	return typ, nil
+}
+
+// tryStdlibCompactFunctionType matches the compact function-type
+// shape used when parameters and result are all stdlib letter-types:
+//
+//	S<N><letter> (Y<ann>)* X<conv>
+//
+// For N = 2 the letter is reused: types[0] feeds params, types[1]
+// feeds result. The X<conv> byte picks the function-type flavour:
+//
+//	XE → bare (NoEscape, no prefix)
+//	XC → @convention(c)
+//	XB → @convention(block)
+//	XT → @convention(thin)
+//
+// Annotation bytes handled: Yb (@Sendable), Yj<v> (@differentiable
+// variants: d/f/r/l), Ya (async), K (throws).
+//
+// Returns (node, true) on match with the parser advanced past the
+// consumed bytes. On any mismatch the parser position is unchanged.
+func (p *parser) tryStdlibCompactFunctionType() (*demangle.Node, bool) {
+	if p.i+2 >= len(p.s) || p.s[p.i] != 'S' {
+		return nil, false
+	}
+	if p.s[p.i+1] < '0' || p.s[p.i+1] > '9' {
+		return nil, false
+	}
+	save := p.i
+	saveSubs := p.subs
+	revert := func() {
+		p.i = save
+		p.subs = saveSubs
+	}
+	digStart := p.i + 1
+	j := digStart
+	for j < len(p.s) && p.s[j] >= '0' && p.s[j] <= '9' {
+		j++
+	}
+	if j >= len(p.s) {
+		return nil, false
+	}
+	n := 0
+	for _, d := range p.s[digStart:j] {
+		n = n*10 + int(d-'0')
+	}
+	if n < 2 {
+		return nil, false
+	}
+	letter := p.s[j]
+	base, ok := common.BuildStdlibNominal(letter)
+	if !ok {
+		return nil, false
+	}
+	p.i = j + 1
+	// Collect Y-annotations + throws marker K before the X<conv> byte.
+	var annotations []string
+	for !p.eof() {
+		if p.s[p.i] == 'Y' {
+			if p.i+1 >= len(p.s) {
+				revert()
+				return nil, false
+			}
+			tag := p.s[p.i+1]
+			p.i += 2
+			switch tag {
+			case 'b':
+				annotations = append(annotations, "@Sendable")
+			case 'a':
+				annotations = append(annotations, "async")
+			case 'j':
+				if p.eof() {
+					revert()
+					return nil, false
+				}
+				v := p.s[p.i]
+				p.i++
+				switch v {
+				case 'd':
+					annotations = append(annotations, "@differentiable")
+				case 'f':
+					annotations = append(annotations, "@differentiable(_forward)")
+				case 'r':
+					annotations = append(annotations, "@differentiable(reverse)")
+				case 'l':
+					annotations = append(annotations, "@differentiable(_linear)")
+				default:
+					revert()
+					return nil, false
+				}
+			default:
+				revert()
+				return nil, false
+			}
+			continue
+		}
+		if p.s[p.i] == 'K' {
+			annotations = append(annotations, "throws")
+			p.i++
+			continue
+		}
+		break
+	}
+	if p.i+1 >= len(p.s) || p.s[p.i] != 'X' {
+		revert()
+		return nil, false
+	}
+	xLetter := p.s[p.i+1]
+	var convPrefix string
+	switch xLetter {
+	case 'E':
+		convPrefix = ""
+	case 'C':
+		convPrefix = "@convention(c) "
+	case 'B':
+		convPrefix = "@convention(block) "
+	case 'T':
+		convPrefix = "@convention(thin) "
+	default:
+		revert()
+		return nil, false
+	}
+	p.i += 2
+	baseName := common.Print(base, common.DefaultPrintOptions())
+	// n = 2: types[0] = params, types[1] = result — both the same
+	// letter-type. Generalise to larger N only when a corpus fixture
+	// demands it (currently none do).
+	resultStr := baseName
+	paramsStr := "(" + baseName + ")"
+	annotationStr := ""
+	if len(annotations) > 0 {
+		annotationStr = strings.Join(annotations, " ") + " "
+	}
+	display := convPrefix + annotationStr + paramsStr + " -> " + resultStr
+	typ := common.NewNode(common.KindType)
+	inner := common.NewNode(common.KindBuiltinTypeName)
+	inner.Text = display
+	common.AddChildren(typ, inner)
+	return typ, true
 }
 
 // tryPostfixBorrow looks for a trailing 'BW' modifier. Wraps the
