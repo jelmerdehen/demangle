@@ -3772,11 +3772,18 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 			}
 			break
 		}
-		if p.eof() || p.s[p.i] != 'F' {
+		// Accept 'F' (regular fn entity) or 'cfm' (macro-entity fn
+		// variant: render as plain function, Apple drops the `fm`
+		// in the display).
+		if p.i+2 < len(p.s) && p.s[p.i] == 'c' && p.s[p.i+1] == 'f' &&
+			p.s[p.i+2] == 'm' {
+			p.i += 3
+		} else if p.eof() || p.s[p.i] != 'F' {
 			revert()
 			return false
+		} else {
+			p.i++
 		}
-		p.i++
 		ret = r
 		args = a
 		async = localAsync
