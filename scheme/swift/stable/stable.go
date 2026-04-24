@@ -1547,9 +1547,16 @@ func (p *parser) parseType() (*demangle.Node, error) {
 		if subErr != nil {
 			err = subErr
 		} else if common.NodeKind(sub.Kind) == common.KindModule {
-			// Sub resolved to a module → treat as module prefix and
-			// parse the following ident + kind as a nominal path.
-			node, err = p.parseNominalWithModule(sub)
+			// Sub resolved to a module. If the following byte starts
+			// another identifier (digit) or a stdlib-sub/A-sub the
+			// module acts as a prefix; parse the nominal path. If the
+			// byte is a signature marker (y, F, etc.) the module is
+			// itself being used as a back-reference — return it as-is.
+			if !p.eof() && (p.s[p.i] >= '0' && p.s[p.i] <= '9') {
+				node, err = p.parseNominalWithModule(sub)
+			} else {
+				node = sub
+			}
 		} else {
 			node = sub
 		}
@@ -2219,6 +2226,17 @@ func (p *parser) parseNominalWithModule(module *demangle.Node) (*demangle.Node, 
 	// the formal kind. Don't consume the byte here — let tryEntitySuffix
 	// see it.
 	if entitySuffixStart(k) {
+		typ := common.NewNode(common.KindType)
+		nom := common.NewNode(common.KindProtocol)
+		common.AddChildren(nom, module, common.NewIdentifier(name))
+		common.AddChildren(typ, nom)
+		return typ, nil
+	}
+	// '_p' in the kind-byte slot marks a protocol-list-type starting
+	// with this ident. The name is treated as a Protocol; the '_p'
+	// existential wrapper is consumed by the postfix '_p' handler in
+	// parseType and displays identically to the bare protocol.
+	if k == '_' && p.i+1 < len(p.s) && p.s[p.i+1] == 'p' {
 		typ := common.NewNode(common.KindType)
 		nom := common.NewNode(common.KindProtocol)
 		common.AddChildren(nom, module, common.NewIdentifier(name))
