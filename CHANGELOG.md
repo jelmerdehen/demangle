@@ -4,6 +4,21 @@ All notable changes to this project will be documented here. Format
 follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). This
 project uses semantic versioning.
 
+## [0.1.41] - 2026-04-24
+
+### Added
+
+- **swift-stable** — AnonymousContext `yXZ` + private-decl-name
+  `LL` (LLDB expression contexts).
+  - parseNominalWithModule: after ident, `yXZ` wraps parent + ident
+    as "(unknown context at <ident>)" and recurses into the next
+    nominal with this as its context.
+  - parseNominalWithModule: after ident, `<disc-ident>LL<kind>`
+    builds a PrivateDeclName rendered as "(<name> in <disc>)".
+  - Unlocks the `__lldb_expr_1` fixture and similar LLDB-injected
+    context chains.
+  - Apple corpus: 118 → **119/153** direct matches (77.8 %).
+
 ## [0.1.40] - 2026-04-24
 
 ### Added

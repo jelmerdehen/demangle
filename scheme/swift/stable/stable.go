@@ -5052,6 +5052,55 @@ func (p *parser) parseNominalWithModule(module *demangle.Node) (*demangle.Node, 
 		return nil, demangle.TruncatedInput(p.schemeName, p.origin, p.i+p.prefixBytes)
 	}
 	k := p.s[p.i]
+	// AnonymousContext — '<ident>yXZ'. Wraps the parent + ident into
+	// an "(unknown context at <ident>)" wrapper, then parses the next
+	// nominal using this as its context. Used for LLDB expression
+	// contexts ($10016c2d8 etc.).
+	if k == 'y' && p.i+2 < len(p.s) && p.s[p.i+1] == 'X' && p.s[p.i+2] == 'Z' {
+		p.i += 3
+		baseText := common.Print(module, common.DefaultPrintOptions())
+		combined := baseText + "." + fmt.Sprintf("(unknown context at %s)", name)
+		newMod := common.NewModule(combined)
+		return p.parseNominalWithModule(newMod)
+	}
+	// Private-decl-name LL — '<name-ident><disc-ident>LL<kind>'. The
+	// first ident is the name, the second is the private discriminator.
+	// Combined display: "(<name> in <disc>)".
+	if k >= '0' && k <= '9' {
+		savePos := p.i
+		saveSubsPD := p.subs
+		disc, derr := p.parseIdentifier()
+		if derr == nil && p.i+1 < len(p.s) && p.s[p.i] == 'L' && p.s[p.i+1] == 'L' {
+			p.subs.Push(common.NewIdentifier(disc))
+			p.i += 2
+			if p.eof() {
+				return nil, demangle.TruncatedInput(p.schemeName, p.origin, p.i+p.prefixBytes)
+			}
+			dk := p.s[p.i]
+			p.i++
+			var dkind common.NodeKind
+			switch dk {
+			case 'V':
+				dkind = common.KindStructure
+			case 'C':
+				dkind = common.KindClass
+			case 'O':
+				dkind = common.KindEnum
+			case 'P':
+				dkind = common.KindProtocol
+			default:
+				return nil, p.grammarErr("nominal kind byte V/C/O/P after LL")
+			}
+			typ := common.NewNode(common.KindType)
+			nom := common.NewNode(dkind)
+			display := fmt.Sprintf("(%s in %s)", name, disc)
+			common.AddChildren(nom, module, common.NewIdentifier(display))
+			common.AddChildren(typ, nom)
+			return typ, nil
+		}
+		p.i = savePos
+		p.subs = saveSubsPD
+	}
 	// If the kind byte slot is the start of an entity-suffix marker
 	// (H/W/T/M runtime-record and descriptor families), the grammar
 	// implicitly treats the decl-name as a protocol. The suffix handles
