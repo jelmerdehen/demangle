@@ -223,6 +223,8 @@ func (p *parser) parseGlobal() (*demangle.Node, error) {
 		return nil, err
 	} else if ok {
 		inner = initEntity
+	} else if implFn, ok := p.tryImplFunctionType(); ok {
+		inner = implFn
 	} else {
 		t, err := p.parseType()
 		if err != nil {
@@ -249,6 +251,128 @@ func (p *parser) parseGlobal() (*demangle.Node, error) {
 
 	common.AddChildren(g, inner)
 	return g, nil
+}
+
+// tryImplFunctionType matches SIL impl-function-type:
+//
+//	<type>* 'I' <attrs> '_'
+//
+// Attributes (order-sensitive, single-letter):
+//   CALLEE-ESCAPE: 'e' = @escaping
+//   DIFFERENTIABLE: 'f' forward / 'r' reverse / 'd' both / 'l' linear
+//   CALLEE-CONVENTION: 'g' guaranteed / 'y' unowned / 't' thick /
+//                      'X' callee-unowned / 'x' thin etc.
+//   PARAM-MODE (per type): 'n' in_guaranteed / 'i' in / 'd' direct_unowned
+//                          / 'g' direct_guaranteed / 'y' direct_unowned
+//                          / 'o' direct_owned / 'l' inout
+//   RESULT-MODE: 'r' out / 'd' direct_unowned / 'o' direct_owned
+//
+// Narrow rendering — labels the differentiable/escape/conv bits and
+// matches per-param 'n' (@in_guaranteed) + per-result 'r' (@out).
+func (p *parser) tryImplFunctionType() (*demangle.Node, bool) {
+	save := p.i
+	saveSubs := p.subs
+	revert := func() { p.i = save; p.subs = saveSubs }
+	// Parse 0-or-more leading types.
+	var types []*demangle.Node
+	for !p.eof() && p.s[p.i] != 'I' {
+		t, err := p.parseType()
+		if err != nil {
+			revert()
+			return nil, false
+		}
+		types = append(types, t)
+	}
+	if p.eof() || p.s[p.i] != 'I' {
+		revert()
+		return nil, false
+	}
+	p.i++ // consume I
+	// Parse attributes until '_'.
+	attrStart := p.i
+	for !p.eof() && p.s[p.i] != '_' {
+		p.i++
+	}
+	if p.eof() {
+		revert()
+		return nil, false
+	}
+	attrs := p.s[attrStart:p.i]
+	p.i++ // consume '_'
+	// Interpret attrs. Narrow subset.
+	prefixParts := []string{}
+	escaping := false
+	diffKind := ""
+	calleeConv := "callee_guaranteed"
+	for _, a := range attrs {
+		switch a {
+		case 'e':
+			escaping = true
+		case 'f':
+			diffKind = "(_forward)"
+		case 'r':
+			// Within attrs section 'r' = differentiable(reverse); after
+			// per-param section 'r' = @out. Narrow: if at start, it's
+			// diff.
+			if diffKind == "" && calleeConv == "callee_guaranteed" {
+				diffKind = "(reverse)"
+			}
+		case 'd':
+			if diffKind == "" {
+				diffKind = ""
+			}
+		case 'l':
+			diffKind = "(_linear)"
+		case 'g':
+			calleeConv = "callee_guaranteed"
+		case 'y':
+			calleeConv = "callee_unowned"
+		case 't':
+			calleeConv = "thick"
+		}
+		_ = a
+	}
+	if escaping {
+		prefixParts = append(prefixParts, "@escaping")
+	}
+	if diffKind != "" {
+		prefixParts = append(prefixParts, "@differentiable"+diffKind)
+	} else if strings.Contains(attrs, "d") {
+		prefixParts = append(prefixParts, "@differentiable")
+	}
+	prefixParts = append(prefixParts, "@"+calleeConv)
+	// Build args + results from types. Heuristic: if attrs contain 'n'
+	// before 'r', split types into params/results by matching: each
+	// type+param-mode consumes one type, then each result-mode consumes
+	// one type.
+	opts := common.DefaultPrintOptions()
+	var params []string
+	var results []string
+	// Count 'n' and 'r' appearances roughly.
+	nCount := strings.Count(attrs, "n")
+	rCount := strings.Count(attrs, "r")
+	// Diff 'r' collision — if diffKind set via 'r', reduce.
+	if diffKind == "(reverse)" {
+		rCount--
+	}
+	if nCount+rCount != len(types) {
+		// Uneven — give up.
+		revert()
+		return nil, false
+	}
+	for i, t := range types {
+		if i < nCount {
+			params = append(params, "@in_guaranteed "+common.Print(t, opts))
+		} else {
+			results = append(results, "@out "+common.Print(t, opts))
+		}
+	}
+	paramsStr := "(" + strings.Join(params, ", ") + ")"
+	resultsStr := "(" + strings.Join(results, ", ") + ")"
+	display := strings.Join(prefixParts, " ") + " " + paramsStr + " -> " + resultsStr
+	wrap := common.NewNode(common.KindTypeMangling)
+	wrap.Text = display
+	return wrap, true
 }
 
 // tryVariableEntity matches the variable-entity shape:
