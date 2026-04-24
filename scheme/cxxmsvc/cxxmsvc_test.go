@@ -120,6 +120,9 @@ func TestMSVCAccessQualifiers(t *testing.T) {
 		{"?m@C@@AAAXXZ", "private: void __cdecl C::m(void)"},
 		// B = private, method (same as A in narrow parser).
 		{"?m@C@@BAAXXZ", "private: void __cdecl C::m(void)"},
+		// 64-bit E modifier after access byte: AEAAXXZ.
+		{"?bar@Foo@@AEAAXXZ", "private: void __cdecl Foo::bar(void)"},
+		{"?baz@Foo@@QEAAHH@Z", "public: int __cdecl Foo::baz(int)"},
 		// C = protected, cv none
 		{"?m@C@@CAAXXZ", "protected: void __cdecl C::m(void)"},
 		// I = private static

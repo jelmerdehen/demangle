@@ -582,6 +582,12 @@ func (p *parser) parseSignatureMode(ctorDtor bool) (signature, error) {
 	default:
 		return sig, p.grammarErr("access/function class byte")
 	}
+	// For methods, an optional __ptr64 modifier byte 'E' may precede
+	// the cv-byte (common in 64-bit MSVC mangling). Consume + discard
+	// (we don't render ptr64 in the display form).
+	if isMethod && !p.eof() && p.s[p.i] == 'E' {
+		p.i++
+	}
 	// For methods, optional cv-byte may follow (A=none, B=const, C=vol, D=cv).
 	if isMethod {
 		if p.eof() {
