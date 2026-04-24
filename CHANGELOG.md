@@ -4,6 +4,26 @@ All notable changes to this project will be documented here. Format
 follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). This
 project uses semantic versioning.
 
+## [0.1.15] - 2026-04-22
+
+### Added
+
+- **swift-stable** — more corpus matches (26 → 30).
+  - Generic-signature 'l' trailer now renders `<A>` after the
+    function name in the entity display.
+  - Specialization suffix `<spec-args>_T<letter><digits>?` wraps
+    the entity with `generic specialization <X> of ` prefix.
+  - Module nodes pushed to subs table during tryFunctionEntity /
+    parseNominalPath so `A<idx>_` back-refs resolve to module
+    contexts. parseType 'A' case promotes module-valued subs to
+    nominal-path-prefix and continues parsing.
+  - Param-type modifiers `Yi` (isolated), `YT` (sending), `n`
+    (__owned) recognised and rendered.
+  - Suffix additions: `TY<N>_` (suspend resume), `TQ<N>_` (await
+    resume) with `(N+1)` index, `Twd` (default override),
+    `Twc` (coro function pointer to).
+  - Apple corpus: 26/153 → **30/153** direct matches, 0 mismatches.
+
 ## [0.1.14] - 2026-04-22
 
 ### Added
