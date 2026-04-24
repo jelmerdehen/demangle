@@ -294,6 +294,10 @@ func (p *parser) parseGlobal() (*demangle.Node, error) {
 		inner = wrapped
 	}
 	for {
+		if wrapped, ok := p.trySubscriptEntity(inner); ok {
+			inner = wrapped
+			continue
+		}
 		if wrapped, ok := p.tryNestedPrivateDecl(inner); ok {
 			inner = wrapped
 			continue
@@ -315,6 +319,72 @@ func (p *parser) parseGlobal() (*demangle.Node, error) {
 
 	common.AddChildren(g, inner)
 	return g, nil
+}
+
+// trySubscriptEntity matches the subscript-entity shape
+//
+//   <T> 'i' <kind> [<ident> 'P']
+//
+// where <T> is the subscript's element-type (already parsed into
+// inner via parseType), 'i' marks subscript accessor, <kind> is one
+// of p/g/s/w/W/M/a/m (property/getter/...), and the optional
+// <ident>P is a local-private-decl discriminator. Renders as
+// "<prefix> <owner>.subscript : <T>" or "<local> in <owner>.subscript : <T>".
+//
+// inner must be a Type wrapping a nominal — the subscript's owner is
+// determined by a preceding 'x' (generic A) or via the element type.
+// Narrow: only 'ip' property form with optional local-private suffix.
+func (p *parser) trySubscriptEntity(inner *demangle.Node) (*demangle.Node, bool) {
+	if p.eof() || p.s[p.i] != 'x' {
+		return inner, false
+	}
+	if p.i+2 >= len(p.s) || p.s[p.i+1] != 'i' {
+		return inner, false
+	}
+	save := p.i
+	saveSubs := p.subs
+	revert := func() { p.i = save; p.subs = saveSubs }
+	p.i++ // consume 'x' (element = A)
+	p.i++ // consume 'i'
+	kindByte := p.s[p.i]
+	prefix := ""
+	switch kindByte {
+	case 'p':
+		prefix = ""
+	case 'g':
+		prefix = "getter for "
+	case 's':
+		prefix = "setter for "
+	case 'M':
+		prefix = "materializeForSet for "
+	case 'a':
+		prefix = "unsafeAddressor for "
+	case 'm':
+		prefix = "unsafeMutableAddressor for "
+	default:
+		revert()
+		return inner, false
+	}
+	p.i++ // consume kind byte
+	local := ""
+	if !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+		name, err := p.parseIdentifier()
+		if err == nil && !p.eof() && p.s[p.i] == 'P' {
+			p.i++
+			local = name
+		} else {
+			revert()
+			return inner, false
+		}
+	}
+	ownerStr := common.Print(inner, common.DefaultPrintOptions())
+	wrap := common.NewNode(common.KindTypeMangling)
+	if local != "" {
+		wrap.Text = local + " in " + prefix + ownerStr + ".subscript : A"
+	} else {
+		wrap.Text = prefix + ownerStr + ".subscript : A"
+	}
+	return wrap, true
 }
 
 // tryNestedPrivateDecl matches '<N><name> L <idx>_ <kind>' where
