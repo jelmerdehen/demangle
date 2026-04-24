@@ -4,6 +4,23 @@ All notable changes to this project will be documented here. Format
 follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). This
 project uses semantic versioning.
 
+## [0.1.30] - 2026-04-24
+
+### Added
+
+- **swift-stable** — nested locals + spec-nominal result context.
+  - tryNestedLocalVariable matches
+    '<N><name> L <digits>? _ <type> v p' after a parent function
+    entity. Wraps as '<name> #<idx+1> : <type> in <inner>'. Pairs
+    with fF/fP suffixes (e.g. property wrapped field init accessor
+    of x #1 : Swift.Int in main.myFunc() -> ()).
+  - Spec-nominal result-slot: when `<digits><name><V/C/O/P>` appears
+    at the function-entity result-slot AND the subs table has a
+    recent Module/Identifier back-ref, build the nominal using that
+    sub as context (keeps A-sub chain context intact). Unlocks
+    $s4testA2A5KlassCyYTF → "test.test() -> sending test.Klass".
+  - Apple corpus: 78 → **80/153** direct matches (52.3 %).
+
 ## [0.1.29] - 2026-04-24
 
 ### Added
