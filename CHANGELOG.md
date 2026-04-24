@@ -4,6 +4,28 @@ All notable changes to this project will be documented here. Format
 follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). This
 project uses semantic versioning.
 
+## [0.1.20] - 2026-04-24
+
+### Added
+
+- **swift-stable** — grammar push from 39 → **50/153** direct matches.
+  - `BW` postfix → `Builtin.Borrow<T>` (builtin borrow wrapper).
+  - Integer-type literal `$<digit>` (base-36 encoding, value+1).
+  - `_` separator in bound-generic arg lists (mixed integer + nominal).
+  - Compact stdlib function-type `S<N><letter> (Y<ann>)* X<conv>`
+    for @Sendable / @differentiable / @convention closure fixtures.
+  - Compact `S<N><letter>` at result+params slot of function entity.
+  - Postfix type annotations `Yt` (_const), `Yk` (@noDerivative),
+    `Yu` (sending) — display-only wrapping.
+  - Single-element tuple form `<type>_t` in function-entity params.
+  - Function-entity params `Yu` = sending (param) now handled; `YT`
+    = sending-result moved to function-level annotations.
+  - Label-list grammar fix: in Apple mangling, non-empty labels are
+    pushed raw with NO terminator. Previous parser consumed the
+    result-empty `y` byte as a spurious label-list terminator.
+  - `Builtin.Borrow<T>` + `sending <T>` + `sending ` result
+    rendering in swift/common printer.
+
 ## [0.1.19] - 2026-04-22
 
 ### Added
