@@ -4,6 +4,34 @@ All notable changes to this project will be documented here. Format
 follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). This
 project uses semantic versioning.
 
+## [0.1.33] - 2026-04-24
+
+### Added
+
+- **swift-stable** — macro expansion, key-path getter, impl-fn
+  extensions, TJO self-reordering.
+  - Macro-expansion entity suffix `<N><name>fM<kind><idx>_` with 9
+    kind letters (freestanding/unique/accessor/member/extension/peer/
+    member-attribute/body/preamble).
+  - Key-path getter/setter suffix `<owner-type>T<K|k>q?` renders as
+    `key path <accessor> for <inner> : <owner>[, serialized]`.
+  - tryVariableEntity pushes identifier + nominal Type per chain
+    step so A-multi-sub back-refs in key-path suffix resolve.
+  - Constraint-loop renders `R_` as `B: <proto>` (depth-0 idx-1
+    subject).
+  - Compact result+params consume arbitrary types between '_'
+    FirstElementMarker and 't'.
+  - parseNumericSubstitution accepts digit-prefixed uppercase
+    letter form (`<N><letter>` repeat-count multi-sub).
+  - tryImplFunctionType expands `A<digits><letter>` inline to N
+    identical types. Renders `sending (@out ...)` when the T-flag
+    is set on the fn itself. Optional error-result `z<conv-letter>`
+    → `@error <conv> <type>`.
+  - TY/TQ partial-fn index decoding: `_` alone = (0).
+  - tryReabstractionThunk accepts TJO<variant> (autodiff self-
+    reordering reabstraction thunk) alongside plain TR.
+  - Apple corpus: 92 → **97/153** direct matches (63.4 %).
+
 ## [0.1.32] - 2026-04-24
 
 ### Added

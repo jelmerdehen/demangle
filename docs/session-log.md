@@ -24,7 +24,7 @@ package doc.
 - **21 schemes** registered.
 - **14 tags** (v0.1.0 through v0.1.14).
 - **23 fuzz harnesses** (1 per scheme + 2 core — 800k+ execs/10s clean).
-- Apple corpus: **92/153** Swift direct matches (60.1 %), **0 mismatches**
+- Apple corpus: **97/153** Swift direct matches (63.4 %), **0 mismatches**
   (hard-gated — any mismatch fails the test).
 - Core package unit-test coverage: **91.9%** of statements
   (CI gate: ≥ 88%).
