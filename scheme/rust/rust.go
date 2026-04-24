@@ -194,29 +194,28 @@ func extractLegacyHash(s string) string {
 	return hex
 }
 
-// extractV0CrateHash finds the "Cs<hash>_<crate>" block in a v0
-// symbol. Returns the hash portion only (the base-62 encoded crate
-// disambiguator). Empty when the symbol doesn't start that way.
+// extractV0CrateHash finds the "Cs<hash>_" crate-disambiguator block
+// anywhere in the first 20 bytes of a v0 symbol and returns the hash
+// portion. Empty when not found. Narrow: the full v0 grammar uses
+// other C<kind><hash>_ shapes (Ch / Cc / CN) — handling each would
+// require a full v0 parser; the common 'Cs' case covers most.
 func extractV0CrateHash(s string) string {
 	if !strings.HasPrefix(s, "_R") {
 		return ""
 	}
-	rest := s[2:]
-	// Namespace-byte then "Cs<hash>_" prefix.
-	if len(rest) < 4 {
+	// Look for 'Cs' in the first ~40 bytes (well past any namespace
+	// prefix bytes).
+	limit := len(s)
+	if limit > 40 {
+		limit = 40
+	}
+	idx := strings.Index(s[:limit], "Cs")
+	if idx < 0 {
 		return ""
 	}
-	// Skip the namespace byte (N = path, etc.) + sub-namespace if present.
-	for len(rest) > 0 && rest[0] >= 'A' && rest[0] <= 'Z' {
-		rest = rest[1:]
-		break
-	}
-	if !strings.HasPrefix(rest, "Cs") {
-		return ""
-	}
-	rest = rest[2:]
+	rest := s[idx+2:]
 	end := strings.IndexByte(rest, '_')
-	if end < 0 || end == 0 {
+	if end <= 0 {
 		return ""
 	}
 	return rest[:end]

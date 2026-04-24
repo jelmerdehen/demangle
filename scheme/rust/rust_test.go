@@ -88,6 +88,15 @@ func TestRustHashAnnotations(t *testing.T) {
 	if r.Annotations["rust.mangling_version"] != "legacy" {
 		t.Errorf("variant = %q", r.Annotations["rust.mangling_version"])
 	}
+	// v0 with Cs<hash>_ crate prefix.
+	r, err = cat.Demangle(context.Background(),
+		"_RNvCshIBIgx2Am2k_3std4open", nil)
+	if err != nil {
+		t.Fatalf("demangle v0: %v", err)
+	}
+	if r.Annotations["rust.crate_hash"] != "hIBIgx2Am2k" {
+		t.Errorf("rust.crate_hash = %q", r.Annotations["rust.crate_hash"])
+	}
 }
 
 func FuzzRust(f *testing.F) {
