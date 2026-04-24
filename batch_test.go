@@ -114,3 +114,47 @@ func TestDemangleBatch_CtxCancel(t *testing.T) {
 		t.Fatalf("summary = %+v", summary)
 	}
 }
+
+func TestDemangleBatch_UnknownPinnedScheme(t *testing.T) {
+	t.Parallel()
+	cat := newBatchCatalog(t)
+	in := make(chan demangle.BatchRequest, 1)
+	out := make(chan demangle.BatchResponse, 1)
+	in <- demangle.BatchRequest{ID: 1, Input: "B:one"}
+	close(in)
+	summary := cat.DemangleBatch(context.Background(), in, out,
+		demangle.BatchOptions{Scheme: "does-not-exist", Workers: 1})
+	resp, ok := <-out
+	if !ok {
+		t.Fatal("out closed without a response")
+	}
+	if resp.Err == nil || resp.Err.Kind != demangle.ErrInternal {
+		t.Fatalf("err = %v want ErrInternal for unknown scheme", resp.Err)
+	}
+	if summary.Succeeded != 0 {
+		t.Fatalf("summary.Succeeded = %d want 0", summary.Succeeded)
+	}
+}
+
+func TestDemangleBatch_DropPolicy(t *testing.T) {
+	t.Parallel()
+	cat := newBatchCatalog(t)
+	in := make(chan demangle.BatchRequest, 3)
+	out := make(chan demangle.BatchResponse, 3)
+	in <- demangle.BatchRequest{ID: 1, Input: "B:ok"}
+	in <- demangle.BatchRequest{ID: 2, Input: "unmatched"}
+	in <- demangle.BatchRequest{ID: 3, Input: "B:also-ok"}
+	close(in)
+	summary := cat.DemangleBatch(context.Background(), in, out,
+		demangle.BatchOptions{Workers: 1, OnError: demangle.BatchDrop})
+	responses := 0
+	for range out {
+		responses++
+	}
+	if responses != 2 {
+		t.Fatalf("BatchDrop should emit only successes; got %d", responses)
+	}
+	if summary.Unrecognised != 1 {
+		t.Fatalf("Unrecognised = %d want 1", summary.Unrecognised)
+	}
+}
