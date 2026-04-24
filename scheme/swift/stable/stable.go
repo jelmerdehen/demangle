@@ -537,12 +537,113 @@ func (p *parser) tryReabstractionThunk(inner *demangle.Node) (*demangle.Node, bo
 		second = t
 	}
 	_ = saveSubs
+	// Optional generic-sig trailer between the second impl-fn and TR.
+	// Apple renders as "<A, B where ...> " inserted after the "helper"
+	// prefix. Constraints: 'z' (conforms-to), 'O' (same-type concrete).
+	sigBeforeTR := ""
+	{
+		sigSave := p.i
+		sigSubs := p.subs
+		genericCount := 0
+		hasSig := false
+		var constraints []string
+		for !p.eof() {
+			b := p.s[p.i]
+			if b == 'T' && p.i+1 < len(p.s) && p.s[p.i+1] == 'R' {
+				break
+			}
+			if b == 'l' {
+				p.i++
+				for !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+					p.i++
+				}
+				hasSig = true
+				continue
+			}
+			if b == 'r' {
+				j := p.i + 1
+				for j < len(p.s) && p.s[j] >= '0' && p.s[j] <= '9' {
+					j++
+				}
+				if j < len(p.s) && p.s[j] == '_' {
+					num := 0
+					for k := p.i + 1; k < j; k++ {
+						num = num*10 + int(p.s[k]-'0')
+					}
+					genericCount = num + 2
+					p.i = j + 1
+					continue
+				}
+				break
+			}
+			if b == 'A' || b == 'x' || b == 'q' || b == 'B' || b == 's' ||
+				b == 'S' || (b >= '0' && b <= '9') {
+				ct, err := p.parseType()
+				if err != nil {
+					break
+				}
+				if p.eof() || p.s[p.i] != 'R' {
+					break
+				}
+				p.i++
+				if p.eof() {
+					break
+				}
+				reqKind := p.s[p.i]
+				p.i++
+				// Consume an optional subject-index terminator for
+				// Apple's demangleIndex: bare '_' = 0, '<N>_' = N+1.
+				subjIdx := 0
+				if reqKind == 's' || reqKind == '_' {
+					start := p.i
+					for !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+						p.i++
+					}
+					if !p.eof() && p.s[p.i] == '_' {
+						if p.i > start {
+							num := 0
+							for k := start; k < p.i; k++ {
+								num = num*10 + int(p.s[k]-'0')
+							}
+							subjIdx = num + 1
+						}
+						p.i++
+					}
+				}
+				cstr := common.Print(ct, common.DefaultPrintOptions())
+				subjLetter := byte('A' + subjIdx)
+				opText := ": "
+				switch reqKind {
+				case 'z':
+					subjLetter = 'A' + byte(len(constraints))
+				case '_':
+					if subjIdx == 0 {
+						subjLetter = 'B'
+					}
+				case 'O', 's':
+					opText = " == "
+					if reqKind == 's' && subjIdx == 0 {
+						subjLetter = 'B'
+					}
+				}
+				constraints = append(constraints, string(subjLetter)+opText+cstr)
+				continue
+			}
+			break
+		}
+		if hasSig && genericCount > 0 {
+			sigBeforeTR = renderGenericSigWithConstraints(genericCount, constraints) + " "
+		} else {
+			p.i = sigSave
+			p.subs = sigSubs
+		}
+	}
 	// 'TR' = plain reabstraction thunk helper.
 	// 'TJO<variant>' = autodiff self-reordering reabstraction thunk,
 	// where <variant> is f/r/d/p (forward/reverse/differential/pullback).
 	prefixStr := ""
 	if p.i+1 < len(p.s) && p.s[p.i] == 'T' && p.s[p.i+1] == 'R' {
-		prefixStr = "reabstraction thunk helper from "
+		prefixStr = "reabstraction thunk helper " + sigBeforeTR + "from "
 		p.i += 2
 	} else if p.i+3 < len(p.s) && p.s[p.i] == 'T' && p.s[p.i+1] == 'J' &&
 		p.s[p.i+2] == 'O' {
