@@ -27,11 +27,19 @@ func main() {
 	// Single demangle with auto-detect.
 	inputs := []string{
 		"_ZN4llvm5Value4dumpEv",              // C++ Itanium
-		"$s4main3FooV",                        // Swift stable
+		"$s4main3FooV",                        // Swift nominal
+		"$sScA",                               // Swift concurrency Actor
+		"$s4main1xSivp",                       // Swift property
 		"Java_com_example_Foo_bar",            // JNI
 		"_RNvCshIBIgx2Am2k_3std4open",         // Rust v0
 		"?foo@@YAXXZ",                         // MSVC
+		"??HFoo@@QEAAHH@Z",                    // MSVC operator+
 		"com.example.Foo$default",             // Kotlin
+		"-[NSString length]",                  // ObjC selector
+		"_OBJC_CLASS_$_NSString",              // ObjC runtime
+		"pkg.Func",                            // gosym
+		"__cxa_throw",                         // runtime helper
+		"_D3foo3barFiZv",                      // D lang
 	}
 	for _, in := range inputs {
 		r, err := cat.Demangle(ctx, in, nil)
