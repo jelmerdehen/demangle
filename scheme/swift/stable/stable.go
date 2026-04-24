@@ -620,6 +620,12 @@ func (p *parser) tryEntitySuffix(inner *demangle.Node) (*demangle.Node, bool) {
 			prefix = "outlined retain for "
 		case 'g':
 			prefix = "generic base class conformance descriptor for "
+		case 'D':
+			prefix = "demangling cache variable for type metadata for "
+		case 'u':
+			prefix = "method lookup function for "
+		case 's':
+			prefix = "ObjC class stub for "
 		}
 	case 'H':
 		switch p.s[p.i+1] {
