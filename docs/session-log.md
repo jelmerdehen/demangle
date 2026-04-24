@@ -22,9 +22,9 @@ package doc.
 ## Tallies (current)
 
 - **21 schemes** registered.
-- **9 tags** (v0.1.0 through v0.1.9).
+- **11 tags** (v0.1.0 through v0.1.11).
 - **23 fuzz harnesses** (1 per scheme + 2 core — 215k+ execs/3s clean).
-- Apple corpus: **19/153** Swift direct matches, **0 mismatches**
+- Apple corpus: **24/153** Swift direct matches, **0 mismatches**
   (hard-gated — any mismatch fails the test).
 - Core package unit-test coverage: **91.9%** of statements
   (CI gate: ≥ 88%).
