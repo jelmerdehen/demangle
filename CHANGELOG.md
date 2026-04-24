@@ -4,6 +4,21 @@ All notable changes to this project will be documented here. Format
 follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). This
 project uses semantic versioning.
 
+## [0.1.31] - 2026-04-24
+
+### Added
+
+- **swift-stable** — constraint rendering + static marker + fn-type
+  annotation split.
+  - parseNominalWithModule accepts 'R' as implicit Protocol kind.
+  - Generic-sig loop tracks constraints and renders
+    '<A where A: <proto>>' for Rz (ConformsTo).
+  - Post-F trailing 'Z' wraps entity as 'static <inner>'.
+  - tryPostfixFunctionType splits annotations into pre-params (
+    convention, Sendable, isolation, differentiable) and post-params
+    (async, throws) to match Apple's NodePrinter order.
+  - Apple corpus: 80 → **82/153** direct matches (53.6 %).
+
 ## [0.1.30] - 2026-04-24
 
 ### Added
