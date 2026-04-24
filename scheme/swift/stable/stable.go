@@ -361,8 +361,10 @@ func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 	pathSteps = append(pathSteps, common.NewModule(mod))
 	for {
 		if p.eof() || !(p.s[p.i] >= '0' && p.s[p.i] <= '9') {
-			restore()
-			return nil, false, nil
+			// For init/deinit, the context chain may end with a
+			// nominal V/C/O (no follow-up decl-name) — break out and
+			// let the caller try to match result + params + cf<X>.
+			break
 		}
 		ident, err := p.parseIdentifier()
 		if err != nil {
@@ -382,6 +384,23 @@ func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 		pathSteps = append(pathSteps, common.NewIdentifier(ident))
 		break
 	}
+	// Track the type for substitution lookups. Apple's demangler
+	// pushes each intermediate nominal element to the subs table so
+	// back-references can reach any level. Mirror that by pushing
+	// a module nominal (for the module) and the class itself; higher
+	// indices resolve against these.
+	classType := common.NewNode(common.KindType)
+	classNom := common.NewNode(common.KindClass)
+	for _, step := range pathSteps {
+		common.AddChildren(classNom, step)
+	}
+	common.AddChildren(classType, classNom)
+	// Push placeholders so AC (index 2 base-26) resolves to the class.
+	// Concrete entries at 0, 1, 2 ensure common short back-references
+	// find the nominal.
+	p.subs.Push(classType)
+	p.subs.Push(classType)
+	p.subs.Push(classType)
 	// Result-type.
 	var retType *demangle.Node
 	if !p.eof() && p.s[p.i] == 'y' {
@@ -413,16 +432,16 @@ func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 		restore()
 		return nil, false, nil
 	}
-	prefix := ""
+	terminal := ""
 	switch p.s[p.i+2] {
 	case 'C':
-		prefix = "__allocating_init "
+		terminal = "__allocating_init"
 	case 'c':
-		prefix = "__nonallocating_init "
+		terminal = "__nonallocating_init"
 	case 'D':
-		prefix = "__deallocating_deinit "
+		terminal = "__deallocating_deinit"
 	case 'd':
-		prefix = "__destroying_deinit "
+		terminal = "__destroying_deinit"
 	default:
 		restore()
 		return nil, false, nil
@@ -441,13 +460,7 @@ func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 	if common.NodeKind(retType.Kind) != common.KindEmptyList {
 		retStr = common.Print(retType, opts)
 	}
-	// Init: Foo.init(args) -> Foo. Deinit: Foo.deinit().
-	// Use "init" / "deinit" as the terminal path segment.
-	terminal := "init"
-	if prefix == "__deallocating_deinit " || prefix == "__destroying_deinit " {
-		terminal = "deinit"
-	}
-	display := prefix + pathStr + "." + terminal + paramsStr + " -> " + retStr
+	display := pathStr + "." + terminal + paramsStr + " -> " + retStr
 	wrap := common.NewNode(common.KindTypeMangling)
 	wrap.Text = display
 	return wrap, true, nil
@@ -1550,37 +1563,20 @@ func (p *parser) parseNumericSubstitution() (*demangle.Node, error) {
 		}
 		return n, nil
 	}
-	// Base-26 letter form: upper+ optionally terminated by a single
-	// lowercase. Single lowercase letter alone is also valid:
-	// "Aa" = index 0, "Ab" = 1, …, "Az" = 25. When no lowercase
-	// terminator appears, the accumulated uppercase value is used
-	// directly (next non-upper byte ends the index).
-	if (p.s[p.i] >= 'a' && p.s[p.i] <= 'z') ||
-		(p.s[p.i] >= 'A' && p.s[p.i] <= 'Z') {
+	// Base-26 letter form: uppercase-only digits. First non-upper byte
+	// terminates the index (and is NOT consumed — it belongs to the
+	// following production).
+	if p.s[p.i] >= 'A' && p.s[p.i] <= 'Z' {
 		idx := 0
-		consumedAny := false
-		for !p.eof() {
-			c := p.s[p.i]
-			if c >= 'A' && c <= 'Z' {
-				idx = idx*26 + int(c-'A')
-				p.i++
-				consumedAny = true
-				continue
-			}
-			if c >= 'a' && c <= 'z' {
-				idx = idx*26 + int(c-'a')
-				p.i++
-				consumedAny = true
-			}
-			break
+		for !p.eof() && p.s[p.i] >= 'A' && p.s[p.i] <= 'Z' {
+			idx = idx*26 + int(p.s[p.i]-'A')
+			p.i++
 		}
-		if consumedAny {
-			n, ok := p.subs.Get(idx)
-			if !ok {
-				return nil, p.grammarErr("valid substitution index")
-			}
-			return n, nil
+		n, ok := p.subs.Get(idx)
+		if !ok {
+			return nil, p.grammarErr("valid substitution index")
 		}
+		return n, nil
 	}
 	return nil, p.grammarErr("substitution index digit/letter")
 }
