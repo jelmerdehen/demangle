@@ -486,12 +486,51 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 			p.i = savePath
 			p.subs = saveSubsLocal
 		}
+		var labels []string
 		if assumeLabelList {
-			if p.eof() || p.s[p.i] != 'y' {
+			// Label-list is either:
+			//   - empty-list shortcut `y` (all params positional-no-label)
+			//   - <identifier|x>+ `y` (per-param labels; 'x' = no label)
+			if p.eof() {
 				return false
 			}
-			p.i++ // consume label-list empty shortcut
+			if p.s[p.i] == 'y' {
+				p.i++ // empty-list shortcut
+			} else if p.s[p.i] >= '0' && p.s[p.i] <= '9' || p.s[p.i] == 'x' {
+				// Named label-list: sequence of length-prefixed
+				// identifiers (or 'x' for blank label) terminated by 'y'.
+				for {
+					if p.eof() {
+						revert()
+						return false
+					}
+					if p.s[p.i] == 'y' {
+						p.i++
+						break
+					}
+					if p.s[p.i] == 'x' {
+						labels = append(labels, "_")
+						p.i++
+						continue
+					}
+					if p.s[p.i] < '0' || p.s[p.i] > '9' {
+						revert()
+						return false
+					}
+					lbl, err := p.parseIdentifier()
+					if err != nil {
+						revert()
+						return false
+					}
+					labels = append(labels, lbl)
+				}
+			} else {
+				return false
+			}
 		}
+		_ = labels // printer integration is future work; for now the
+		// labels are consumed so the grammar matches. Rendering will
+		// thread labels through KindTypeList attrs in a follow-on.
 		// Result-type.
 		if p.eof() {
 			revert()
