@@ -100,6 +100,83 @@ func TestSyncContextRealReader(t *testing.T) {
 	}
 }
 
+// stopVisitor refuses to descend; Enter / Leave both return errors to
+// verify Walk's error-propagation paths (currently partially covered).
+type stopVisitor struct {
+	enterErr, leaveErr error
+	entered, left      int
+}
+
+func (v *stopVisitor) Enter(n *demangle.Node) (bool, error) {
+	v.entered++
+	return false, v.enterErr
+}
+func (v *stopVisitor) Leave(n *demangle.Node) error {
+	v.left++
+	return v.leaveErr
+}
+
+func TestWalkNilRootIsNoOp(t *testing.T) {
+	t.Parallel()
+	if err := demangle.Walk(nil, &stopVisitor{}); err != nil {
+		t.Fatalf("nil root: %v", err)
+	}
+}
+
+func TestWalkEnterError(t *testing.T) {
+	t.Parallel()
+	boom := testErr("boom")
+	v := &stopVisitor{enterErr: boom}
+	root := &demangle.Node{Text: "r", Children: []*demangle.Node{{Text: "c"}}}
+	err := demangle.Walk(root, v)
+	if err != boom {
+		t.Fatalf("err = %v want boom", err)
+	}
+	if v.entered != 1 || v.left != 0 {
+		t.Fatalf("Enter should have been called once with no Leave; got enter=%d leave=%d", v.entered, v.left)
+	}
+}
+
+func TestWalkLeaveError(t *testing.T) {
+	t.Parallel()
+	boom := testErr("boom")
+	v := &stopVisitor{leaveErr: boom}
+	root := &demangle.Node{Text: "r"}
+	err := demangle.Walk(root, v)
+	if err != boom {
+		t.Fatalf("err = %v want boom", err)
+	}
+}
+
+func TestWalkSkipsNilChildren(t *testing.T) {
+	t.Parallel()
+	root := &demangle.Node{
+		Text: "r",
+		Children: []*demangle.Node{
+			nil,
+			{Text: "c1"},
+			nil,
+			{Text: "c2"},
+		},
+	}
+	var visited []string
+	err := demangle.WalkFunc(root, func(n *demangle.Node) (bool, error) {
+		visited = append(visited, n.Text)
+		return true, nil
+	})
+	if err != nil {
+		t.Fatalf("walk: %v", err)
+	}
+	want := []string{"r", "c1", "c2"}
+	if len(visited) != len(want) {
+		t.Fatalf("visited = %v want %v", visited, want)
+	}
+}
+
+type testErr string
+
+func (e testErr) Error() string { return string(e) }
+
 func TestAmbiguousErrorMessage(t *testing.T) {
 	t.Parallel()
 	// Trigger Catalog.Demangle ambiguity path and verify the wrapped
