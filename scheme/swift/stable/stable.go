@@ -214,7 +214,11 @@ func (p *parser) parseGlobal() (*demangle.Node, error) {
 	// Try function entity first — it's the most common shape in the
 	// Apple corpus. Roll back on no-match.
 	var inner *demangle.Node
-	if entity, ok, err := p.tryFunctionEntity(); err != nil {
+	if extEntity, ok, err := p.tryExtensionEntity(); err != nil {
+		return nil, err
+	} else if ok {
+		inner = extEntity
+	} else if entity, ok, err := p.tryFunctionEntity(); err != nil {
 		return nil, err
 	} else if ok {
 		inner = entity
@@ -2719,6 +2723,224 @@ func (p *parser) tryEntitySuffix(inner *demangle.Node) (*demangle.Node, bool) {
 	wrap.Text = prefix
 	common.AddChildren(wrap, inner)
 	return wrap, true
+}
+
+// tryExtensionEntity matches the extension-method shape:
+//
+//   <module><nominal-chain><constraints>*E<decl-name>
+//     <label-list>?<result><params>(<gen-sig>)?F
+//
+// Renders as:
+//
+//   (extension in <module>):<qualified-host><sig>.<decl>(<params>) -> <ret>
+//
+// Narrow: single 'Rj_' inverse constraint + depth-0 gen-sig.
+func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
+	save := p.i
+	saveSubs := p.subs
+	restore := func() { p.i = save; p.subs = saveSubs }
+	if p.eof() || !(p.s[p.i] >= '0' && p.s[p.i] <= '9') {
+		return nil, false, nil
+	}
+	modStart := p.i
+	modName, err := p.parseIdentifier()
+	if err != nil {
+		restore()
+		return nil, false, nil
+	}
+	_ = modStart
+	// Read one nominal chain step + kind byte.
+	if p.eof() || !(p.s[p.i] >= '0' && p.s[p.i] <= '9') {
+		restore()
+		return nil, false, nil
+	}
+	hostName, err := p.parseIdentifier()
+	if err != nil {
+		restore()
+		return nil, false, nil
+	}
+	if p.eof() {
+		restore()
+		return nil, false, nil
+	}
+	hostKind := p.s[p.i]
+	if hostKind != 'V' && hostKind != 'C' && hostKind != 'O' && hostKind != 'P' {
+		restore()
+		return nil, false, nil
+	}
+	p.i++
+	// Optional constraints: bytes that end in 'E' marker. Scan for 'E'
+	// within a reasonable window followed by digit (decl-name).
+	constraintBytes := []byte{}
+	scan := p.i
+	eFound := -1
+	for k := scan; k < len(p.s)-1 && k < scan+80; k++ {
+		if p.s[k] == 'E' && p.s[k+1] >= '0' && p.s[k+1] <= '9' {
+			eFound = k
+			break
+		}
+	}
+	if eFound < 0 {
+		restore()
+		return nil, false, nil
+	}
+	constraintBytes = []byte(p.s[scan:eFound])
+	p.i = eFound + 1 // past 'E'
+	// Parse decl-name.
+	declName, err := p.parseIdentifier()
+	if err != nil {
+		restore()
+		return nil, false, nil
+	}
+	// Label-list + result + params parse. Apple's signature grammar:
+	//   <labels>? <result> <params>
+	// where labels is empty, 'y' (explicit empty), or ident-run, and
+	// result/params are types or 'y'-terminated empty-lists. We use
+	// paramsSlotIsEmpty to distinguish 'y' as empty-marker vs 'y' as
+	// fn-type prefix.
+	var labels []string
+	if !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+		for !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+			lblSave := p.i
+			lblSubs := p.subs
+			lbl, lerr := p.parseIdentifier()
+			if lerr != nil {
+				p.i = lblSave
+				p.subs = lblSubs
+				break
+			}
+			labels = append(labels, lbl)
+		}
+	} else if !p.eof() && p.s[p.i] == 'y' && p.i+1 < len(p.s) &&
+		p.s[p.i+1] == 'y' {
+		// 'yy' prefix: first y is label-list-empty marker.
+		p.i++
+	}
+	// Result-type.
+	var retNode *demangle.Node
+	if p.eof() {
+		restore()
+		return nil, false, nil
+	}
+	if p.s[p.i] == 'y' {
+		p.i++
+		retNode = common.NewNode(common.KindEmptyList)
+	} else {
+		t, terr := p.parseType()
+		if terr != nil {
+			restore()
+			return nil, false, nil
+		}
+		retNode = t
+	}
+	// Params-type.
+	var paramsNode *demangle.Node
+	if p.paramsSlotIsEmpty() {
+		p.i++
+		paramsNode = common.NewNode(common.KindEmptyList)
+	} else if !p.eof() && p.s[p.i] != 'F' {
+		t, terr := p.parseType()
+		if terr != nil {
+			restore()
+			return nil, false, nil
+		}
+		paramsNode = t
+	} else {
+		paramsNode = common.NewNode(common.KindEmptyList)
+	}
+	// Optional gen-sig trailer (narrow: 'l' only).
+	for !p.eof() && (p.s[p.i] == 'l' || p.s[p.i] == 'r' ||
+		(p.s[p.i] >= '0' && p.s[p.i] <= '9')) {
+		p.i++
+	}
+	// Require 'F'.
+	if p.eof() || p.s[p.i] != 'F' {
+		restore()
+		return nil, false, nil
+	}
+	p.i++
+	// Render.
+	hostQualified := modName + "." + hostName
+	// Parse constraint bytes into a simple where-clause.
+	sig := extractConstraintSig(constraintBytes)
+	paramsStr := "()"
+	if common.NodeKind(paramsNode.Kind) != common.KindEmptyList {
+		paramsStr = "(" + common.Print(paramsNode, common.DefaultPrintOptions()) + ")"
+	}
+	_ = labels
+	retStr := "()"
+	if common.NodeKind(retNode.Kind) != common.KindEmptyList {
+		retStr = common.Print(retNode, common.DefaultPrintOptions())
+	}
+	wrap := common.NewNode(common.KindTypeMangling)
+	wrap.Text = "(extension in " + modName + "):" + hostQualified + sig +
+		"." + declName + paramsStr + " -> " + retStr
+	return wrap, true, nil
+}
+
+// extractConstraintSig turns a byte slice containing an Apple-style
+// generic-sig segment (Rj<idx>_<subj> etc.) into a human-readable
+// '< where ...>' clause. Narrow: only 'Rj_' (assoc-type subject) +
+// a leading '<N><name>' for the subject's assoc-type name.
+func extractConstraintSig(b []byte) string {
+	// Pattern we support: '<leading-multi-sub>? <N><name> Rj <idx>? _<subj>?'.
+	// Very narrow — look for '<digits>' + chars + 'Rj' + '_'.
+	s := string(b)
+	rj := strings.Index(s, "Rj")
+	if rj < 0 {
+		return ""
+	}
+	// Find the <N><name> preceding Rj.
+	nameEnd := rj
+	// Walk backwards to find the length-digit boundary.
+	i := nameEnd - 1
+	for i >= 0 && s[i] >= 'a' && s[i] <= 'z' {
+		i--
+	}
+	// Seek 0+ uppercase letters too.
+	for i >= 0 && ((s[i] >= 'a' && s[i] <= 'z') || (s[i] >= 'A' && s[i] <= 'Z') || s[i] == '_') {
+		i--
+	}
+	digEnd := i + 1
+	digStart := digEnd
+	for digStart > 0 && s[digStart-1] >= '0' && s[digStart-1] <= '9' {
+		digStart--
+	}
+	if digStart == digEnd {
+		return ""
+	}
+	length := 0
+	for k := digStart; k < digEnd; k++ {
+		length = length*10 + int(s[k]-'0')
+	}
+	if digEnd+length > rj {
+		return ""
+	}
+	name := s[digEnd : digEnd+length]
+	// Decode idx after Rj.
+	idx := 0
+	j := rj + 2
+	digStart2 := j
+	for j < len(s) && s[j] >= '0' && s[j] <= '9' {
+		j++
+	}
+	if j >= len(s) || s[j] != '_' {
+		return ""
+	}
+	if j > digStart2 {
+		n := 0
+		for k := digStart2; k < j; k++ {
+			n = n*10 + int(s[k]-'0')
+		}
+		idx = n + 1
+	}
+	proto := "Swift.Copyable"
+	if idx == 1 {
+		proto = "Swift.Escapable"
+	} else if idx > 1 {
+		proto = fmt.Sprintf("Swift.<bit %d>", idx)
+	}
+	return "< where A." + name + ": ~" + proto + ">"
 }
 
 // tryFunctionEntity attempts to match:
