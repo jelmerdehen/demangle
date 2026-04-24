@@ -2621,10 +2621,9 @@ func (p *parser) trySpecializationSuffix() (string, bool) {
 			break
 		}
 		specArgs = append(specArgs, typ)
-		// Each arg terminates with '_'.
+		// Separator '_' between args — optional (last arg has no
+		// trailing separator before the T prefix).
 		if p.eof() || p.s[p.i] != '_' {
-			p.i = startArg
-			specArgs = specArgs[:len(specArgs)-1]
 			break
 		}
 		p.i++
