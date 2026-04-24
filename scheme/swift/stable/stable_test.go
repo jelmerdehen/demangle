@@ -205,6 +205,11 @@ func TestStableFunctionEntities(t *testing.T) {
 		{"$s4main3fooSiSgyF", "main.foo() -> Swift.Int?"},
 		// Tuple with Optional first, String second
 		{"$s4main3fooySiSg_SStF", "main.foo(Swift.Int?, Swift.String) -> ()"},
+		// Protocol-context function entity.
+		{"$s4main3FooP3fooyyF", "main.Foo.foo() -> ()"},
+		// Static property + static getter (Z marker).
+		{"$s4main3FooV4propSivpZ", "static main.Foo.prop : Swift.Int"},
+		{"$s4main3FooV4propSivgZ", "getter for static main.Foo.prop : Swift.Int"},
 	}
 	for _, c := range varGeneric {
 		c := c
