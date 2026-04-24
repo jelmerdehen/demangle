@@ -1539,9 +1539,9 @@ func (p *parser) tryEntitySuffix(inner *demangle.Node) (*demangle.Node, bool) {
 		} else if p.s[p.i+1] == 'R' {
 			prefix = "reabstraction thunk helper "
 		} else if p.s[p.i+1] == 'O' {
-			prefix = "@objc thunk of "
+			prefix = "@nonobjc "
 		} else if p.s[p.i+1] == 'o' {
-			prefix = "@nonobjc thunk of "
+			prefix = "@objc "
 		} else if p.s[p.i+1] == 'D' {
 			prefix = "dynamic dispatch thunk of "
 		} else if p.s[p.i+1] == 'E' {
@@ -1784,14 +1784,34 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 		p.subs = saveSubs
 	}
 
-	if p.eof() || !(p.s[p.i] >= '0' && p.s[p.i] <= '9') {
+	if p.eof() {
 		return nil, false, nil
 	}
-
-	// Module.
-	mod, err := p.parseIdentifier()
-	if err != nil {
-		restore()
+	// Accept either a digit-led module identifier, the stdlib 's'
+	// prefix for the Swift module, or 'So'/'SC' for the __C /
+	// __C_Synthesized clang-importer modules.
+	var mod string
+	if p.s[p.i] == 's' && p.i+1 < len(p.s) && !(p.s[p.i+1] >= '0' && p.s[p.i+1] <= '9') {
+		// 's' alone (NOT a length-prefix digit that happens to start
+		// with 's') introduces the Swift module.
+		p.i++
+		mod = "Swift"
+	} else if p.i+1 < len(p.s) && p.s[p.i] == 'S' &&
+		(p.s[p.i+1] == 'o' || p.s[p.i+1] == 'C') {
+		if p.s[p.i+1] == 'o' {
+			mod = "__C"
+		} else {
+			mod = "__C_Synthesized"
+		}
+		p.i += 2
+	} else if p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+		m, err := p.parseIdentifier()
+		if err != nil {
+			restore()
+			return nil, false, nil
+		}
+		mod = m
+	} else {
 		return nil, false, nil
 	}
 
@@ -2138,7 +2158,7 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 			revert()
 			return false
 		}
-		if p.s[p.i] == 'y' {
+		if p.paramsSlotIsEmpty() {
 			p.i++
 			a = common.NewNode(common.KindEmptyList)
 		} else {
@@ -3009,6 +3029,26 @@ func renderGenericSig(count int) string {
 	return b.String()
 }
 
+// paramsSlotIsEmpty reports whether the current byte is a 'y' that
+// means empty-params (not the start of a function-type). 'y' is
+// empty when followed by a signature-level marker or EOF; 'y' is
+// the start of a fn-type when followed by another type-start byte
+// (another 'y' for inner result, or a type leader).
+func (p *parser) paramsSlotIsEmpty() bool {
+	if p.eof() || p.s[p.i] != 'y' {
+		return false
+	}
+	if p.i+1 >= len(p.s) {
+		return true
+	}
+	next := p.s[p.i+1]
+	switch next {
+	case 'F', 'K', 'Y', 'z', 'h', 'n', 'l', 'R', 'r':
+		return true
+	}
+	return false
+}
+
 // entitySuffixStart reports whether b introduces a 2/3-byte entity
 // suffix marker (H/M/T/W families). Used to infer implicit nominal
 // kinds when the suffix consumes the slot a kind byte would normally
@@ -3051,9 +3091,13 @@ func (p *parser) parseFunctionType() (*demangle.Node, error) {
 		}
 		r = t
 	}
-	// Params-type.
+	// Params-type. If next byte is a marker ('c' escaping or 'X'
+	// convention), params is implicitly empty (the two 'y's ate
+	// result+params already, per Apple's push order).
 	var a *demangle.Node
-	if !p.eof() && p.s[p.i] == 'y' {
+	if !p.eof() && (p.s[p.i] == 'c' || p.s[p.i] == 'X') {
+		a = common.NewNode(common.KindEmptyList)
+	} else if !p.eof() && p.s[p.i] == 'y' {
 		p.i++
 		a = common.NewNode(common.KindEmptyList)
 	} else {
@@ -3117,7 +3161,8 @@ func (p *parser) parseFunctionType() (*demangle.Node, error) {
 		case 'K':
 			conv = "objc_method"
 		case 'E':
-			conv = "thick"
+			// 'XE' → NoEscapeFunctionType (rendered without prefix).
+			conv = ""
 		default:
 			p.i = save
 			p.subs = saveSubs
