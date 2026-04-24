@@ -28,6 +28,10 @@ func TestErrKindString(t *testing.T) {
 		{demangle.ErrUnsupported, "unsupported"},
 		{demangle.ErrInternal, "internal"},
 		{demangle.ErrUnrecognisedInput, "unrecognised input"},
+		{demangle.ErrAdapterMissing, "adapter missing"},
+		{demangle.ErrSubprocessFailed, "subprocess failed"},
+		{demangle.ErrDeadlineExceeded, "deadline exceeded"},
+		{demangle.ErrCatalogCorrupt, "catalog corrupt"},
 	}
 	for _, c := range cases {
 		c := c
