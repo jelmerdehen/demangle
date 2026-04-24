@@ -333,6 +333,79 @@ func (p *parser) tryReabstractionThunk(inner *demangle.Node) (*demangle.Node, bo
 	return wrap, true
 }
 
+// tryPostfixCompactTuple matches '<type>_S<N><letter>...t' where
+// <type> is the already-parsed node and the remaining bytes are
+// compact-stdlib types separated by '_' and closed by 't'. Returns
+// the tuple as a KindType with a KindBuiltinTypeName child whose
+// text is "(T1, T2, T3, ...)".
+func (p *parser) tryPostfixCompactTuple(node *demangle.Node) (*demangle.Node, bool) {
+	if p.eof() || p.s[p.i] != '_' {
+		return node, false
+	}
+	save := p.i
+	saveSubs := p.subs
+	revert := func() { p.i = save; p.subs = saveSubs }
+	firstStr := common.Print(node, common.DefaultPrintOptions())
+	parts := []string{firstStr}
+	for !p.eof() && p.s[p.i] == '_' {
+		// Need to see 'S<digit>' next for a compact-stdlib chunk.
+		if p.i+2 >= len(p.s) || p.s[p.i+1] != 'S' ||
+			!(p.s[p.i+2] >= '0' && p.s[p.i+2] <= '9') {
+			break
+		}
+		p.i++ // consume '_'
+		// Read compact S<N><letter>.
+		if p.i+1 >= len(p.s) || p.s[p.i] != 'S' {
+			revert()
+			return node, false
+		}
+		p.i++ // consume S
+		digStart := p.i
+		for p.i < len(p.s) && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+			p.i++
+		}
+		if p.eof() {
+			revert()
+			return node, false
+		}
+		letter := p.s[p.i]
+		one, ok := common.BuildStdlibNominal(letter)
+		if !ok {
+			revert()
+			return node, false
+		}
+		n := 0
+		for _, d := range p.s[digStart:p.i] {
+			n = n*10 + int(d-'0')
+		}
+		if n < 1 {
+			revert()
+			return node, false
+		}
+		p.i++ // consume letter
+		oneStr := common.Print(one, common.DefaultPrintOptions())
+		for k := 0; k < n; k++ {
+			parts = append(parts, oneStr)
+		}
+	}
+	// Must close with 't'.
+	if p.eof() || p.s[p.i] != 't' {
+		revert()
+		return node, false
+	}
+	p.i++
+	if len(parts) < 2 {
+		revert()
+		return node, false
+	}
+	display := "(" + strings.Join(parts, ", ") + ")"
+	wrap := common.NewNode(common.KindType)
+	inner := common.NewNode(common.KindBuiltinTypeName)
+	inner.Text = display
+	common.AddChildren(wrap, inner)
+	return wrap, true
+}
+
 // tryPostfixFunctionTypeWithParams matches the pattern
 //
 //   <params-type> (YT)? c
@@ -1613,7 +1686,7 @@ func (p *parser) tryEntitySuffix(inner *demangle.Node) (*demangle.Node, bool) {
 		case 'E':
 			prefix = "ivar destroyer "
 		case 'P':
-			prefix = "initial value of "
+			prefix = "property wrapper backing initializer of "
 		case 'e':
 			prefix = "global default argument of "
 		}
@@ -2401,6 +2474,12 @@ func (p *parser) parseType() (*demangle.Node, error) {
 		if !ok {
 			break
 		}
+		node = wrapped
+	}
+	// Postfix compact tuple: '<type>_<type>(_...)t' closes a tuple
+	// with <type> as the first element and subsequent compact-stdlib
+	// types as later elements. Renders as "(T1, T2, ...)".
+	if wrapped, ok := p.tryPostfixCompactTuple(node); ok {
 		node = wrapped
 	}
 	if wrapped, ok := p.tryPostfixBorrow(node); ok {
