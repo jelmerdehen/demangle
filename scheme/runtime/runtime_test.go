@@ -39,6 +39,7 @@ func TestRuntime(t *testing.T) {
 		{"__emutls_get_address", "gcc", "emulated TLS helper"},
 		{"__rust_alloc", "rust", "Rust runtime/allocator helper"},
 		{"_dispatch_async", "apple", "libdispatch (GCD) runtime"},
+		{"_swift_FORCE_LOAD_$_swiftCore", "apple", "Swift force-load marker"},
 		{"objc_msgSend", "apple", "libobjc runtime"},
 		{"_objc_release", "apple", "libobjc runtime"},
 		{"swift_allocObject", "apple", "Swift runtime"},

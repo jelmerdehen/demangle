@@ -70,6 +70,8 @@ var prefixes = []struct {
 	family string
 	kind   string
 }{
+	{"_swift_FORCE_LOAD_$_", "apple", "Swift force-load marker"},
+	{"__swift_FIXED_SIZE_METADATA", "apple", "Swift fixed-size metadata"},
 	{"__gxx_personality_", "cpp-abi", "C++ exception personality routine"},
 	{"__cxa_", "cpp-abi", "Itanium C++ ABI helper"},
 	{"_Unwind_", "cpp-abi", "libunwind helper"},
@@ -97,6 +99,10 @@ var prefixes = []struct {
 	{"objc_", "apple", "libobjc runtime"},
 	{"swift_", "apple", "Swift runtime"},
 	{"go:runtime.", "go", "Go runtime"},
+	// Note: _ZG/_ZT prefixes (thread-local guards, typeinfo, vtables,
+	// VTT structures) are deliberately NOT in this table — cpp-itanium
+	// already handles them with proper demangling. Adding them would
+	// create catalog-detection ambiguity with no gain.
 }
 
 func (Scheme) Info() demangle.Info                 { return info }
