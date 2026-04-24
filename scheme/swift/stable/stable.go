@@ -284,6 +284,7 @@ func (p *parser) tryVariableEntity() (*demangle.Node, bool, error) {
 	}
 	kindByte := p.s[p.i+1]
 	prefix := ""
+	pathSuffix := "" // accessor-label appended to path as ".<suffix>"
 	switch kindByte {
 	case 'p':
 		prefix = ""
@@ -301,19 +302,27 @@ func (p *parser) tryVariableEntity() (*demangle.Node, bool, error) {
 		prefix = "unsafeAddressor for "
 	case 'm':
 		prefix = "unsafeMutableAddressor for "
+	case 'r':
+		pathSuffix = ".read"
+	case 'y':
+		pathSuffix = ".yielding_borrow"
+	case 'x':
+		pathSuffix = ".yielding_mutate"
+	case 'i':
+		pathSuffix = ".init_accessor"
 	default:
 		restore()
 		return nil, false, nil
 	}
 	p.i += 2
-	// Build display: <prefix><path joined by "."> : <type>
+	// Build display: <prefix><path joined by "."><suffix?> : <type>
 	opts := common.DefaultPrintOptions()
 	path := common.NewNode(common.KindEntityPath)
 	common.AddChildren(path, pathSteps...)
 	pathStr := common.Print(path, opts)
 	typeStr := common.Print(typ, opts)
 	wrap := common.NewNode(common.KindTypeMangling)
-	wrap.Text = prefix + pathStr + " : " + typeStr
+	wrap.Text = prefix + pathStr + pathSuffix + " : " + typeStr
 	return wrap, true, nil
 }
 
