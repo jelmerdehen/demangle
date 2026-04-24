@@ -70,6 +70,88 @@ func FuzzDLang(f *testing.F) {
 	})
 }
 
+// TestDLangCompositeTypes exercises the parameter-type decoder
+// branches: pointer, delegate, static-array, associative-array,
+// class-ref, struct-ref, variadic terminators.
+func TestDLangCompositeTypes(t *testing.T) {
+	t.Parallel()
+	cat := newCatalog(t)
+	cases := []struct {
+		in   string
+		want string // expected substring in output
+	}{
+		// Pointer-to-int return.
+		{"_D3foo3barFZPi", "→ int*"},
+		// Delegate return — takes a function-type inner, narrow parser
+		// falls through to fallback annotation.
+		{"_D3foo3barFZDi", "int delegate"},
+		// Static-array return: G<len><inner> — int[4]
+		{"_D3foo3barFZG4i", "int[4]"},
+		// Associative-array: H<key><value> — int[int]
+		{"_D3foo3barFZHii", "int[int]"},
+		// Class-ref: C3Foo — class "Foo"
+		{"_D3foo3barFZC3Foo", "Foo"},
+		// Struct-ref: S3Bar — struct "Bar"
+		{"_D3foo3barFZS3Bar", "Bar"},
+		// C variadic terminator X.
+		{"_D3foo3barFiXv", "[variadic] → void"},
+		// Typesafe variadic terminator Y.
+		{"_D3foo3barFiYv", "[typesafe-variadic] → void"},
+	}
+	for _, c := range cases {
+		c := c
+		t.Run(c.in, func(t *testing.T) {
+			r, err := cat.Demangle(context.Background(), c.in, nil)
+			if err != nil {
+				t.Fatalf("demangle: %v", err)
+			}
+			if !strings.Contains(r.Output, c.want) {
+				t.Fatalf("output = %q, want substring %q", r.Output, c.want)
+			}
+		})
+	}
+}
+
+// TestDLangAllPrimitives covers every single-letter primitive.
+func TestDLangAllPrimitives(t *testing.T) {
+	t.Parallel()
+	cat := newCatalog(t)
+	primitives := []struct {
+		code byte
+		want string
+	}{
+		{'v', "void"},
+		{'b', "bool"},
+		{'g', "byte"},
+		{'h', "ubyte"},
+		{'s', "short"},
+		{'t', "ushort"},
+		{'i', "int"},
+		{'k', "uint"},
+		{'l', "long"},
+		{'m', "ulong"},
+		{'f', "float"},
+		{'d', "double"},
+		{'e', "real"},
+		{'a', "char"},
+		{'u', "wchar"},
+		{'w', "dchar"},
+	}
+	for _, p := range primitives {
+		p := p
+		t.Run(string(p.code), func(t *testing.T) {
+			in := "_D3foo3barFZ" + string(p.code)
+			r, err := cat.Demangle(context.Background(), in, nil)
+			if err != nil {
+				t.Fatalf("demangle: %v", err)
+			}
+			if !strings.Contains(r.Output, "→ "+p.want) {
+				t.Fatalf("output = %q, want return %q", r.Output, p.want)
+			}
+		})
+	}
+}
+
 func TestDLangSniff(t *testing.T) {
 	t.Parallel()
 	s := dlang.Scheme{}
