@@ -1233,6 +1233,16 @@ func (p *parser) tryPostfixFunctionTypeWithParams(node *demangle.Node) (*demangl
 		revert()
 		return node, false
 	}
+	// Disambiguate: 'cfm' is the macro-entity terminator (fn-entity
+	// result-slot context), not a fn-type escape marker. Also cf<X>
+	// init/deinit suffix.
+	if p.i+2 < len(p.s) && p.s[p.i+1] == 'f' {
+		nxt := p.s[p.i+2]
+		if nxt == 'm' || nxt == 'C' || nxt == 'c' || nxt == 'D' || nxt == 'd' {
+			revert()
+			return node, false
+		}
+	}
 	p.i++
 	resultStr := common.Print(node, common.DefaultPrintOptions())
 	paramsStr := common.Print(params, common.DefaultPrintOptions())
@@ -3772,18 +3782,11 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 			}
 			break
 		}
-		// Accept 'F' (regular fn entity) or 'cfm' (macro-entity fn
-		// variant: render as plain function, Apple drops the `fm`
-		// in the display).
-		if p.i+2 < len(p.s) && p.s[p.i] == 'c' && p.s[p.i+1] == 'f' &&
-			p.s[p.i+2] == 'm' {
-			p.i += 3
-		} else if p.eof() || p.s[p.i] != 'F' {
+		if p.eof() || p.s[p.i] != 'F' {
 			revert()
 			return false
-		} else {
-			p.i++
 		}
+		p.i++
 		ret = r
 		args = a
 		async = localAsync
