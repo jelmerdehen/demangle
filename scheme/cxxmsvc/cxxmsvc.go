@@ -673,24 +673,72 @@ func (p *parser) parseSignatureMode(ctorDtor bool) (signature, error) {
 		retName = ""
 	} else {
 		ret := p.s[p.i]
-		p.i++
 		switch ret {
 		case 'X':
 			retName = "void"
+			p.i++
 		case 'H':
 			retName = "int"
+			p.i++
 		case 'D':
 			retName = "char"
+			p.i++
 		case 'J':
 			retName = "long"
+			p.i++
 		case 'I':
 			retName = "unsigned int"
+			p.i++
 		case 'K':
 			retName = "unsigned long"
+			p.i++
 		case 'M':
 			retName = "float"
+			p.i++
 		case 'N':
 			retName = "double"
+			p.i++
+		case 'P', 'A', 'Q':
+			// Pointer / lvalue-ref / rvalue-ref return type.
+			// Shape: <marker> <cv> <prim>  (same as arg form).
+			pointerLike := ret
+			if p.i+2 >= len(p.s) {
+				return sig, p.truncated()
+			}
+			p.i++ // past marker
+			cv := p.s[p.i]
+			p.i++
+			if cv == 'E' && !p.eof() {
+				cv = p.s[p.i]
+				p.i++
+			}
+			if p.eof() {
+				return sig, p.truncated()
+			}
+			base := primitiveTypeName(p.s[p.i])
+			if base == "" {
+				return sig, p.grammarErr("pointer/ref return-target primitive")
+			}
+			p.i++
+			qual := ""
+			switch cv {
+			case 'B':
+				qual = " const"
+			case 'C':
+				qual = " volatile"
+			case 'D':
+				qual = " const volatile"
+			}
+			var suf string
+			switch pointerLike {
+			case 'P':
+				suf = "*"
+			case 'A':
+				suf = "&"
+			case 'Q':
+				suf = "&&"
+			}
+			retName = base + qual + suf
 		default:
 			return sig, p.grammarErr("return type byte")
 		}

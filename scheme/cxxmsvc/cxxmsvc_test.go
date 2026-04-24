@@ -60,7 +60,10 @@ func TestMSVCBasics(t *testing.T) {
 		{"?method@?$array@H$07@std@@YAXXZ", "void __cdecl std::array<int, 7>::method(void)"},
 		// Template with class-typed arg: std::shared_ptr<Foo>::get
 		{"?get@?$shared_ptr@VFoo@@@std@@YAXXZ", "void __cdecl std::shared_ptr<Foo>::get(void)"},
-	}
+		// Pointer-return type: std::basic_string<char>::data() → char*
+		{"?data@?$basic_string@D@std@@YAPADXZ", "char* __cdecl std::basic_string<char>::data(void)"},
+		// Ref-return: Foo::at() → int&
+		{"?at@Foo@@YAAAHXZ", "int& __cdecl Foo::at(void)"},
 	for _, c := range cases {
 		c := c
 		t.Run(c.in, func(t *testing.T) {
