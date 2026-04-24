@@ -1061,6 +1061,30 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 				}
 				a.Attrs["swift.shared"] = "true"
 			}
+			// Yi — isolated param (Swift 5.5+ actor isolation).
+			if p.i+1 < len(p.s) && p.s[p.i] == 'Y' && p.s[p.i+1] == 'i' {
+				p.i += 2
+				if a.Attrs == nil {
+					a.Attrs = map[string]string{}
+				}
+				a.Attrs["swift.isolated"] = "true"
+			}
+			// YT — sending-result marker.
+			if p.i+1 < len(p.s) && p.s[p.i] == 'Y' && p.s[p.i+1] == 'T' {
+				p.i += 2
+				if a.Attrs == nil {
+					a.Attrs = map[string]string{}
+				}
+				a.Attrs["swift.sending"] = "true"
+			}
+			// n — __owned param marker (result modifier context).
+			if !p.eof() && p.s[p.i] == 'n' {
+				p.i++
+				if a.Attrs == nil {
+					a.Attrs = map[string]string{}
+				}
+				a.Attrs["swift.owned"] = "true"
+			}
 		}
 		// Async / throws markers. Spec: Ya = async (2 bytes), K = throws.
 		localAsync := false

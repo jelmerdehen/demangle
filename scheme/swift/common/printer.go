@@ -142,6 +142,12 @@ func printFunctionEntity(b *strings.Builder, n *demangle.Node, opts PrintOptions
 		if n.Children[1].Attrs["swift.shared"] == "true" {
 			b.WriteString("__shared ")
 		}
+		if n.Children[1].Attrs["swift.isolated"] == "true" {
+			b.WriteString("isolated ")
+		}
+		if n.Children[1].Attrs["swift.owned"] == "true" {
+			b.WriteString("__owned ")
+		}
 		// Single-arg label-list: the label attr sits on the bare type
 		// node (for tuples we render labels inside KindTypeList).
 		if NodeKind(n.Children[1].Kind) != KindTypeList {
