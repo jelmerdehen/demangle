@@ -152,36 +152,47 @@ func printFunctionEntity(b *strings.Builder, n *demangle.Node, opts PrintOptions
 	if g := n.Attrs["swift.generic"]; g != "" {
 		b.WriteString(g)
 	}
-	b.WriteByte('(')
-	if n.Children[1] != nil && NodeKind(n.Children[1].Kind) != KindEmptyList {
-		// inout/shared params-modifier attributes come through on the
-		// params node (set during stable-parser's tryFunctionEntity).
-		if n.Children[1].Attrs["swift.inout"] == "true" {
-			b.WriteString("inout ")
+	// If params is a Type wrapping a BuiltinTypeName whose text
+	// already starts with '(' and ends with ')', print it as-is —
+	// the tuple-wrap parens are already in the text.
+	paramsInline := false
+	if n.Children[1] != nil && NodeKind(n.Children[1].Kind) == KindType &&
+		len(n.Children[1].Children) > 0 &&
+		NodeKind(n.Children[1].Children[0].Kind) == KindBuiltinTypeName {
+		t := n.Children[1].Children[0].Text
+		if strings.HasPrefix(t, "(") && strings.HasSuffix(t, ")") {
+			b.WriteString(t)
+			paramsInline = true
 		}
-		if n.Children[1].Attrs["swift.shared"] == "true" {
-			b.WriteString("__shared ")
-		}
-		if n.Children[1].Attrs["swift.isolated"] == "true" {
-			b.WriteString("isolated ")
-		}
-		if n.Children[1].Attrs["swift.sending"] == "true" {
-			b.WriteString("sending ")
-		}
-		if n.Children[1].Attrs["swift.owned"] == "true" {
-			b.WriteString("__owned ")
-		}
-		// Single-arg label-list: the label attr sits on the bare type
-		// node (for tuples we render labels inside KindTypeList).
-		if NodeKind(n.Children[1].Kind) != KindTypeList {
-			if label := n.Children[1].Attrs["swift.label"]; label != "" {
-				b.WriteString(label)
-				b.WriteString(": ")
-			}
-		}
-		printNode(b, n.Children[1], opts)
 	}
-	b.WriteByte(')')
+	if !paramsInline {
+		b.WriteByte('(')
+		if n.Children[1] != nil && NodeKind(n.Children[1].Kind) != KindEmptyList {
+			if n.Children[1].Attrs["swift.inout"] == "true" {
+				b.WriteString("inout ")
+			}
+			if n.Children[1].Attrs["swift.shared"] == "true" {
+				b.WriteString("__shared ")
+			}
+			if n.Children[1].Attrs["swift.isolated"] == "true" {
+				b.WriteString("isolated ")
+			}
+			if n.Children[1].Attrs["swift.sending"] == "true" {
+				b.WriteString("sending ")
+			}
+			if n.Children[1].Attrs["swift.owned"] == "true" {
+				b.WriteString("__owned ")
+			}
+			if NodeKind(n.Children[1].Kind) != KindTypeList {
+				if label := n.Children[1].Attrs["swift.label"]; label != "" {
+					b.WriteString(label)
+					b.WriteString(": ")
+				}
+			}
+			printNode(b, n.Children[1], opts)
+		}
+		b.WriteByte(')')
+	}
 	if n.Attrs["swift.async"] == "true" {
 		b.WriteString(" async")
 	}

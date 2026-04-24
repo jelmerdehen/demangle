@@ -3782,11 +3782,36 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 			}
 			break
 		}
-		if p.eof() || p.s[p.i] != 'F' {
+		// Accept 'F' or 'cfm' (macro-entity fn terminator — plain fn
+		// display, no prefix).
+		if p.i+2 < len(p.s) && p.s[p.i] == 'c' && p.s[p.i+1] == 'f' &&
+			p.s[p.i+2] == 'm' {
+			p.i += 3
+		} else if p.eof() || p.s[p.i] != 'F' {
 			revert()
 			return false
+		} else {
+			p.i++
 		}
-		p.i++
+		// Apply labels to BuiltinTypeName-wrapped tuple params by
+		// rewriting its text with 'label: type' pairs.
+		if a != nil && len(a.Children) > 0 &&
+			common.NodeKind(a.Children[0].Kind) == common.KindBuiltinTypeName &&
+			len(pathLabels) > 0 {
+			text := a.Children[0].Text
+			if strings.HasPrefix(text, "(") && strings.HasSuffix(text, ")") {
+				inner := text[1 : len(text)-1]
+				parts := strings.Split(inner, ", ")
+				if len(parts) == len(pathLabels) {
+					for i := range parts {
+						if pathLabels[i] != "" && pathLabels[i] != "_" {
+							parts[i] = pathLabels[i] + ": " + parts[i]
+						}
+					}
+					a.Children[0].Text = "(" + strings.Join(parts, ", ") + ")"
+				}
+			}
+		}
 		ret = r
 		args = a
 		async = localAsync
