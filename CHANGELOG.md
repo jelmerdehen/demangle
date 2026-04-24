@@ -4,6 +4,29 @@ All notable changes to this project will be documented here. Format
 follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). This
 project uses semantic versioning.
 
+## [0.1.16] - 2026-04-22
+
+### Added
+
+- **swift-stable** — more corpus matches (30 → 33).
+  - f-family entity suffixes: `fF` property-wrapped field init
+    accessor, `fA` ivar initializer, `fE` ivar destroyer, `fP`
+    initial value of, `fe` global default argument of.
+  - `Twd` = default override, `Twc` = coro function pointer to.
+  - `MD` = demangling cache variable for type metadata for, plus
+    `Mu` and `Ms`.
+  - Entity-suffix markers loop to support stacked shapes
+    (e.g. `TwdTwc`).
+  - `tryVariableEntity` and `tryInitDeinitEntity` push module
+    nodes to subs table (consistency with `tryFunctionEntity`).
+  - Inline generic-requirement consumption (R<kind>,
+    r<N>_, <type>R<kind>) before 'l' in sig.
+  - `Yi` (isolated), `YT` (sending), `n` (__owned) param-type
+    modifiers.
+  - `TY<N>_` / `TQ<N>_` = (<N+1>) suspend/await resume partial
+    function.
+  - Apple corpus: 30/153 → **33/153** direct matches.
+
 ## [0.1.15] - 2026-04-22
 
 ### Added
