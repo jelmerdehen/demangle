@@ -69,6 +69,26 @@ func runStoreSuite(t *testing.T, store ContextStore) {
 			t.Fatalf("blob mismatch")
 		}
 	}
+	// Lookup defaults to metadata scan; "app" is present, "bogus" isn't.
+	if v, ok := cc.Lookup("app"); !ok || v != "test" {
+		t.Fatalf("Lookup(app) = %q,%v", v, ok)
+	}
+	if _, ok := cc.Lookup("bogus"); ok {
+		t.Fatalf("Lookup(bogus) should be false")
+	}
+	// Reader streams the blob bytes back.
+	rc, err := cc.Reader()
+	if err != nil {
+		t.Fatalf("Reader: %v", err)
+	}
+	buf := make([]byte, len(blob))
+	n, _ := rc.Read(buf)
+	if err := rc.Close(); err != nil {
+		t.Fatalf("Close: %v", err)
+	}
+	if n != len(blob) || string(buf) != string(blob) {
+		t.Fatalf("Read got %d bytes: %q", n, string(buf[:n]))
+	}
 
 	// List
 	list, err := store.List(ctx, "proguard_map")
