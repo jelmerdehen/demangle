@@ -3859,6 +3859,60 @@ afterNestedLoop:
 // Multi-arg case: "SDySiSSG" → Swift.Dictionary<Swift.Int, Swift.String>
 // (underscore-separated lists when they contain mixed kinds, left for
 // a follow-on commit).
+// skipConformanceRef speculatively consumes a retroactive-conformance
+// metadata block within a bound-generic arg-list. Apple attaches
+// conformance-refs to the last arg; format:
+//
+//   <proto-or-sub> H<kind> ( y H C g <digits>? _ )+
+//
+// The rendered output ignores these entirely. Return true on match.
+func (p *parser) skipConformanceRef() bool {
+	if p.eof() {
+		return false
+	}
+	// Look for a forward 'Hg'/'HCg' or similar within a reasonable
+	// window; if found, scan up to the closing '_' after 'g<digits>?'.
+	start := p.i
+	limit := p.i + 80
+	if limit > len(p.s) {
+		limit = len(p.s)
+	}
+	found := false
+	for j := start; j+1 < limit; j++ {
+		if p.s[j] == 'H' && p.s[j+1] == 'C' {
+			found = true
+			break
+		}
+		if p.s[j] == 'H' && p.s[j+1] == 'P' {
+			found = true
+			break
+		}
+		if p.s[j] == 'H' && p.s[j+1] == 'p' {
+			found = true
+			break
+		}
+	}
+	if !found {
+		return false
+	}
+	// Scan forward for 'g' followed by optional digits + '_' —
+	// the conformance-ref metadata terminator. Consume up to + incl.
+	for j := start; j < len(p.s); j++ {
+		if p.s[j] != 'g' {
+			continue
+		}
+		k := j + 1
+		for k < len(p.s) && p.s[k] >= '0' && p.s[k] <= '9' {
+			k++
+		}
+		if k < len(p.s) && p.s[k] == '_' {
+			p.i = k + 1
+			return true
+		}
+	}
+	return false
+}
+
 func (p *parser) tryBoundGeneric(base *demangle.Node) (*demangle.Node, bool, error) {
 	if p.eof() || p.s[p.i] != 'y' {
 		return base, false, nil
@@ -3871,6 +3925,17 @@ func (p *parser) tryBoundGeneric(base *demangle.Node) (*demangle.Node, bool, err
 		// integer literals / generic params with nominals).
 		if p.s[p.i] == '_' {
 			p.i++
+			continue
+		}
+		// Retroactive-conformance-ref attached to preceding arg:
+		// Apple packs conformance metadata as a chain ending at the
+		// last 'g<idx>_' or 'HCg<idx>_' marker. The renderer drops
+		// these entirely — skip without producing a new arg. The
+		// metadata chain can have multiple back-to-back blocks.
+		if wasConf := p.skipConformanceRef(); wasConf {
+			// Keep skipping additional conformance-ref blocks.
+			for p.skipConformanceRef() {
+			}
 			continue
 		}
 		// Bail safely if a nested feature we don't support appears.
