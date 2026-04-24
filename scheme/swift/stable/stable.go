@@ -1353,15 +1353,44 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 			restore()
 			return nil, false, nil
 		}
+		// Push identifier as a substitution candidate (mirrors Apple's
+		// addSubstitution-on-every-Identifier pattern; keeps our sub
+		// indices aligned with Apple so A<idx>_ resolves the same way).
+		identNode := common.NewIdentifier(ident)
+		p.subs.Push(identNode)
 		peek := p.s[p.i]
 		if peek == 'V' || peek == 'C' || peek == 'O' || peek == 'P' {
 			p.i++ // consume nominal-context kind; keep iterating.
-			pathSteps = append(pathSteps, common.NewIdentifier(ident))
+			pathSteps = append(pathSteps, identNode)
+			// Build + push the nominal Type for A<idx>_ back-refs.
+			var kind common.NodeKind
+			switch peek {
+			case 'V':
+				kind = common.KindStructure
+			case 'C':
+				kind = common.KindClass
+			case 'O':
+				kind = common.KindEnum
+			case 'P':
+				kind = common.KindProtocol
+			}
+			ctx := moduleNode
+			if len(pathSteps) > 1 {
+				// Parent of this nominal was the preceding pathStep
+				// (either the module or a nested nominal Type). For
+				// our narrow usage we keep the module as context.
+				ctx = moduleNode
+			}
+			nom := common.NewNode(kind)
+			common.AddChildren(nom, ctx, identNode)
+			typ := common.NewNode(common.KindType)
+			common.AddChildren(typ, nom)
+			p.subs.Push(typ)
 			continue
 		}
 		// No V/C/O/P → this identifier is the decl-name. Subsequent
 		// digit-led bytes belong to the label-list, NOT the chain.
-		pathSteps = append(pathSteps, common.NewIdentifier(ident))
+		pathSteps = append(pathSteps, identNode)
 		break
 	}
 
