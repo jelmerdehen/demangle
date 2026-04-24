@@ -277,6 +277,13 @@ func (p *parser) parseGlobal() (*demangle.Node, error) {
 	if wrapped, ok := p.tryClosureEntity(inner); ok {
 		inner = wrapped
 	}
+	// Nested variable sub-entity with LocalDeclName:
+	//   '<N><name>L<idx>_<type>v<kind>'
+	// Wraps as "<suffix-prefix> <name> #<idx+1> : <type> in <inner>"
+	// when combined with a subsequent fF/fP entity-suffix.
+	if wrapped, ok := p.tryNestedLocalVariable(inner); ok {
+		inner = wrapped
+	}
 	for {
 		wrapped, ok := p.tryEntitySuffix(inner)
 		if !ok {
@@ -287,6 +294,63 @@ func (p *parser) parseGlobal() (*demangle.Node, error) {
 
 	common.AddChildren(g, inner)
 	return g, nil
+}
+
+// tryNestedLocalVariable matches the pattern
+//
+//   <N><name> L <digits>? _ <type> v p
+//
+// following a parent function-entity. Wraps as
+// "<name> #<idx+1> : <type> in <inner>". Intended for fixtures
+// like "main.myFunc() -> () + 1xL_Sivp" that carry a nested
+// private variable within the function's scope. Narrow: only 'vp'
+// (property) kind; other v-kinds fall through.
+func (p *parser) tryNestedLocalVariable(inner *demangle.Node) (*demangle.Node, bool) {
+	if p.eof() || !(p.s[p.i] >= '0' && p.s[p.i] <= '9') {
+		return inner, false
+	}
+	save := p.i
+	saveSubs := p.subs
+	revert := func() { p.i = save; p.subs = saveSubs }
+	name, err := p.parseIdentifier()
+	if err != nil {
+		revert()
+		return inner, false
+	}
+	if p.eof() || p.s[p.i] != 'L' {
+		revert()
+		return inner, false
+	}
+	p.i++
+	// Read optional discriminator digits, then '_'.
+	idxStart := p.i
+	for !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+		p.i++
+	}
+	idxVal := 0
+	for k := idxStart; k < p.i; k++ {
+		idxVal = idxVal*10 + int(p.s[k]-'0')
+	}
+	if p.eof() || p.s[p.i] != '_' {
+		revert()
+		return inner, false
+	}
+	p.i++
+	typ, err := p.parseType()
+	if err != nil {
+		revert()
+		return inner, false
+	}
+	if p.i+1 >= len(p.s) || p.s[p.i] != 'v' || p.s[p.i+1] != 'p' {
+		revert()
+		return inner, false
+	}
+	p.i += 2
+	typeStr := common.Print(typ, common.DefaultPrintOptions())
+	innerStr := common.Print(inner, common.DefaultPrintOptions())
+	wrap := common.NewNode(common.KindTypeMangling)
+	wrap.Text = name + " #" + itoa(idxVal+1) + " : " + typeStr + " in " + innerStr
+	return wrap, true
 }
 
 // tryReabstractionThunk matches the pattern
