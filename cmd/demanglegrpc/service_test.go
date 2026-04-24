@@ -49,6 +49,57 @@ func startServer(t *testing.T) (pb.DemangleClient, func()) {
 	return pb.NewDemangleClient(conn), cleanup
 }
 
+func TestWrapErrNonStructured(t *testing.T) {
+	t.Parallel()
+	err := io.ErrUnexpectedEOF
+	pe := wrapErr(err)
+	if pe == nil {
+		t.Fatal("nil Error")
+	}
+	if pe.Kind != int32(demangle.ErrInternal) {
+		t.Fatalf("Kind = %d want ErrInternal", pe.Kind)
+	}
+	if pe.Message == "" {
+		t.Fatal("empty Message")
+	}
+}
+
+func TestWrapErrStructured(t *testing.T) {
+	t.Parallel()
+	err := &demangle.Error{
+		Kind:     demangle.ErrGrammarViolation,
+		Scheme:   "cpp-itanium",
+		Offset:   7,
+		Expected: "identifier",
+		Got:      "'Z'",
+		Window:   "_ZN4llvm",
+	}
+	pe := wrapErr(err)
+	if pe.Kind != int32(demangle.ErrGrammarViolation) {
+		t.Fatalf("Kind = %d", pe.Kind)
+	}
+	if pe.Scheme != "cpp-itanium" || pe.Offset != 7 || pe.Expected != "identifier" {
+		t.Fatalf("wrong wrapping: %+v", pe)
+	}
+}
+
+func TestErrorRespShape(t *testing.T) {
+	t.Parallel()
+	resp := errorResp(42, "rust", "boom")
+	if resp.Id != 42 {
+		t.Fatalf("Id = %d", resp.Id)
+	}
+	if resp.Scheme != "rust" {
+		t.Fatalf("Scheme = %q", resp.Scheme)
+	}
+	if resp.Err == nil || resp.Err.Message != "boom" {
+		t.Fatalf("Err = %+v", resp.Err)
+	}
+	if resp.Err.Kind != int32(demangle.ErrInternal) {
+		t.Fatalf("Kind = %d want ErrInternal", resp.Err.Kind)
+	}
+}
+
 func TestGRPCDemangle(t *testing.T) {
 	t.Parallel()
 	client, cleanup := startServer(t)
