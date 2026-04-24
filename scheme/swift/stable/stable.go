@@ -586,6 +586,24 @@ func (p *parser) tryEntitySuffix(inner *demangle.Node) (*demangle.Node, bool) {
 			prefix = "protocol descriptor for "
 		case 'L':
 			prefix = "type metadata pattern for "
+		case 'c':
+			prefix = "protocol conformance descriptor for "
+		case 'F':
+			prefix = "reflection-class descriptor for "
+		case 'N':
+			prefix = "nominal type descriptor runtime-instantiation cache for "
+		case 'm':
+			prefix = "metaclass object for "
+		case 'M':
+			prefix = "metadata instantiation function for "
+		case 'V':
+			prefix = "protocol-witness-table instantiation function for "
+		case 'B':
+			prefix = "buffer metadata for "
+		case 'r':
+			prefix = "outlined retain for "
+		case 'g':
+			prefix = "generic base class conformance descriptor for "
 		}
 	case 'H':
 		switch p.s[p.i+1] {
