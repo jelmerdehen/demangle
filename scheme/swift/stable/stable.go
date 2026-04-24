@@ -5705,12 +5705,32 @@ func (p *parser) parseIdentifier() (string, error) {
 		return "", p.grammarErr("identifier length")
 	}
 	hasWordSubsts := false
-	// '0' prefix introduces word-substitution form (or '00' for
-	// punycode — not yet supported).
+	// '0' prefix introduces word-substitution form. '00<length><chars>'
+	// is Apple's punycode marker; for plain-ASCII names this is the
+	// same as a normal length-prefixed ident and decodes identically,
+	// so treat it as such.
 	if p.s[p.i] == '0' {
 		if p.i+1 < len(p.s) && p.s[p.i+1] == '0' {
-			// Punycode — out of scope for now.
-			return "", p.grammarErr("punycoded identifier")
+			// Consume the extra '0' and fall through to length-prefix
+			// read.
+			p.i++
+			// p.i still at '0' of the 2-char prefix; consume again.
+			p.i++
+			// Length digits follow.
+			start := p.i
+			for !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+				p.i++
+			}
+			length := 0
+			for _, c := range p.s[start:p.i] {
+				length = length*10 + int(c-'0')
+			}
+			if length <= 0 || p.i+length > len(p.s) {
+				return "", p.grammarErr("punycoded identifier length")
+			}
+			chunk := p.s[p.i : p.i+length]
+			p.i += length
+			return chunk, nil
 		}
 		p.i++
 		hasWordSubsts = true
