@@ -241,6 +241,13 @@ func (p *parser) parseGlobal() (*demangle.Node, error) {
 	}
 	// Entity-suffix markers can stack (e.g. TwdTwc = coro fn ptr to
 	// default override). Loop until no more matches.
+	// Closure sub-entity: after the main entity, the mangling may
+	// carry a nested closure-shape 'y<result>y<params>X<conv>fU<N>_'
+	// or '...fu<N>_' (explicit / implicit). Wrap as "closure #<N+1>
+	// <fn-type> in <inner>" before entity-suffixes apply.
+	if wrapped, ok := p.tryClosureEntity(inner); ok {
+		inner = wrapped
+	}
 	for {
 		wrapped, ok := p.tryEntitySuffix(inner)
 		if !ok {
@@ -251,6 +258,83 @@ func (p *parser) parseGlobal() (*demangle.Node, error) {
 
 	common.AddChildren(g, inner)
 	return g, nil
+}
+
+// tryClosureEntity matches the closure-sub-entity mangling:
+//
+//	y y X<conv> f (U|u) <digits> _
+//
+// where U = explicit closure, u = implicit closure, digits = 0-based
+// index. Wraps the preceding entity display as
+//
+//	"closure #<idx+1> <fn-type> in <inner>"
+//
+// Narrow: only the empty-params-empty-result form 'yyX<conv>'. More
+// general function-types in the closure slot are a follow-on.
+func (p *parser) tryClosureEntity(inner *demangle.Node) (*demangle.Node, bool) {
+	if p.i+4 >= len(p.s) {
+		return inner, false
+	}
+	// Must start with 'y' 'y'.
+	if p.s[p.i] != 'y' || p.s[p.i+1] != 'y' {
+		return inner, false
+	}
+	// Then X<conv> byte.
+	if p.s[p.i+2] != 'X' {
+		return inner, false
+	}
+	xLetter := p.s[p.i+3]
+	var convPrefix string
+	switch xLetter {
+	case 'E':
+		convPrefix = ""
+	case 'C':
+		convPrefix = "@convention(c) "
+	case 'B':
+		convPrefix = "@convention(block) "
+	case 'T':
+		convPrefix = "@convention(thin) "
+	default:
+		return inner, false
+	}
+	// Then 'f' then 'U' or 'u'.
+	if p.s[p.i+4] != 'f' {
+		return inner, false
+	}
+	if p.i+5 >= len(p.s) {
+		return inner, false
+	}
+	kindLetter := p.s[p.i+5]
+	if kindLetter != 'U' && kindLetter != 'u' {
+		return inner, false
+	}
+	j := p.i + 6
+	digStart := j
+	for j < len(p.s) && p.s[j] >= '0' && p.s[j] <= '9' {
+		j++
+	}
+	// Digits optional; '_' terminator required.
+	if j >= len(p.s) || p.s[j] != '_' {
+		return inner, false
+	}
+	idx := 0
+	if j > digStart {
+		for k := digStart; k < j; k++ {
+			idx = idx*10 + int(p.s[k]-'0')
+		}
+	}
+	p.i = j + 1
+	// Render.
+	innerStr := common.Print(inner, common.DefaultPrintOptions())
+	closureKind := "closure"
+	if kindLetter == 'u' {
+		closureKind = "implicit closure"
+	}
+	display := fmt.Sprintf("%s #%d %s() -> () in %s",
+		closureKind, idx+1, convPrefix, innerStr)
+	wrap := common.NewNode(common.KindTypeMangling)
+	wrap.Text = display
+	return wrap, true
 }
 
 // tryImplFunctionType matches SIL impl-function-type:
