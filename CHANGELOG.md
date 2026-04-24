@@ -4,6 +4,25 @@ All notable changes to this project will be documented here. Format
 follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). This
 project uses semantic versioning.
 
+## [0.1.28] - 2026-04-24
+
+### Added / Fixed
+
+- **swift-stable** — crossed 50 % Apple-corpus coverage.
+  - 'So'/'SC' module prefixes accepted in tryFunctionEntity
+    (__C / __C_Synthesized) alongside digit-led modules.
+  - TO/To attribute-prefix swap: TO = @nonobjc, To = @objc (matches
+    Apple's NonObjCAttribute / ObjCAttribute node kinds).
+  - parseFunctionType: XE → '' (NoEscape renders without prefix),
+    was mis-mapped to @convention(thick). Params slot also accepts
+    'c' or 'X' as marker in place of explicit empty-params 'y'.
+  - paramsSlotIsEmpty helper to distinguish empty-params 'y' from
+    fn-type-start 'y'.
+  - '\$n<digits>_' negative integer literal.
+  - tryPostfixFixedArray: '<size-type><element-type>BV' →
+    "Builtin.FixedArray<size, element>".
+  - Apple corpus: 75 → **77/153** direct matches (50.3 %).
+
 ## [0.1.27] - 2026-04-24
 
 ### Added / Fixed
