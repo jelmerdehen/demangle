@@ -1228,6 +1228,72 @@ func (p *parser) tryEntitySuffix(inner *demangle.Node) (*demangle.Node, bool) {
 			// doesn't decode yet. Annotating with the prefix is enough.
 			prefix = "function signature specialization of "
 			consumed = 2 // intentionally narrow; payload left for parser progress
+		} else if p.s[p.i+1] == 'J' && p.i+2 < len(p.s) {
+			// TJ<variant> <params-subset> p <results-subset> r →
+			// autodiff function/thunk. Narrow: variants f/r/d/p, with
+			// no generic signature payload. Index subsets are S/U runs
+			// where 'S' marks a selected index (printed as the bit
+			// position) and 'U' marks unselected.
+			kindByte := p.s[p.i+2]
+			var variant string
+			switch kindByte {
+			case 'f':
+				variant = "forward-mode derivative"
+			case 'r':
+				variant = "reverse-mode derivative"
+			case 'd':
+				variant = "differential"
+			case 'p':
+				variant = "pullback"
+			}
+			if variant != "" {
+				// Read params subset (run of S/U).
+				pi := p.i + 3
+				start := pi
+				for pi < len(p.s) && (p.s[pi] == 'S' || p.s[pi] == 'U') {
+					pi++
+				}
+				if pi > start && pi < len(p.s) && p.s[pi] == 'p' {
+					paramsSubset := p.s[start:pi]
+					pi++ // consume 'p'
+					rStart := pi
+					for pi < len(p.s) && (p.s[pi] == 'S' || p.s[pi] == 'U') {
+						pi++
+					}
+					if pi > rStart && pi < len(p.s) && p.s[pi] == 'r' {
+						resultsSubset := p.s[rStart:pi]
+						pi++ // consume 'r'
+						renderSubset := func(s string) string {
+							var b strings.Builder
+							b.WriteByte('{')
+							first := true
+							for i := 0; i < len(s); i++ {
+								if s[i] != 'S' {
+									continue
+								}
+								if !first {
+									b.WriteString(", ")
+								}
+								b.WriteString(itoa(i))
+								first = false
+							}
+							b.WriteByte('}')
+							return b.String()
+						}
+						prefix = fmt.Sprintf("%s of ", variant)
+						// Wrap: prefix + <inner> + " with respect to ..."
+						consumed = pi - p.i
+						innerStr := common.Print(inner, common.DefaultPrintOptions())
+						wrapDisplay := prefix + innerStr +
+							" with respect to parameters " + renderSubset(paramsSubset) +
+							" and results " + renderSubset(resultsSubset)
+						p.i += consumed
+						wrap := common.NewNode(common.KindTypeMangling)
+						wrap.Text = wrapDisplay
+						return wrap, true
+					}
+				}
+			}
 		}
 	case 'f':
 		// Init/deinit markers.
