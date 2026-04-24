@@ -169,6 +169,10 @@ func TestStableFunctionEntities(t *testing.T) {
 		{"$s4main3fooyySi_SStF", "main.foo(Swift.Int, Swift.String) -> ()"},
 		// Three-arg tuple: (Swift.Int, Swift.Int, Swift.Int) -> Swift.Bool
 		{"$s4main3fooSbSi_Si_SitF", "main.foo(Swift.Int, Swift.Int, Swift.Int) -> Swift.Bool"},
+		// Single-arg with named label: foo(x: Swift.Int) -> ()
+		{"$s4main3foo1xyySiF", "main.foo(x: Swift.Int) -> ()"},
+		// Two-arg with named labels: foo(x: Int, y: Int) -> ()
+		{"$s4main3foo1x1yyySi_SitF", "main.foo(x: Swift.Int, y: Swift.Int) -> ()"},
 	}
 	for _, c := range cases {
 		c := c

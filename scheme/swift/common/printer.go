@@ -74,6 +74,10 @@ func printNode(b *strings.Builder, n *demangle.Node, opts PrintOptions) {
 			if i > 0 {
 				b.WriteString(", ")
 			}
+			if label := c.Attrs["swift.label"]; label != "" {
+				b.WriteString(label)
+				b.WriteString(": ")
+			}
 			printNode(b, c, opts)
 		}
 	case KindFunctionEntity:
@@ -134,6 +138,14 @@ func printFunctionEntity(b *strings.Builder, n *demangle.Node, opts PrintOptions
 		}
 		if n.Children[1].Attrs["swift.shared"] == "true" {
 			b.WriteString("__shared ")
+		}
+		// Single-arg label-list: the label attr sits on the bare type
+		// node (for tuples we render labels inside KindTypeList).
+		if NodeKind(n.Children[1].Kind) != KindTypeList {
+			if label := n.Children[1].Attrs["swift.label"]; label != "" {
+				b.WriteString(label)
+				b.WriteString(": ")
+			}
 		}
 		printNode(b, n.Children[1], opts)
 	}

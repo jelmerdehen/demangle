@@ -456,9 +456,14 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 		}
 		peek := p.s[p.i]
 		if peek == 'V' || peek == 'C' || peek == 'O' {
-			p.i++ // consume nominal kind
+			p.i++ // consume nominal-context kind; keep iterating.
+			pathSteps = append(pathSteps, common.NewIdentifier(ident))
+			continue
 		}
+		// No V/C/O → this identifier is the decl-name. Subsequent
+		// digit-led bytes belong to the label-list, NOT the chain.
 		pathSteps = append(pathSteps, common.NewIdentifier(ident))
+		break
 	}
 
 	// Per Swift stable ABI Mangling.rst:
@@ -528,9 +533,9 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 				return false
 			}
 		}
-		_ = labels // printer integration is future work; for now the
-		// labels are consumed so the grammar matches. Rendering will
-		// thread labels through KindTypeList attrs in a follow-on.
+		// Labels attach to params-type after it parses below; capture
+		// them here so the inner scope can apply them in order.
+		pathLabels := labels
 		// Result-type.
 		if p.eof() {
 			revert()
@@ -586,10 +591,30 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 					return false
 				}
 				p.i++ // consume 't'
+				// Apply label-list labels in order to each tuple element.
+				for i, el := range elements {
+					if i >= len(pathLabels) {
+						break
+					}
+					if pathLabels[i] == "" || pathLabels[i] == "_" {
+						continue
+					}
+					if el.Attrs == nil {
+						el.Attrs = map[string]string{}
+					}
+					el.Attrs["swift.label"] = pathLabels[i]
+				}
 				tup := common.NewNode(common.KindTypeList)
 				common.AddChildren(tup, elements...)
 				a = tup
 			} else {
+				// Single param: label-list may still carry one label.
+				if len(pathLabels) == 1 && pathLabels[0] != "" && pathLabels[0] != "_" {
+					if x.Attrs == nil {
+						x.Attrs = map[string]string{}
+					}
+					x.Attrs["swift.label"] = pathLabels[0]
+				}
 				a = x
 			}
 			// params-type ::= type 'z'? 'h'?  —  inout / shared modifiers.
