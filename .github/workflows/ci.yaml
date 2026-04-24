@@ -28,12 +28,12 @@ jobs:
       - name: go test (race)
         run: go test -race -count=1 ./...
 
-      - name: core coverage gate (>= 80%)
+      - name: core coverage gate (>= 88%)
         run: |
           go test -coverprofile=/tmp/cov.out github.com/jelmerdehen/demangle
           pct=$(go tool cover -func=/tmp/cov.out | tail -1 | awk '{print $3}' | tr -d '%')
           echo "core coverage = ${pct}%"
-          awk -v p="$pct" 'BEGIN{ if (p+0 < 80.0) exit 1 }'
+          awk -v p="$pct" 'BEGIN{ if (p+0 < 88.0) exit 1 }'
 
       - name: staticcheck
         run: |
