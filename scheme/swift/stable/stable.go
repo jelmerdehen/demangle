@@ -2013,6 +2013,7 @@ func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 			// let the caller try to match result + params + cf<X>.
 			break
 		}
+		identSave := p.i
 		ident, err := p.parseIdentifier()
 		if err != nil {
 			restore()
@@ -2028,26 +2029,65 @@ func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 			pathSteps = append(pathSteps, common.NewIdentifier(ident))
 			continue
 		}
-		pathSteps = append(pathSteps, common.NewIdentifier(ident))
+		// No kind byte — this ident is the label-list start, not a
+		// path component. Roll back so the label-list parse below can
+		// re-consume it.
+		p.i = identSave
+		_ = ident
 		break
 	}
 	// Track the type for substitution lookups. Apple's demangler
-	// pushes each intermediate nominal element to the subs table so
-	// back-references can reach any level. Mirror that by pushing
-	// a module nominal (for the module) and the class itself; higher
-	// indices resolve against these.
-	classType := common.NewNode(common.KindType)
-	classNom := common.NewNode(common.KindClass)
-	for _, step := range pathSteps {
-		common.AddChildren(classNom, step)
+	// pushes each intermediate nominal element AND its type to the
+	// subs table. Mirror by pushing identifier + cumulative Type for
+	// each chain step past the module. The final Type becomes the
+	// most recent sub and short back-refs (AB/AC/etc) resolve to the
+	// nested nominal at the matching index.
+	var accType *demangle.Node
+	for i, step := range pathSteps {
+		if i == 0 {
+			continue // module already pushed
+		}
+		p.subs.Push(step)
+		nom := common.NewNode(common.KindClass)
+		var parent *demangle.Node
+		if accType == nil {
+			parent = moduleNode
+		} else {
+			parent = accType
+		}
+		common.AddChildren(nom, parent, step)
+		t := common.NewNode(common.KindType)
+		common.AddChildren(t, nom)
+		p.subs.Push(t)
+		accType = t
 	}
-	common.AddChildren(classType, classNom)
-	// Push placeholders so AC (index 2 base-26) resolves to the class.
-	// Concrete entries at 0, 1, 2 ensure common short back-references
-	// find the nominal.
-	p.subs.Push(classType)
-	p.subs.Push(classType)
-	p.subs.Push(classType)
+	classType := accType
+	if classType == nil {
+		classType = common.NewNode(common.KindType)
+		classNom := common.NewNode(common.KindClass)
+		common.AddChildren(classNom, moduleNode)
+		common.AddChildren(classType, classNom)
+	}
+	// Label-list: run of digit-led idents that don't end in V/C/O/P,
+	// followed by the result-type start byte. Greedy with backtrack.
+	var labels []string
+	for !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+		lblSave := p.i
+		lblSubs := p.subs
+		lbl, err := p.parseIdentifier()
+		if err != nil {
+			p.i = lblSave
+			p.subs = lblSubs
+			break
+		}
+		if !p.eof() && (p.s[p.i] == 'V' || p.s[p.i] == 'C' ||
+			p.s[p.i] == 'O' || p.s[p.i] == 'P') {
+			p.i = lblSave
+			p.subs = lblSubs
+			break
+		}
+		labels = append(labels, lbl)
+	}
 	// Result-type.
 	var retType *demangle.Node
 	if !p.eof() && p.s[p.i] == 'y' {
@@ -2073,6 +2113,25 @@ func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 			return nil, false, nil
 		}
 		paramsType = t
+	}
+	// Apply labels to paramsType children (tuple) or the single type.
+	if len(labels) > 0 {
+		if common.NodeKind(paramsType.Kind) == common.KindTypeList {
+			for i, el := range paramsType.Children {
+				if i >= len(labels) || labels[i] == "" {
+					continue
+				}
+				if el.Attrs == nil {
+					el.Attrs = map[string]string{}
+				}
+				el.Attrs["swift.label"] = labels[i]
+			}
+		} else if len(labels) == 1 && paramsType != nil {
+			if paramsType.Attrs == nil {
+				paramsType.Attrs = map[string]string{}
+			}
+			paramsType.Attrs["swift.label"] = labels[0]
+		}
 	}
 	// Require 'c' f <C|c|d|D>.
 	if p.i+2 >= len(p.s) || p.s[p.i] != 'c' || p.s[p.i+1] != 'f' {
