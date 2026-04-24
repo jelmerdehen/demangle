@@ -4,6 +4,17 @@ All notable changes to this project will be documented here. Format
 follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). This
 project uses semantic versioning.
 
+## [0.1.18] - 2026-04-22
+
+### Added
+
+- **swift-stable** — SIL impl-function-type parser.
+  - Handles '<type>* I <attrs> _' shape at global level.
+  - Attribute letters: 'e' (@escaping), 'f'/'r'/'d'/'l'
+    differentiable, 'g'/'y'/'t' callee convention, 'n' per-param
+    @in_guaranteed, 'r' per-result @out.
+  - Apple corpus: 34/153 → **37/153** direct matches.
+
 ## [0.1.17] - 2026-04-22
 
 ### Added
