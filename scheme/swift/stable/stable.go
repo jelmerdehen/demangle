@@ -647,6 +647,20 @@ func (p *parser) tryEntitySuffix(inner *demangle.Node) (*demangle.Node, bool) {
 			prefix = "async await resume partial function for "
 		} else if p.s[p.i+1] == 'u' {
 			prefix = "async function pointer to "
+		} else if p.s[p.i+1] == 'm' {
+			prefix = "merged function "
+		} else if p.s[p.i+1] == 'c' {
+			prefix = "curry thunk of "
+		} else if p.s[p.i+1] == 'q' {
+			prefix = "unique protocol witness requirement for "
+		} else if p.s[p.i+1] == 'H' {
+			prefix = "key path accessor thunk helper for "
+		} else if p.s[p.i+1] == 'K' {
+			prefix = "key path getter for "
+		} else if p.s[p.i+1] == 'k' {
+			prefix = "key path setter for "
+		} else if p.s[p.i+1] == 'e' {
+			prefix = "extension entity for "
 		} else if p.s[p.i+1] == 'g' {
 			// Tg<N> — generic specialization, N = pass count digits.
 			prefix = "generic specialization of "
