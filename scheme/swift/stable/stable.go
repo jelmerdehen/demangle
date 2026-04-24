@@ -4166,38 +4166,54 @@ afterNestedLoop:
 //   <proto-or-sub> H<kind> ( y H C g <digits>? _ )+
 //
 // The rendered output ignores these entirely. Return true on match.
+// Narrow: the metadata block must START with a multi-sub-letter chain
+// (A followed by 1+ uppercase/lowercase letters) or a direct H-prefix.
 func (p *parser) skipConformanceRef() bool {
 	if p.eof() {
 		return false
 	}
-	// Look for a forward 'Hg'/'HCg' or similar within a reasonable
-	// window; if found, scan up to the closing '_' after 'g<digits>?'.
 	start := p.i
-	limit := p.i + 80
-	if limit > len(p.s) {
-		limit = len(p.s)
+	// Only engage when the block looks like a conformance-ref start:
+	// 'A' followed by letter-run (multi-sub back-ref) then 'H' within
+	// ~12 bytes, or literal 'H' directly.
+	// Tight heuristic: conformance-ref blocks end their proto-path
+	// with a kind byte (V/C/O/P) directly followed by 'H<P|C|p>'.
+	// A real bound-generic arg ends with a kind byte followed by a
+	// type-start byte for the next arg (digit / 'A' / 'S' / etc.).
+	looksLike := false
+	if p.s[start] == 'A' {
+		j := start + 1
+		// Skip multi-sub letters.
+		for j < len(p.s) && j-start < 12 &&
+			((p.s[j] >= 'a' && p.s[j] <= 'z') || (p.s[j] >= 'A' && p.s[j] <= 'Z')) {
+			j++
+		}
+		// Skip optional length-prefixed ident chars.
+		for j < len(p.s) && j-start < 40 {
+			c := p.s[j]
+			if c == 'V' || c == 'C' || c == 'O' || c == 'P' {
+				// Kind byte. Next byte decides.
+				if j+2 < len(p.s) && p.s[j+1] == 'H' &&
+					(p.s[j+2] == 'P' || p.s[j+2] == 'C' ||
+						p.s[j+2] == 'p') {
+					looksLike = true
+				}
+				break
+			}
+			j++
+		}
 	}
-	found := false
-	for j := start; j+1 < limit; j++ {
-		if p.s[j] == 'H' && p.s[j+1] == 'C' {
-			found = true
-			break
-		}
-		if p.s[j] == 'H' && p.s[j+1] == 'P' {
-			found = true
-			break
-		}
-		if p.s[j] == 'H' && p.s[j+1] == 'p' {
-			found = true
-			break
-		}
-	}
-	if !found {
+	if !looksLike {
 		return false
 	}
 	// Scan forward for 'g' followed by optional digits + '_' —
-	// the conformance-ref metadata terminator. Consume up to + incl.
-	for j := start; j < len(p.s); j++ {
+	// the conformance-ref metadata terminator. Cap at 80 bytes to
+	// avoid runaway consumption.
+	limit := start + 80
+	if limit > len(p.s) {
+		limit = len(p.s)
+	}
+	for j := start; j < limit; j++ {
 		if p.s[j] != 'g' {
 			continue
 		}
@@ -4227,27 +4243,31 @@ func (p *parser) tryBoundGeneric(base *demangle.Node) (*demangle.Node, bool, err
 			p.i++
 			continue
 		}
-		// Retroactive-conformance-ref attached to preceding arg:
-		// Apple packs conformance metadata as a chain ending at the
-		// last 'g<idx>_' or 'HCg<idx>_' marker. The renderer drops
-		// these entirely — skip without producing a new arg. The
-		// metadata chain can have multiple back-to-back blocks.
-		if wasConf := p.skipConformanceRef(); wasConf {
-			// Keep skipping additional conformance-ref blocks.
+		// Try parsing a type arg first. On failure, fall back to
+		// skipping a retroactive-conformance-ref metadata block.
+		argSave := p.i
+		argSubs := p.subs
+		arg, err := p.parseType()
+		if err == nil {
+			args = append(args, arg)
+			// Peek ahead for immediately-following conformance-ref
+			// metadata blocks (each ends with 'g<digits>?_').
 			for p.skipConformanceRef() {
 			}
 			continue
 		}
-		// Bail safely if a nested feature we don't support appears.
-		arg, err := p.parseType()
-		if err != nil {
-			// Roll back — the 'y' we consumed belonged to something
-			// else (probably a function-type marker in a context we
-			// don't yet understand).
-			p.i = save
-			return base, false, nil
+		p.i = argSave
+		p.subs = argSubs
+		if wasConf := p.skipConformanceRef(); wasConf {
+			for p.skipConformanceRef() {
+			}
+			continue
 		}
-		args = append(args, arg)
+		// Roll back — the 'y' we consumed belonged to something else
+		// (probably a function-type marker in a context we don't yet
+		// understand).
+		p.i = save
+		return base, false, nil
 	}
 	if p.eof() {
 		p.i = save
