@@ -4,6 +4,23 @@ All notable changes to this project will be documented here. Format
 follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). This
 project uses semantic versioning.
 
+## [0.1.22] - 2026-04-24
+
+### Added
+
+- **swift-stable** — word-substitution + nested nominal paths.
+  - Identifier word-substitution: '0' prefix captures letter-indexed
+    word-refs (a-z continues, A-Z ends). Enables fixtures like
+    'mini.BorrowSeq' from '06BorrowB0' referencing earlier 'Seq'.
+  - Nested nominal path in parseType — `<type><digits><chars><kind>`
+    appends nested kinds (Swift.Dictionary.Index via SD5IndexV).
+  - Printer's printNominal recurses into nominal-kind parent nodes
+    for full qualified chain display.
+  - Closure sub-entity 'yyX<conv>fU<N>_' → 'closure #N+1 () -> () in'.
+  - Identifier + nominal Type pushes in function-entity chain align
+    subs with Apple (A<idx> back-refs now match Apple's index space).
+  - Apple corpus: 57 → **60/153** direct matches.
+
 ## [0.1.21] - 2026-04-24
 
 ### Added

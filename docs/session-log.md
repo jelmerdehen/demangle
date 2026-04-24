@@ -11,7 +11,7 @@ package doc.
 | 0 — foundation | ✅ | Scheme + Mangler interfaces, Catalog, Context + ContextStore, Batch API, Error taxonomy, CLI skeleton, CI |
 | 0.5a — 5 trivial schemes | ✅ | jni, kotlin, scala2, android-dex, js-minified |
 | 0.5b — parser-weight + context | ✅ | jvmdesc (JVMS §4.3 + §4.7.9), proguard-map |
-| 1 — Swift stable grammar | 🚧 | Subset: builtins (incl. 10 B-family Builtin.* types + BW Builtin.Borrow), integer literals `$<digit>`, spec-aligned stdlib-subs (48 entries), `Sc<X>` concurrency lookup (17 more), nominal, bound generics (with `_` separator for mixed args), function entities with correct Apple-ABI `result-type` + `params-type` order, multi-arg tuples (including `<type>_t` single-element labeled form), z/h (inout/shared), Yi/Yu/YT (isolated/sending/sending-result), n (owned), Yt/Yk (postfix _const/@noDerivative type annotations), Ya (async) + K (throws), generic-sig trailer `l`, Q-family opaque placeholders, T/H/W/M entity suffixes incl. TC (coroutine continuation prototype) + TR (reabstraction thunk helper) + specialization pass markers, postfix vectors, compact stdlib function-types (`S<N><letter>...X<conv>` with Y-annotations), compact stdlib sig-slots, full SIL impl-function-type decoding (param/result modes + diff/sending, callee+func+coro conventions, h/H/T attrs). 57/153 Apple-corpus direct matches; 0 mismatches. |
+| 1 — Swift stable grammar | 🚧 | Subset: builtins (incl. 10 B-family Builtin.* types + BW Builtin.Borrow), integer literals `$<digit>`, spec-aligned stdlib-subs (48 entries), `Sc<X>` concurrency lookup (17 more), nominal + nested nominal paths, bound generics (with `_` separator), function entities, multi-arg tuples (with `<type>_t` labeled form), z/h/n (inout/shared/owned), Yi/Yu/YT (isolated/sending/sending-result), Yt/Yk (_const / @noDerivative), Ya + K (async/throws), generic-sig trailer `l`, Q-family opaque, T/H/W/M entity suffixes incl. TC (coroutine continuation prototype), TR (reabstraction thunk helper), TO (@objc), etc. + specialization markers, postfix vectors, compact stdlib function-types (`S<N><letter>...X<conv>`), compact stdlib sig-slots, full SIL impl-function-type decoding (param/result modes + diff/sending, callee+func+coro conventions, h/H/T attrs), identifier word-substitution ('0' prefix with letter-indexed word-refs), closure sub-entity `fU<N>_`, nested nominal chain via `<type><digits><chars><kind>`. 60/153 Apple-corpus direct matches; 0 mismatches. |
 | 2 — C++ Itanium wrap | ✅ | wraps ianlancetaylor/demangle; +Rust legacy+v0 for free |
 | 3 — Swift variants | ✅ | v42 + v40 + embedded + macro reuse stable parser; old stub |
 | 4 — MSVC + D | ✅ | narrow MSVC (templates + ctors/dtors/vftable/RTTI + pointer args); narrow D |
@@ -24,7 +24,7 @@ package doc.
 - **21 schemes** registered.
 - **14 tags** (v0.1.0 through v0.1.14).
 - **23 fuzz harnesses** (1 per scheme + 2 core — 800k+ execs/10s clean).
-- Apple corpus: **57/153** Swift direct matches (37.3 %), **0 mismatches**
+- Apple corpus: **60/153** Swift direct matches (39.2 %), **0 mismatches**
   (hard-gated — any mismatch fails the test).
 - Core package unit-test coverage: **91.9%** of statements
   (CI gate: ≥ 88%).
