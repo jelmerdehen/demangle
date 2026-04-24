@@ -163,6 +163,15 @@ func TestMSVCOperators(t *testing.T) {
 		{"??RFoo@@QEAAXXZ", "public: void __cdecl Foo::operator()(void)"},
 		// operator with class-ref arg: Foo& via backref to first scope.
 		{"??4Foo@@QEAAXAAV0@@Z", "public: void __cdecl Foo::operator=(Foo&)"},
+		// operator> / operator< / operator<< / operator>>
+		{"??OFoo@@QEAAHH@Z", "public: int __cdecl Foo::operator>(int)"},
+		{"??MFoo@@QEAAHH@Z", "public: int __cdecl Foo::operator<(int)"},
+		{"??6Foo@@QEAAHH@Z", "public: int __cdecl Foo::operator<<(int)"},
+		{"??5Foo@@QEAAHH@Z", "public: int __cdecl Foo::operator>>(int)"},
+		// operator!
+		{"??7Foo@@QEAAHXZ", "public: int __cdecl Foo::operator!(void)"},
+		// operator!=
+		{"??9Foo@@QEAAHH@Z", "public: int __cdecl Foo::operator!=(int)"},
 	}
 	for _, c := range cases {
 		c := c
