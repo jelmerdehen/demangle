@@ -234,6 +234,14 @@ func decodeType(s string, i int) (string, int, bool) {
 		}
 		return inner + "[]", next, true
 	case 'D':
+		// Delegate is either "D<type>" (simple) or "D<function-type>"
+		// where function-type is "F<linkage?><attrs?><args>*Z<ret>".
+		// Try function-type first: if next byte is 'F', parse as function.
+		if i+1 < len(s) && s[i+1] == 'F' {
+			if decoded, ok := decodeFunctionType(s[i+1:]); ok {
+				return "delegate" + decoded, len(s), true
+			}
+		}
 		inner, next, ok := decodeType(s, i+1)
 		if !ok {
 			return "", i, false

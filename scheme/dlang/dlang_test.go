@@ -82,9 +82,10 @@ func TestDLangCompositeTypes(t *testing.T) {
 	}{
 		// Pointer-to-int return.
 		{"_D3foo3barFZPi", "→ int*"},
-		// Delegate return — takes a function-type inner, narrow parser
-		// falls through to fallback annotation.
+		// Delegate-of-type return.
 		{"_D3foo3barFZDi", "int delegate"},
+		// Delegate-of-function return: delegate (int) → void.
+		{"_D3foo3barFZDFiZv", "delegate"},
 		// Static-array return: G<len><inner> — int[4]
 		{"_D3foo3barFZG4i", "int[4]"},
 		// Associative-array: H<key><value> — int[int]
