@@ -257,6 +257,17 @@ func (p *parser) parseGlobal() (*demangle.Node, error) {
 	if wrapped, ok := p.tryReabstractionThunk(inner); ok {
 		inner = wrapped
 	}
+	// Opaque return-type wrapper: trailing 'QO' wraps inner as
+	// "<<opaque return type of <inner>>>". Typically followed by an
+	// H-family runtime record suffix (Ho/HO/etc.) — handled by the
+	// entity-suffix loop below.
+	if p.i+1 < len(p.s) && p.s[p.i] == 'Q' && p.s[p.i+1] == 'O' {
+		p.i += 2
+		innerStr := common.Print(inner, common.DefaultPrintOptions())
+		wrap := common.NewNode(common.KindTypeMangling)
+		wrap.Text = "<<opaque return type of " + innerStr + ">>"
+		inner = wrap
+	}
 	// Entity-suffix markers can stack (e.g. TwdTwc = coro fn ptr to
 	// default override). Loop until no more matches.
 	// Closure sub-entity: after the main entity, the mangling may
@@ -2710,7 +2721,7 @@ func (p *parser) parseOpaqueType() (*demangle.Node, error) {
 	gp := common.NewNode(common.KindDependentGenericParamType)
 	switch c {
 	case 'r':
-		gp.Text = "<<opaque return type>>"
+		gp.Text = "some"
 	case 'o':
 		gp.Text = "<<opaque type>>"
 		// Optional index digits then '_'.
@@ -2723,7 +2734,7 @@ func (p *parser) parseOpaqueType() (*demangle.Node, error) {
 	case 'O':
 		// Outlined opaque type wrapper — treat as a bare placeholder so
 		// the H-suffix that usually follows can annotate it.
-		gp.Text = "<<opaque return type>>"
+		gp.Text = "some"
 	default:
 		gp.Text = "<<opaque type>>"
 	}
