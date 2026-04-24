@@ -4219,23 +4219,78 @@ func (p *parser) skipConformanceRef() bool {
 	//    ~16 bytes (e.g. 'AiJ1QAAyHCg1_')
 	looksLike := false
 	if p.s[start] == 'A' {
-		// Form 1: V/C/O/P followed by H<P|C|p>.
+		// Retroactive-conformance-ref tail patterns accepted:
+		//   - direct:        <VCOP>H<PCp> g<d?>_
+		//   - via 'y':       <VCOP>yH<PCp> g<d?>_
+		//   - via sub:       <VCOP><sub>yH<PCp> g<d?>_
+		//   - inline-proto:  <stuff>yH<PCp> g<d?>_  (proto is a sub-ref
+		//                    or ident; no direct V/C/O/P kind byte)
+		// We scan within the first 60 bytes for either a V/C/O/P
+		// followed by H<PCp> within 6 bytes (per the strict form), or
+		// a bare `yH<PCp>` bigram (inline-proto form).
+		limit := 60
+		if start+limit > len(p.s) {
+			limit = len(p.s) - start
+		}
+		// Strict form via V/C/O/P.
 		j := start + 1
 		for j < len(p.s) && j-start < 12 &&
 			((p.s[j] >= 'a' && p.s[j] <= 'z') || (p.s[j] >= 'A' && p.s[j] <= 'Z')) {
 			j++
 		}
-		for j < len(p.s) && j-start < 40 {
+		for j < len(p.s) && j-start < 40 && !looksLike {
 			c := p.s[j]
 			if c == 'V' || c == 'C' || c == 'O' || c == 'P' {
-				if j+2 < len(p.s) && p.s[j+1] == 'H' &&
-					(p.s[j+2] == 'P' || p.s[j+2] == 'C' ||
-						p.s[j+2] == 'p') {
+				for k := j + 1; k < len(p.s) && k-j <= 6; k++ {
+					if p.s[k] != 'H' {
+						continue
+					}
+					if k+1 >= len(p.s) {
+						break
+					}
+					hnext := p.s[k+1]
+					if hnext != 'P' && hnext != 'C' && hnext != 'p' {
+						continue
+					}
+					if k == j+1 {
+						looksLike = true
+						break
+					}
+					if p.s[k-1] != 'y' {
+						continue
+					}
 					looksLike = true
+					break
 				}
 				break
 			}
 			j++
+		}
+		// Inline-proto form: bare 'yH<PCp>' bigram within the window.
+		// Requires the tail to also carry 'g<d?>_' closer — we check
+		// that after bigram detection.
+		if !looksLike {
+			for k := start + 2; k < len(p.s) && k-start < limit; k++ {
+				if p.s[k-1] == 'y' && p.s[k] == 'H' && k+1 < len(p.s) {
+					hnext := p.s[k+1]
+					if hnext == 'P' || hnext == 'C' || hnext == 'p' {
+						// Sanity: only accept when the preceding content
+						// doesn't look like an argument type (has no
+						// generic-close 'G' between start and here).
+						sane := true
+						for q := start; q < k; q++ {
+							if p.s[q] == 'G' {
+								sane = false
+								break
+							}
+						}
+						if sane {
+							looksLike = true
+							break
+						}
+					}
+				}
+			}
 		}
 	}
 	if !looksLike {

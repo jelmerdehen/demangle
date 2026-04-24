@@ -4,6 +4,22 @@ All notable changes to this project will be documented here. Format
 follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). This
 project uses semantic versioning.
 
+## [0.1.42] - 2026-04-24
+
+### Added
+
+- **swift-stable** — retroactive-conformance skipConformanceRef V2.
+  - Strict form loosened: V/C/O/P kind byte followed by H<P|C|p>
+    within 6 bytes, via direct adjacency OR `<VCOP><sub>yH<PCp>`
+    OR `<VCOP>yH<PCp>`.
+  - Inline-proto form added: bare `yH<PCp>` bigram within 60 bytes
+    of start, with no `G` (generic-close) between. Covers retro
+    blocks where the protocol is referenced via sub/ident without
+    a literal V/C/O/P kind byte.
+  - Unlocks the 3 `mangling_retroactive.test0` fixtures (HC/HP/Hp
+    variants).
+  - Apple corpus: 119 → **122/153** direct matches (79.7 %).
+
 ## [0.1.41] - 2026-04-24
 
 ### Added
