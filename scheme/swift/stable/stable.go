@@ -252,6 +252,11 @@ func (p *parser) parseGlobal() (*demangle.Node, error) {
 	if wrapped, ok := p.tryAssociatedConformanceDescriptor(inner); ok {
 		inner = wrapped
 	}
+	// Reabstraction-thunk compound: '<impl-fn-1> <impl-fn-2> TR'
+	// renders as "reabstraction thunk helper from <first> to <second>".
+	if wrapped, ok := p.tryReabstractionThunk(inner); ok {
+		inner = wrapped
+	}
 	// Entity-suffix markers can stack (e.g. TwdTwc = coro fn ptr to
 	// default override). Loop until no more matches.
 	// Closure sub-entity: after the main entity, the mangling may
@@ -271,6 +276,50 @@ func (p *parser) parseGlobal() (*demangle.Node, error) {
 
 	common.AddChildren(g, inner)
 	return g, nil
+}
+
+// tryReabstractionThunk matches the pattern
+//
+//   <first-type> <second-type> T R
+//
+// and renders as "reabstraction thunk helper from <first> to
+// <second>". Narrow: the second type is consumed via parseType
+// (which handles impl-fn-types, nominal, etc.). Only triggers when
+// the bytes after the second type are literal 'TR'.
+func (p *parser) tryReabstractionThunk(inner *demangle.Node) (*demangle.Node, bool) {
+	save := p.i
+	saveSubs := p.subs
+	revert := func() {
+		p.i = save
+		p.subs = saveSubs
+	}
+	// Try to parse another type. Prefer impl-fn-type first — that
+	// parser reads its own leading type prefix + 'I' + attrs + '_'.
+	var second *demangle.Node
+	if implFn, ok := p.tryImplFunctionType(); ok {
+		second = implFn
+	} else if p.eof() {
+		return inner, false
+	} else {
+		t, err := p.parseType()
+		if err != nil {
+			revert()
+			return inner, false
+		}
+		second = t
+	}
+	_ = saveSubs
+	if p.i+1 >= len(p.s) || p.s[p.i] != 'T' || p.s[p.i+1] != 'R' {
+		revert()
+		return inner, false
+	}
+	p.i += 2
+	firstStr := common.Print(inner, common.DefaultPrintOptions())
+	secondStr := common.Print(second, common.DefaultPrintOptions())
+	display := "reabstraction thunk helper from " + firstStr + " to " + secondStr
+	wrap := common.NewNode(common.KindTypeMangling)
+	wrap.Text = display
+	return wrap, true
 }
 
 // tryAssociatedConformanceDescriptor matches the pattern
@@ -730,7 +779,7 @@ func (p *parser) tryImplFunctionType() (*demangle.Node, bool) {
 			break
 		}
 		k++
-		// Optional differentiability (w = @noDerivative, l = @noDerivative too).
+		// Optional differentiability (w / l → @noDerivative).
 		diff := ""
 		if k < len(modeAttrs) && (modeAttrs[k] == 'w' || modeAttrs[k] == 'l') {
 			diff = " @noDerivative"
@@ -740,6 +789,16 @@ func (p *parser) tryImplFunctionType() (*demangle.Node, bool) {
 		sending := ""
 		if k < len(modeAttrs) && modeAttrs[k] == 'T' {
 			sending = " sending"
+			k++
+		}
+		// Optional isolated (I) and implicit-leading (L) — Apple's
+		// demangler captures these as nodes but the NodePrinter for
+		// the fixture corpus ignores them in the rendered param
+		// attribute string. Consume the bytes silently to match.
+		if k < len(modeAttrs) && modeAttrs[k] == 'I' {
+			k++
+		}
+		if k < len(modeAttrs) && modeAttrs[k] == 'L' {
 			k++
 		}
 		params = append(params, attr+diff+sending+" "+common.Print(types[ti], opts))
