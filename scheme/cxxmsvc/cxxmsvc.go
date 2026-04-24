@@ -122,6 +122,33 @@ func (p *parser) parseSpecialName() (string, bool, error) {
 	if p.eof() {
 		return "", false, p.truncated()
 	}
+	// MSVC operator-overload table (??<letter>). Each maps to an
+	// "operator<x>" suffix. Letter follows the '?' we already consumed
+	// in the caller + the second '?' we consumed at entry. The
+	// method is then treated as a regular method on the enclosing
+	// name chain, with the suffix as the decl-name.
+	opName := operatorName(p.s[p.i])
+	if opName != "" {
+		p.i++
+		chain, err := p.parseNameChain()
+		if err != nil {
+			return "", true, err
+		}
+		sig, err := p.parseSignatureMode(false)
+		if err != nil {
+			return "", true, err
+		}
+		joined := strings.Join(reverse(chain), "::")
+		prefix := ""
+		if sig.quals != "" {
+			prefix = sig.quals + " "
+		}
+		sep := "::"
+		if joined == "" {
+			sep = ""
+		}
+		return prefix + joined + sep + "operator" + opName + "(" + sig.args + ")", true, nil
+	}
 	switch p.s[p.i] {
 	case '0':
 		p.i++
@@ -768,6 +795,83 @@ func (p *parser) parseSignatureMode(ctorDtor bool) (signature, error) {
 	}
 	sig.quals = prefix
 	return sig, nil
+}
+
+// operatorName returns the C++ operator suffix for a single-letter
+// ??<letter> code, or "" if the letter isn't a recognised MSVC
+// operator. Per LLVM's MicrosoftDemangle.cpp op table.
+func operatorName(c byte) string {
+	switch c {
+	case '2':
+		return " new"
+	case '3':
+		return " delete"
+	case '4':
+		return "="
+	case '5':
+		return ">>"
+	case '6':
+		return "<<"
+	case '7':
+		return "!"
+	case '8':
+		return "=="
+	case '9':
+		return "!="
+	case 'A':
+		return "[]"
+	case 'B':
+		return " <type>" // conversion operator (type not rendered in narrow parser)
+	case 'C':
+		return "->"
+	case 'D':
+		return "*"
+	case 'E':
+		return "++"
+	case 'F':
+		return "--"
+	case 'G':
+		return "-"
+	case 'H':
+		return "+"
+	case 'I':
+		return "&"
+	case 'J':
+		return "->*"
+	case 'K':
+		return "/"
+	case 'L':
+		return "%"
+	case 'M':
+		return "<"
+	case 'N':
+		return "<="
+	case 'O':
+		return ">"
+	case 'P':
+		return ">="
+	case 'Q':
+		return ","
+	case 'R':
+		return "()"
+	case 'S':
+		return "~"
+	case 'T':
+		return "^"
+	case 'U':
+		return "|"
+	case 'V':
+		return "&&"
+	case 'W':
+		return "||"
+	case 'X':
+		return "*="
+	case 'Y':
+		return "+="
+	case 'Z':
+		return "-="
+	}
+	return ""
 }
 
 func reverse(ss []string) []string {

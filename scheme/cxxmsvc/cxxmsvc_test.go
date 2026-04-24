@@ -147,6 +147,36 @@ func TestMSVCAccessQualifiers(t *testing.T) {
 	}
 }
 
+func TestMSVCOperators(t *testing.T) {
+	t.Parallel()
+	cat := newCatalog(t)
+	cases := []struct {
+		in, want string
+	}{
+		// operator+ on Foo: ??HFoo@@QEAAHH@Z → public: int __cdecl Foo::operator+(int)
+		{"??HFoo@@QEAAHH@Z", "public: int __cdecl Foo::operator+(int)"},
+		// operator-
+		{"??GFoo@@QEAAHH@Z", "public: int __cdecl Foo::operator-(int)"},
+		// operator[ ] with int arg.
+		{"??AFoo@@QEAAHH@Z", "public: int __cdecl Foo::operator[](int)"},
+		// operator() with void arg.
+		{"??RFoo@@QEAAXXZ", "public: void __cdecl Foo::operator()(void)"},
+	}
+	for _, c := range cases {
+		c := c
+		t.Run(c.in, func(t *testing.T) {
+			t.Parallel()
+			r, err := cat.Demangle(context.Background(), c.in, nil)
+			if err != nil {
+				t.Fatalf("demangle: %v", err)
+			}
+			if r.Output != c.want {
+				t.Fatalf("output = %q, want %q", r.Output, c.want)
+			}
+		})
+	}
+}
+
 // TestMSVCRTTI covers the ??_R0 RTTI type-descriptor path.
 func TestMSVCRTTI(t *testing.T) {
 	t.Parallel()
