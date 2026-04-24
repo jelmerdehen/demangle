@@ -2006,6 +2006,7 @@ func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 	moduleNode := common.NewModule(mod)
 	pathSteps = append(pathSteps, moduleNode)
 	p.subs.Push(moduleNode)
+	lastKind := byte(0)
 	for {
 		if p.eof() || !(p.s[p.i] >= '0' && p.s[p.i] <= '9') {
 			// For init/deinit, the context chain may end with a
@@ -2026,6 +2027,7 @@ func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 		peek := p.s[p.i]
 		if peek == 'V' || peek == 'C' || peek == 'O' || peek == 'P' {
 			p.i++
+			lastKind = peek
 			pathSteps = append(pathSteps, common.NewIdentifier(ident))
 			continue
 		}
@@ -2114,6 +2116,10 @@ func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 		}
 		paramsType = t
 	}
+	// Optional '_t' trailing tuple-terminator (single-labeled-arg form).
+	if p.i+1 < len(p.s) && p.s[p.i] == '_' && p.s[p.i+1] == 't' {
+		p.i += 2
+	}
 	// Apply labels to paramsType children (tuple) or the single type.
 	if len(labels) > 0 {
 		if common.NodeKind(paramsType.Kind) == common.KindTypeList {
@@ -2139,11 +2145,20 @@ func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 		return nil, false, nil
 	}
 	terminal := ""
-	switch p.s[p.i+2] {
+	kindByte := p.s[p.i+2]
+	switch kindByte {
 	case 'C':
-		terminal = "__allocating_init"
+		if lastKind == 'C' {
+			terminal = "__allocating_init"
+		} else {
+			terminal = "init"
+		}
 	case 'c':
-		terminal = "__nonallocating_init"
+		if lastKind == 'C' {
+			terminal = "__nonallocating_init"
+		} else {
+			terminal = "init"
+		}
 	case 'D':
 		terminal = "__deallocating_deinit"
 	case 'd':
@@ -2160,7 +2175,11 @@ func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 	pathStr := common.Print(path, opts)
 	paramsStr := "()"
 	if common.NodeKind(paramsType.Kind) != common.KindEmptyList {
-		paramsStr = "(" + common.Print(paramsType, opts) + ")"
+		inner := common.Print(paramsType, opts)
+		if lbl := paramsType.Attrs["swift.label"]; lbl != "" {
+			inner = lbl + ": " + inner
+		}
+		paramsStr = "(" + inner + ")"
 	}
 	retStr := "()"
 	if common.NodeKind(retType.Kind) != common.KindEmptyList {
@@ -4126,6 +4145,10 @@ func (p *parser) parseGenericParam() (*demangle.Node, error) {
 		return nil, p.grammarErr("'_' terminating generic param")
 	}
 	p.i++
+	// Optional second '_' for pack-index-zero (qd__, q__, etc.).
+	if !p.eof() && p.s[p.i] == '_' {
+		p.i++
+	}
 	return p.genericParam(depth, index), nil
 }
 
