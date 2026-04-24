@@ -1132,11 +1132,12 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 	// We speculatively consume a leading `y` as label-list and parse
 	// result/params; on failure we rewind and try without.
 	var (
-		args, ret     *demangle.Node
-		throws        bool
-		async         bool
-		genericSig    bool
-		consumed      int // how much of the signature + F we consumed
+		args, ret      *demangle.Node
+		throws         bool
+		async          bool
+		sendingResult  bool
+		genericSig     bool
+		consumed       int // how much of the signature + F we consumed
 	)
 	tryPath := func(assumeLabelList bool) bool {
 		savePath := p.i
@@ -1352,10 +1353,6 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 						p.i += 2
 						ensureAttrs()
 						a.Attrs["swift.isolated"] = "true"
-					case 'T':
-						p.i += 2
-						ensureAttrs()
-						a.Attrs["swift.sending"] = "true"
 					case 'u':
 						p.i += 2
 						ensureAttrs()
@@ -1370,12 +1367,20 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 		paramModsDone:
 		}
 	afterSigSlots:
-		// Async / throws markers. Spec: Ya = async (2 bytes), K = throws.
+		// Function-level annotations. Order in mangled form (bottom-
+		// to-top of Apple's stack): Ya (async), K (throws), Yb
+		// (@Sendable), YT (sending-result). Loop until none match.
 		localAsync := false
 		localThrows := false
+		localSendingResult := false
 		for !p.eof() {
 			if p.i+1 < len(p.s) && p.s[p.i] == 'Y' && p.s[p.i+1] == 'a' {
 				localAsync = true
+				p.i += 2
+				continue
+			}
+			if p.i+1 < len(p.s) && p.s[p.i] == 'Y' && p.s[p.i+1] == 'T' {
+				localSendingResult = true
 				p.i += 2
 				continue
 			}
@@ -1462,6 +1467,7 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 		args = a
 		async = localAsync
 		throws = localThrows
+		sendingResult = localSendingResult
 		genericSig = localGeneric
 		consumed = p.i - savePath
 		_ = consumed
@@ -1486,6 +1492,9 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 	}
 	if throws {
 		entity.Attrs["swift.throws"] = "true"
+	}
+	if sendingResult {
+		entity.Attrs["swift.sendingResult"] = "true"
 	}
 	if genericSig {
 		entity.Attrs["swift.generic"] = "<A>"

@@ -169,6 +169,9 @@ func printFunctionEntity(b *strings.Builder, n *demangle.Node, opts PrintOptions
 		b.WriteString(" throws")
 	}
 	b.WriteString(" -> ")
+	if n.Attrs["swift.sendingResult"] == "true" {
+		b.WriteString("sending ")
+	}
 	if n.Children[2] == nil || NodeKind(n.Children[2].Kind) == KindEmptyList {
 		b.WriteString("()")
 	} else {
