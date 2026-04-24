@@ -185,7 +185,11 @@ func printFunctionEntity(b *strings.Builder, n *demangle.Node, opts PrintOptions
 	if n.Attrs["swift.async"] == "true" {
 		b.WriteString(" async")
 	}
-	if n.Attrs["swift.throws"] == "true" {
+	if tt := n.Attrs["swift.throwsType"]; tt != "" {
+		b.WriteString(" throws(")
+		b.WriteString(tt)
+		b.WriteByte(')')
+	} else if n.Attrs["swift.throws"] == "true" {
 		b.WriteString(" throws")
 	}
 	b.WriteString(" -> ")

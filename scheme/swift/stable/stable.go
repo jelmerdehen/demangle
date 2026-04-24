@@ -2110,6 +2110,7 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 	var (
 		args, ret      *demangle.Node
 		throws         bool
+		throwsTypeStr  string
 		async          bool
 		sendingResult  bool
 		genericSig     bool
@@ -2124,6 +2125,8 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 			p.i = savePath
 			p.subs = saveSubsLocal
 		}
+		var localThrowsType string
+		var localThrowsFromTyped bool
 		var labels []string
 		// Apple mangling: when labels are non-empty, each label is
 		// pushed as a raw Identifier with NO terminating marker.
@@ -2356,6 +2359,22 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 			p.i++
 			a = common.NewNode(common.KindEmptyList)
 		} else {
+			// Typed-throws speculative: when the next slot is '<type>YK'
+			// the type belongs to the throws-annotation, not params —
+			// params is actually empty. Try it first; on miss, roll back
+			// and treat as real params-type.
+			specSave := p.i
+			specSubs := p.subs
+			if tt, terr := p.parseType(); terr == nil && !p.eof() &&
+				p.i+1 < len(p.s) && p.s[p.i] == 'Y' && p.s[p.i+1] == 'K' {
+				p.i += 2
+				localThrowsType = common.Print(tt, common.DefaultPrintOptions())
+				a = common.NewNode(common.KindEmptyList)
+				localThrowsFromTyped = true
+				goto afterSigSlots
+			}
+			p.i = specSave
+			p.subs = specSubs
 			x, err := p.parseType()
 			if err != nil {
 				revert()
@@ -2582,7 +2601,10 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 		ret = r
 		args = a
 		async = localAsync
-		throws = localThrows
+		throws = localThrows || localThrowsFromTyped
+		if localThrowsFromTyped {
+			throwsTypeStr = localThrowsType
+		}
 		sendingResult = localSendingResult
 		genericSig = localGeneric
 		genericCount = localGenericCount
@@ -2610,6 +2632,9 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 	}
 	if throws {
 		entity.Attrs["swift.throws"] = "true"
+	}
+	if throwsTypeStr != "" {
+		entity.Attrs["swift.throwsType"] = throwsTypeStr
 	}
 	if sendingResult {
 		entity.Attrs["swift.sendingResult"] = "true"
