@@ -11,7 +11,7 @@ package doc.
 | 0 — foundation | ✅ | Scheme + Mangler interfaces, Catalog, Context + ContextStore, Batch API, Error taxonomy, CLI skeleton, CI |
 | 0.5a — 5 trivial schemes | ✅ | jni, kotlin, scala2, android-dex, js-minified |
 | 0.5b — parser-weight + context | ✅ | jvmdesc (JVMS §4.3 + §4.7.9), proguard-map |
-| 1 — Swift stable grammar | 🚧 | Subset: builtins, stdlib-subs, nominal, bound generics, function entities (yyF/single-arg/multi-shape), postfix vectors, entity suffixes (Mn/Hn/Hr/…), throws/async flags. 8/153 Apple-corpus direct matches; 0 mismatches. |
+| 1 — Swift stable grammar | 🚧 | Subset: builtins (incl. 10 B-family Builtin.* types), spec-aligned stdlib-subs (48 entries), `Sc<X>` concurrency lookup (17 more), nominal, bound generics, function entities with correct Apple-ABI `result-type` + `params-type` order, multi-arg tuples, z/h (inout/shared), Ya (async) + K (throws), generic-sig trailer `l`, Q-family opaque placeholders, T/H/W/M entity suffixes + specialization pass markers, postfix vectors. 19/153 Apple-corpus direct matches; 0 mismatches. |
 | 2 — C++ Itanium wrap | ✅ | wraps ianlancetaylor/demangle; +Rust legacy+v0 for free |
 | 3 — Swift variants | ✅ | v42 + v40 + embedded + macro reuse stable parser; old stub |
 | 4 — MSVC + D | ✅ | narrow MSVC (templates + ctors/dtors/vftable/RTTI + pointer args); narrow D |
@@ -19,12 +19,14 @@ package doc.
 | 6 — gRPC service scaffold | ✅ | proto + server + 5 integration tests |
 | 6.5 — deploy artifacts | 🚧 | healthz + metrics + TLS + keepalive + systemd unit ready; lux deploy gated on first real caller |
 
-## Tallies (final)
+## Tallies (current)
 
 - **21 schemes** registered.
-- **60+ commits** on `main`; **8 tags** (v0.1.0 through v0.1.7).
+- **9 tags** (v0.1.0 through v0.1.9).
 - **11 fuzz harnesses** (every hand-written parser).
-- Apple corpus: **11/153** Swift direct matches, **0 mismatches**.
+- Apple corpus: **19/153** Swift direct matches, **0 mismatches**.
+- Core package unit-test coverage: **86.6%** of statements.
+- Batch throughput on reference workstation: **≥ 447k names/sec**.
 - Full CLI binary stays under 14 MB (budget gate).
 
 ## Scheme registry
