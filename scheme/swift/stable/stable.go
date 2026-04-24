@@ -665,7 +665,7 @@ func (p *parser) tryEntitySuffix(inner *demangle.Node) (*demangle.Node, bool) {
 		}
 	case 'T':
 		// T-prefixed thunks and specialisations. Narrow: 3-byte forms
-		// Twb / TwB / TwS plus 2-byte TO (Objective-C thunk).
+		// Twb / TwB / TwS / Twd / Twc plus 2-byte TO (Objective-C thunk).
 		if p.i+2 < len(p.s) && p.s[p.i+1] == 'w' {
 			consumed = 3
 			switch p.s[p.i+2] {
@@ -675,6 +675,10 @@ func (p *parser) tryEntitySuffix(inner *demangle.Node) (*demangle.Node, bool) {
 				prefix = "back deployment fallback for "
 			case 'S':
 				prefix = "#_hasSymbol query for "
+			case 'd':
+				prefix = "default override of "
+			case 'c':
+				prefix = "coro function pointer to "
 			}
 		} else if p.s[p.i+1] == 'O' {
 			prefix = "@objc thunk of "
