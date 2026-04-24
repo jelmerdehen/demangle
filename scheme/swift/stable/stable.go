@@ -1516,6 +1516,9 @@ func (p *parser) parseType() (*demangle.Node, error) {
 		}
 		node = wrapped
 	}
+	if wrapped, ok := p.tryPostfixBorrow(node); ok {
+		node = wrapped
+	}
 	// Bound-generic trailer: base y <type>+ G.
 	if bg, ok, err := p.tryBoundGeneric(node); err != nil {
 		return nil, err
@@ -2094,6 +2097,29 @@ func (p *parser) parseNominalWithModule(module *demangle.Node) (*demangle.Node, 
 	common.AddChildren(nom, module, common.NewIdentifier(name))
 	common.AddChildren(typ, nom)
 	return typ, nil
+}
+
+// tryPostfixBorrow looks for a trailing 'BW' modifier. Wraps the
+// preceding type as Builtin.Borrow<inner> — printed as a generic
+// structure so the display form matches Apple's output.
+func (p *parser) tryPostfixBorrow(inner *demangle.Node) (*demangle.Node, bool) {
+	if p.i+1 >= len(p.s) || p.s[p.i] != 'B' || p.s[p.i+1] != 'W' {
+		return inner, false
+	}
+	p.i += 2
+	modNode := common.NewModule("Builtin")
+	ident := common.NewIdentifier("Borrow")
+	base := common.NewNode(common.KindStructure)
+	common.AddChildren(base, modNode, ident)
+	baseType := common.NewNode(common.KindType)
+	common.AddChildren(baseType, base)
+	args := common.NewNode(common.KindTypeList)
+	common.AddChildren(args, inner)
+	bound := common.NewNode(common.KindBoundGenericStructure)
+	common.AddChildren(bound, baseType, args)
+	wrap := common.NewNode(common.KindType)
+	common.AddChildren(wrap, bound)
+	return wrap, true
 }
 
 // tryPostfixVector looks for a trailing Bv<N>_ modifier. If present,
