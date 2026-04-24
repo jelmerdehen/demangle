@@ -1129,29 +1129,36 @@ func (p *parser) parseNumericSubstitution() (*demangle.Node, error) {
 		}
 		return n, nil
 	}
-	// Base-26 letter form: upper+ followed by a single lowercase.
-	// Single lowercase letter alone is also valid: "Aa" = index 0,
-	// "Ab" = 1, …, "Az" = 25.
+	// Base-26 letter form: upper+ optionally terminated by a single
+	// lowercase. Single lowercase letter alone is also valid:
+	// "Aa" = index 0, "Ab" = 1, …, "Az" = 25. When no lowercase
+	// terminator appears, the accumulated uppercase value is used
+	// directly (next non-upper byte ends the index).
 	if (p.s[p.i] >= 'a' && p.s[p.i] <= 'z') ||
 		(p.s[p.i] >= 'A' && p.s[p.i] <= 'Z') {
 		idx := 0
+		consumedAny := false
 		for !p.eof() {
 			c := p.s[p.i]
 			if c >= 'A' && c <= 'Z' {
 				idx = idx*26 + int(c-'A')
 				p.i++
+				consumedAny = true
 				continue
 			}
 			if c >= 'a' && c <= 'z' {
 				idx = idx*26 + int(c-'a')
 				p.i++
-				n, ok := p.subs.Get(idx)
-				if !ok {
-					return nil, p.grammarErr("valid substitution index")
-				}
-				return n, nil
+				consumedAny = true
 			}
 			break
+		}
+		if consumedAny {
+			n, ok := p.subs.Get(idx)
+			if !ok {
+				return nil, p.grammarErr("valid substitution index")
+			}
+			return n, nil
 		}
 	}
 	return nil, p.grammarErr("substitution index digit/letter")
