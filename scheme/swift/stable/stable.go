@@ -202,13 +202,96 @@ func (p *parser) parseGlobal() (*demangle.Node, error) {
 		inner = t
 	}
 
-	// Optional entity-suffix marker wraps inner.
-	if wrapped, ok := p.tryEntitySuffix(inner); ok {
+	// Protocol-conformance shape: <Type> <Protocol> <SourceModule> Hc
+	// (or Hp for retroactive). Runs BEFORE the generic entity suffix
+	// check because the shape consumes multiple types.
+	if wrapped, ok := p.tryConformanceDescriptor(inner); ok {
+		inner = wrapped
+	} else if wrapped, ok := p.tryEntitySuffix(inner); ok {
+		// Optional entity-suffix marker wraps inner.
 		inner = wrapped
 	}
 
 	common.AddChildren(g, inner)
 	return g, nil
+}
+
+// tryConformanceDescriptor matches "<Type> <Protocol> <SourceModule> Hc"
+// where the source module is either an 's' lowercase Swift-module
+// shortcut or an 's' + identifier form. On match, consumes the
+// protocol, module, and Hc suffix and wraps inner with the
+// "protocol conformance descriptor runtime record for X : Y in Z"
+// prefix.
+func (p *parser) tryConformanceDescriptor(inner *demangle.Node) (*demangle.Node, bool) {
+	save := p.i
+	saveSubs := p.subs
+	revert := func() {
+		p.i = save
+		p.subs = saveSubs
+	}
+	// Need at least "s<ident><s or mod>Hc" — a few bytes.
+	if p.eof() || p.s[p.i] != 's' {
+		return inner, false
+	}
+	// Protocol type — decl-name under Swift, implicit protocol kind.
+	p.i++
+	protoName, err := p.parseIdentifier()
+	if err != nil {
+		revert()
+		return inner, false
+	}
+	protoType := common.NewNode(common.KindType)
+	protoNom := common.NewNode(common.KindProtocol)
+	common.AddChildren(protoNom, common.NewModule("Swift"), common.NewIdentifier(protoName))
+	common.AddChildren(protoType, protoNom)
+	proto := protoType
+	// Source module: either a lowercase 's' (Swift) or a digit-led
+	// identifier for the user's module.
+	if p.eof() {
+		revert()
+		return inner, false
+	}
+	var srcMod string
+	switch {
+	case p.s[p.i] == 's':
+		p.i++
+		srcMod = "Swift"
+	case p.s[p.i] >= '0' && p.s[p.i] <= '9':
+		id, err := p.parseIdentifier()
+		if err != nil {
+			revert()
+			return inner, false
+		}
+		srcMod = id
+	default:
+		revert()
+		return inner, false
+	}
+	// Hc or Hp terminator.
+	if p.i+1 >= len(p.s) || p.s[p.i] != 'H' {
+		revert()
+		return inner, false
+	}
+	switch p.s[p.i+1] {
+	case 'c':
+	case 'p':
+	default:
+		revert()
+		return inner, false
+	}
+	retroactive := p.s[p.i+1] == 'p'
+	p.i += 2
+	// Render inner type name + protocol name + module as prefix-wrapped.
+	opts := common.DefaultPrintOptions()
+	innerName := common.Print(inner, opts)
+	protoNameStr := common.Print(proto, opts)
+	prefix := "protocol conformance descriptor runtime record for "
+	if retroactive {
+		prefix = "retroactive protocol conformance descriptor for "
+	}
+	wrap := common.NewNode(common.KindTypeMangling)
+	wrap.Text = prefix + innerName + " : " + protoNameStr + " in " + srcMod
+	return wrap, true
 }
 
 // tryEntitySuffix matches the common 2-letter runtime-record and
