@@ -227,6 +227,29 @@ func TestStableFunctionEntities(t *testing.T) {
 			}
 		})
 	}
+	// Thunk T-suffixes on function entities.
+	thunkCases := []struct {
+		in, want string
+	}{
+		{"$s4main3fooyyFTO", "@objc thunk of main.foo() -> ()"},
+		{"$s4main3fooyyFTo", "@nonobjc thunk of main.foo() -> ()"},
+		{"$s4main3fooyyFTD", "dynamic dispatch thunk of main.foo() -> ()"},
+		{"$s4main3fooyyFTE", "distributed thunk main.foo() -> ()"},
+		{"$s4main3fooyyFTj", "dispatch thunk of main.foo() -> ()"},
+		{"$s4main3fooyyFTwb", "back deployment thunk for main.foo() -> ()"},
+	}
+	for _, c := range thunkCases {
+		c := c
+		t.Run("Thunk/"+c.in, func(t *testing.T) {
+			r, err := cat.Demangle(context.Background(), c.in, nil)
+			if err != nil {
+				t.Fatalf("demangle %q: %v", c.in, err)
+			}
+			if r.Output != c.want {
+				t.Errorf("out = %q want %q", r.Output, c.want)
+			}
+		})
+	}
 	// Init / deinit entities.
 	initCases := []struct {
 		in, want string
