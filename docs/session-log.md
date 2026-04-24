@@ -23,11 +23,13 @@ package doc.
 
 - **21 schemes** registered.
 - **9 tags** (v0.1.0 through v0.1.9).
-- **11 fuzz harnesses** (every hand-written parser).
-- Apple corpus: **19/153** Swift direct matches, **0 mismatches**.
-- Core package unit-test coverage: **86.6%** of statements.
+- **23 fuzz harnesses** (1 per scheme + 2 core — 215k+ execs/3s clean).
+- Apple corpus: **19/153** Swift direct matches, **0 mismatches**
+  (hard-gated — any mismatch fails the test).
+- Core package unit-test coverage: **91.9%** of statements
+  (CI gate: ≥ 88%).
 - Batch throughput on reference workstation: **≥ 447k names/sec**.
-- Full CLI binary stays under 14 MB (budget gate).
+- Stripped CLI binary: **7.4 MB** (14 MB CI gate).
 
 ## Scheme registry
 
