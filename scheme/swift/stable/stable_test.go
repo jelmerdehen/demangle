@@ -227,6 +227,25 @@ func TestStableFunctionEntities(t *testing.T) {
 			}
 		})
 	}
+	// Init / deinit entities.
+	initCases := []struct {
+		in, want string
+	}{
+		{"$s4test3StrCfd", "__destroying_deinit test.Str"},
+		{"$s4main3FooCyyFfD", "__deallocating_deinit main.Foo() -> ()"},
+	}
+	for _, c := range initCases {
+		c := c
+		t.Run("Init/"+c.in, func(t *testing.T) {
+			r, err := cat.Demangle(context.Background(), c.in, nil)
+			if err != nil {
+				t.Fatalf("demangle %q: %v", c.in, err)
+			}
+			if r.Output != c.want {
+				t.Errorf("out = %q want %q", r.Output, c.want)
+			}
+		})
+	}
 	for _, c := range cases {
 		c := c
 		t.Run(c.in, func(t *testing.T) {
