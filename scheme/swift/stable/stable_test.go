@@ -182,6 +182,28 @@ func TestStableFunctionEntities(t *testing.T) {
 	if r.Output != "main.x : Swift.Int" {
 		t.Errorf("var entity output = %q", r.Output)
 	}
+	// Variable entities with bound-generic types.
+	varGeneric := []struct {
+		in, want string
+	}{
+		{"$s4main3arrSaySiGvp", "main.arr : [Swift.Int]"},
+		{"$s4main4dictSDySiSSGvp", "main.dict : [Swift.Int : Swift.String]"},
+		{"$s4main3optSiSgvp", "main.opt : Swift.Int?"},
+		{"$s4main1gyySiXCvp", "main.g : @convention(c) (Swift.Int) -> ()"},
+		{"$s4main1gyySiXBvp", "main.g : @convention(block) (Swift.Int) -> ()"},
+	}
+	for _, c := range varGeneric {
+		c := c
+		t.Run("VarGeneric/"+c.in, func(t *testing.T) {
+			r, err := cat.Demangle(context.Background(), c.in, nil)
+			if err != nil {
+				t.Fatalf("demangle %q: %v", c.in, err)
+			}
+			if r.Output != c.want {
+				t.Errorf("out = %q want %q", r.Output, c.want)
+			}
+		})
+	}
 	// M/H entity-suffix matrix — spot checks on the common bundled
 	// stdlib + Sc concurrency types.
 	mCases := []struct {
@@ -288,8 +310,9 @@ func TestStableBoundGenerics(t *testing.T) {
 func TestStableRejectsUnsupported(t *testing.T) {
 	t.Parallel()
 	cat := newCatalog(t)
-	// Non-void function trailer is not in the subset yet.
-	_, err := cat.Demangle(context.Background(), "$s4main3fooySiSgF", nil)
+	// Genuinely unsupported: a bare 'Q' that isn't a valid opaque-type
+	// form.
+	_, err := cat.Demangle(context.Background(), "$sQzzzz", nil)
 	if err == nil {
 		t.Fatalf("expected unsupported-trailer error")
 	}

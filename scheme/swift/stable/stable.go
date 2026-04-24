@@ -986,6 +986,25 @@ func (p *parser) parseType() (*demangle.Node, error) {
 		node = bg
 		p.subs.Push(node)
 	}
+	// Optional shortcut: <type>Sg → Optional<type>. Wraps the just-
+	// parsed type in Swift.Optional without requiring the full
+	// y<type>G bound-generic form.
+	if p.i+1 < len(p.s) && p.s[p.i] == 'S' && p.s[p.i+1] == 'g' {
+		p.i += 2
+		optBase, _ := common.BuildStdlibNominal('q') // Swift.Optional
+		baseNom := optBase
+		if common.NodeKind(baseNom.Kind) == common.KindType && len(baseNom.Children) > 0 {
+			baseNom = baseNom.Children[0]
+		}
+		typeList := common.NewNode(common.KindTypeList)
+		common.AddChildren(typeList, node)
+		bound := common.NewNode(common.KindBoundGenericEnum)
+		common.AddChildren(bound, optBase, typeList)
+		wrap := common.NewNode(common.KindType)
+		common.AddChildren(wrap, bound)
+		p.subs.Push(wrap)
+		node = wrap
+	}
 	return node, nil
 }
 
