@@ -229,20 +229,40 @@ func (p *parser) tryConformanceDescriptor(inner *demangle.Node) (*demangle.Node,
 		p.i = save
 		p.subs = saveSubs
 	}
-	// Need at least "s<ident><s or mod>Hc" — a few bytes.
-	if p.eof() || p.s[p.i] != 's' {
+	// Protocol nominal: either "s<ident>" (Swift shortcut) or
+	// "<modlen><mod><identlen><ident>" (user module). Kind byte is
+	// implicit-Protocol when the H suffix follows.
+	if p.eof() {
 		return inner, false
 	}
-	// Protocol type — decl-name under Swift, implicit protocol kind.
-	p.i++
-	protoName, err := p.parseIdentifier()
-	if err != nil {
-		revert()
+	var protoMod, protoName string
+	switch {
+	case p.s[p.i] == 's':
+		p.i++
+		name, err := p.parseIdentifier()
+		if err != nil {
+			revert()
+			return inner, false
+		}
+		protoMod, protoName = "Swift", name
+	case p.s[p.i] >= '0' && p.s[p.i] <= '9':
+		mod, err := p.parseIdentifier()
+		if err != nil {
+			revert()
+			return inner, false
+		}
+		name, err := p.parseIdentifier()
+		if err != nil {
+			revert()
+			return inner, false
+		}
+		protoMod, protoName = mod, name
+	default:
 		return inner, false
 	}
 	protoType := common.NewNode(common.KindType)
 	protoNom := common.NewNode(common.KindProtocol)
-	common.AddChildren(protoNom, common.NewModule("Swift"), common.NewIdentifier(protoName))
+	common.AddChildren(protoNom, common.NewModule(protoMod), common.NewIdentifier(protoName))
 	common.AddChildren(protoType, protoNom)
 	proto := protoType
 	// Source module: either a lowercase 's' (Swift) or a digit-led
