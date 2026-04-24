@@ -324,6 +324,14 @@ func (p *parser) parseGlobal() (*demangle.Node, error) {
 	if wrapped, ok := p.tryNestedLocalVariable(inner); ok {
 		inner = wrapped
 	}
+	// AutoDiff subset-parameters thunk: '<impl-fn-type> TJS<kind>
+	// <fromParams-subset> p <fromResults-subset> r <toParams-subset> P'.
+	// Each subset is a run of 'S'/'U' bytes (S = bit set, U = unset).
+	// Kinds: d=differential, p=pullback, r=reverse-mode derivative,
+	// f=forward-mode derivative.
+	if wrapped, ok := p.tryAutodiffSubsetParametersThunk(inner); ok {
+		inner = wrapped
+	}
 	for {
 		if wrapped, ok := p.tryAutodiffSigBeforeTJ(inner); ok {
 			inner = wrapped
@@ -6029,6 +6037,98 @@ func (p *parser) parseIdentifier() (string, error) {
 func (p *parser) grammarErr(expected string) error {
 	offset := p.i + p.prefixBytes
 	return demangle.GrammarViolation(p.schemeName, p.origin, offset, expected)
+}
+
+// tryAutodiffSubsetParametersThunk matches the swift stable-ABI
+// AutoDiffSubsetParametersThunk suffix:
+//
+//   TJS <kind-byte> <subset> 'p' <subset> 'r' <subset> 'P'
+//
+// where <subset> is a non-empty run of 'S' (bit set) and 'U' (bit
+// unset) bytes encoding the indexed bitmask.
+//
+// Kind bytes: d=differential, p=pullback, r=reverse-mode derivative,
+// f=forward-mode derivative.
+//
+// Renders as
+//   "autodiff subset parameters thunk for <kind-name>
+//    from <inner-text> with respect to parameters {<fromParams>}
+//    and results {<fromResults>} to parameters {<toParams>}".
+func (p *parser) tryAutodiffSubsetParametersThunk(inner *demangle.Node) (*demangle.Node, bool) {
+	if p.i+3 >= len(p.s) || p.s[p.i] != 'T' || p.s[p.i+1] != 'J' || p.s[p.i+2] != 'S' {
+		return inner, false
+	}
+	save := p.i
+	p.i += 3
+	if p.eof() {
+		p.i = save
+		return inner, false
+	}
+	kindByte := p.s[p.i]
+	p.i++
+	readSubset := func() (string, bool) {
+		start := p.i
+		for !p.eof() && (p.s[p.i] == 'S' || p.s[p.i] == 'U') {
+			p.i++
+		}
+		if p.i == start {
+			return "", false
+		}
+		return p.s[start:p.i], true
+	}
+	fromP, ok := readSubset()
+	if !ok || p.eof() || p.s[p.i] != 'p' {
+		p.i = save
+		return inner, false
+	}
+	p.i++
+	fromR, ok := readSubset()
+	if !ok || p.eof() || p.s[p.i] != 'r' {
+		p.i = save
+		return inner, false
+	}
+	p.i++
+	toP, ok := readSubset()
+	if !ok || p.eof() || p.s[p.i] != 'P' {
+		p.i = save
+		return inner, false
+	}
+	p.i++
+	var kindName string
+	switch kindByte {
+	case 'd':
+		kindName = "differential"
+	case 'p':
+		kindName = "pullback"
+	case 'r':
+		kindName = "reverse-mode derivative"
+	case 'f':
+		kindName = "forward-mode derivative"
+	default:
+		p.i = save
+		return inner, false
+	}
+	innerText := common.Print(inner, common.DefaultPrintOptions())
+	wrap := common.NewNode(common.KindTypeMangling)
+	wrap.Text = "autodiff subset parameters thunk for " + kindName +
+		" from " + innerText +
+		" with respect to parameters {" + renderIndexSubset(fromP) + "}" +
+		" and results {" + renderIndexSubset(fromR) + "}" +
+		" to parameters {" + renderIndexSubset(toP) + "}"
+	return wrap, true
+}
+
+// renderIndexSubset converts a run of 'S'/'U' bytes into a
+// comma-separated list of the set (S) indices. "SSS" → "0, 1, 2".
+// "SUS" → "0, 2".
+func renderIndexSubset(s string) string {
+	var parts []string
+	for i := 0; i < len(s); i++ {
+		if s[i] == 'S' {
+			parts = append(parts, itoa(i))
+		}
+	}
+	return joinComma(parts)
 }
 
 // tryDependentMemberType speculatively parses the Swift stable-ABI

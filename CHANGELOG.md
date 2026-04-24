@@ -4,6 +4,27 @@ All notable changes to this project will be documented here. Format
 follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). This
 project uses semantic versioning.
 
+## [0.1.46] - 2026-04-24
+
+### Added
+
+- **swift-stable** — autodiff subset-parameters thunk `TJS` decoder.
+  - Matches `<inner> TJS<kind> <fromParams-subset> p <fromResults-subset>
+    r <toParams-subset> P` at the parseGlobal postfix level.
+  - Subset encoding: run of `S` (bit set) and `U` (bit unset) bytes.
+    `SSS` → {0,1,2}. `SUS` → {0,2}.
+  - Kind bytes: d=differential, p=pullback, r=reverse-mode derivative,
+    f=forward-mode derivative.
+  - Renders as "autodiff subset parameters thunk for <kind> from
+    <inner> with respect to parameters {X} and results {Y} to
+    parameters {Z}".
+  - Groundwork: reaches the autodiff fixtures only when pre-TJS can
+    already parse as a single entity. The 3 TangentVector fixtures
+    in the corpus need multi-type impl-fn-type accumulation (separate
+    follow-up); this postfix is correct but not yet triggered on them.
+    Simpler autodiff inputs with a single-type inner will now render.
+    129/153 holds.
+
 ## [0.1.45] - 2026-04-24
 
 ### Added
