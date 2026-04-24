@@ -753,6 +753,17 @@ func (p *parser) tryImplFunctionType() (*demangle.Node, bool) {
 			p.i = j + 1
 			continue
 		}
+		// 'yt' = empty tuple ( () ). Apple pushes EmptyList via 'y'
+		// and popTuple on 't' returns an empty Tuple.
+		if p.i+1 < len(p.s) && p.s[p.i] == 'y' && p.s[p.i+1] == 't' {
+			p.i += 2
+			emptyTup := common.NewNode(common.KindType)
+			inner := common.NewNode(common.KindBuiltinTypeName)
+			inner.Text = "()"
+			common.AddChildren(emptyTup, inner)
+			types = append(types, emptyTup)
+			continue
+		}
 		t, err := p.parseType()
 		if err != nil {
 			revert()
@@ -783,12 +794,24 @@ func (p *parser) tryImplFunctionType() (*demangle.Node, bool) {
 	// Then: param modes + result modes.
 	prefixParts := []string{}
 	escaping := false
+	erasedIsolation := false
+	nonisolatedNonsending := false
 	diffKind := ""
 	diffExplicit := false
 	calleeConv := "callee_guaranteed"
 	idx := 0
 	if idx < len(attrs) && attrs[idx] == 'e' {
 		escaping = true
+		idx++
+	}
+	// 'A' → @isolated(any), 'N' → @caller_isolated (non-isolated /
+	// nonsending isolation). Both placed between escape and diff.
+	if idx < len(attrs) && attrs[idx] == 'A' {
+		erasedIsolation = true
+		idx++
+	}
+	if idx < len(attrs) && attrs[idx] == 'N' {
+		nonisolatedNonsending = true
 		idx++
 	}
 	if idx < len(attrs) {
@@ -903,6 +926,12 @@ func (p *parser) tryImplFunctionType() (*demangle.Node, bool) {
 	modeAttrs := attrs[idx:]
 	if escaping {
 		prefixParts = append(prefixParts, "@escaping")
+	}
+	if erasedIsolation {
+		prefixParts = append(prefixParts, "@isolated(any)")
+	}
+	if nonisolatedNonsending {
+		prefixParts = append(prefixParts, "@caller_isolated")
 	}
 	if diffExplicit {
 		prefixParts = append(prefixParts, "@differentiable"+diffKind)
