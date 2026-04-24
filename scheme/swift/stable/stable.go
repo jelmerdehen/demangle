@@ -1485,36 +1485,82 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 		// which pushes N types on the stack in one shot.
 		if p.s[p.i] == 'S' && p.i+2 < len(p.s) &&
 			p.s[p.i+1] >= '0' && p.s[p.i+1] <= '9' {
-			digStart := p.i + 1
-			j := digStart
-			for j < len(p.s) && p.s[j] >= '0' && p.s[j] <= '9' {
-				j++
+			// Read a run of compact stdlib types, possibly split by
+			// '_' separators and closed by 't' (tuple-terminator).
+			// 'S<N><letter>' alone is the simple case; 'S<N><letter>
+			// _S<M><letter>...t' is the compound-tuple case. Collect
+			// all types; first → result, remaining → params tuple.
+			saveCompact := p.i
+			saveSubsCompact := p.subs
+			var compactTypes []*demangle.Node
+			readOne := func() (*demangle.Node, bool) {
+				if p.i+1 >= len(p.s) || p.s[p.i] != 'S' {
+					return nil, false
+				}
+				if p.s[p.i+1] < '0' || p.s[p.i+1] > '9' {
+					return nil, false
+				}
+				ds := p.i + 1
+				jj := ds
+				for jj < len(p.s) && p.s[jj] >= '0' && p.s[jj] <= '9' {
+					jj++
+				}
+				if jj >= len(p.s) {
+					return nil, false
+				}
+				letter := p.s[jj]
+				one, ok := common.BuildStdlibNominal(letter)
+				if !ok {
+					return nil, false
+				}
+				n := 0
+				for _, d := range p.s[ds:jj] {
+					n = n*10 + int(d-'0')
+				}
+				if n < 1 {
+					return nil, false
+				}
+				p.i = jj + 1
+				for k := 0; k < n; k++ {
+					compactTypes = append(compactTypes, one)
+				}
+				return one, true
 			}
-			if j < len(p.s) {
-				letter := p.s[j]
-				if one, ok := common.BuildStdlibNominal(letter); ok {
-					n := 0
-					for _, d := range p.s[digStart:j] {
-						n = n*10 + int(d-'0')
+			ok := false
+			if _, match := readOne(); match {
+				ok = true
+				// Extend with '_S<M><letter>' tuple continuation.
+				for !p.eof() && p.s[p.i] == '_' {
+					// Peek for 'S<digit>' after '_'; else bail out.
+					if p.i+2 >= len(p.s) || p.s[p.i+1] != 'S' ||
+						!(p.s[p.i+2] >= '0' && p.s[p.i+2] <= '9') {
+						break
 					}
-					if n >= 2 {
-						p.i = j + 1
-						r = one
-						if n == 2 {
-							a = one
-						} else {
-							tup := common.NewNode(common.KindTypeList)
-							els := make([]*demangle.Node, n-1)
-							for k := range els {
-								els[k] = one
-							}
-							common.AddChildren(tup, els...)
-							a = tup
-						}
-						goto afterSigSlots
+					p.i++ // consume '_'
+					if _, m := readOne(); !m {
+						ok = false
+						break
 					}
 				}
+				// Optional tuple-terminator 't'.
+				if ok && !p.eof() && p.s[p.i] == 't' {
+					p.i++
+				}
 			}
+			if ok && len(compactTypes) >= 2 {
+				r = compactTypes[0]
+				if len(compactTypes) == 2 {
+					a = compactTypes[1]
+				} else {
+					tup := common.NewNode(common.KindTypeList)
+					els := compactTypes[1:]
+					common.AddChildren(tup, els...)
+					a = tup
+				}
+				goto afterSigSlots
+			}
+			p.i = saveCompact
+			p.subs = saveSubsCompact
 		}
 		if p.s[p.i] == 'y' {
 			p.i++
