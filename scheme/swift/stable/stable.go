@@ -92,6 +92,12 @@ func parseBodyWithOpts(schemeName, origin, body string, prefixBytes int, opts de
 	if err != nil {
 		return nil, err
 	}
+	// Optional trailing 'D' — type-mangling end marker. Consume
+	// silently; Apple's demangle doesn't render anything extra for
+	// it.
+	if p.i < len(p.s) && p.s[p.i] == 'D' {
+		p.i++
+	}
 	// Unmangled suffix: ".<anything>" after the main parse.
 	unmangledSuffix := ""
 	if p.i < len(p.s) && p.s[p.i] == '.' {
