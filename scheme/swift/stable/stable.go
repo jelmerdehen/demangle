@@ -1550,6 +1550,7 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 		async          bool
 		sendingResult  bool
 		genericSig     bool
+		genericCount   int
 		consumed       int // how much of the signature + F we consumed
 	)
 	tryPath := func(assumeLabelList bool) bool {
@@ -1858,6 +1859,9 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 		//   <type>R<kind>    inline requirement (conforms-to etc.)
 		//   R<kind>          requirement kind byte alone
 		localGeneric := false
+		// Track generic-sig depth-0 param count; defaults to 1 when
+		// 'l' alone, or (demangleIndex+1) when 'r<idx>_l' form.
+		localGenericCount := 1
 		for !p.eof() {
 			c := p.s[p.i]
 			// Eat any inline requirement: a type ref followed by R<k>.
@@ -1870,11 +1874,18 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 				break
 			}
 			if c == 'r' {
+				// r<natural>_l — multi-depth counts form. Apple's
+				// demangleIndex on 'N_' returns N+1; count = that + 1.
 				j := p.i + 1
 				for j < len(p.s) && p.s[j] >= '0' && p.s[j] <= '9' {
 					j++
 				}
 				if j < len(p.s) && p.s[j] == '_' {
+					num := 0
+					for k := p.i + 1; k < j; k++ {
+						num = num*10 + int(p.s[k]-'0')
+					}
+					localGenericCount = num + 2
 					p.i = j + 1
 					continue
 				}
@@ -1883,6 +1894,10 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 			if c == 'l' {
 				p.i++
 				localGeneric = true
+				// Trailing digits after 'l' encode additional params.
+				// '<N>l' form isn't hit here (r... already handled); when
+				// plain 'l', localGenericCount stays at whatever was set
+				// by a preceding 'r<idx>_'.
 				for !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
 					p.i++
 				}
@@ -1928,6 +1943,7 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 		throws = localThrows
 		sendingResult = localSendingResult
 		genericSig = localGeneric
+		genericCount = localGenericCount
 		consumed = p.i - savePath
 		_ = consumed
 		return true
@@ -1956,7 +1972,7 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 		entity.Attrs["swift.sendingResult"] = "true"
 	}
 	if genericSig {
-		entity.Attrs["swift.generic"] = "<A>"
+		entity.Attrs["swift.generic"] = renderGenericSig(genericCount)
 	}
 	common.AddChildren(entity, path, args, ret)
 	return entity, true, nil
@@ -2514,6 +2530,24 @@ func digitRun(s string, i int) int {
 		n++
 	}
 	return n
+}
+
+// renderGenericSig builds "<A>" / "<A, B>" / "<A, B, C, ...>" based
+// on a depth-0 param count.
+func renderGenericSig(count int) string {
+	if count < 1 {
+		count = 1
+	}
+	var b strings.Builder
+	b.WriteByte('<')
+	for i := 0; i < count; i++ {
+		if i > 0 {
+			b.WriteString(", ")
+		}
+		b.WriteByte(byte('A' + i))
+	}
+	b.WriteByte('>')
+	return b.String()
 }
 
 // entitySuffixStart reports whether b introduces a 2/3-byte entity
