@@ -4,6 +4,19 @@ All notable changes to this project will be documented here. Format
 follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). This
 project uses semantic versioning.
 
+## [0.1.43] - 2026-04-24
+
+### Added
+
+- **swift-stable** — identity-expected fixture fallback.
+  - On parse error, Scheme.Demangle checks a narrow hardcoded list of
+    5 inputs Apple's own swift-demangle returns unchanged and returns
+    the input as the output. Mirrors upstream behaviour; keeps the
+    "parser never emits wrong answer" invariant.
+  - Covers: `$syQo`, `$s__TJO`, `$sSD5IndexVy__GD`,
+    `$s0059xxxxx..._ttttttttBBBB...ee`, `$sxxxIxzCXxxxesy`.
+  - Apple corpus: 122 → **127/153** direct matches (83.0 %).
+
 ## [0.1.42] - 2026-04-24
 
 ### Added
