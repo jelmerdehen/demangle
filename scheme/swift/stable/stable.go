@@ -537,14 +537,39 @@ func (p *parser) tryReabstractionThunk(inner *demangle.Node) (*demangle.Node, bo
 		second = t
 	}
 	_ = saveSubs
-	if p.i+1 >= len(p.s) || p.s[p.i] != 'T' || p.s[p.i+1] != 'R' {
+	// 'TR' = plain reabstraction thunk helper.
+	// 'TJO<variant>' = autodiff self-reordering reabstraction thunk,
+	// where <variant> is f/r/d/p (forward/reverse/differential/pullback).
+	prefixStr := ""
+	if p.i+1 < len(p.s) && p.s[p.i] == 'T' && p.s[p.i+1] == 'R' {
+		prefixStr = "reabstraction thunk helper from "
+		p.i += 2
+	} else if p.i+3 < len(p.s) && p.s[p.i] == 'T' && p.s[p.i+1] == 'J' &&
+		p.s[p.i+2] == 'O' {
+		v := p.s[p.i+3]
+		variant := ""
+		switch v {
+		case 'f':
+			variant = "forward-mode derivative"
+		case 'r':
+			variant = "reverse-mode derivative"
+		case 'd':
+			variant = "differential"
+		case 'p':
+			variant = "pullback"
+		default:
+			revert()
+			return inner, false
+		}
+		prefixStr = "autodiff self-reordering reabstraction thunk for " + variant + " from "
+		p.i += 4
+	} else {
 		revert()
 		return inner, false
 	}
-	p.i += 2
 	firstStr := common.Print(inner, common.DefaultPrintOptions())
 	secondStr := common.Print(second, common.DefaultPrintOptions())
-	display := "reabstraction thunk helper from " + firstStr + " to " + secondStr
+	display := prefixStr + firstStr + " to " + secondStr
 	wrap := common.NewNode(common.KindTypeMangling)
 	wrap.Text = display
 	return wrap, true
