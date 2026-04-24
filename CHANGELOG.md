@@ -4,6 +4,26 @@ All notable changes to this project will be documented here. Format
 follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). This
 project uses semantic versioning.
 
+## [0.1.11] - 2026-04-22
+
+### Added
+
+- **swift-stable**
+  - Init / deinit entity shape (`c f {C,c,D,d}`) — renders
+    __allocating_init / __nonallocating_init / __deallocating_deinit /
+    __destroying_deinit.
+  - Optional-shortcut `<type>Sg` postfix handler (Swift.Optional<T>
+    without spelling out `Sqy<T>G`).
+  - Corpus: 22/153 → 24/153, 0 mismatches.
+- **cxxmsvc**
+  - Return-type can now be pointer/ref (`P<cv><prim>`, `A<cv><prim>`,
+    `Q<cv><prim>`) with 64-bit E modifier handling. Unblocks common
+    `data()` / `at()` / `get()` STL shapes.
+- **swift/common** — first test file (0% → 45.6% coverage) covering
+  stdlib table lookups + node factories + printer options.
+- **examples** — expanded go-consumer demo to 14 fixtures across
+  10 schemes.
+
 ## [0.1.10] - 2026-04-22
 
 ### Added
