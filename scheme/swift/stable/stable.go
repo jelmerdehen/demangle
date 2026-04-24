@@ -1878,10 +1878,22 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 					if p.s[p.i] < '0' || p.s[p.i] > '9' {
 						break
 					}
+					// Speculative: identifier followed by a nominal-kind
+					// byte (V/C/O/P) is a nested type starting the
+					// result-type slot, not a label. Backtrack.
+					savePosL := p.i
+					saveSubsL := p.subs
 					lbl, err := p.parseIdentifier()
 					if err != nil {
 						revert()
 						return false
+					}
+					if !p.eof() &&
+						(p.s[p.i] == 'V' || p.s[p.i] == 'C' ||
+							p.s[p.i] == 'O' || p.s[p.i] == 'P') {
+						p.i = savePosL
+						p.subs = saveSubsL
+						break
 					}
 					labels = append(labels, lbl)
 				}
