@@ -4182,6 +4182,86 @@ func (p *parser) parseType() (*demangle.Node, error) {
 		sub, subErr := p.parseNumericSubstitution()
 		if subErr != nil {
 			err = subErr
+		} else if (common.NodeKind(sub.Kind) == common.KindProtocol ||
+			(common.NodeKind(sub.Kind) == common.KindType &&
+				len(sub.Children) > 0 &&
+				common.NodeKind(sub.Children[0].Kind) == common.KindProtocol)) &&
+			p.i+1 < len(p.s) && p.s[p.i] == 'Q' &&
+			(p.s[p.i+1] == 'z' || p.s[p.i+1] == 'y') {
+			// Sub resolved to a Protocol and next bytes are Qz/Qy_:
+			// combine with the most recent Identifier in subs into a
+			// DependentMember node. Mirrors tryDependentMemberType but
+			// uses already-parsed sub-refs instead of inline identifiers.
+			//
+			// The multi-sub 'A<lower>...<upper>' form (e.g. 'AaD') pushes
+			// an extra Identifier copy to subs during demangleMultiSub.
+			// We track its index so we can remove that transient copy and
+			// let parseType's post-switch push place the DM result at the
+			// same slot — keeping the subs table aligned with Apple's model.
+			assocName := ""
+			assocIdx := -1
+			for k := p.subs.Len() - 1; k >= 0; k-- {
+				n, ok := p.subs.Get(k)
+				if ok && n != nil && common.NodeKind(n.Kind) == common.KindIdentifier {
+					assocName = n.Text
+					assocIdx = k
+					break
+				}
+			}
+			if assocName == "" {
+				// No Identifier in subs — fall through to plain sub.
+				node = sub
+			} else {
+				saveQ := p.i
+				p.i++ // consume 'Q'
+				kind := p.s[p.i]
+				p.i++
+				var paramName string
+				ok := true
+				switch kind {
+				case 'z':
+					paramName = "A"
+				case 'y':
+					start := p.i
+					for !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+						p.i++
+					}
+					if p.eof() || p.s[p.i] != '_' {
+						p.i = saveQ
+						ok = false
+					} else {
+						n := 0
+						if p.i > start {
+							for _, d := range p.s[start:p.i] {
+								n = n*10 + int(d-'0')
+							}
+							n++ // Qy<N>_ → idx N+1
+						}
+						p.i++ // consume '_'
+						paramName = string(rune('B' + byte(n)))
+					}
+				default:
+					p.i = saveQ
+					ok = false
+				}
+				if ok {
+					protoText := common.Print(sub, common.DefaultPrintOptions())
+					wrap := common.NewNode(common.KindType)
+					tn := common.NewNode(common.KindBuiltinTypeName)
+					tn.Text = paramName + "." + protoText + "." + assocName
+					common.AddChildren(wrap, tn)
+					node = wrap
+					// Remove the transient Identifier copy that multi-sub
+					// 'a' pushed — parseType's post-switch push will place
+					// the DM result at the same slot, keeping Apple's subs
+					// index alignment intact.
+					if assocIdx == p.subs.Len()-1 {
+						p.subs = p.subs.TruncateTo(assocIdx)
+					}
+				} else {
+					node = sub
+				}
+			}
 		} else if common.NodeKind(sub.Kind) == common.KindModule {
 			// Sub resolved to a module. If the following byte starts
 			// another identifier (digit) or a stdlib-sub/A-sub the
