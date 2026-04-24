@@ -294,6 +294,10 @@ func (p *parser) parseGlobal() (*demangle.Node, error) {
 		inner = wrapped
 	}
 	for {
+		if wrapped, ok := p.tryAutodiffSigBeforeTJ(inner); ok {
+			inner = wrapped
+			continue
+		}
 		if wrapped, ok := p.tryConformanceDescriptorMc(inner); ok {
 			inner = wrapped
 			continue
@@ -323,6 +327,151 @@ func (p *parser) parseGlobal() (*demangle.Node, error) {
 
 	common.AddChildren(g, inner)
 	return g, nil
+}
+
+// tryAutodiffSigBeforeTJ handles the autodiff-specific generic-sig
+// trailer (A multi-sub constraints + r<N>_l) preceding TJ / WJ
+// thunks. Derives constraint-proto text from inner's own generic-sig
+// (autodiff reuses the same proto from the body's generic sig), then
+// applies it to all autodiff-sig generic params.
+func (p *parser) tryAutodiffSigBeforeTJ(inner *demangle.Node) (*demangle.Node, bool) {
+	if p.eof() || p.s[p.i] != 'A' {
+		return inner, false
+	}
+	save := p.i
+	saveSubs := p.subs
+	revert := func() { p.i = save; p.subs = saveSubs }
+	// Peek ahead for TJ/WJ marker within reasonable distance.
+	found := false
+	for k := p.i; k+1 < len(p.s) && k < p.i+64; k++ {
+		if p.s[k] == 'T' && p.s[k+1] == 'J' {
+			found = true
+			break
+		}
+		if p.s[k] == 'W' && p.s[k+1] == 'J' {
+			found = true
+			break
+		}
+	}
+	if !found {
+		return inner, false
+	}
+	genericCount := 0
+	constraintCount := 0
+	hasSig := false
+	for !p.eof() {
+		b := p.s[p.i]
+		if (b == 'T' && p.i+1 < len(p.s) && p.s[p.i+1] == 'J') ||
+			(b == 'W' && p.i+1 < len(p.s) && p.s[p.i+1] == 'J') {
+			break
+		}
+		if b == 'l' {
+			p.i++
+			for !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+				p.i++
+			}
+			hasSig = true
+			continue
+		}
+		if b == 'r' {
+			j := p.i + 1
+			for j < len(p.s) && p.s[j] >= '0' && p.s[j] <= '9' {
+				j++
+			}
+			if j < len(p.s) && p.s[j] == '_' {
+				num := 0
+				for k := p.i + 1; k < j; k++ {
+					num = num*10 + int(p.s[k]-'0')
+				}
+				genericCount = num + 2
+				p.i = j + 1
+				continue
+			}
+			break
+		}
+		if b == 'A' {
+			p.i++
+			// Consume multi-sub letter-run (lowercase push, uppercase
+			// final) without caring about resolution.
+			for !p.eof() {
+				c := p.s[p.i]
+				if c >= 'a' && c <= 'z' {
+					p.i++
+					continue
+				}
+				if c >= 'A' && c <= 'Z' {
+					p.i++
+					break
+				}
+				break
+			}
+			// Optional R<kind>
+			if !p.eof() && p.s[p.i] == 'R' {
+				p.i++
+				if !p.eof() {
+					reqKind := p.s[p.i]
+					p.i++
+					// Consume optional subject-idx for '_'.
+					if reqKind == '_' {
+						// no index follows — subject implicit.
+					}
+					_ = reqKind
+					constraintCount++
+				}
+			}
+			continue
+		}
+		break
+	}
+	if !hasSig || genericCount == 0 || constraintCount == 0 {
+		revert()
+		return inner, false
+	}
+	// Extract the constraint-proto from inner's text. Inner already
+	// rendered with "where X: <proto>" clause (the body's sig).
+	innerStr := common.Print(inner, common.DefaultPrintOptions())
+	proto := ""
+	if idx := strings.LastIndex(innerStr, ": "); idx >= 0 {
+		rest := innerStr[idx+2:]
+		if j := strings.Index(rest, ">"); j > 0 {
+			proto = strings.TrimSpace(rest[:j])
+		}
+	}
+	if proto == "" {
+		// Fall back — scan subs for Type(Protocol).
+		for i := p.subs.Len() - 1; i >= 0; i-- {
+			n, _ := p.subs.Get(i)
+			if n == nil || common.NodeKind(n.Kind) != common.KindType ||
+				len(n.Children) == 0 {
+				continue
+			}
+			if common.NodeKind(n.Children[0].Kind) == common.KindProtocol {
+				proto = common.Print(n, common.DefaultPrintOptions())
+				break
+			}
+		}
+	}
+	if proto == "" {
+		revert()
+		return inner, false
+	}
+	// Now invoke the normal entity-suffix loop to consume TJ/WJ +
+	// subsets.
+	wrapped, ok := p.tryEntitySuffix(inner)
+	if !ok {
+		revert()
+		return inner, false
+	}
+	var constraints []string
+	for i := 0; i < genericCount; i++ {
+		letter := byte('A' + i)
+		constraints = append(constraints, string(letter)+": "+proto)
+	}
+	sig := renderGenericSigWithConstraints(genericCount, constraints)
+	wrappedStr := common.Print(wrapped, common.DefaultPrintOptions())
+	w := common.NewNode(common.KindTypeMangling)
+	w.Text = wrappedStr + " with " + sig
+	return w, true
 }
 
 // tryConformanceDescriptorMc matches the protocol-conformance-
@@ -2296,7 +2445,7 @@ func (p *parser) tryEntitySuffix(inner *demangle.Node) (*demangle.Node, bool) {
 		} else if p.s[p.i+1] == 'c' {
 			prefix = "curry thunk of "
 		} else if p.s[p.i+1] == 'q' {
-			prefix = "unique protocol witness requirement for "
+			prefix = "method descriptor for "
 		} else if p.s[p.i+1] == 'H' {
 			prefix = "key path accessor thunk helper for "
 		} else if p.s[p.i+1] == 'K' {
