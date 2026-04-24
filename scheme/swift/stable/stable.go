@@ -313,6 +313,32 @@ func (p *parser) tryEntitySuffix(inner *demangle.Node) (*demangle.Node, bool) {
 			prefix = "async await resume partial function for "
 		} else if p.s[p.i+1] == 'u' {
 			prefix = "async function pointer to "
+		} else if p.s[p.i+1] == 'g' {
+			// Tg<N> — generic specialization, N = pass count digits.
+			prefix = "generic specialization of "
+			consumed = 2 + digitRun(p.s, p.i+2)
+		} else if p.s[p.i+1] == 'G' {
+			prefix = "generic specialization <>  of "
+			consumed = 2 + digitRun(p.s, p.i+2)
+		} else if p.s[p.i+1] == 'B' {
+			// TB<N> — runtime binding / generic specialization variant.
+			prefix = "runtime-bound generic specialization of "
+			consumed = 2 + digitRun(p.s, p.i+2)
+		} else if p.s[p.i+1] == 'i' {
+			// Ti<N> — inlined generic function pass.
+			prefix = "inlined generic function of "
+			consumed = 2 + digitRun(p.s, p.i+2)
+		} else if p.s[p.i+1] == 't' {
+			// Tt<N> — merged thunk pass.
+			prefix = "merged thunk for "
+			consumed = 2 + digitRun(p.s, p.i+2)
+		} else if p.s[p.i+1] == 'f' {
+			// Tf<N><spec-info> — function-signature specialization. We
+			// consume the T and the letter and stop; the spec-info
+			// payload may span arbitrary bytes which the narrow parser
+			// doesn't decode yet. Annotating with the prefix is enough.
+			prefix = "function signature specialization of "
+			consumed = 2 // intentionally narrow; payload left for parser progress
 		}
 	case 'f':
 		// Init/deinit markers.
@@ -877,6 +903,16 @@ func (p *parser) parseOpaqueType() (*demangle.Node, error) {
 	}
 	common.AddChildren(placeholder, gp)
 	return placeholder, nil
+}
+
+// digitRun returns the number of consecutive ASCII digits starting
+// at s[i]. Zero when no digit or i is out of range.
+func digitRun(s string, i int) int {
+	n := 0
+	for i+n < len(s) && s[i+n] >= '0' && s[i+n] <= '9' {
+		n++
+	}
+	return n
 }
 
 // entitySuffixStart reports whether b introduces a 2/3-byte entity
