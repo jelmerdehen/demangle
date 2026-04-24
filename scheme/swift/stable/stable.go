@@ -98,6 +98,10 @@ func parseBodyWithOpts(schemeName, origin, body string, prefixBytes int, opts de
 	if p.i < len(p.s) && p.s[p.i] == 'D' {
 		p.i++
 	}
+	// Specialization trailer would go here — requires proper subs
+	// table to resolve "AA8MystructV_" style args; deferred until
+	// module-substitution parsing is in place.
+	specPrefix := ""
 	// Unmangled suffix: ".<anything>" after the main parse.
 	unmangledSuffix := ""
 	if p.i < len(p.s) && p.s[p.i] == '.' {
@@ -124,6 +128,9 @@ func parseBodyWithOpts(schemeName, origin, body string, prefixBytes int, opts de
 		printOpts = common.DefaultPrintOptions()
 	}
 	display := common.Print(tree, printOpts)
+	if specPrefix != "" {
+		display = specPrefix + display
+	}
 	if unmangledSuffix != "" {
 		display += " with unmangled suffix \"" + unmangledSuffix + "\""
 	}
@@ -1381,6 +1388,78 @@ func (p *parser) parseOpaqueType() (*demangle.Node, error) {
 	return placeholder, nil
 }
 
+// trySpecializationSuffix scans the tail of the body for the
+// specialization pattern "<type> (_<type>)* _ T<letter><digits>?"
+// and returns the prefix to prepend to the rendered output (e.g.
+// "generic specialization <X> of "). Consumes the bytes on match.
+func (p *parser) trySpecializationSuffix() (string, bool) {
+	save := p.i
+	saveSubs := p.subs
+	revert := func() { p.i = save; p.subs = saveSubs }
+	// Parse zero-or-more `<type>_` groups.
+	if p.eof() {
+		return "", false
+	}
+	var specArgs []*demangle.Node
+	for {
+		startArg := p.i
+		typ, err := p.parseType()
+		if err != nil {
+			p.i = startArg
+			break
+		}
+		specArgs = append(specArgs, typ)
+		// Each arg terminates with '_'.
+		if p.eof() || p.s[p.i] != '_' {
+			p.i = startArg
+			specArgs = specArgs[:len(specArgs)-1]
+			break
+		}
+		p.i++
+	}
+	// Expect 'T' + letter + optional digit count.
+	if p.eof() || p.s[p.i] != 'T' || p.i+1 >= len(p.s) {
+		revert()
+		return "", false
+	}
+	letter := p.s[p.i+1]
+	prefix := ""
+	switch letter {
+	case 'g':
+		prefix = "generic specialization"
+	case 'G':
+		prefix = "generic specialization (preserving fragile)"
+	case 'B':
+		prefix = "generic specialization (serialized)"
+	case 'i':
+		prefix = "inlined generic function"
+	case 't':
+		prefix = "merged thunk"
+	case 'f':
+		prefix = "function signature specialization"
+	default:
+		revert()
+		return "", false
+	}
+	p.i += 2
+	// Consume digits.
+	for !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+		p.i++
+	}
+	// Render args.
+	display := prefix
+	if len(specArgs) > 0 {
+		opts := common.DefaultPrintOptions()
+		var parts []string
+		for _, a := range specArgs {
+			parts = append(parts, common.Print(a, opts))
+		}
+		display += " <" + strings.Join(parts, ", ") + ">"
+	}
+	display += " of "
+	return display, true
+}
+
 // digitRun returns the number of consecutive ASCII digits starting
 // at s[i]. Zero when no digit or i is out of range.
 func digitRun(s string, i int) int {
@@ -1824,7 +1903,11 @@ func (p *parser) parseNominalPath() (*demangle.Node, error) {
 	if err != nil {
 		return nil, err
 	}
-	return p.parseNominalWithModule(common.NewModule(mod))
+	moduleNode := common.NewModule(mod)
+	// Push module + (module-wrapped) placeholder so A<index>_ subs
+	// can resolve to the module context.
+	p.subs.Push(moduleNode)
+	return p.parseNominalWithModule(moduleNode)
 }
 
 // parseIdentifier reads "<digits><chars>" where digits specify byte
