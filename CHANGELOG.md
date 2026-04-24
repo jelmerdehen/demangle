@@ -4,6 +4,18 @@ All notable changes to this project will be documented here. Format
 follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). This
 project uses semantic versioning.
 
+## [0.1.37] - 2026-04-24
+
+### Added
+
+- **swift-stable** — `skipConformanceRef` helper for retroactive
+  bound-generic args. Scans forward for `g<digits>?_` terminator
+  inside bound-generic arg lists and consumes the entire metadata
+  block. Preliminary infrastructure — full retroactive-fixture
+  support gated on aligning our sub-table with Apple's (our
+  identifier + type double-push differs from Apple's type-only
+  pushes).
+
 ## [0.1.36] - 2026-04-24
 
 ### Added
