@@ -1696,26 +1696,33 @@ func (p *parser) tryEntitySuffix(inner *demangle.Node) (*demangle.Node, bool) {
 		} else if p.s[p.i+1] == 'j' {
 			prefix = "dispatch thunk of "
 		} else if p.s[p.i+1] == 'Y' {
-			// TY<N>_ = (<N+1>) suspend resume partial function.
+			// TY<N>?_ = (<N+1>) or (0) suspend resume partial function.
 			prefix = "async await resume partial function for "
-			if dn := digitRun(p.s, p.i+2); dn > 0 && p.i+2+dn < len(p.s) && p.s[p.i+2+dn] == '_' {
-				// Decode N+1.
-				n := 0
-				for k := 0; k < dn; k++ {
-					n = n*10 + int(p.s[p.i+2+k]-'0')
+			dn := digitRun(p.s, p.i+2)
+			if p.i+2+dn < len(p.s) && p.s[p.i+2+dn] == '_' {
+				idx := 0
+				if dn > 0 {
+					for k := 0; k < dn; k++ {
+						idx = idx*10 + int(p.s[p.i+2+k]-'0')
+					}
+					idx++ // N_ decodes to N+1; _ alone stays 0.
 				}
-				prefix = fmt.Sprintf("(%d) suspend resume partial function for ", n+1)
+				prefix = fmt.Sprintf("(%d) suspend resume partial function for ", idx)
 				consumed = 2 + dn + 1
 			}
 		} else if p.s[p.i+1] == 'Q' {
-			// TQ<N>_ = (<N+1>) await resume partial function.
+			// TQ<N>?_ = (<N+1>) or (0) await resume partial function.
 			prefix = "await resume partial function for "
-			if dn := digitRun(p.s, p.i+2); dn > 0 && p.i+2+dn < len(p.s) && p.s[p.i+2+dn] == '_' {
-				n := 0
-				for k := 0; k < dn; k++ {
-					n = n*10 + int(p.s[p.i+2+k]-'0')
+			dn := digitRun(p.s, p.i+2)
+			if p.i+2+dn < len(p.s) && p.s[p.i+2+dn] == '_' {
+				idx := 0
+				if dn > 0 {
+					for k := 0; k < dn; k++ {
+						idx = idx*10 + int(p.s[p.i+2+k]-'0')
+					}
+					idx++
 				}
-				prefix = fmt.Sprintf("(%d) await resume partial function for ", n+1)
+				prefix = fmt.Sprintf("(%d) await resume partial function for ", idx)
 				consumed = 2 + dn + 1
 			}
 		} else if p.s[p.i+1] == 'u' {
