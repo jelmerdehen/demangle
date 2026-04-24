@@ -215,6 +215,76 @@ func TestMSVCRejectsOther(t *testing.T) {
 	}
 }
 
+// TestMSVCAllPrimitives sweeps the single-byte primitive table via
+// argument-type in void-return free functions.
+func TestMSVCAllPrimitives(t *testing.T) {
+	t.Parallel()
+	cat := newCatalog(t)
+	// Single-byte primitives (non-pointer) accepted as arg.
+	primitives := []struct {
+		code byte
+		want string
+	}{
+		{'H', "int"},
+		{'D', "char"},
+		{'E', "unsigned char"},
+		{'F', "short"},
+		{'G', "unsigned short"},
+		{'I', "unsigned int"},
+		{'J', "long"},
+		{'K', "unsigned long"},
+		{'M', "float"},
+		{'N', "double"},
+		{'O', "long double"},
+	}
+	for _, p := range primitives {
+		p := p
+		t.Run(string(p.code), func(t *testing.T) {
+			in := "?fn@@YAX" + string(p.code) + "@Z"
+			r, err := cat.Demangle(context.Background(), in, nil)
+			if err != nil {
+				t.Fatalf("demangle: %v", err)
+			}
+			want := "void __cdecl fn(" + p.want + ")"
+			if r.Output != want {
+				t.Errorf("out = %q want %q", r.Output, want)
+			}
+		})
+	}
+}
+
+// TestMSVCExtendedPrimitives covers the '_<letter>' two-byte forms.
+func TestMSVCExtendedPrimitives(t *testing.T) {
+	t.Parallel()
+	cat := newCatalog(t)
+	cases := []struct {
+		code string
+		want string
+	}{
+		{"_N", "bool"},
+		{"_W", "wchar_t"},
+		{"_T", "char16_t"},
+		{"_U", "char32_t"},
+		{"_S", "char8_t"},
+		{"_J", "__int64"},
+		{"_K", "unsigned __int64"},
+	}
+	for _, c := range cases {
+		c := c
+		t.Run(c.code, func(t *testing.T) {
+			in := "?fn@@YAX" + c.code + "@Z"
+			r, err := cat.Demangle(context.Background(), in, nil)
+			if err != nil {
+				t.Fatalf("demangle: %v", err)
+			}
+			want := "void __cdecl fn(" + c.want + ")"
+			if r.Output != want {
+				t.Errorf("out = %q want %q", r.Output, want)
+			}
+		})
+	}
+}
+
 func FuzzMSVC(f *testing.F) {
 	seeds := []string{
 		"?foo@@YAXXZ",
