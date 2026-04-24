@@ -177,6 +177,39 @@ type testErr string
 
 func (e testErr) Error() string { return string(e) }
 
+func TestStabilityStringUnknown(t *testing.T) {
+	t.Parallel()
+	if got := demangle.Stability(999).String(); got != "unknown" {
+		t.Fatalf("unknown Stability = %q want 'unknown'", got)
+	}
+}
+
+func TestFidelityStringUnknown(t *testing.T) {
+	t.Parallel()
+	if got := demangle.Fidelity(999).String(); got != "unknown" {
+		t.Fatalf("unknown Fidelity = %q want 'unknown'", got)
+	}
+}
+
+func TestErrKindStringUnknown(t *testing.T) {
+	t.Parallel()
+	if got := demangle.ErrKind(999).String(); got != "unknown" {
+		t.Fatalf("unknown ErrKind = %q", got)
+	}
+}
+
+func TestCatalogRegisterPanicsOnDuplicate(t *testing.T) {
+	t.Parallel()
+	defer func() {
+		if r := recover(); r == nil {
+			t.Fatalf("Register should panic on duplicate name")
+		}
+	}()
+	cat := demangle.NewCatalog()
+	cat.Register(prefixScheme{name: "dup", prefix: "A", conf: 80})
+	cat.Register(prefixScheme{name: "dup", prefix: "B", conf: 80})
+}
+
 func TestAmbiguousErrorMessage(t *testing.T) {
 	t.Parallel()
 	// Trigger Catalog.Demangle ambiguity path and verify the wrapped
