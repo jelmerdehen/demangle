@@ -777,6 +777,16 @@ func (p *parser) tryEntitySuffix(inner *demangle.Node) (*demangle.Node, bool) {
 			prefix = "__deallocating_deinit "
 		case 'd':
 			prefix = "__destroying_deinit "
+		case 'F':
+			prefix = "property wrapped field init accessor of "
+		case 'A':
+			prefix = "ivar initializer "
+		case 'E':
+			prefix = "ivar destroyer "
+		case 'P':
+			prefix = "initial value of "
+		case 'e':
+			prefix = "global default argument of "
 		}
 	case 'v':
 		// Variable / property markers. `<type>v<kind>`:
