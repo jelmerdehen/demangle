@@ -184,6 +184,9 @@ type parser struct {
 	prefixBytes int    // length of prefix in origin
 	schemeName  string // for error.Scheme
 	subs        common.SubstitutionTable
+	// Captured identifier word-fragments for '0'-prefixed identifiers
+	// that carry word substitutions. Mirrors Apple's Words[] vector.
+	words []string
 }
 
 func (p *parser) eof() bool { return p.i >= len(p.s) }
@@ -2983,29 +2986,113 @@ func (p *parser) parseNominalPath() (*demangle.Node, error) {
 // punycode decoding — $s-mangled identifiers are UTF-8 where needed;
 // punycode only applies to the $e embedded variant.
 func (p *parser) parseIdentifier() (string, error) {
-	start := p.i
-	for !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
-		p.i++
-	}
-	if start == p.i {
+	if p.eof() {
 		return "", p.grammarErr("identifier length")
 	}
-	length := 0
-	for _, c := range p.s[start:p.i] {
-		length = length*10 + int(c-'0')
+	hasWordSubsts := false
+	// '0' prefix introduces word-substitution form (or '00' for
+	// punycode — not yet supported).
+	if p.s[p.i] == '0' {
+		if p.i+1 < len(p.s) && p.s[p.i+1] == '0' {
+			// Punycode — out of scope for now.
+			return "", p.grammarErr("punycoded identifier")
+		}
+		p.i++
+		hasWordSubsts = true
 	}
-	if length <= 0 {
-		return "", p.grammarErr("positive identifier length")
+	var buf strings.Builder
+	captureWords := func(s string) {
+		// Apple's isWordStart/isWordEnd heuristic. Start = upper-letter
+		// OR underscore-after-lower (transition). End = before upper-
+		// case-after-lower OR final.
+		isUpper := func(c byte) bool { return c >= 'A' && c <= 'Z' }
+		isLower := func(c byte) bool { return c >= 'a' && c <= 'z' }
+		isLetter := func(c byte) bool { return isUpper(c) || isLower(c) }
+		isWordStart := func(c byte) bool { return isLetter(c) || c == '_' }
+		isWordEnd := func(c, prev byte) bool {
+			if !isLetter(c) {
+				return true
+			}
+			if isUpper(c) && isLower(prev) {
+				return true
+			}
+			return false
+		}
+		wordStart := -1
+		for i := 0; i <= len(s); i++ {
+			var c byte
+			if i < len(s) {
+				c = s[i]
+			}
+			if wordStart >= 0 && (i == len(s) || isWordEnd(c, s[i-1])) {
+				if i-wordStart >= 2 && len(p.words) < 26 {
+					p.words = append(p.words, s[wordStart:i])
+				}
+				wordStart = -1
+			}
+			if wordStart < 0 && i < len(s) && isWordStart(c) {
+				wordStart = i
+			}
+		}
 	}
-	if p.i+length > len(p.s) {
-		return "", demangle.TruncatedInput(p.schemeName, p.origin, p.i+p.prefixBytes)
+	for {
+		// Word-ref letters (only when hasWordSubsts).
+		for hasWordSubsts && !p.eof() {
+			c := p.s[p.i]
+			if !((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')) {
+				break
+			}
+			p.i++
+			var idx int
+			if c >= 'a' && c <= 'z' {
+				idx = int(c - 'a')
+			} else {
+				idx = int(c - 'A')
+				hasWordSubsts = false
+			}
+			if idx >= len(p.words) {
+				return "", p.grammarErr("word-substitution index out of range")
+			}
+			buf.WriteString(p.words[idx])
+			if !hasWordSubsts {
+				break
+			}
+		}
+		// Break on '0' terminator (Apple: if (nextIf('0')) break).
+		if hasWordSubsts && !p.eof() && p.s[p.i] == '0' {
+			p.i++
+			break
+		}
+		// Read length-prefixed literal chunk.
+		if p.eof() || !(p.s[p.i] >= '0' && p.s[p.i] <= '9') {
+			if buf.Len() > 0 {
+				break
+			}
+			return "", p.grammarErr("identifier length")
+		}
+		start := p.i
+		for !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+			p.i++
+		}
+		length := 0
+		for _, c := range p.s[start:p.i] {
+			length = length*10 + int(c-'0')
+		}
+		if length <= 0 {
+			return "", p.grammarErr("positive identifier length")
+		}
+		if p.i+length > len(p.s) {
+			return "", demangle.TruncatedInput(p.schemeName, p.origin, p.i+p.prefixBytes)
+		}
+		chunk := p.s[p.i : p.i+length]
+		p.i += length
+		buf.WriteString(chunk)
+		captureWords(chunk)
+		if !hasWordSubsts {
+			break
+		}
 	}
-	text := p.s[p.i : p.i+length]
-	p.i += length
-	// Sanity-check: Swift identifiers are letter/underscore-led UTF-8.
-	// We don't enforce this strictly — future commits with punycode
-	// support will accept '$e'-prefixed segments. For now allow
-	// anything that's not a zero-width garble.
+	text := buf.String()
 	for _, r := range text {
 		if unicode.ReplacementChar == r {
 			return "", p.grammarErr("valid identifier UTF-8")
