@@ -2704,6 +2704,36 @@ func (p *parser) trySpecializationSuffix() (string, bool) {
 		return "", false
 	}
 	letter := p.s[p.i+1]
+	// 'Tt<N>' — dropped-arguments prefix. Can repeat (Tt1t2g5 form).
+	// Each 'tN' skips one arg slot. Apple renders the outer generic
+	// spec the same way; the dropped-args are an internal optimisation
+	// detail we don't render separately.
+	if letter == 't' {
+		probe := p.i + 1
+		for probe < len(p.s) && p.s[probe] == 't' {
+			probe++
+			// Consume digits.
+			for probe < len(p.s) && p.s[probe] >= '0' && p.s[probe] <= '9' {
+				probe++
+			}
+		}
+		if probe >= len(p.s) {
+			revert()
+			return "", false
+		}
+		// After dropped-args chain, expect g/G/B for the actual kind.
+		realKind := p.s[probe]
+		switch realKind {
+		case 'g', 'G', 'B':
+			// Advance through the Tt...kind block, adjust p.i so the
+			// regular handling below picks up kind + pass digits.
+			p.i = probe - 1
+			letter = realKind
+		default:
+			revert()
+			return "", false
+		}
+	}
 	prefix := ""
 	switch letter {
 	case 'g':
