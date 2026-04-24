@@ -1293,7 +1293,17 @@ func (p *parser) tryEntitySuffix(inner *demangle.Node) (*demangle.Node, bool) {
 			// no generic signature payload. Index subsets are S/U runs
 			// where 'S' marks a selected index (printed as the bit
 			// position) and 'U' marks unselected.
+			//
+			// TJV<variant>... → vtable-thunk prefix; renders as
+			// "vtable thunk for <variant> of ...".
 			kindByte := p.s[p.i+2]
+			vtablePrefix := ""
+			kindOffset := 2
+			if kindByte == 'V' && p.i+3 < len(p.s) {
+				vtablePrefix = "vtable thunk for "
+				kindByte = p.s[p.i+3]
+				kindOffset = 3
+			}
 			var variant string
 			switch kindByte {
 			case 'f':
@@ -1307,7 +1317,7 @@ func (p *parser) tryEntitySuffix(inner *demangle.Node) (*demangle.Node, bool) {
 			}
 			if variant != "" {
 				// Read params subset (run of S/U).
-				pi := p.i + 3
+				pi := p.i + 1 + kindOffset
 				start := pi
 				for pi < len(p.s) && (p.s[pi] == 'S' || p.s[pi] == 'U') {
 					pi++
@@ -1339,7 +1349,7 @@ func (p *parser) tryEntitySuffix(inner *demangle.Node) (*demangle.Node, bool) {
 							b.WriteByte('}')
 							return b.String()
 						}
-						prefix = fmt.Sprintf("%s of ", variant)
+						prefix = fmt.Sprintf("%s%s of ", vtablePrefix, variant)
 						// Wrap: prefix + <inner> + " with respect to ..."
 						consumed = pi - p.i
 						innerStr := common.Print(inner, common.DefaultPrintOptions())
