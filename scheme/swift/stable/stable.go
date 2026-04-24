@@ -4176,23 +4176,23 @@ func (p *parser) skipConformanceRef() bool {
 	// Only engage when the block looks like a conformance-ref start:
 	// 'A' followed by letter-run (multi-sub back-ref) then 'H' within
 	// ~12 bytes, or literal 'H' directly.
-	// Tight heuristic: conformance-ref blocks end their proto-path
-	// with a kind byte (V/C/O/P) directly followed by 'H<P|C|p>'.
-	// A real bound-generic arg ends with a kind byte followed by a
-	// type-start byte for the next arg (digit / 'A' / 'S' / etc.).
+	// Tight heuristic: conformance-ref blocks end with 'H<P|C|p>g<d>?_'
+	// within ~20 bytes from start. Two forms accepted:
+	//  - proto-path ending in V/C/O/P directly before H<P|C|p>
+	//    (canonical form, e.g. 'AG0D1A1PHPyHCg_')
+	//  - short tail form 'A<letters><idents>H<P|C|p>g<d>?_' within
+	//    ~16 bytes (e.g. 'AiJ1QAAyHCg1_')
 	looksLike := false
 	if p.s[start] == 'A' {
+		// Form 1: V/C/O/P followed by H<P|C|p>.
 		j := start + 1
-		// Skip multi-sub letters.
 		for j < len(p.s) && j-start < 12 &&
 			((p.s[j] >= 'a' && p.s[j] <= 'z') || (p.s[j] >= 'A' && p.s[j] <= 'Z')) {
 			j++
 		}
-		// Skip optional length-prefixed ident chars.
 		for j < len(p.s) && j-start < 40 {
 			c := p.s[j]
 			if c == 'V' || c == 'C' || c == 'O' || c == 'P' {
-				// Kind byte. Next byte decides.
 				if j+2 < len(p.s) && p.s[j+1] == 'H' &&
 					(p.s[j+2] == 'P' || p.s[j+2] == 'C' ||
 						p.s[j+2] == 'p') {
