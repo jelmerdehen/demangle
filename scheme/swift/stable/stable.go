@@ -3834,25 +3834,40 @@ func (p *parser) tryStdlibCompactFunctionType() (*demangle.Node, bool) {
 		}
 		p.i++
 		base2Str := common.Print(base2, common.DefaultPrintOptions())
-		// Optional NoDeriv-wrap chain (Yk / Yz / Yn) on the last type.
+		// Optional modifier chain on the last type. Accepts both Y-
+		// prefixed (Yk = @noDerivative, Yt = _const, Yu = sending) and
+		// plain single-byte markers (n = __owned, z = inout, h =
+		// __shared) in any combination.
 		wrapPrefix := ""
-		for p.i+1 < len(p.s) && p.s[p.i] == 'Y' {
-			tag := p.s[p.i+1]
-			switch tag {
-			case 'k':
-				wrapPrefix = "@noDerivative " + wrapPrefix
-			case 'z':
-				wrapPrefix = "inout " + wrapPrefix
+		for !p.eof() {
+			c := p.s[p.i]
+			if c == 'Y' && p.i+1 < len(p.s) {
+				switch p.s[p.i+1] {
+				case 'k':
+					wrapPrefix = "@noDerivative " + wrapPrefix
+				case 't':
+					wrapPrefix = "_const " + wrapPrefix
+				case 'u':
+					wrapPrefix = "sending " + wrapPrefix
+				default:
+					goto wrapDone
+				}
+				p.i += 2
+				continue
+			}
+			switch c {
 			case 'n':
 				wrapPrefix = "__owned " + wrapPrefix
+			case 'z':
+				wrapPrefix = "inout " + wrapPrefix
+			case 'h':
+				wrapPrefix = "__shared " + wrapPrefix
 			default:
-				wrapPrefix = ""
+				goto wrapDone
 			}
-			if wrapPrefix == "" {
-				break
-			}
-			p.i += 2
+			p.i++
 		}
+	wrapDone:
 		for k := 0; k < m-1; k++ {
 			tupleParts = append(tupleParts, base2Str)
 		}
