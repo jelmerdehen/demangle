@@ -4,6 +4,33 @@ All notable changes to this project will be documented here. Format
 follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). This
 project uses semantic versioning.
 
+## [0.1.32] - 2026-04-24
+
+### Added
+
+- **swift-stable** — typed-throws + fn-type extras + Optional<fn> parens.
+  - Typed-throws annotation: '<type>YK' in params slot reassigns the
+    parsed type to the throws-type and renders as 'throws(Module.Type)'
+    via the new swift.throwsType entity attribute.
+  - Compact fn-type wrap chain now mixes Y-prefixed (Yk/Yt/Yu) and
+    plain single-byte modifiers (n/z/h) in any order — enables
+    @differentiable(reverse) tuple-param fn-types.
+  - tryPostfixFunctionType accepts plain 'c' (escaping, no
+    convention) alongside X<conv>; pre-ann loop reads
+    '<actor-type>Yc' as a global-actor isolation annotation
+    (@Swift.MainActor et al); YT pre-ann marks sending-result. Also
+    defers to init/deinit entity when the 'c' is followed by
+    'f<C|c|D|d>'.
+  - Printer wraps Optional<fn-type> as '(fn-type)?' when the inner
+    type has a top-level arrow or leading attribute.
+  - tryPath result slot accepts multi-element tuple shape
+    '<t0>_<t1>(_<tN>)*t' — function-entity renderer adds '(...)'.
+  - parseType case 'A' promotes a bare Identifier sub-ref to the
+    matching Type node from subs when the next byte is not a digit
+    (fix for our double-push of Ident + Type where Apple pushes
+    Types only).
+  - Apple corpus: 82 → **92/153** direct matches (60.1 %).
+
 ## [0.1.31] - 2026-04-24
 
 ### Added
