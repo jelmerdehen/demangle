@@ -3306,7 +3306,6 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 			default:
 				p.i = saveSub
 				p.subs = saveSubsSub
-				break
 			}
 			if identText == "" {
 				p.i = saveSub
@@ -4399,7 +4398,6 @@ afterYAnnotations:
 		default:
 			p.i = saveNest
 			p.subs = saveSubsNest
-			break
 		}
 		if nestKind == 0 {
 			break
@@ -5226,12 +5224,6 @@ func sortPreAnns(anns []string) {
 			anns[j-1], anns[j] = anns[j], anns[j-1]
 		}
 	}
-}
-
-// renderGenericSig builds "<A>" / "<A, B>" / "<A, B, C, ...>" based
-// on a depth-0 param count.
-func renderGenericSig(count int) string {
-	return renderGenericSigWithConstraints(count, nil)
 }
 
 // renderGenericSigWithConstraints adds an optional ' where ...' clause
