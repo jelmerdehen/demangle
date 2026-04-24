@@ -194,6 +194,10 @@ func (p *parser) parseGlobal() (*demangle.Node, error) {
 		return nil, err
 	} else if ok {
 		inner = entity
+	} else if varEntity, ok, err := p.tryVariableEntity(); err != nil {
+		return nil, err
+	} else if ok {
+		inner = varEntity
 	} else {
 		t, err := p.parseType()
 		if err != nil {
@@ -214,6 +218,103 @@ func (p *parser) parseGlobal() (*demangle.Node, error) {
 
 	common.AddChildren(g, inner)
 	return g, nil
+}
+
+// tryVariableEntity matches the variable-entity shape:
+//
+//	<context> <decl-name> <type> 'v' <kind>
+//
+// where <kind> is one of p (property), g (getter), s (setter),
+// w (willSet), W (didSet), M (materializeForSet), a (addressor),
+// m (mutable addressor). Renders as "<prefix> <context>.<decl> : <type>"
+// where prefix depends on kind.
+func (p *parser) tryVariableEntity() (*demangle.Node, bool, error) {
+	save := p.i
+	saveSubs := p.subs
+	restore := func() {
+		p.i = save
+		p.subs = saveSubs
+	}
+	if p.eof() || !(p.s[p.i] >= '0' && p.s[p.i] <= '9') {
+		return nil, false, nil
+	}
+	// Module.
+	mod, err := p.parseIdentifier()
+	if err != nil {
+		restore()
+		return nil, false, nil
+	}
+	var pathSteps []*demangle.Node
+	pathSteps = append(pathSteps, common.NewModule(mod))
+	// Walk identifier + optional (V/C/O) nominal-kind step until we
+	// have a terminating plain-ident (decl-name).
+	for {
+		if p.eof() || !(p.s[p.i] >= '0' && p.s[p.i] <= '9') {
+			restore()
+			return nil, false, nil
+		}
+		ident, err := p.parseIdentifier()
+		if err != nil {
+			restore()
+			return nil, false, nil
+		}
+		if p.eof() {
+			restore()
+			return nil, false, nil
+		}
+		peek := p.s[p.i]
+		if peek == 'V' || peek == 'C' || peek == 'O' {
+			p.i++
+			pathSteps = append(pathSteps, common.NewIdentifier(ident))
+			continue
+		}
+		pathSteps = append(pathSteps, common.NewIdentifier(ident))
+		break
+	}
+	// Type.
+	typ, err := p.parseType()
+	if err != nil {
+		restore()
+		return nil, false, nil
+	}
+	// v + kind.
+	if p.i+1 >= len(p.s) || p.s[p.i] != 'v' {
+		restore()
+		return nil, false, nil
+	}
+	kindByte := p.s[p.i+1]
+	prefix := ""
+	switch kindByte {
+	case 'p':
+		prefix = ""
+	case 'g':
+		prefix = "getter for "
+	case 's':
+		prefix = "setter for "
+	case 'w':
+		prefix = "willSet for "
+	case 'W':
+		prefix = "didSet for "
+	case 'M':
+		prefix = "materializeForSet for "
+	case 'a':
+		prefix = "unsafeAddressor for "
+	case 'm':
+		prefix = "unsafeMutableAddressor for "
+	default:
+		restore()
+		return nil, false, nil
+	}
+	p.i += 2
+	// Build display: <prefix><path joined by "."> : <type>
+	opts := common.DefaultPrintOptions()
+	path := common.NewNode(common.KindEntityPath)
+	common.AddChildren(path, pathSteps...)
+	pathStr := common.Print(path, opts)
+	typeStr := common.Print(typ, opts)
+	wrap := common.NewNode(common.KindTypeMangling)
+	wrap.Text = prefix + pathStr + " : " + typeStr
+	return wrap, true, nil
 }
 
 // tryConformanceDescriptor matches "<Type> <Protocol> <SourceModule> Hc"

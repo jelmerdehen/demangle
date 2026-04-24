@@ -174,6 +174,14 @@ func TestStableFunctionEntities(t *testing.T) {
 		// Two-arg with named labels: foo(x: Int, y: Int) -> ()
 		{"$s4main3foo1x1yyySi_SitF", "main.foo(x: Swift.Int, y: Swift.Int) -> ()"},
 	}
+	// Verify: module-level variable gets the property-entity shape.
+	r, err := cat.Demangle(context.Background(), "$s4main1xSivp", nil)
+	if err != nil {
+		t.Fatalf("var entity demangle: %v", err)
+	}
+	if r.Output != "main.x : Swift.Int" {
+		t.Errorf("var entity output = %q", r.Output)
+	}
 	for _, c := range cases {
 		c := c
 		t.Run(c.in, func(t *testing.T) {
