@@ -4,6 +4,18 @@ All notable changes to this project will be documented here. Format
 follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). This
 project uses semantic versioning.
 
+## [0.1.19] - 2026-04-22
+
+### Added
+
+- **swift-stable** — impl-function-type refinements.
+  - trySpecializationSuffix handles tuple-wrapped spec-args
+    ('<(A, A1)>' form via trailing 't_' before T<letter>).
+  - tryImplFunctionType attr parsing is now positional: escape →
+    diff-kind → callee-conv → per-type modes. Fixes wrong diff
+    labeling when 'r' appears as @out result-mode.
+  - Apple corpus: 37/153 → **39/153** direct matches.
+
 ## [0.1.18] - 2026-04-22
 
 ### Added
