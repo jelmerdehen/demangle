@@ -4,6 +4,36 @@ All notable changes to this project will be documented here. Format
 follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). This
 project uses semantic versioning.
 
+## [0.1.34] - 2026-04-24
+
+### Added
+
+- **swift-stable** — reabstraction-thunk sig + bridged method + misc.
+  - tryReabstractionThunk consumes an optional generic-signature
+    trailer between the second impl-fn and TR/TJO; renders `<A, B
+    where A: Swift.Sendable, B == Swift.Never>` form between
+    'helper' and 'from'. Handles Rz, Rs<idx>_, RO (same-type),
+    r<N>_l param-count.
+  - Apple `yp` = Any type (existential without protocols).
+  - `Tem<variants>_` outlined bridged method suffix renders
+    `outlined bridged method (m<variants>) of <inner>`.
+  - `TJO<variant>` autodiff self-reordering reabstraction thunk.
+  - Impl-fn `sending (@out ...)` rendered when T-flag set on fn.
+  - Impl-fn optional error-result `z<conv>` → `@error <conv> <type>`.
+  - Impl-fn repeat-count multi-sub `A<digits><letter>` expands to
+    N identical types.
+  - Constraint loop `R_` → `B: <proto>` (depth-0 idx-1 subject).
+  - Compact result+params consumes arbitrary types between the '_'
+    FirstElementMarker and 't'.
+  - Key-path getter/setter suffix `<owner>T<K|k>q?`.
+  - Variable-entity chain step now pushes ident + nominal-Type to
+    subs so A-multi-sub back-refs resolve in key-path suffixes.
+  - Macro-expansion entity suffix covering 9 kinds (freestanding /
+    unique-name / accessor / member / extension / peer / member-
+    attribute / body / preamble).
+  - Optional<fn-type> rendered with parens: `(fn-type)?`.
+  - Apple corpus: 92 → **103/153** direct matches (67.3 %).
+
 ## [0.1.33] - 2026-04-24
 
 ### Added
