@@ -2638,11 +2638,20 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 				reqKind := p.s[p.i]
 				p.i++
 				// Narrow constraint rendering for common shapes:
-				//   z → '<subject>: <constraint>' (Conforms-to, subject
-				//        is the outermost generic param A by default).
+				//   z   → 'A: <constraint>'  (Conforms-to, subject A)
+				//   _   → next-depth subject (B, C, ...) same protocol
+				//         (Apple's depth-indexed form 'R_' = idx 1)
 				if reqKind == 'z' {
 					cstr := common.Print(constraint, common.DefaultPrintOptions())
 					localConstraints = append(localConstraints, "A: "+cstr)
+				} else if reqKind == '_' {
+					// Subject-index form: 'R_' = subject at depth-0 idx
+					// 1 (= B), 'R0_' = idx 1 (B), 'R1_' = idx 2 (C), ...
+					// via Apple's demangleIndex. We already consumed the
+					// leading '_' as reqKind; treat as idx=1 (B).
+					subj := "B"
+					cstr := common.Print(constraint, common.DefaultPrintOptions())
+					localConstraints = append(localConstraints, subj+": "+cstr)
 				}
 				continue
 			}
