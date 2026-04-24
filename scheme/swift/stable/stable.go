@@ -383,7 +383,9 @@ func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 		return nil, false, nil
 	}
 	var pathSteps []*demangle.Node
-	pathSteps = append(pathSteps, common.NewModule(mod))
+	moduleNode := common.NewModule(mod)
+	pathSteps = append(pathSteps, moduleNode)
+	p.subs.Push(moduleNode)
 	for {
 		if p.eof() || !(p.s[p.i] >= '0' && p.s[p.i] <= '9') {
 			// For init/deinit, the context chain may end with a
