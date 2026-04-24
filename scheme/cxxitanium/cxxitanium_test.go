@@ -114,3 +114,22 @@ func TestItaniumGrammarErrorHasOffset(t *testing.T) {
 		t.Fatalf("expected positive offset, got %d", e.Offset)
 	}
 }
+
+func FuzzCxxItanium(f *testing.F) {
+	seeds := []string{
+		"_Z1fv", "_ZN4llvm5Value4dumpEv", "_Znwm", "_ZdlPv",
+		"_ZTI4llvm5Value", "_ZTSN4llvm5ValueE",
+		"_Z", "_ZZ", "_ZN", "", "not_mangled",
+	}
+	for _, s := range seeds {
+		f.Add(s)
+	}
+	cat := demangle.NewCatalog()
+	cat.Register(cxxitanium.Scheme{})
+	f.Fuzz(func(t *testing.T, in string) {
+		if len(in) > 4096 {
+			t.Skip()
+		}
+		_, _ = cat.Demangle(context.Background(), in, nil)
+	})
+}

@@ -41,3 +41,18 @@ func TestV40SniffOnly_T0(t *testing.T) {
 		t.Fatalf("stable matched v40")
 	}
 }
+
+func FuzzSwiftV40(f *testing.F) {
+	seeds := []string{"_T0Bi32_", "_T0Bf64_", "_T0", "", "_T", "_T01", "_T0SS"}
+	for _, s := range seeds {
+		f.Add(s)
+	}
+	cat := demangle.NewCatalog()
+	cat.Register(v40.Scheme{})
+	f.Fuzz(func(t *testing.T, in string) {
+		if len(in) > 4096 {
+			t.Skip()
+		}
+		_, _ = cat.Demangle(context.Background(), in, nil)
+	})
+}

@@ -35,3 +35,18 @@ func TestEmbeddedRoutes(t *testing.T) {
 		t.Fatalf("output = %q", r.Output)
 	}
 }
+
+func FuzzSwiftEmbedded(f *testing.F) {
+	seeds := []string{"$eBf32_", "_$eBi32_", "$e", "_$e", "", "$eSi"}
+	for _, s := range seeds {
+		f.Add(s)
+	}
+	cat := demangle.NewCatalog()
+	cat.Register(embedded.Scheme{})
+	f.Fuzz(func(t *testing.T, in string) {
+		if len(in) > 4096 {
+			t.Skip()
+		}
+		_, _ = cat.Demangle(context.Background(), in, nil)
+	})
+}

@@ -72,3 +72,23 @@ func TestRustSniff(t *testing.T) {
 		})
 	}
 }
+
+func FuzzRust(f *testing.F) {
+	seeds := []string{
+		"_RNvCsno73SFvQKx_3foo16example_function",
+		"_RNvCshIBIgx2Am2k_3std4open",
+		"_ZN4core3fmt5Write9write_fmt17h09fbbd14876613edE",
+		"_R", "_R_", "", "_RNv",
+	}
+	for _, s := range seeds {
+		f.Add(s)
+	}
+	cat := demangle.NewCatalog()
+	cat.Register(rust.Scheme{})
+	f.Fuzz(func(t *testing.T, in string) {
+		if len(in) > 4096 {
+			t.Skip()
+		}
+		_, _ = cat.Demangle(context.Background(), in, nil)
+	})
+}

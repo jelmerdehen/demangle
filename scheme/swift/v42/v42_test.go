@@ -47,3 +47,18 @@ func TestV42RejectsStablePrefix(t *testing.T) {
 		t.Fatalf("v42 accepted stable _$s prefix")
 	}
 }
+
+func FuzzSwiftV42(f *testing.F) {
+	seeds := []string{"$SBf32_", "_$SBf32_", "$SSi", "$S", "_$S", "", "$s"}
+	for _, s := range seeds {
+		f.Add(s)
+	}
+	cat := demangle.NewCatalog()
+	cat.Register(v42.Scheme{})
+	f.Fuzz(func(t *testing.T, in string) {
+		if len(in) > 4096 {
+			t.Skip()
+		}
+		_, _ = cat.Demangle(context.Background(), in, nil)
+	})
+}

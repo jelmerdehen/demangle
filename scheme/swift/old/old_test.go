@@ -40,3 +40,18 @@ func TestOldRejectsStableAndV40(t *testing.T) {
 		t.Fatalf("stable matched old")
 	}
 }
+
+func FuzzSwiftOld(f *testing.F) {
+	seeds := []string{"_TtBf32_", "_TtSi", "_T", "_T0", "", "_Tfoo"}
+	for _, s := range seeds {
+		f.Add(s)
+	}
+	cat := demangle.NewCatalog()
+	cat.Register(old.Scheme{})
+	f.Fuzz(func(t *testing.T, in string) {
+		if len(in) > 4096 {
+			t.Skip()
+		}
+		_, _ = cat.Demangle(context.Background(), in, nil)
+	})
+}

@@ -39,3 +39,24 @@ func TestMacroRoutesToStable(t *testing.T) {
 		t.Fatalf("scheme = %q", r.Scheme)
 	}
 }
+
+func FuzzSwiftMacro(f *testing.F) {
+	seeds := []string{
+		"@__swiftmacro_Bi32_",
+		"@__swiftmacro_",
+		"@__swiftmacro_4mainfoofMfm_",
+		"@__swiftmacro",
+		"",
+	}
+	for _, s := range seeds {
+		f.Add(s)
+	}
+	cat := demangle.NewCatalog()
+	cat.Register(macro.Scheme{})
+	f.Fuzz(func(t *testing.T, in string) {
+		if len(in) > 4096 {
+			t.Skip()
+		}
+		_, _ = cat.Demangle(context.Background(), in, nil)
+	})
+}
