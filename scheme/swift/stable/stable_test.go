@@ -199,6 +199,12 @@ func TestStableFunctionEntities(t *testing.T) {
 		// Nested var getter: class Foo's property n getter
 		{"$s4main3FooC1nSivg", "getter for main.Foo.n : Swift.Int"},
 		{"$s4main3FooC1nSivs", "setter for main.Foo.n : Swift.Int"},
+		// Function taking Optional<Int> single arg
+		{"$s4main3fooyySiSgF", "main.foo(Swift.Int?) -> ()"},
+		// Function returning Optional<Int>
+		{"$s4main3fooSiSgyF", "main.foo() -> Swift.Int?"},
+		// Tuple with Optional first, String second
+		{"$s4main3fooySiSg_SStF", "main.foo(Swift.Int?, Swift.String) -> ()"},
 	}
 	for _, c := range varGeneric {
 		c := c
