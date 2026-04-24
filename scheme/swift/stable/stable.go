@@ -2251,22 +2251,31 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 			ok := false
 			if _, match := readOne(); match {
 				ok = true
-				// Extend with '_S<M><letter>' tuple continuation.
-				for !p.eof() && p.s[p.i] == '_' {
-					// Peek for 'S<digit>' after '_'; else bail out.
-					if p.i+2 >= len(p.s) || p.s[p.i+1] != 'S' ||
-						!(p.s[p.i+2] >= '0' && p.s[p.i+2] <= '9') {
-						break
+				// Apple's mangling emits '_' as the FirstElementMarker
+				// before a tuple's elements, then each element is
+				// self-delimiting, and 't' closes. When we see '_' after
+				// the initial compact block, consume it and keep parsing
+				// types (compact chunks or arbitrary types) until 't'.
+				if !p.eof() && p.s[p.i] == '_' {
+					p.i++ // consume FirstElementMarker
+					for !p.eof() && p.s[p.i] != 't' {
+						if p.p_i_isS_digit() {
+							if _, m := readOne(); !m {
+								ok = false
+								break
+							}
+							continue
+						}
+						t, terr := p.parseType()
+						if terr != nil {
+							ok = false
+							break
+						}
+						compactTypes = append(compactTypes, t)
 					}
-					p.i++ // consume '_'
-					if _, m := readOne(); !m {
-						ok = false
-						break
+					if ok && !p.eof() && p.s[p.i] == 't' {
+						p.i++
 					}
-				}
-				// Optional tuple-terminator 't'.
-				if ok && !p.eof() && p.s[p.i] == 't' {
-					p.i++
 				}
 			}
 			if ok && len(compactTypes) >= 2 {
@@ -3163,6 +3172,13 @@ func (p *parser) parseGenericParam() (*demangle.Node, error) {
 
 func (p *parser) truncated() error {
 	return demangle.TruncatedInput(p.schemeName, p.origin, p.i+p.prefixBytes)
+}
+
+// p_i_isS_digit reports whether the two bytes at p.i are 'S' then
+// decimal digit — start of a compact stdlib-sub run.
+func (p *parser) p_i_isS_digit() bool {
+	return p.i+1 < len(p.s) && p.s[p.i] == 'S' &&
+		p.s[p.i+1] >= '0' && p.s[p.i+1] <= '9'
 }
 
 // findTypeForIdent scans subs for a Type node whose nominal leaf's
