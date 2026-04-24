@@ -277,6 +277,15 @@ func (p *parser) parseGlobal() (*demangle.Node, error) {
 	if wrapped, ok := p.tryClosureEntity(inner); ok {
 		inner = wrapped
 	}
+	// Trailing 'Z' — static member marker on any entity. Apple's
+	// demangleOperator case 'Z' wraps the popped entity as Static.
+	if !p.eof() && p.s[p.i] == 'Z' {
+		p.i++
+		innerStr := common.Print(inner, common.DefaultPrintOptions())
+		wrap := common.NewNode(common.KindTypeMangling)
+		wrap.Text = "static " + innerStr
+		inner = wrap
+	}
 	// Nested variable sub-entity with LocalDeclName:
 	//   '<N><name>L<idx>_<type>v<kind>'
 	// Wraps as "<suffix-prefix> <name> #<idx+1> : <type> in <inner>"
@@ -3833,11 +3842,15 @@ func (p *parser) tryPostfixFunctionType(node *demangle.Node) (*demangle.Node, bo
 	saveSubs := p.subs
 	revert := func() { p.i = save; p.subs = saveSubs }
 	p.i++ // consume 'y' (empty params marker)
-	var annotations []string
+	// Split annotations: "pre-params" (convention, Sendable, isolation,
+	// differentiable) render BEFORE '(params)', "post-params" (async,
+	// throws) render AFTER ')' and before '->'.
+	var preAnns []string
+	var postAnns []string
 	for !p.eof() {
 		c := p.s[p.i]
 		if c == 'K' {
-			annotations = append(annotations, "throws")
+			postAnns = append(postAnns, "throws")
 			p.i++
 			continue
 		}
@@ -3847,16 +3860,16 @@ func (p *parser) tryPostfixFunctionType(node *demangle.Node) (*demangle.Node, bo
 		tag := p.s[p.i+1]
 		switch tag {
 		case 'A':
-			annotations = append(annotations, "@isolated(any)")
+			preAnns = append(preAnns, "@isolated(any)")
 			p.i += 2
 		case 'a':
-			annotations = append(annotations, "async")
+			postAnns = append(postAnns, "async")
 			p.i += 2
 		case 'b':
-			annotations = append(annotations, "@Sendable")
+			preAnns = append(preAnns, "@Sendable")
 			p.i += 2
 		case 'C':
-			annotations = append(annotations, "nonisolated(nonsending)")
+			preAnns = append(preAnns, "nonisolated(nonsending)")
 			p.i += 2
 		case 'j':
 			if p.i+2 >= len(p.s) {
@@ -3867,13 +3880,13 @@ func (p *parser) tryPostfixFunctionType(node *demangle.Node) (*demangle.Node, bo
 			p.i += 3
 			switch v {
 			case 'd':
-				annotations = append(annotations, "@differentiable")
+				preAnns = append(preAnns, "@differentiable")
 			case 'f':
-				annotations = append(annotations, "@differentiable(_forward)")
+				preAnns = append(preAnns, "@differentiable(_forward)")
 			case 'r':
-				annotations = append(annotations, "@differentiable(reverse)")
+				preAnns = append(preAnns, "@differentiable(reverse)")
 			case 'l':
-				annotations = append(annotations, "@differentiable(_linear)")
+				preAnns = append(preAnns, "@differentiable(_linear)")
 			default:
 				revert()
 				return node, false
@@ -3904,11 +3917,15 @@ func (p *parser) tryPostfixFunctionType(node *demangle.Node) (*demangle.Node, bo
 	}
 	p.i += 2
 	nodeStr := common.Print(node, common.DefaultPrintOptions())
-	annotationStr := ""
-	if len(annotations) > 0 {
-		annotationStr = strings.Join(annotations, " ") + " "
+	preStr := ""
+	if len(preAnns) > 0 {
+		preStr = strings.Join(preAnns, " ") + " "
 	}
-	display := convPrefix + annotationStr + "() -> " + nodeStr
+	postStr := ""
+	if len(postAnns) > 0 {
+		postStr = " " + strings.Join(postAnns, " ")
+	}
+	display := convPrefix + preStr + "()" + postStr + " -> " + nodeStr
 	typ := common.NewNode(common.KindType)
 	inner := common.NewNode(common.KindBuiltinTypeName)
 	inner.Text = display
