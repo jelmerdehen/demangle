@@ -299,46 +299,64 @@ func (p *parser) tryImplFunctionType() (*demangle.Node, bool) {
 	}
 	attrs := p.s[attrStart:p.i]
 	p.i++ // consume '_'
-	// Interpret attrs. Narrow subset.
+	// Interpret attrs positionally.
+	// Position 0: optional 'e' (escaping).
+	// Position 0 or 1: optional diff-kind (f/r/d/l).
+	// Then: callee conv (g/y/t/x).
+	// Then: param modes + result modes.
 	prefixParts := []string{}
 	escaping := false
 	diffKind := ""
+	diffExplicit := false
 	calleeConv := "callee_guaranteed"
-	for _, a := range attrs {
-		switch a {
-		case 'e':
-			escaping = true
+	idx := 0
+	if idx < len(attrs) && attrs[idx] == 'e' {
+		escaping = true
+		idx++
+	}
+	if idx < len(attrs) {
+		switch attrs[idx] {
 		case 'f':
 			diffKind = "(_forward)"
+			diffExplicit = true
+			idx++
 		case 'r':
-			// Within attrs section 'r' = differentiable(reverse); after
-			// per-param section 'r' = @out. Narrow: if at start, it's
-			// diff.
-			if diffKind == "" && calleeConv == "callee_guaranteed" {
-				diffKind = "(reverse)"
-			}
+			diffKind = "(reverse)"
+			diffExplicit = true
+			idx++
 		case 'd':
-			if diffKind == "" {
-				diffKind = ""
-			}
+			diffKind = ""
+			diffExplicit = true
+			idx++
 		case 'l':
 			diffKind = "(_linear)"
+			diffExplicit = true
+			idx++
+		}
+	}
+	if idx < len(attrs) {
+		switch attrs[idx] {
 		case 'g':
 			calleeConv = "callee_guaranteed"
+			idx++
 		case 'y':
 			calleeConv = "callee_unowned"
+			idx++
 		case 't':
 			calleeConv = "thick"
+			idx++
+		case 'x':
+			calleeConv = "thin"
+			idx++
 		}
-		_ = a
 	}
+	// Remaining attrs after idx are per-param / per-result modes.
+	modeAttrs := attrs[idx:]
 	if escaping {
 		prefixParts = append(prefixParts, "@escaping")
 	}
-	if diffKind != "" {
+	if diffExplicit {
 		prefixParts = append(prefixParts, "@differentiable"+diffKind)
-	} else if strings.Contains(attrs, "d") {
-		prefixParts = append(prefixParts, "@differentiable")
 	}
 	prefixParts = append(prefixParts, "@"+calleeConv)
 	// Build args + results from types. Heuristic: if attrs contain 'n'
@@ -348,15 +366,13 @@ func (p *parser) tryImplFunctionType() (*demangle.Node, bool) {
 	opts := common.DefaultPrintOptions()
 	var params []string
 	var results []string
-	// Count 'n' and 'r' appearances roughly.
-	nCount := strings.Count(attrs, "n")
-	rCount := strings.Count(attrs, "r")
-	// Diff 'r' collision — if diffKind set via 'r', reduce.
-	if diffKind == "(reverse)" {
-		rCount--
-	}
+	// modeAttrs contains per-param modes then per-result modes.
+	// Each letter = 1 mode. Param letters: n/g/l/i/o/d. Result letters: r/o/d.
+	// Split at first result-indicator: we take count of param-indicators
+	// and result-indicators matching the total type count.
+	nCount := strings.Count(modeAttrs, "n")
+	rCount := strings.Count(modeAttrs, "r")
 	if nCount+rCount != len(types) {
-		// Uneven — give up.
 		revert()
 		return nil, false
 	}
