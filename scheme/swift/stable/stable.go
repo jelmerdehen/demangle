@@ -894,7 +894,18 @@ func (p *parser) tryVariableEntity() (*demangle.Node, bool, error) {
 		restore()
 		return nil, false, nil
 	}
-	// v + kind.
+	// v + kind, OR 'fm' for macro-entity (rendered as "<ctx>.<name> : <type>").
+	if p.i+1 < len(p.s) && p.s[p.i] == 'f' && p.s[p.i+1] == 'm' {
+		p.i += 2
+		opts := common.DefaultPrintOptions()
+		path := common.NewNode(common.KindEntityPath)
+		common.AddChildren(path, pathSteps...)
+		pathStr := common.Print(path, opts)
+		typeStr := common.Print(typ, opts)
+		wrap := common.NewNode(common.KindTypeMangling)
+		wrap.Text = pathStr + " : " + typeStr
+		return wrap, true, nil
+	}
 	if p.i+1 >= len(p.s) || p.s[p.i] != 'v' {
 		restore()
 		return nil, false, nil
