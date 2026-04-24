@@ -1653,6 +1653,13 @@ afterYAnnotations:
 	if wrapped, ok := p.tryPostfixFunctionType(node); ok {
 		node = wrapped
 	}
+	// Postfix '_p' — single-protocol existential (protocol-list-type).
+	// Apple's popProtocolListType builds ProtocolList from a single
+	// protocol on the stack; display is just the protocol's qualified
+	// name, identical to the bare Protocol node.
+	if p.i+1 < len(p.s) && p.s[p.i] == '_' && p.s[p.i+1] == 'p' {
+		p.i += 2
+	}
 	// Bound-generic trailer: base y <type>+ G.
 	if bg, ok, err := p.tryBoundGeneric(node); err != nil {
 		return nil, err
