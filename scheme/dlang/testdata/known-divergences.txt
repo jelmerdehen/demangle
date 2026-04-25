@@ -1,0 +1,49 @@
+// Known divergences between our dlang demangler and c++filt --format=dlang.
+// Format: one mangled symbol per line.
+// Blank lines and lines starting with // are ignored.
+//
+// Categories of divergence:
+//
+// 1. Function attributes (pure, nothrow, ref, @property, @trusted, @safe,
+//    @nogc, return, scope, @live): our demangler surfaces these in the output,
+//    c++filt --format=dlang strips them silently.
+//
+// 2. Linkage specifiers (Y = extern(C), Yc = extern(C++)): c++filt does not
+//    demangle Y-linkage symbols — it returns the mangled form unchanged.
+//    We decode them correctly.
+//
+// 3. Non-function type suffixes: symbols whose body is a bare type rather
+//    than a function prototype (e.g. _D1a1bi, _D4test3fooAa).
+//    Our output includes "[type: <tail>]"; c++filt outputs only the dotted name.
+//
+// 4. Variadic terminators: X (C variadic) / Y (typesafe variadic).
+//    We encode as "[variadic]" / "[typesafe-variadic]" in the param list;
+//    c++filt uses "..." / ", ..." appended to the last parameter.
+
+// --- Function attributes ---
+_D8demangle4testFNaZv
+_D8demangle4testFNbZv
+_D8demangle4testFNcZv
+_D8demangle4testFNdZv
+_D8demangle4testFNeZv
+_D8demangle4testFNfZv
+_D8demangle4testFNiZv
+_D8demangle4testFNjZv
+_D8demangle4testFNlZv
+_D8demangle4testFNmZv
+_D8demangle4testFNaNbZv
+_D8demangle4testFNaNbNiNfZv
+
+// --- Linkage (c++filt returns mangled symbol unchanged) ---
+_D8demangle4testFYaZv
+_D8demangle4testFYcZv
+
+// --- Non-function type suffix ---
+_D1a1bi
+_D4test3fooAa
+_D3std5ascii9uppercaseyAa
+
+// --- Variadic terminators ---
+_D8demangle4testFaXv
+_D8demangle4testFaYv
+_D8demangle4testFaaYv

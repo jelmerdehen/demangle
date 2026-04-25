@@ -1,0 +1,38 @@
+// Rust symbol demangling corpus.
+// Format: symbol ---> expected output
+// Lines starting with // are comments. Blank lines are ignored.
+// Oracle: rustfilt (rustc-demangle-based CLI)
+// Both legacy (_ZN…E with h-hash) and v0 (_R…) symbols are included.
+// Only symbols that rustfilt can demangle are listed here.
+
+// --- Legacy (_ZN…E) symbols ---
+_ZN4core3fmt5Write9write_fmt17h09fbbd14876613edE ---> core::fmt::Write::write_fmt
+_ZN3std2io5Write5flush17h4e1cbf6ffabf7f13E ---> std::io::Write::flush
+_ZN4core3ops8function6FnOnce9call_once17h6f48e17c77d9e83eE ---> core::ops::function::FnOnce::call_once
+_ZN5alloc6string6String4push17hba3c0b3c6ee6e59dE ---> alloc::string::String::push
+_ZN5alloc3vec3Vec4push17h7e94b64ce7789e63E ---> alloc::vec::Vec::push
+_ZN4core6result6Result6unwrap17h3e1c8c5b5d6a5d8eE ---> core::result::Result::unwrap
+_ZN4core6option6Option6unwrap17h3e1c8c5b5d6a5d8eE ---> core::option::Option::unwrap
+_ZN4core5panic5panic17h4b49d36e0815af6dE ---> core::panic::panic
+_ZN3std2io5stdin17h0b9af0c05e6c9f01E ---> std::io::stdin
+_ZN3std2io6stdout17h0b9af0c05e6c9f01E ---> std::io::stdout
+_ZN3std2io6stderr17h0b9af0c05e6c9f01E ---> std::io::stderr
+_ZN3std7process4exit17h0b9af0c05e6c9f01E ---> std::process::exit
+_ZN4core3mem4drop17h0b9af0c05e6c9f01E ---> core::mem::drop
+_ZN4core5slice29_$LT$impl$u20$$u5b$T$u5d$$GT$3len17h0b9af0c05e6c9f01E ---> core::slice::<impl [T]>::len
+_ZN4core3fmt5Debug3fmt17h4c3b82f0f3b7c7a8E ---> core::fmt::Debug::fmt
+_ZN4core3fmt7Display3fmt17h9f1a6e6c9e3b5d0aE ---> core::fmt::Display::fmt
+_ZN4core3cmp9PartialEq2eq17hf0a8c22b04b9ef5aE ---> core::cmp::PartialEq::eq
+_ZN4core4hash4Hash4hash17h3d3c6cd9e5af64afE ---> core::hash::Hash::hash
+_ZN4core3ops3Add3add17h5b8a7c9f2e1a3d6cE ---> core::ops::Add::add
+_ZN4core3ops3Mul3mul17h2a9c4b7e5f3d1e8aE ---> core::ops::Mul::mul
+_ZN4core5clone5Clone5clone17h9e4a8c7f5b2d3e6aE ---> core::clone::Clone::clone
+_ZN3std3env4args17h4b2c9f5e7a3d1e6aE ---> std::env::args
+_ZN3std2fs4read17h7c5b9e3f2a4d8e1aE ---> std::fs::read
+_ZN3std2fs5write17h8d4c7a9f3b5e2d1aE ---> std::fs::write
+_ZN3std4path4Path6exists17h2e9c7b4f5a3d8e1aE ---> std::path::Path::exists
+_ZN4core3fmt9Formatter9write_fmt17h3b6d20394c82f4e9E ---> core::fmt::Formatter::write_fmt
+
+// --- v0 (_R…) symbols ---
+_RNvCsno73SFvQKx_3foo16example_function ---> foo::example_function
+_RNvCshIBIgx2Am2k_3std4open ---> std::open
