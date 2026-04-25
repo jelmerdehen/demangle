@@ -71,15 +71,18 @@ jobs:
           go-version: "1.26"
           cache: true
 
-      - name: build + size gate
-        run: |
-          mkdir -p /tmp/sizes
-          go build -ldflags="-s -w" -o /tmp/sizes/full ./cmd/demangle
-          full=$(stat -c%s /tmp/sizes/full)
-          echo "full build=$full bytes"
-          if [ "$full" -gt $((14*1024*1024)) ]; then
-            echo "full build exceeded 14 MB headroom"; exit 1
-          fi
+      # B2: per-tier binary-size budget gate.
+      # Each tier stub blank-imports exactly the schemes for that level.
+      # Budgets (bytes); CI fails if any variant exceeds budget by >5%.
+      #
+      #   tier-puredata  6 MB   java+js+gosym+objc+runtime
+      #   tier-itanium   7 MB   +cxxitanium +rust
+      #   tier-swift     8 MB   +swift/all
+      #   tier-native   10 MB   +cxxmsvc +dlang
+      #   tier-all      12 MB   scheme/all
+      #   full-cli      12 MB   cmd/demangle (SQLite + CLI overhead)
+      - name: size-check (B2 per-tier budget gate)
+        run: make size-check
 
   bench-regression:
     runs-on: ubuntu-latest
