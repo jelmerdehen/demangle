@@ -32,6 +32,7 @@ package cxxmsvc
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	"github.com/jelmerdehen/demangle"
@@ -196,6 +197,24 @@ func (p *parser) parseSpecialName() (string, bool, error) {
 			return "", false, nil
 		}
 		switch p.s[p.i+1] {
+		case 'C':
+			// ??_C@_<type><len>@<hash>@<encoded-chars>@ — string literal.
+			p.i += 2 // consume '_C'
+			if p.eof() || p.s[p.i] != '@' {
+				p.i -= 2
+				return "", false, nil
+			}
+			p.i++ // consume '@'
+			if p.eof() || p.s[p.i] != '_' {
+				p.i -= 3
+				return "", false, nil
+			}
+			p.i++ // consume '_'
+			display, err := p.parseStringLiteral()
+			if err != nil {
+				return "", true, err
+			}
+			return display, true, nil
 		case '7':
 			p.i += 2
 			chain, err := p.parseNameChain()
@@ -947,6 +966,224 @@ func reverse(ss []string) []string {
 		out[len(ss)-1-i] = s
 	}
 	return out
+}
+
+// parseMSVCNumber reads a number in MSVC mangling encoding:
+//
+//	'1'..'9'  → values 2..10  (digit shorthand: value = digit - '0' + 1)
+//	<hex>+'@' → where hex chars are 'A'-'P' (A=0,B=1,…,P=15), terminated by '@'
+//
+// Note: the single-digit shorthand adds 1 so '1'→2, '5'→6, etc.
+// This matches the LLVM/MSVC convention where the encoded length includes
+// the null terminator(s), so a 5-char narrow string encodes len as '5' → 6.
+func (p *parser) parseMSVCNumber() (int, error) {
+	if p.eof() {
+		return 0, p.truncated()
+	}
+	c := p.s[p.i]
+	if c >= '1' && c <= '9' {
+		p.i++
+		return int(c-'0') + 1, nil
+	}
+	// Hex path: digits A-P terminated by '@'.
+	val := 0
+	for !p.eof() {
+		ch := p.s[p.i]
+		if ch == '@' {
+			p.i++ // consume '@'
+			return val, nil
+		}
+		if ch < 'A' || ch > 'P' {
+			return 0, p.grammarErr("MSVC number hex digit A-P or '@'")
+		}
+		val = (val << 4) | int(ch-'A')
+		p.i++
+	}
+	return 0, p.truncated()
+}
+
+// parseStringLiteral decodes a ??_C@_<type><len>@<hash>@<encoded>@ string
+// literal. The caller has already consumed "??_C@_" and positioned p.i at
+// the <type> byte.
+//
+// Supported char types:
+//
+//	'0' → narrow char  →  "…"
+//	'1' → wchar_t      → L"…"
+//
+// The decoded bytes are rendered with C-style escapes:
+//
+//	\n \t \r \\  \" \'  and \x<hex> for other non-printable bytes.
+func (p *parser) parseStringLiteral() (string, error) {
+	if p.eof() {
+		return "", p.truncated()
+	}
+	typeByte := p.s[p.i]
+	p.i++
+
+	var charBytes int  // bytes per logical char in the encoding
+	var prefix string  // display prefix: "" or "L"
+	switch typeByte {
+	case '0':
+		charBytes = 1
+		prefix = ""
+	case '1':
+		charBytes = 2
+		prefix = "L"
+	default:
+		return "", p.grammarErr("string literal char type '0' or '1'")
+	}
+
+	// Read byte_length (MSVC number, includes null terminator).
+	byteLen, err := p.parseMSVCNumber()
+	if err != nil {
+		return "", err
+	}
+	// Read and discard the CRC/hash (also an MSVC number).
+	if _, err := p.parseMSVCNumber(); err != nil {
+		return "", err
+	}
+
+	// Decode up to min(byteLen, charBytes*32) bytes from the content stream.
+	limit := byteLen
+	if charBytes*32 < limit {
+		limit = charBytes * 32
+	}
+
+	var rawBytes []byte
+	for len(rawBytes) < limit && !p.eof() && p.s[p.i] != '@' {
+		c := p.s[p.i]
+		if c != '?' {
+			// Direct printable character.
+			rawBytes = append(rawBytes, c)
+			p.i++
+			continue
+		}
+		// Escape sequence: '?' followed by another char.
+		p.i++ // consume '?'
+		if p.eof() {
+			return "", p.truncated()
+		}
+		esc := p.s[p.i]
+		p.i++
+		switch {
+		case esc >= '0' && esc <= '9':
+			// Single-char special escapes.
+			special := ",/\\:. \n\t'-"
+			rawBytes = append(rawBytes, special[esc-'0'])
+		case esc >= 'A' && esc <= 'Z':
+			// ?A..?Z → 0xC1..0xDA
+			rawBytes = append(rawBytes, esc-'A'+0xC1)
+		case esc >= 'a' && esc <= 'z':
+			// ?a..?z → 0xE1..0xFA
+			rawBytes = append(rawBytes, esc-'a'+0xE1)
+		case esc == '$':
+			// ?$XY → byte value (X-'A')*16 + (Y-'A'), X and Y in A-P.
+			if p.i+1 >= len(p.s) {
+				return "", p.truncated()
+			}
+			hi := p.s[p.i]
+			lo := p.s[p.i+1]
+			p.i += 2
+			if hi < 'A' || hi > 'P' || lo < 'A' || lo > 'P' {
+				return "", p.grammarErr("?$ hex digits A-P")
+			}
+			rawBytes = append(rawBytes, (hi-'A')<<4|(lo-'A'))
+		default:
+			return "", p.grammarErr("string literal escape char")
+		}
+	}
+	// Consume the trailing '@' if present.
+	if !p.eof() && p.s[p.i] == '@' {
+		p.i++
+	}
+
+	// IsTruncated: either the encoded content was fewer bytes than claimed,
+	// or the byte_length exceeded the 32-char display cap.
+	isTruncated := len(rawBytes) < limit || byteLen > charBytes*32
+
+	// Strip the null terminator(s) from the end of rawBytes.
+	nullLen := charBytes // number of trailing zero bytes to strip
+	for nullLen > 0 && len(rawBytes) > 0 && rawBytes[len(rawBytes)-1] == 0 {
+		rawBytes = rawBytes[:len(rawBytes)-1]
+		nullLen--
+	}
+
+	// Render content as C-style escaped string.
+	if charBytes == 2 {
+		// Wide string: interpret rawBytes as little-endian uint16 pairs.
+		return prefix + "\"" + renderWideBytes(rawBytes) + "\"" + truncSuffix(isTruncated), nil
+	}
+	return prefix + "\"" + renderNarrowBytes(rawBytes) + "\"" + truncSuffix(isTruncated), nil
+}
+
+func truncSuffix(t bool) string {
+	if t {
+		return "..."
+	}
+	return ""
+}
+
+// renderNarrowBytes encodes a byte slice as C-string escape content
+// (without surrounding quotes).
+func renderNarrowBytes(b []byte) string {
+	var sb strings.Builder
+	for _, c := range b {
+		switch c {
+		case '"':
+			sb.WriteString("\\\"")
+		case '\\':
+			sb.WriteString("\\\\")
+		case '\n':
+			sb.WriteString("\\n")
+		case '\t':
+			sb.WriteString("\\t")
+		case '\r':
+			sb.WriteString("\\r")
+		case '\'':
+			sb.WriteString("\\'")
+		default:
+			if c >= 0x20 && c < 0x7F {
+				sb.WriteByte(c)
+			} else {
+				fmt.Fprintf(&sb, "\\x%02X", c)
+			}
+		}
+	}
+	return sb.String()
+}
+
+// renderWideBytes interprets b as big-endian uint16 pairs (MSVC wchar_t
+// string encoding stores high byte first) and encodes each code unit as a
+// C-string escape (or direct char for printable ASCII).
+func renderWideBytes(b []byte) string {
+	var sb strings.Builder
+	for i := 0; i+1 < len(b); i += 2 {
+		hi := uint16(b[i])
+		lo := uint16(b[i+1])
+		cu := hi<<8 | lo
+		switch cu {
+		case '"':
+			sb.WriteString("\\\"")
+		case '\\':
+			sb.WriteString("\\\\")
+		case '\n':
+			sb.WriteString("\\n")
+		case '\t':
+			sb.WriteString("\\t")
+		case '\r':
+			sb.WriteString("\\r")
+		case '\'':
+			sb.WriteString("\\'")
+		default:
+			if cu >= 0x20 && cu < 0x7F {
+				sb.WriteByte(byte(cu))
+			} else {
+				fmt.Fprintf(&sb, "\\x%X", cu)
+			}
+		}
+	}
+	return sb.String()
 }
 
 func (p *parser) grammarErr(expected string) error {

@@ -306,3 +306,67 @@ func FuzzMSVC(f *testing.F) {
 		_, _ = cat.Demangle(context.Background(), in, nil)
 	})
 }
+
+// TestMSVCStringLiterals verifies ??_C@_ string-literal demangling against
+// oracle output from llvm-undname. Each expected value was produced by:
+//
+//	/usr/bin/llvm-undname '<symbol>'
+//
+// and recorded verbatim. ZERO mismatches required (M1 gate).
+func TestMSVCStringLiterals(t *testing.T) {
+	t.Parallel()
+	cat := newCatalog(t)
+	cases := []struct {
+		in   string
+		want string
+	}{
+		// Simple ASCII string "hello" (5 chars, narrow, no escapes).
+		// llvm-undname: "hello"
+		{"??_C@_05CMABKHDM@hello?$AA@", `"hello"`},
+
+		// Backslash — special escape ?2='\'.
+		// llvm-undname: "\\"
+		{"??_C@_01KICIPPFI@?2?$AA@", `"\\"`},
+
+		// Single byte 0xFF via ?$PP (X=P=15, Y=P=15 → 0xFF).
+		// llvm-undname: "\xFF"
+		{"??_C@_01CNACBAHC@?$PP?$AA@", `"\xFF"`},
+
+		// Newline — special escape ?6='\n'.
+		// llvm-undname: "\n"
+		{"??_C@_01JFGIGPJE@?6?$AA@", `"\n"`},
+
+		// Two-char ASCII string "hi" (narrow, no escapes).
+		// llvm-undname: "hi"
+		{"??_C@_02PCEFGMJL@hi?$AA@", `"hi"`},
+
+		// Wide string L"\t" — type 1 (wchar_t), tab via ?$AA?7.
+		// llvm-undname: L"\t"
+		{"??_C@_13KDLDGPGJ@?$AA?7?$AA?$AA@", `L"\t"`},
+
+		// Wide string L" " — type 1 (wchar_t), space via ?$AA?5.
+		// llvm-undname: L" "
+		{"??_C@_13HOIJIPNN@?$AA?5?$AA?$AA@", `L" "`},
+
+		// Single byte 0xFE via ?$PO (X=P=15, Y=O=14 → 0xFE).
+		// llvm-undname: "\xFE"
+		{"??_C@_01DEBJCBDD@?$PO?$AA@", `"\xFE"`},
+
+		// Comma — special escape ?0=','.
+		// llvm-undname: ","
+		{"??_C@_01PBGEDEHF@?0?$AA@", `","`},
+	}
+	for _, c := range cases {
+		c := c
+		t.Run(c.in, func(t *testing.T) {
+			t.Parallel()
+			r, err := cat.Demangle(context.Background(), c.in, nil)
+			if err != nil {
+				t.Fatalf("demangle: %v", err)
+			}
+			if r.Output != c.want {
+				t.Fatalf("output = %q, want %q", r.Output, c.want)
+			}
+		})
+	}
+}
