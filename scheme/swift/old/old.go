@@ -861,11 +861,12 @@ func (p *oldParser) parseType(depth int) (string, error) {
 			return inner + ".Protocol", nil
 		}
 		return p.parseProtocolList(depth + 1)
-	// Archetype or dependent member
+	// Archetype / associated-type (old mangling)
 	case 'Q':
-		return "", p.unsupported("archetype Q")
+		return p.parseArchetypeType(depth + 1)
+	// Dependent type: generic-param index or dependent member type
 	case 'q':
-		return "", p.unsupported("dependent type q")
+		return p.parseDependentType(depth + 1)
 	// InOut
 	case 'R':
 		inner, err := p.parseType(depth + 1)
@@ -975,6 +976,146 @@ func (p *oldParser) parseBuiltinType(depth int) (string, error) {
 	default:
 		return "", p.unsupported(fmt.Sprintf("builtin type char %q", c))
 	}
+}
+
+// ---------------------------------------------------------------------------
+// Generic-param and archetype type parsing (W2)
+// ---------------------------------------------------------------------------
+
+// genericParameterName returns the human-readable name for a generic parameter
+// at the given depth and index. Matches NodePrinter::genericParameterName.
+//   depth=0, index=0 → "A"
+//   depth=0, index=1 → "B"
+//   depth=1, index=0 → "A1"
+//   depth=2, index=0 → "A2"
+func genericParameterName(depth, index int) string {
+	// Build name character(s): base-26 of index (least-significant first).
+	name := make([]byte, 0, 4)
+	i := index
+	for {
+		name = append(name, byte('A'+i%26))
+		i /= 26
+		if i == 0 {
+			break
+		}
+	}
+	if depth != 0 {
+		name = append(name, []byte(fmt.Sprintf("%d", depth))...)
+	}
+	return string(name)
+}
+
+// parseGenericParamIndex parses the old-mangling generic param index:
+//
+//	'd' index index  → depth = first+1, index = second
+//	'x'              → depth=0, index=0 (A)
+//	index            → depth=0, index = parsed+1
+//
+// Matches OldDemangler::demangleGenericParamIndex.
+func (p *oldParser) parseGenericParamIndex() (string, error) {
+	if p.nextIf('d') {
+		d, err := p.parseIndex()
+		if err != nil {
+			return "", err
+		}
+		idx, err := p.parseIndex()
+		if err != nil {
+			return "", err
+		}
+		return genericParameterName(d+1, idx), nil
+	}
+	if p.nextIf('x') {
+		return genericParameterName(0, 0), nil
+	}
+	// plain index → depth=0, index += 1
+	idx, err := p.parseIndex()
+	if err != nil {
+		return "", err
+	}
+	return genericParameterName(0, idx+1), nil
+}
+
+// parseDependentType parses what follows a 'q' type byte.
+// Matches OldDemangler::demangleDependentType.
+//
+//	If next char is NOT 'd', NOT '_', and NOT a digit: dependent member type
+//	    → <type> <assoc-type-name>
+//	Otherwise: generic param index
+func (p *oldParser) parseDependentType(depth int) (string, error) {
+	if depth > maxDepth {
+		return "", p.unsupported("recursion limit")
+	}
+	if p.eof() {
+		return "", p.grammarError("dependent type")
+	}
+	c := p.peek()
+	if c != 'd' && c != '_' && (c < '0' || c > '9') {
+		// Dependent member type: base is a full type, then an assoc-type name.
+		base, err := p.parseType(depth + 1)
+		if err != nil {
+			return "", err
+		}
+		name, err := p.parseDeclName(depth + 1)
+		if err != nil {
+			return "", err
+		}
+		result := base + "." + name
+		p.substitutions = append(p.substitutions, result)
+		return result, nil
+	}
+	return p.parseGenericParamIndex()
+}
+
+// parseArchetypeType parses what follows a 'Q' type byte (old archetype form).
+// Matches OldDemangler::demangleArchetypeType.
+//
+//	'Q' ... → associated type of inner archetype (recurse)
+//	'S' sub → associated type of substituted type
+//	's' ... → associated type of Swift stdlib module
+//	'u'     → OpaqueReturnType (unsupported — leave to future work)
+//	'U'     → OpaqueReturnType with ordinal (unsupported)
+func (p *oldParser) parseArchetypeType(depth int) (string, error) {
+	if depth > maxDepth {
+		return "", p.unsupported("recursion limit")
+	}
+	if p.eof() {
+		return "", p.grammarError("archetype type")
+	}
+	// Opaque return type (newer addition to the old grammar)
+	if p.nextIf('u') {
+		return "", p.unsupported("opaque return type Qu")
+	}
+	if p.nextIf('U') {
+		return "", p.unsupported("opaque return type QU")
+	}
+
+	var root string
+	var err error
+	if p.nextIf('Q') {
+		// Associated type of another archetype (recursive)
+		root, err = p.parseArchetypeType(depth + 1)
+		if err != nil {
+			return "", err
+		}
+	} else if p.nextIf('S') {
+		root, err = p.parseSubstitutionIndex(depth + 1)
+		if err != nil {
+			return "", err
+		}
+	} else if p.nextIf('s') {
+		root = "Swift"
+	} else {
+		return "", p.grammarError("archetype root (Q/S/s)")
+	}
+
+	// Now read the associated type name.
+	name, err := p.parseIdentifier(depth + 1)
+	if err != nil {
+		return "", err
+	}
+	result := root + "." + name
+	p.substitutions = append(p.substitutions, result)
+	return result, nil
 }
 
 // parseBuiltinSize parses digits followed by '_'.

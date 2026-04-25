@@ -81,3 +81,44 @@ _TF3fooau3barSi ---> foo.bar.unsafeMutableAddressor : Swift.Int
 _TF3foolu3barSi ---> foo.bar.unsafeAddressor : Swift.Int
 _TF3foog3barSi ---> foo.bar.getter : Swift.Int
 _TF3foos3barSi ---> foo.bar.setter : Swift.Int
+
+// W2: generic-param shorthands (archetype types)
+// 'x' = first generic param A (depth=0, index=0)
+_TtFxSi ---> (A) -> Swift.Int
+_TtFxx ---> (A) -> A
+_TtMx ---> A.Type
+_TtRx ---> inout A
+// 'q_' = second generic param B (depth=0, index=1)
+_TtFq_Si ---> (B) -> Swift.Int
+_TtFq_x ---> (B) -> A
+_TtFxq_ ---> (A) -> B
+// 'qN_' = generic param N+2 at depth 0
+_TtFq0_Si ---> (C) -> Swift.Int
+_TtFq1_Si ---> (D) -> Swift.Int
+// 'qd__' = generic param A at depth 1 (outer generic context)
+_TtFqd__Si ---> (A1) -> Swift.Int
+_TtFqd0__Si ---> (A2) -> Swift.Int
+_TtFqd_0_Si ---> (B1) -> Swift.Int
+
+// W2: bound generic types with generic-param type args
+_TtGSax_ ---> [A]
+_TtGSqx_ ---> A?
+_TtGSPx_ ---> Swift.UnsafePointer<A>
+_TtGSpx_ ---> Swift.UnsafeMutablePointer<A>
+_TtGSRx_ ---> Swift.UnsafeBufferPointer<A>
+_TtGSrx_ ---> Swift.UnsafeMutableBufferPointer<A>
+_TtGSqq__ ---> B?
+_TtGSaq__ ---> [B]
+_TtGVs10DictionaryxSi_ ---> [A : Swift.Int]
+_TtGVs10DictionarySix_ ---> [Swift.Int : A]
+_TtGVs10DictionaryxSS_ ---> [A : Swift.String]
+_TtGC3foo4PairxSi_ ---> foo.Pair<A, Swift.Int>
+_TtGC3foo3BarxSi_ ---> foo.Bar<A, Swift.Int>
+_TtGO3foo3BazxSi_ ---> foo.Baz<A, Swift.Int>
+_TtGV3foo3Quxxx_ ---> foo.Qux<A, A>
+_TtGV3foo3Quxxq__ ---> foo.Qux<A, B>
+// function types with generic-param args
+_TtFxGSax_ ---> (A) -> [A]
+_TtFGSax_x ---> ([A]) -> A
+// nested bound generic (Node<[A]>)
+_TtGC3foo4NodeGSax__ ---> foo.Node<[A]>
