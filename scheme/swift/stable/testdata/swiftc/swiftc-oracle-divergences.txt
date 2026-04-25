@@ -1,0 +1,4 @@
+# Format: <raw-symbol>
+# Cause: <brief description>
+# Oracle output: <verbatim>
+# Upstream: <bug URL or UNKNOWN>

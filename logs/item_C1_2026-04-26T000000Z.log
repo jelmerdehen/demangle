@@ -1,0 +1,90 @@
+item C1 — swiftc corpus source files
+Date: 2026-04-26T00:00:00Z
+Swift: 6.3 (swift-6.3-RELEASE), target x86_64-unknown-linux-gnu
+
+== Files Created ==
+
+  scheme/swift/stable/testdata/swiftc/src/01_basic_types.swift
+  scheme/swift/stable/testdata/swiftc/src/02_functions.swift
+  scheme/swift/stable/testdata/swiftc/src/03_methods.swift
+  scheme/swift/stable/testdata/swiftc/src/04_generics_basic.swift
+  scheme/swift/stable/testdata/swiftc/src/05_generics_constrained.swift
+  scheme/swift/stable/testdata/swiftc/src/06_protocols.swift
+  scheme/swift/stable/testdata/swiftc/src/07_enums.swift
+  scheme/swift/stable/testdata/swiftc/src/08_structs.swift
+  scheme/swift/stable/testdata/swiftc/src/09_classes.swift
+  scheme/swift/stable/testdata/swiftc/src/10_optional_types.swift
+  scheme/swift/stable/testdata/swiftc/src/11_closures.swift
+  scheme/swift/stable/testdata/swiftc/src/12_throws.swift
+  scheme/swift/stable/testdata/swiftc/src/13_async.swift
+  scheme/swift/stable/testdata/swiftc/src/14_sendable.swift
+  scheme/swift/stable/testdata/swiftc/src/15_actors.swift
+  scheme/swift/stable/testdata/swiftc/src/16_generic_protocols.swift
+  scheme/swift/stable/testdata/swiftc/src/17_existentials.swift
+  scheme/swift/stable/testdata/swiftc/src/18_opaque_types.swift
+  scheme/swift/stable/testdata/swiftc/src/19_extensions.swift
+  scheme/swift/stable/testdata/swiftc/src/20_property_wrappers.swift
+  scheme/swift/stable/testdata/swiftc/src/21_result_builders.swift
+  scheme/swift/stable/testdata/swiftc/src/22_keypaths.swift
+  scheme/swift/stable/testdata/swiftc/src/23_tuples.swift
+  scheme/swift/stable/testdata/swiftc/src/24_operators.swift
+  scheme/swift/stable/testdata/swiftc/src/25_nested_types.swift
+  scheme/swift/stable/testdata/swiftc/src/26_generic_where.swift
+  scheme/swift/stable/testdata/swiftc/src/27_bound_generics.swift
+  scheme/swift/stable/testdata/swiftc/src/28_function_types.swift
+  scheme/swift/stable/testdata/swiftc/src/29_init_variants.swift
+  scheme/swift/stable/testdata/swiftc/src/30_subscripts.swift
+
+== Compilation Results ==
+
+  PASS  01_basic_types.swift          53 $s symbols
+  PASS  02_functions.swift            17 $s symbols
+  PASS  03_methods.swift              33 $s symbols
+  PASS  04_generics_basic.swift       41 $s symbols
+  PASS  05_generics_constrained.swift 41 $s symbols
+  PASS  06_protocols.swift            58 $s symbols
+  PASS  07_enums.swift                57 $s symbols
+  PASS  08_structs.swift              65 $s symbols
+  PASS  09_classes.swift             111 $s symbols
+  PASS  10_optional_types.swift       31 $s symbols
+  PASS  11_closures.swift             25 $s symbols
+  PASS  12_throws.swift               53 $s symbols
+  PASS  13_async.swift                75 $s symbols
+  PASS  14_sendable.swift             31 $s symbols
+  PASS  15_actors.swift               82 $s symbols
+  PASS  16_generic_protocols.swift    62 $s symbols
+  PASS  17_existentials.swift         43 $s symbols
+  PASS  18_opaque_types.swift         41 $s symbols
+  PASS  19_extensions.swift           68 $s symbols
+  PASS  20_property_wrappers.swift    69 $s symbols
+  PASS  21_result_builders.swift      29 $s symbols
+  PASS  22_keypaths.swift             57 $s symbols
+  PASS  23_tuples.swift               12 $s symbols
+  PASS  24_operators.swift            18 $s symbols
+  PASS  25_nested_types.swift         97 $s symbols
+  PASS  26_generic_where.swift        55 $s symbols
+  PASS  27_bound_generics.swift       43 $s symbols
+  PASS  28_function_types.swift       25 $s symbols
+  PASS  29_init_variants.swift        66 $s symbols
+  PASS  30_subscripts.swift           67 $s symbols
+
+== Summary ==
+
+  Total files:            30
+  PASS (symbol-producing): 30
+  SKIP:                    0
+  FAIL:                    0
+
+  Total $s symbols across all files: 1464
+
+== Notes ==
+
+  - All files compile cleanly with:
+      swiftc -emit-library -target x86_64-unknown-linux-gnu -O <file> -o /tmp/<n>.so
+  - No @objc attributes used (no ObjC runtime on Linux)
+  - Typed throws (Swift 6 feature) tested in 12_throws.swift
+  - Global actor + async verified in 13_async.swift
+  - String(format:) removed from 08_structs.swift (no Foundation on Linux);
+    replaced with pure-Swift hex formatting
+  - @resultBuilder buildBlock variadic approach updated for Swift 6 conformance
+  - Primary associated types (protocol<Element>) verified in 16 and 18
