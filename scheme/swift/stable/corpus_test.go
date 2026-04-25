@@ -123,10 +123,21 @@ func TestAppleCorpus(t *testing.T) {
 	//   only when stdlib type is base of bound-generic ('y' follows).
 	// - A3: autodiff subset params thunk "of type" impl-fn with r<N>_l sig
 	//   + y-EmptyList for-clause + tryForClauseAMultiSub.
+	// - ~Copyable ext: words-table constraint-ident scan + Ri_z/Rj_z multi-
+	//   constraint + local gen-sig for ncElement/copyableIter/ncC0.
+	// - use.x: QOyQo_ opaque bare form + bound-generic conformance gate.
 	// - Stage 1 exit gate: equality check per line, zero tolerated
 	//   mismatches outside known-divergences.txt.
 	if matched < 148 {
 		t.Fatalf("expected ≥148 matches, got %d — parser regressed?", matched)
+	}
+	// C3 tightened gate: cap unsupported + grammar so any future regression
+	// that converts a matched fixture to an error is caught immediately.
+	if unsupported > 4 {
+		t.Fatalf("unsupported count %d > 4 — a previously matched fixture regressed to unsupported?", unsupported)
+	}
+	if grammarErrors > 1 {
+		t.Fatalf("grammar errors %d > 1 — a previously matched fixture regressed to grammar error?", grammarErrors)
 	}
 	if mismatch > 0 {
 		t.Fatalf("%d mismatches — parser produced wrong output on a real fixture", mismatch)
