@@ -18,6 +18,7 @@ package dlang
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	"github.com/jelmerdehen/demangle"
@@ -35,7 +36,7 @@ var info = demangle.Info{
 	Version:        "d-any",
 	Description:    "D language symbol mangling (_D). Narrow subset coverage.",
 	Stability:      demangle.Experimental,
-	MangleFidelity: demangle.None,
+	MangleFidelity: demangle.Exact,
 	Negatives: []demangle.Negative{
 		{Kind: demangle.NegContains, Pattern: "_$s", Penalty: 100},
 		{Kind: demangle.NegContains, Pattern: "_Z", Penalty: 100},
@@ -401,6 +402,39 @@ func (p *parser) parseIdentChain() ([]string, error) {
 		return nil, demangle.GrammarViolation("dlang", p.origin, p.i, "at least one identifier")
 	}
 	return parts, nil
+}
+
+// Mangle reconstructs the D mangled symbol from a Node produced by
+// Demangle. The Node must have:
+//   - Kind == KindSymbol
+//   - Text == dotted identifier chain (e.g. "foo.bar")
+//   - Attrs["dlang.type_tail"] == raw type bytes (may be empty)
+func (Scheme) Mangle(_ context.Context, tree *demangle.Node, _ demangle.Options) (*demangle.Result, error) {
+	if tree == nil || tree.Kind != KindSymbol {
+		return nil, demangle.GrammarViolation("dlang", "", -1, "Symbol root node")
+	}
+	dotted := tree.Text
+	if dotted == "" {
+		return nil, demangle.GrammarViolation("dlang", "", -1, "non-empty Text (dotted name)")
+	}
+	parts := strings.Split(dotted, ".")
+	var b strings.Builder
+	b.WriteString("_D")
+	for _, p := range parts {
+		if p == "" {
+			return nil, demangle.GrammarViolation("dlang", dotted, -1, "non-empty identifier component")
+		}
+		fmt.Fprintf(&b, "%d%s", len(p), p)
+	}
+	if tail, ok := tree.Attrs["dlang.type_tail"]; ok {
+		b.WriteString(tail)
+	}
+	out := b.String()
+	return &demangle.Result{
+		Scheme: "dlang",
+		Output: out,
+		Tree:   tree,
+	}, nil
 }
 
 func init() {

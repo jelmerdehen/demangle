@@ -208,6 +208,60 @@ func TestDLangAttributes(t *testing.T) {
 	}
 }
 
+// TestDLangRoundTrip verifies that Demangle → Mangle produces a
+// byte-identical mangled symbol for every fixture in the corpus.
+func TestDLangRoundTrip(t *testing.T) {
+	t.Parallel()
+	cat := newCatalog(t)
+	corpus := []string{
+		"_D3foo3barFZv",
+		"_D3std3foo3barFZv",
+		"_D3foo3barFiiZv",
+		"_D3foo3barFYaZv",
+		"_D3foo3barFNbNaZv",
+		"_D3foo3barFPiZv",
+		"_D3foo3barFAiZv",
+		"_D3foo3barFHiAaZv",
+		"_D3foo3barFZPi",
+		"_D3foo3barFZDi",
+		"_D3foo3barFAAiZv",
+		"_D3foo3barFPPiZv",
+		"_D3foo3barFZG4i",
+		"_D3foo3barFZHii",
+		"_D3foo3barFNaZv",
+		"_D3foo3barFNbZv",
+		"_D3foo3barFNcZv",
+		"_D3foo3barFNdZv",
+		"_D3foo3barFNeZv",
+		"_D3foo3barFNfZv",
+		"_D3foo3barFNiZv",
+		"_D3foo3barFNjZv",
+		"_D3foo3barFNlZv",
+		"_D3foo3barFNmZv",
+		"_D3foo3barFNaNiNbZv",
+		"_D3foo3barFiXv",
+		"_D3foo3barFiYv",
+	}
+	for _, in := range corpus {
+		in := in
+		t.Run(in, func(t *testing.T) {
+			t.Parallel()
+			ctx := context.Background()
+			r, err := cat.Demangle(ctx, in, nil)
+			if err != nil {
+				t.Fatalf("demangle: %v", err)
+			}
+			mr, err := cat.Mangle(ctx, "dlang", r.Tree, nil)
+			if err != nil {
+				t.Fatalf("mangle: %v", err)
+			}
+			if mr.Output != in {
+				t.Fatalf("round-trip mismatch:\n  input    = %q\n  mangled  = %q", in, mr.Output)
+			}
+		})
+	}
+}
+
 func TestDLangSniff(t *testing.T) {
 	t.Parallel()
 	s := dlang.Scheme{}
