@@ -1,0 +1,67 @@
+item: R1 — Remangler skeleton for Swift stable-ABI
+date: 2026-04-26T00:00:00Z
+status: complete
+
+## Files created
+
+scheme/swift/stable/remangler.go
+  - Public entry point: Remangle(ctx, tree, opts) *Result, error
+  - Internal struct: remangler{buf strings.Builder, scheme string}
+  - Mangle(ctx, tree, opts) method on Scheme{} — wires into demangle.Mangler interface
+  - remangleNode dispatcher switching on common.NodeKind
+  - Fully implemented: KindGlobal, KindModule, KindIdentifier, KindType,
+    KindStructure, KindClass, KindEnum, KindProtocol
+  - All other kinds: ErrUnsupported
+
+scheme/swift/stable/remangler_test.go
+  - TestRemangleGlobalModuleIdent — hand-built tree, verifies "$s5Modul1N"
+  - TestRemangleGlobalModuleIdentRoundTrip — Demangle→Remangle "$s4main3FooV"
+  - TestRemangleStructure — round-trip for all four nominal trailers
+    ($s4main3FooV, $s4main3BarC, $s4main3BazO, $s4main3QuxP, $ss5OtherV)
+  - TestRemangleStdlibModule — verifies "Swift" → "$ss" shorthand
+  - TestRemangleObjcModule — verifies "__C" → "$sSo", "__C_Synthesized" → "$sSC"
+  - TestRemangleUnsupported — KindBuiltinTypeName returns ErrUnsupported, no panic
+  - TestRemangleViaManglerInterface — Catalog.Mangle dispatch round-trip
+
+logs/item_R1_2026-04-26T000000Z.log (this file)
+
+## Test results
+
+go test ./scheme/swift/stable/...: ok (all tests pass)
+go test ./...: ok (all 13 test packages pass, no regressions)
+go vet ./scheme/swift/stable/...: clean
+
+## Remangler.cpp sections referenced
+
+Remangler::mangleGlobal         Remangler.cpp:1825–1885
+Remangler::mangleModule         Remangler.cpp:2470–2482
+Remangler::mangleIdentifier     Remangler.cpp:1891–1894
+Remangler::mangleIdentifierImpl Remangler.cpp:437–446
+Remangler::mangleAnyGenericType Remangler.cpp:536–545
+Remangler::mangleAnyNominalType Remangler.cpp:547–593
+ManglingUtils.h::mangleIdentifier (length-prefix encoding, simple path) :127–244
+
+Module shorthand constants from swift/include/swift/Strings.h:
+  STDLIB_NAME = "Swift"  → 's'         (line 22)
+  MANGLING_MODULE_OBJC = "__C"  → "So"  (line 53)
+  MANGLING_MODULE_CLANG_IMPORTER = "__C_Synthesized" → "SC" (line 55–56)
+
+## Known gaps (stubs with ErrUnsupported)
+
+- Word-substitution within identifiers (the "0<letter>..." encoding in
+  ManglingUtils.h mangleIdentifier). Only the simple length-prefix path
+  is implemented. Multi-word identifiers like "SwiftUI" that would benefit
+  from word-reuse will still encode correctly but without compression.
+- Punycode / non-ASCII identifiers (the "00<punycodeLen><bytes>" path).
+- Node-level back-substitutions (A0_, A1_, ... in demangle input).
+- All other NodeKind values not listed in the "Fully implemented" section:
+  KindBoundGenericStructure, KindBoundGenericClass, KindBoundGenericEnum,
+  KindBoundGenericProtocol, KindFunction, KindFunctionType, KindBuiltinTypeName,
+  KindBuiltinInt, KindBuiltinFloat, KindBuiltinVector, KindTypeList,
+  KindArgumentTuple, KindReturnType, KindTuple, KindTupleElement,
+  KindMetatype, KindExistentialMetatype, KindDependentGenericParamType,
+  KindDependentGenericType, KindFunctionEntity, KindEntityPath,
+  KindLabelList, KindEmptyList, KindStandardSubstitution, KindPrivateDeclName,
+  KindSuffix, KindTypeMangling, KindInvalid.
+- MangleFidelity remains demangle.None in the Info var (flip to Exact once
+  the full grammar is covered and round-trip proven).
