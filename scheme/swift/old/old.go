@@ -997,6 +997,9 @@ func (p *oldParser) parseNatural() (int, error) {
 	n := 0
 	for !p.eof() && p.peek() >= '0' && p.peek() <= '9' {
 		n = n*10 + int(p.next()-'0')
+		if n > 1<<20 {
+			return 0, p.grammarError("length overflow")
+		}
 	}
 	return n, nil
 }

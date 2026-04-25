@@ -289,6 +289,9 @@ func decodeType(s string, i int) (string, int, bool) {
 		ln := 0
 		for _, d := range s[i+1 : j] {
 			ln = ln*10 + int(d-'0')
+			if ln > len(s) {
+				return "", i, false
+			}
 		}
 		if j+ln > len(s) {
 			return "", i, false
@@ -306,6 +309,9 @@ func decodeType(s string, i int) (string, int, bool) {
 		ln := 0
 		for _, d := range s[i+1 : j] {
 			ln = ln*10 + int(d-'0')
+			if ln > len(s) {
+				return "", i, false
+			}
 		}
 		if j+ln > len(s) {
 			return "", i, false
