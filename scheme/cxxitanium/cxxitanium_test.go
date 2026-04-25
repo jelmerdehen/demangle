@@ -4,8 +4,12 @@
 package cxxitanium_test
 
 import (
+	"bufio"
 	"context"
 	"errors"
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/jelmerdehen/demangle"
@@ -130,14 +134,34 @@ func TestItaniumGrammarErrorHasOffset(t *testing.T) {
 }
 
 func FuzzCxxItanium(f *testing.F) {
-	seeds := []string{
-		"_Z1fv", "_ZN4llvm5Value4dumpEv", "_Znwm", "_ZdlPv",
-		"_ZTI4llvm5Value", "_ZTSN4llvm5ValueE",
-		"_Z", "_ZZ", "_ZN", "", "not_mangled",
+	// Seed from the full fixture corpus so the fuzzer starts from known-good
+	// real-world shapes rather than a handful of hand-picked strings.
+	corpusPath := filepath.Join("testdata", "corpus.txt")
+	cf, err := os.Open(corpusPath)
+	if err != nil {
+		f.Fatalf("open corpus: %v", err)
 	}
-	for _, s := range seeds {
-		f.Add(s)
+	seen := map[string]bool{}
+	sc := bufio.NewScanner(cf)
+	for sc.Scan() {
+		line := strings.TrimSpace(sc.Text())
+		if line == "" || strings.HasPrefix(line, "//") {
+			continue
+		}
+		mangled := line
+		if idx := strings.Index(line, " ---> "); idx >= 0 {
+			mangled = strings.TrimSpace(line[:idx])
+		}
+		if !seen[mangled] {
+			seen[mangled] = true
+			f.Add(mangled)
+		}
 	}
+	cf.Close()
+	if err := sc.Err(); err != nil {
+		f.Fatalf("scan corpus: %v", err)
+	}
+
 	cat := demangle.NewCatalog()
 	cat.Register(cxxitanium.Scheme{})
 	f.Fuzz(func(t *testing.T, in string) {

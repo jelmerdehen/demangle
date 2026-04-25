@@ -4,8 +4,12 @@
 package old_test
 
 import (
+	"bufio"
 	"context"
 	"errors"
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/jelmerdehen/demangle"
@@ -52,10 +56,34 @@ func TestOldRejectsStableAndV40(t *testing.T) {
 }
 
 func FuzzSwiftOld(f *testing.F) {
-	seeds := []string{"_TtBf32_", "_TtSi", "_T", "_T0", "", "_Tfoo"}
-	for _, s := range seeds {
-		f.Add(s)
+	// Seed from the full fixture corpus so the fuzzer starts from known-good
+	// real-world shapes rather than a handful of hand-picked strings.
+	corpusPath := filepath.Join("testdata", "corpus.txt")
+	cf, err := os.Open(corpusPath)
+	if err != nil {
+		f.Fatalf("open corpus: %v", err)
 	}
+	seen := map[string]bool{}
+	sc := bufio.NewScanner(cf)
+	for sc.Scan() {
+		line := strings.TrimSpace(sc.Text())
+		if line == "" || strings.HasPrefix(line, "//") {
+			continue
+		}
+		mangled := line
+		if idx := strings.Index(line, " ---> "); idx >= 0 {
+			mangled = strings.TrimSpace(line[:idx])
+		}
+		if !seen[mangled] {
+			seen[mangled] = true
+			f.Add(mangled)
+		}
+	}
+	cf.Close()
+	if err := sc.Err(); err != nil {
+		f.Fatalf("scan corpus: %v", err)
+	}
+
 	cat := demangle.NewCatalog()
 	cat.Register(old.Scheme{})
 	f.Fuzz(func(t *testing.T, in string) {
