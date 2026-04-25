@@ -1,0 +1,98 @@
+// D language mangling corpus.
+// Format: symbol ---> expected output
+// Lines starting with // are comments. Blank lines are ignored.
+// Oracle: libiberty d-demangle-expected (gcc testsuite)
+// Demangler produces: "dotted.name (args) → rettype" for function types,
+// "dotted.name [type: tail]" for unsupported type tails.
+
+// --- Simple functions (no params, void return) ---
+_D8demangle4testFZv ---> demangle.test () → void
+_D3foo3barFZv ---> foo.bar () → void
+_D3std7process10setCLOEXECFibZv ---> std.process.setCLOEXEC (int, bool) → void
+
+// --- Single primitive param, void return ---
+_D8demangle4testFaZv ---> demangle.test (char) → void
+_D8demangle4testFbZv ---> demangle.test (bool) → void
+_D8demangle4testFiZv ---> demangle.test (int) → void
+_D8demangle4testFkZv ---> demangle.test (uint) → void
+_D8demangle4testFlZv ---> demangle.test (long) → void
+_D8demangle4testFmZv ---> demangle.test (ulong) → void
+_D8demangle4testFsZv ---> demangle.test (short) → void
+_D8demangle4testFtZv ---> demangle.test (ushort) → void
+_D8demangle4testFgZv ---> demangle.test (byte) → void
+_D8demangle4testFhZv ---> demangle.test (ubyte) → void
+_D8demangle4testFfZv ---> demangle.test (float) → void
+_D8demangle4testFdZv ---> demangle.test (double) → void
+_D8demangle4testFeZv ---> demangle.test (real) → void
+_D8demangle4testFuZv ---> demangle.test (wchar) → void
+_D8demangle4testFwZv ---> demangle.test (dchar) → void
+_D8demangle4testFvZv ---> demangle.test (void) → void
+
+// --- Return types ---
+_D8demangle4testFZi ---> demangle.test () → int
+_D8demangle4testFZb ---> demangle.test () → bool
+_D8demangle4testFZl ---> demangle.test () → long
+_D8demangle4testFZm ---> demangle.test () → ulong
+_D8demangle4testFZf ---> demangle.test () → float
+_D8demangle4testFZd ---> demangle.test () → double
+_D8demangle4testFZe ---> demangle.test () → real
+_D8demangle4testFZu ---> demangle.test () → wchar
+_D8demangle4testFZw ---> demangle.test () → dchar
+
+// --- Array params ---
+_D8demangle4testFAaZv ---> demangle.test (char[]) → void
+_D8demangle4testFAAaZv ---> demangle.test (char[][]) → void
+_D8demangle4testFAiZv ---> demangle.test (int[]) → void
+_D8demangle4testFG42aZv ---> demangle.test (char[42]) → void
+_D8demangle4testFG42G42aZv ---> demangle.test (char[42][42]) → void
+_D8demangle4testFAAAaZv ---> demangle.test (char[][][]) → void
+
+// --- Pointer params ---
+_D8demangle4testFPaZv ---> demangle.test (char*) → void
+_D8demangle4testFPPaZv ---> demangle.test (char**) → void
+_D8demangle4testFZPi ---> demangle.test () → int*
+_D8demangle4testFZAa ---> demangle.test () → char[]
+
+// --- Associative array params ---
+_D8demangle4testFHaaZv ---> demangle.test (char[char]) → void
+_D8demangle4testFHHaaaZv ---> demangle.test (char[char[char]]) → void
+
+// --- Multiple params ---
+_D8demangle4testFaaZv ---> demangle.test (char, char) → void
+_D8demangle8demangleFAaZAa ---> demangle.demangle (char[]) → char[]
+
+// --- Class / struct params ---
+_D8demangle4testFC5classZv ---> demangle.test (class) → void
+_D8demangle4testFS6structZv ---> demangle.test (struct) → void
+_D6object6Object8opEqualsFC6ObjectZi ---> object.Object.opEquals (Object) → int
+
+// --- Variadic terminators ---
+_D8demangle4testFaXv ---> demangle.test (char) [variadic] → void
+_D8demangle4testFaYv ---> demangle.test (char) [typesafe-variadic] → void
+_D8demangle4testFaaYv ---> demangle.test (char, char) [typesafe-variadic] → void
+
+// --- Function attributes ---
+_D8demangle4testFNaZv ---> demangle.test pure () → void
+_D8demangle4testFNbZv ---> demangle.test nothrow () → void
+_D8demangle4testFNcZv ---> demangle.test ref () → void
+_D8demangle4testFNdZv ---> demangle.test @property () → void
+_D8demangle4testFNeZv ---> demangle.test @trusted () → void
+_D8demangle4testFNfZv ---> demangle.test @safe () → void
+_D8demangle4testFNiZv ---> demangle.test @nogc () → void
+_D8demangle4testFNjZv ---> demangle.test return () → void
+_D8demangle4testFNlZv ---> demangle.test scope () → void
+_D8demangle4testFNmZv ---> demangle.test @live () → void
+_D8demangle4testFNaNbZv ---> demangle.test pure nothrow () → void
+_D8demangle4testFNaNbNiNfZv ---> demangle.test pure nothrow @nogc @safe () → void
+
+// --- Linkage ---
+_D8demangle4testFYaZv ---> demangle.test extern(C) () → void
+_D8demangle4testFYcZv ---> demangle.test extern(C++) () → void
+
+// --- Static array return ---
+_D8demangle4testFZG4i ---> demangle.test () → int[4]
+
+// --- Real-world symbols ---
+_D1a1bi ---> a.b [type: i]
+_D4test3fooAa ---> test.foo [type: Aa]
+_D3std5ascii9uppercaseyAa ---> std.ascii.uppercase [type: yAa]
