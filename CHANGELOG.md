@@ -4,6 +4,56 @@ All notable changes to this project will be documented here. Format
 follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). This
 project uses semantic versioning.
 
+## [0.2.0] - 2026-04-25 — Stage 1: Swift stable full corpus closure
+
+### Added
+
+- **swift-stable** — Stage-1 complete: 149/153 Apple corpus fixtures
+  matched, 0 mismatches (the theoretical max given 4 known divergences
+  in `known-divergences.txt`). Journey: 8 → 149 matched across this
+  nightshift in ~25 commits.
+
+- **swift-stable** — Grammar additions landed in Stage-1 nightshift:
+  - `Tf` function-signature specialization: closure-propagated (c),
+    constant-propagated struct/integer/float (pS/pi/pd), same-arg (C<n>),
+    KeyPath (pk), no-op (n). Renders `function signature specialization
+    <Arg[N] = [...]> of <fn>`.
+  - Autodiff: TJr/TJVr/TSTJr reverse-mode derivative wrappers with
+    full generic-sig trailer (AafG/AafH/Rp chains). TJS subset-params
+    thunk decoder (SpSrSUSP mask bytes). Dependent-member-type Qz/Qy_
+    with subs-alignment fix for Apple's stdlib-proto non-push model.
+  - Retroactive inverse-requirement chains: HD/HI markers in
+    `skipConformanceRef`, `Ri_z`/`Rj_z` multi-constraint rendering,
+    words-table population from constraint-byte identifiers.
+  - Impl-fn-type nested in Optional (`Sg` wrapping), `@substituted`
+    rendering, nested multi-DependentMember accumulation.
+  - Extension variants: stdlib-proto extensions (`SU`/`SE`/etc.),
+    Vector2 static extension with nested typealias + `GD` dynamic-self.
+  - Opaque-return chaining: `Qr`/`QO`/`Qo_` postfix composing.
+    Outlined-consume `WOe` wrapper + `@substituted` impl-fn.
+  - Reabstraction thunk `TR` multi-depth generic-sig: reads `r<N>_`
+    groups per depth until `l`; renders `<A><A1 where A: ...>` with
+    per-depth angle-bracket groups.
+  - ~Copyable extensions: `Ri_z`/`Rj_z` inverse-constraint rendering,
+    words-table cross-reference, local generic-sig for extension methods.
+  - Opaque-variable `QOyQo_` bare form + bound-generic conformance gate.
+
+- **swift-stable** — Oracle harness (`//go:build oracle`) under
+  `internal/oracle/swift_stable_test.go`; corpus-status CLI under
+  `internal/oracle/cmd/corpus-status`.
+
+- **swift-stable** — Stage-1 exit gate: `TestAppleCorpusStrict`
+  per-line equality, `testdata/apple/known-divergences.txt` allow-set
+  (4 entries). Any regression to a previously-matched fixture fails
+  the test immediately.
+
+### Fixed
+
+- **swift-stable** — Fuzz hardening: 8 integer-overflow and
+  repeat-count vulnerabilities patched (digit accumulation without
+  overflow cap → potential hang or slice-bounds panic on adversarial
+  input). `FuzzSwiftStable` clean at 90s / 6.4M executions.
+
 ## [0.1.46] - 2026-04-24
 
 ### Added

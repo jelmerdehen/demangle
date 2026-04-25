@@ -11,7 +11,7 @@ package doc.
 | 0 — foundation | ✅ | Scheme + Mangler interfaces, Catalog, Context + ContextStore, Batch API, Error taxonomy, CLI skeleton, CI |
 | 0.5a — 5 trivial schemes | ✅ | jni, kotlin, scala2, android-dex, js-minified |
 | 0.5b — parser-weight + context | ✅ | jvmdesc (JVMS §4.3 + §4.7.9), proguard-map |
-| 1 — Swift stable grammar | 🚧 | Subset: builtins (incl. 10 B-family Builtin.* types + BW Builtin.Borrow), integer literals `$<digit>`, spec-aligned stdlib-subs (48 entries), `Sc<X>` concurrency lookup (17 more), nominal + nested nominal paths, bound generics (with `_` separator), function entities, multi-arg tuples (with `<type>_t` labeled form + multi-elem result-slot tuple), z/h/n (inout/shared/owned), Yi/Yu/YT (isolated/sending/sending-result), Yt/Yk (_const / @noDerivative), Ya + K (async/throws), typed-throws `<type>YK` → `throws(T)`, global-actor isolation `<actor>Yc` → `@<actor>`, generic-sig trailer `l` w/ Rz constraint rendering, Q-family opaque, T/H/W/M entity suffixes incl. TC (coroutine continuation prototype), TR (reabstraction thunk helper), TO (@objc), fC/fc/fD/fd (init/deinit entity), etc. + specialization markers, postfix vectors, compact stdlib function-types (`S<N><letter>...X<conv>` and `S<N><letter>_S<M><letter><mods>t` compound), compact stdlib sig-slots, full SIL impl-function-type decoding (param/result modes + diff/sending, callee+func+coro conventions, h/H/T attrs), identifier word-substitution ('0' prefix with letter-indexed word-refs), closure sub-entity `fU<N>_`, nested nominal chain via `<type><digits><chars><kind>`. Ident→Type sub-ref promotion for multi-sub refs. 92/153 Apple-corpus direct matches; 0 mismatches. |
+| 1 — Swift stable grammar | ✅ | Full Stage-1: 149/153 Apple corpus direct matches (97.4%), 0 mismatches. Grammar: Tf function-sig spec (closure/constant/KeyPath/same-arg), autodiff (TJr/TJVr/TSTJr derivative + TJS subset-params thunk + DependentMember Qz/Qy_ subs-fix), retroactive inverse-req chains (HD/HI/Ri_z/Rj_z), nested Optional impl-fn + @substituted, extension variants (stdlib-proto ext, static ext typealias, GD dynamic-self), opaque-return Qr/QO/Qo_ chain, WOe outlined-consume, TR multi-depth generic-sig, ~Copyable extensions, QOyQo_ opaque var. Oracle harness + corpus-status CLI. TestAppleCorpusStrict per-line gate. Fuzz: 8 overflow vulnerabilities patched, 90s/6.4M-execs clean. |
 | 2 — C++ Itanium wrap | ✅ | wraps ianlancetaylor/demangle; +Rust legacy+v0 for free |
 | 3 — Swift variants | ✅ | v42 + v40 + embedded + macro reuse stable parser; old stub |
 | 4 — MSVC + D | ✅ | narrow MSVC (templates + ctors/dtors/vftable/RTTI + pointer args); narrow D |
@@ -22,14 +22,13 @@ package doc.
 ## Tallies (current)
 
 - **21 schemes** registered.
-- **14 tags** (v0.1.0 through v0.1.14).
-- **23 fuzz harnesses** (1 per scheme + 2 core — 800k+ execs/10s clean).
-- Apple corpus: **127/153** Swift direct matches (83.0 %), **0 mismatches**
-  (hard-gated — any mismatch fails the test). 5 identity-expected
-  fixtures covered by scheme-level identityFallback (Apple can't
-  demangle either; we mirror its identity output). Max reachable ≈
-  149/153. Remaining fixable ~22 (Tf function-sig spec, Differentiable
-  autodiff subset, constrained parameterized existentials, etc.).
+- **14 tags** (v0.1.0 through v0.1.14; v0.2.0 pending human tag).
+- **23 fuzz harnesses** (1 per scheme + 2 core — 6.4M+ execs/90s clean after Stage-1 hardening).
+- Apple corpus: **149/153** Swift direct matches (97.4 %), **0 mismatches**
+  (hard-gated — TestAppleCorpusStrict fails on any regression).
+  5 identity-expected fixtures covered by identityFallback.
+  4 known-divergences in `testdata/apple/known-divergences.txt`
+  (3 unsupported grammar features + 1 macro-expansion grammar).
 - Core package unit-test coverage: **91.9%** of statements
   (CI gate: ≥ 88%).
 - Batch throughput on reference workstation: **≥ 447k names/sec**.
