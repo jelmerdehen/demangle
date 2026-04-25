@@ -1133,6 +1133,7 @@ func (p *parser) tryReabstractionThunk(inner *demangle.Node) (*demangle.Node, bo
 		genericCount := 0
 		hasSig := false
 		var constraints []string
+		var sigDepthCounts []int
 		for !p.eof() {
 			b := p.s[p.i]
 			if b == 'T' && p.i+1 < len(p.s) && p.s[p.i+1] == 'R' {
@@ -1140,25 +1141,52 @@ func (p *parser) tryReabstractionThunk(inner *demangle.Node) (*demangle.Node, bo
 			}
 			if b == 'l' {
 				p.i++
-				for !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
-					p.i++
-				}
 				hasSig = true
-				continue
+				genericCount = 1
+				sigDepthCounts = []int{1}
+				break
 			}
+			// 'r' triggers the param-count section (hasParamCounts=true).
+			// Read '<digits?>_' groups — one per depth level — until 'l'.
+			// Example: 'r__l' = two groups of 1 param each → <A><A1>.
 			if b == 'r' {
-				j := p.i + 1
-				for j < len(p.s) && p.s[j] >= '0' && p.s[j] <= '9' {
-					j++
-				}
-				if j < len(p.s) && p.s[j] == '_' {
+				p.i++ // consume 'r'
+				var dc []int
+				for !p.eof() && p.s[p.i] != 'l' {
+					if p.s[p.i] == 'z' {
+						dc = append(dc, 0)
+						p.i++
+						continue
+					}
+					j := p.i
+					for j < len(p.s) && p.s[j] >= '0' && p.s[j] <= '9' {
+						j++
+					}
+					if j >= len(p.s) || p.s[j] != '_' {
+						dc = nil
+						break
+					}
 					num := 0
-					for k := p.i + 1; k < j; k++ {
+					for k := p.i; k < j; k++ {
 						num = num*10 + int(p.s[k]-'0')
 					}
-					genericCount = num + 2
+					// Apple's demangleGenericParamCount = demangleIndex()+1.
+					// demangleIndex: bare '_' → 0; 'N_' → N+1.
+					// So: bare '_' (j==p.i) → count=1; 'N_' (j>p.i) → count=N+2.
+					cnt := num + 1
+					if j > p.i {
+						cnt++ // demangleIndex for digit form returns N+1, not N
+					}
+					dc = append(dc, cnt)
 					p.i = j + 1
-					continue
+				}
+				if !p.eof() && p.s[p.i] == 'l' {
+					p.i++ // consume 'l'
+					hasSig = true
+					for _, cnt := range dc {
+						genericCount += cnt
+					}
+					sigDepthCounts = dc
 				}
 				break
 			}
@@ -1218,7 +1246,11 @@ func (p *parser) tryReabstractionThunk(inner *demangle.Node) (*demangle.Node, bo
 			break
 		}
 		if hasSig && genericCount > 0 {
-			sigBeforeTR = renderGenericSigWithConstraints(genericCount, constraints) + " "
+			if len(sigDepthCounts) > 1 {
+				sigBeforeTR = renderMultiDepthGenericSig(sigDepthCounts, constraints) + " "
+			} else {
+				sigBeforeTR = renderGenericSigWithConstraints(genericCount, constraints) + " "
+			}
 		} else {
 			p.i = sigSave
 			p.subs = sigSubs
@@ -1750,6 +1782,29 @@ func implFnTypesNeeded(attrs string) int {
 // BoundGenericEnum whose base is Swift.Optional. Used to detect when
 // parseType internally consumed an 'Sg' suffix and pushed both the
 // bare type and the Optional-wrapped type to substitutions.
+// isStdlibProtoNode reports whether n is a Type wrapping a Protocol whose
+// first child is a Module with Text "Swift". Used to decide whether to strip
+// a proto push from subs inside tryDependentMemberType (Apple's demangler
+// never addSubstitution for S<letter> stdlib subs).
+func isStdlibProtoNode(n *demangle.Node) bool {
+	if n == nil {
+		return false
+	}
+	// Unwrap Type wrapper if present.
+	inner := n
+	if common.NodeKind(inner.Kind) == common.KindType && len(inner.Children) == 1 {
+		inner = inner.Children[0]
+	}
+	if common.NodeKind(inner.Kind) != common.KindProtocol {
+		return false
+	}
+	if len(inner.Children) == 0 {
+		return false
+	}
+	mod := inner.Children[0]
+	return common.NodeKind(mod.Kind) == common.KindModule && mod.Text == "Swift"
+}
+
 func isImplFnOptionalType(n *demangle.Node) bool {
 	if n == nil {
 		return false
@@ -7169,6 +7224,32 @@ func renderGenericSigWithConstraints(count int, constraints []string) string {
 	return b.String()
 }
 
+// renderMultiDepthGenericSig renders a generic signature with one angle-bracket
+// group per depth level: <A><A1 where A: Swift.Collection>. Constraints are
+// attached to the last group. Mirrors Apple's NodePrinter for multi-depth sigs.
+func renderMultiDepthGenericSig(depthCounts []int, constraints []string) string {
+	var parts []string
+	totalParams := 0
+	for di, cnt := range depthCounts {
+		var letters []string
+		for j := 0; j < cnt; j++ {
+			letter := string(rune('A' + j))
+			if di > 0 {
+				letter += itoa(di)
+			}
+			letters = append(letters, letter)
+		}
+		group := "<" + strings.Join(letters, ", ")
+		if di == len(depthCounts)-1 && len(constraints) > 0 {
+			group += " where " + strings.Join(constraints, ", ")
+		}
+		group += ">"
+		parts = append(parts, group)
+		totalParams += cnt
+	}
+	return strings.Join(parts, "")
+}
+
 // paramsSlotIsEmpty reports whether the current byte is a 'y' that
 // means empty-params (not the start of a function-type). 'y' is
 // empty when followed by a signature-level marker or EOF; 'y' is
@@ -9072,10 +9153,21 @@ func (p *parser) tryDependentMemberType() (*demangle.Node, bool) {
 		common.AddChildren(wrap, tn)
 		return wrap, true
 	}
+	subsBeforeProto := p.subs.Len()
 	proto, perr := p.parseType()
 	if perr != nil {
 		revert()
 		return nil, false
+	}
+	// Apple's demangleSubstitution for S<letter> stdlib subs does NOT call
+	// addSubstitution. Remove any stdlib-protocol entry the inner parseType
+	// pushed so our table aligns with Apple's (e.g. Swift.Sequence from 'ST'
+	// must NOT occupy a subs slot). For non-stdlib protos Apple does push, so
+	// only strip entries where the pushed node is a Swift-module Protocol.
+	if p.subs.Len() > subsBeforeProto {
+		if last, ok := p.subs.Get(p.subs.Len() - 1); ok && isStdlibProtoNode(last) {
+			p.subs = p.subs.TruncateTo(subsBeforeProto)
+		}
 	}
 	if p.eof() || p.s[p.i] != 'Q' {
 		revert()
