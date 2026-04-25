@@ -15,24 +15,47 @@ package doc.
 | 2 — C++ Itanium wrap | ✅ | wraps ianlancetaylor/demangle; +Rust legacy+v0 for free |
 | 3 — Swift variants | ✅ | v42 + v40 + embedded + macro reuse stable parser; old stub |
 | 4 — MSVC + D | ✅ | narrow MSVC (templates + ctors/dtors/vftable/RTTI + pointer args); narrow D |
+| 4.1 — MSVC full grammar | ✅ | M1 string-literals, M2 template-arg backrefs, M3 ref qualifiers + member ptrs, M4 __pascal/__clrcall; M5 llvm-undname corpus gate. Commits: c6d20f7…cdfc811 |
+| 4.2 — Dlang full type decoder | ✅ | D1 attribute-byte fix, D2 full function-type trailer, D3 66-fixture corpus gate. Commits: 725a6ea…217081e |
+| 4.3 — Swift-old OldDemangler | ✅ | W1 1234-LOC _T grammar (57/57 matched), W2 archetype generic-param + bound-generic. Commits: dd26589…564175b |
+| 4.4 — Round-trip Manglers | ✅ | R1 jni Mangler + cmd/demangle mangle, R2 jvmdesc Exact round-trip, R3 dlang Exact round-trip. Commits: e19f028…f57de3c |
+| 4.5 — Scala 3 TASTy scheme | ✅ | C1 scala3 scheme, all NameKinds patterns, 34-fixture corpus. Commit: be6b22d |
+| 4.6 — Oracle harness generalized | ✅ | O1 reusable RunDiff scaffold, O2 Itanium vs c++filt, O3 MSVC llvm-undname inline. Commits: ae3b965…1a99c3a |
+| 4.7 — Bench + CI gates | ✅ | B1 make bench-check (10% gate), B2 binary-size per-variant gate, B3 nightly fuzz workflow. Commits: b695d0a…54c5036 |
+| 4.8 — Cross-scheme fuzz | ✅ | F1 FuzzCrossScheme detection fuzzer, F2 corpus-seeded per-scheme harnesses. Commits: 181ed4b, 71b0350 |
 | 5 — JS source map V3 | ✅ | VLQ + segment parser + context-backed lookup |
 | 6 — gRPC service scaffold | ✅ | proto + server + 5 integration tests |
 | 6.5 — deploy artifacts | 🚧 | healthz + metrics + TLS + keepalive + systemd unit ready; lux deploy gated on first real caller |
+| 7 — JS obfuscated deobfuscation | 🔜 | Deferred per plan; needs Node + webcrack subprocess path |
 
-## Tallies (current)
+## Tallies (current — 2026-04-26, v0.3.0-unreleased)
 
-- **21 schemes** registered.
-- **14 tags** (v0.1.0 through v0.1.14; v0.2.0 pending human tag).
-- **23 fuzz harnesses** (1 per scheme + 2 core — 6.4M+ execs/90s clean after Stage-1 hardening).
+- **22 schemes** registered (scala3 added in C1).
+- **14 tags** (v0.1.0 through v0.1.14; v0.2.0 pending human tag; v0.3.0 pending).
+- **Fuzz harnesses**: FuzzCrossScheme + per-scheme harnesses; corpus-seeded
+  for swift-old (88), dlang (66), cpp-itanium (43). Nightly CI runs 10 min/harness.
 - Apple corpus: **149/153** Swift direct matches (97.4 %), **0 mismatches**
   (hard-gated — TestAppleCorpusStrict fails on any regression).
   5 identity-expected fixtures covered by identityFallback.
   4 known-divergences in `testdata/apple/known-divergences.txt`
   (3 unsupported grammar features + 1 macro-expansion grammar).
+- Swift-old corpus: **57/57** direct matches, 0 mismatches.
+- Dlang corpus: **66 fixtures**, 0 mismatches.
+- Scala 3 corpus: **34 fixtures**, 0 mismatches.
+- Round-trip coverage: jni (7 fixtures), jvmdesc (27 fixtures), dlang (27 fixtures) — all `Exact` fidelity.
 - Core package unit-test coverage: **91.9%** of statements
   (CI gate: ≥ 88%).
 - Batch throughput on reference workstation: **≥ 447k names/sec**.
-- Stripped CLI binary: **7.4 MB** (14 MB CI gate).
+- Stripped CLI binary: **7.2 MB** (12 MB CI gate — tightened from 14 MB).
+
+## Tick log (nightshift-polyglot 2026-04-25/26)
+
+| Tick | Timestamp | Commits | Items |
+|------|-----------|---------|-------|
+| 1 | 2026-04-25T203540Z | ae3b965…c6d20f7 | O1 oracle scaffold + swift wrapper; M1 MSVC string-literals |
+| 2 | 2026-04-25T211017Z | dd26589…1a99c3a | W1 swift-old OldDemangler; O2 Itanium oracle; D1/D2/D3 dlang |
+| 3 | 2026-04-25T214328Z | e19f028…7415d0e | R1 jni; R2 jvmdesc; R3 dlang; W2 swift-old generics; M2/M3 MSVC |
+| 4 | 2026-04-25T221203Z | 181ed4b…be6b22d | F1 cross-scheme fuzz; B2 binary gate; B3 nightly fuzz; M4 MSVC; F2 corpus seeds; B1 bench gate; C1 scala3 |
 
 ## Scheme registry
 
@@ -53,47 +76,20 @@ swift-v42
 
 ## What this session did not finish
 
-Honest list of things still open at the end of this push:
+Honest list of things still open at the end of the v0.3 nightshift:
 
-- **Stage 1 full Swift grammar.** 100% Apple corpus coverage is
-  multi-week per the plan. Current state: 129/153 direct matches
-  (84.3 %), 0 mismatches. Every commit ratchets up; parser never
-  emits a wrong answer. Remaining 24 fixtures cluster into 5
-  outstanding grammar features:
-  - Tf function-signature specialization — spec-arg grammar + 5+
-    constant-kind sub-forms (c/p<kind>/C<idx>/n/d/...). 3 fixtures.
-  - Autodiff subset-params thunk (TJSd/TJSp/TJSr + param/result
-    mask bytes SpSrSUSP) combined with dependent-member-type
-    rendering (Qz/Qy_<idx>). 5 fixtures.
-  - Reverse-mode derivative entity wrapper (TJr/TJVr/TSTJr) +
-    autodiff parameter/result subset masks. 3 fixtures.
-  - Retroactive-conformance chains with inverse-requirement
-    markers (HD/HI + Ri<n>_ inverse bits). 2 fixtures ($s3red).
-  - Nested impl-fn-type inside Optional<Impl-fn-type?> chains
-    with A<N><letter> repeat-count subs. 1 fixture ($sSvSg...).
-  - Nested typealias inside static extension. 1 fixture
-    ($s6Foobar...Vector2...simdMatrix).
-  - Generic specialization on stdlib-proto extension (SUssExt +
-    Tg5 suffix). 1 fixture ($sSUss...FixedWidthInteger).
-  - Outlined-consume wrapper on Optional<impl-fn-sub> chain with
-    retroactive markers. 1 fixture ($s3Bar3Foo...WOe).
-  - Opaque return type nested references (Qr/QO/Qo_<idx>). 1
-    fixture ($s4test3fooV4blah...QryFQOy_Qo_AHF).
-  - KeyPath function-sig spec (Tf3npk). 1 fixture ($s1t1fyyF...).
-  - Function-sig spec with Struct/Integer constants
-    (Tf3npSSi3Si0_n). 1 fixture.
-- **Stage 4 MSVC full.** LLVM reference is 2560 LOC; we ship ~600.
-  Known gaps: string-literal names ??_C, template arg backrefs,
-  calling-convention variations beyond the common five, reference
-  types (A/B qualifiers), member pointers, wide-character strings.
-- **Stage 4 D lang.** We parse the module/name chain + annotate the
-  type trailer. Full type decoder (parameters, return, function
-  attributes) is follow-on.
 - **Stage 6.5 lux deploy.** Binary + systemd unit + health endpoints
   shipped. The deploy itself awaits a concrete non-Go non-skynet
   caller per the v5.1 decision.
 - **JavaScript obfuscated-deobfuscation (Stage 7).** Deferred per
   plan; needs the Node+webcrack subprocess path.
-- **Swift old (_T).** Prefix detect only; OldDemangler grammar
-  deferred.
-- **Scala 3 native mangling.** Placeholder subpackage only.
+- **MSVC full parity.** ~1800 LOC remaining vs LLVM reference
+  (2560 LOC). Known gaps: `??_E` scalar / `??_G` vector destructors
+  as separate special-names, SEH filter/handler syms, full `<CV>8`
+  qualified pointer chains. M1–M4 cover the common production cases.
+- **Scala 3 Mangler.** Scheme is demangle-only (`MangleFidelity = None`).
+  Re-mangling requires TASTy serialisation context that isn't available
+  at runtime; deferred until a concrete caller appears.
+- **Swift-old W3+ generics.** Specialization prefixes (`_TTSg`, `_TTRe`)
+  and SIL box types return `ErrUnsupported`; grammar extension is
+  follow-on work once the caller profile is clearer.

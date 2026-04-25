@@ -4,6 +4,120 @@ All notable changes to this project will be documented here. Format
 follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). This
 project uses semantic versioning.
 
+## [0.3.0] - Unreleased
+
+### Added — M-track: MSVC full grammar
+
+- **cpp-msvc M1** — `??_C@_` string-literal parser: narrow/wide string
+  decoding with full `?$XY`/`?0`–`?Z` escape table. 8 oracle-verified
+  fixtures against `llvm-undname`.
+- **cpp-msvc M2** — Template-argument type backrefs `$0`–`$9`: deduplicates
+  repeated type args across template argument lists. Matches LLVM behaviour
+  on nested and repeated pointer/primitive args.
+- **cpp-msvc M3** — Reference qualifiers `A`/`B` (lvalue/rvalue) on function
+  types and member-pointer types (`8`/`0` prefix forms). Unlocks `&&`-qualified
+  method variants and member-function-pointer types.
+- **cpp-msvc M4** — Extra calling conventions: `C`/`D` → `__pascal`,
+  `M`/`N` → `__clrcall`. Completes the calling-convention table alongside the
+  existing cdecl/thiscall/stdcall/fastcall/vectorcall entries. 16 oracle-
+  verified fixtures.
+- **cpp-msvc M5** — Cumulative corpus gate: all M1–M4 test cases verified
+  zero-mismatch against `llvm-undname`; `TestMSVCM4` + `TestMSVCM3` +
+  `TestMSVCTemplateArgBackrefs` gate any regression.
+
+### Added — D-track: Dlang full type decoder
+
+- **dlang D1** — Fixed function-attribute byte mappings (`Na` = pure,
+  `Ni` = `@nogc`, etc.) to match DMD reference output.
+- **dlang D2** — (landed with D1) Full function-type trailer decoding:
+  linkage bytes (`Ya`/`Yb`/`Yc`/…), `N`-prefixed attributes, composite types
+  (pointer, array, delegate, class, struct), and variadic terminators
+  (`Z`/`X`/`Y`). Delegate-of-function recursion (`D<F…Z<ret>>`).
+- **dlang D3** — Corpus gate: 66 fixtures covering all primitive types,
+  function attributes, nested types, and delegate forms. `TestDlangCorpus`
+  fails on any mismatch.
+
+### Added — W-track: Swift-old OldDemangler
+
+- **swift-old W1** — Full OldDemangler grammar for `_T`-prefixed symbols
+  (Swift 2.x ABI). 1234 LOC parser covering: builtin types, stdlib
+  shorthands, nominal types (C/V/O/P), bound generics with Optional/Array/
+  Dictionary sugar, protocol lists (Any / A & B), function types (plain/
+  block/c/autoclosure/throws), inout, tuple types (variadic + labels),
+  metatype, function entities (all accessors), variable entities, and type
+  metadata. 57/57 corpus fixtures matched, zero mismatches.
+- **swift-old W2** — Generic parameter + bound-generic type decode: `q`/`Q`
+  type bytes dispatch via `parseDependentType`/`parseArchetypeType`,
+  producing `A`, `B`, `C`, `A1` etc. per `OldDemangler::demangleGenericParamIndex`.
+  Associated-type references off substitution/stdlib/recursive-archetype roots.
+
+### Added — R-track: Round-trip Manglers
+
+- **jni R1** — `Mangler` interface on `jni.Scheme` + `cmd/demangle mangle`
+  CLI subcommand. `TestJNIRoundTrip` covers all 7 corpus fixtures (demangle
+  → mangle → demangle → structural equality).
+- **jvmdesc R2** — `Mangler` interface on `jvmdesc.Scheme` (`MangleFidelity`
+  promoted to `Exact`). `TestJVMDescRoundTrip` covers all 27 fixtures.
+  Re-mangling echoes the verbatim descriptor stored in `Node.Text`.
+- **dlang R3** — `Mangler` interface on `dlang.Scheme`: splits dotted `Text`,
+  length-prefixes each component, appends `dlang.type_tail`, prepends `_D`.
+  `MangleFidelity = Exact`. `TestDLangRoundTrip` covers 27 fixtures.
+- **cmd/demangle mangle** — New `mangle` subcommand accepts either a JSON
+  node tree or a raw mangled symbol (auto-detected), round-trips through
+  the named scheme, and prints the re-mangled output.
+
+### Added — C-track: Scala 3 TASTy scheme
+
+- **scala3 C1** — New scheme `scala3` under `scheme/java/scala3` (registered
+  via `scheme/java/all`). Sniffs `$` in class-file names and TASTy-encoding
+  patterns. Demangles all `NameKinds.scala` patterns: package objects,
+  companion objects, anonymous classes/functions, local disambiguators,
+  default-arg forwarders, lazy fields, super/protected accessors, trait
+  setters, specialised methods, initialisers, extension methods, unicode
+  escapes, inner-class nesting, and `$`-path encoding. 34-fixture corpus;
+  fuzz seed included. 618 LOC.
+
+### Added — O-track: Oracle harness generalization
+
+- **oracle O1** — Reusable `Oracle` struct + `RunDiff` function in
+  `internal/oracle/oracle.go` under `//go:build oracle`. Swift-stable
+  wrapper reduced from 117 to ~35 lines. Known-divergences extended with
+  357 legacy symbols (`_T*`, `$S`, `_$S`, `@__swiftmacro`) not handled by
+  the stable parser.
+- **oracle O2** — Itanium parity test vs `c++filt` and `llvm-cxxfilt`:
+  `TestItaniumOracleParity` + `TestItaniumLLVMOracleParity` validate 43
+  fixtures against the reference demangler under `//go:build oracle`.
+- **oracle O3** — MSVC parity: M1 fixtures verified zero-mismatch against
+  `/usr/bin/llvm-undname`; oracle tag exercises the full M1–M4 fixture set
+  as part of normal `TestMSVCM*` runs (no separate oracle-build needed).
+
+### Added — B-track: Bench baselines + CI gates
+
+- **bench B1** — `make bench` (updates `baselines.bench` at `benchtime=3s`)
+  and `make bench-check` (compares fresh run vs committed baseline, fails on
+  >10% regression). CI `bench-regression` job delegates to `make bench-check`.
+- **ci B2** — Binary-size budget gate per named build variant. Enforces the
+  12 MB stripped-CLI budget and separate gRPC-server limit; fails the build
+  if any variant exceeds its cap.
+- **ci B3** — Nightly fuzz workflow: one GitHub Actions job per hand-written
+  parser scheme, running each harness for 10 minutes. Covers swift-stable,
+  swift-old, cpp-msvc, dlang, jni, jvmdesc, kotlin, scala2, dex, proguard,
+  js-sourcemap, js-minified.
+
+### Added — F-track: Fuzz harnesses
+
+- **fuzz F1** — Cross-scheme detection fuzzer (`FuzzCrossScheme` in
+  `internal/fuzz/`): sends random byte streams through `Catalog.Detect`
+  (`IncludeWeak: true`) then dispatches into every matched scheme's
+  `Demangle` independently, bypassing ambiguity logic so all candidate
+  schemes are exercised. 18-symbol seed corpus.
+- **fuzz F2** — Corpus-seeded per-scheme fuzz harnesses: `FuzzSwiftOld`,
+  `FuzzDLang`, and `FuzzCxxItanium` seeded from their full fixture corpora
+  (88, 66, and 43 entries respectively) for broader fuzzer coverage from
+  the start.
+
+---
+
 ## [0.2.0] - 2026-04-25 — Stage 1: Swift stable full corpus closure
 
 ### Added
