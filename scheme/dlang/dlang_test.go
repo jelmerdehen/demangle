@@ -30,7 +30,7 @@ func TestDLangNarrow(t *testing.T) {
 		{"_D3foo3barFiiZv", "foo.bar"},
 		// extern(C) linkage.
 		{"_D3foo3barFYaZv", "foo.bar"},
-		// nothrow @nogc attributes.
+		// nothrow pure attributes (Nb=nothrow, Na=pure).
 		{"_D3foo3barFNbNaZv", "foo.bar"},
 		// Pointer-to-int arg.
 		{"_D3foo3barFPiZv", "foo.bar"},
@@ -154,6 +154,55 @@ func TestDLangAllPrimitives(t *testing.T) {
 			}
 			if !strings.Contains(r.Output, "→ "+p.want) {
 				t.Fatalf("output = %q, want return %q", r.Output, p.want)
+			}
+		})
+	}
+}
+
+// TestDLangAttributes verifies that function-attribute byte mappings are
+// correct per the D ABI reference (gcc libiberty d-demangle.c §dlang_attributes).
+func TestDLangAttributes(t *testing.T) {
+	t.Parallel()
+	cat := newCatalog(t)
+	cases := []struct {
+		in   string
+		want string // substring expected in output
+	}{
+		// Na = pure
+		{"_D3foo3barFNaZv", "pure"},
+		// Nb = nothrow
+		{"_D3foo3barFNbZv", "nothrow"},
+		// Nc = ref
+		{"_D3foo3barFNcZv", "ref"},
+		// Nd = @property
+		{"_D3foo3barFNdZv", "@property"},
+		// Ne = @trusted
+		{"_D3foo3barFNeZv", "@trusted"},
+		// Nf = @safe
+		{"_D3foo3barFNfZv", "@safe"},
+		// Ni = @nogc
+		{"_D3foo3barFNiZv", "@nogc"},
+		// Nj = return
+		{"_D3foo3barFNjZv", "return"},
+		// Nl = scope
+		{"_D3foo3barFNlZv", "scope"},
+		// Nm = @live
+		{"_D3foo3barFNmZv", "@live"},
+		// Combined: Na Ni Nb → pure @nogc nothrow
+		{"_D3foo3barFNaNiNbZv", "pure"},
+		{"_D3foo3barFNaNiNbZv", "@nogc"},
+		{"_D3foo3barFNaNiNbZv", "nothrow"},
+	}
+	for _, c := range cases {
+		c := c
+		t.Run(c.in+"_contains_"+c.want, func(t *testing.T) {
+			t.Parallel()
+			r, err := cat.Demangle(context.Background(), c.in, nil)
+			if err != nil {
+				t.Fatalf("demangle: %v", err)
+			}
+			if !strings.Contains(r.Output, c.want) {
+				t.Fatalf("output = %q, want substring %q", r.Output, c.want)
 			}
 		})
 	}

@@ -143,26 +143,31 @@ func decodeFunctionType(s string) (string, bool) {
 	var attrs []string
 	for i+1 < len(s) && s[i] == 'N' {
 		switch s[i+1] {
-		case 'a':
-			attrs = append(attrs, "@nogc")
-		case 'b':
-			attrs = append(attrs, "nothrow")
-		case 'c':
-			attrs = append(attrs, "ref")
-		case 'd':
-			attrs = append(attrs, "@property")
-		case 'e':
-			attrs = append(attrs, "@trusted")
-		case 'f':
-			attrs = append(attrs, "@safe")
-		case 'g':
+		case 'a': // pure
 			attrs = append(attrs, "pure")
-		case 'h':
-			attrs = append(attrs, "scope")
-		case 'i':
+		case 'b': // nothrow
+			attrs = append(attrs, "nothrow")
+		case 'c': // ref
+			attrs = append(attrs, "ref")
+		case 'd': // @property
+			attrs = append(attrs, "@property")
+		case 'e': // @trusted
+			attrs = append(attrs, "@trusted")
+		case 'f': // @safe
+			attrs = append(attrs, "@safe")
+		case 'i': // @nogc
+			attrs = append(attrs, "@nogc")
+		case 'j': // return
 			attrs = append(attrs, "return")
-		case 'j':
-			attrs = append(attrs, "live")
+		case 'l': // scope
+			attrs = append(attrs, "scope")
+		case 'm': // @live
+			attrs = append(attrs, "@live")
+		case 'g', 'h', 'k', 'n':
+			// Parameter-type qualifiers (inout, vector, return-param,
+			// typeof(*null)) — these are NOT function attributes.
+			// Stop consuming and let the args decoder handle them.
+			goto argsStart
 		default:
 			// Unknown N-attr — stop consuming to avoid desync.
 			goto argsStart
