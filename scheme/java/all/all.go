@@ -12,4 +12,5 @@ import (
 	_ "github.com/jelmerdehen/demangle/scheme/java/kotlin"
 	_ "github.com/jelmerdehen/demangle/scheme/java/proguard"
 	_ "github.com/jelmerdehen/demangle/scheme/java/scala2"
+	_ "github.com/jelmerdehen/demangle/scheme/java/scala3"
 )

@@ -1,0 +1,38 @@
+# Scala 3 TASTy name corpus — hand-crafted from NameKinds.scala patterns
+# Format: mangled_name TAB decoded_name
+# Generated 2026-04-26; no compiler oracle available in build env.
+
+Foo$package$	Foo (package object)
+scala$collection$immutable$package$	scala.collection.immutable (package object)
+Foo$package	Foo (package object)
+Foo$	Foo (object)
+scala$Option$	scala.Option (object)
+$$anon$1	<anon #1>
+Foo$$anon$2	Foo.<anon #2>
+com$example$Bar$$anon$3	com.example.Bar.<anon #3>
+$$anonfun$1	<anonfun #1>
+Foo$$anonfun$1	Foo.<anonfun #1>
+myMethod$$anonfun$2	myMethod.<anonfun #2>
+foo$1	foo#1
+bar$23	bar#23
+compute$3	compute#3
+apply$default$1	apply (default #1)
+Foo$default$2	Foo (default #2)
+$lzy$myField	(lazy) myField
+MyClass$lzy$value	MyClass.(lazy) value
+foo$super$Bar	foo (super Bar)
+toString$super$Object	toString (super Object)
+foo$_$eq	foo_= (setter)
+myVar$_$eq	myVar_= (setter)
+apply$mcI$sp	apply (spec I)
+map$mcII$sp	map (spec II)
+foreach$mcV$sp	foreach (spec V)
+$init$	.<init>
+Foo$init$	Foo.<init>
+length$extension	length (extension)
+$u0041BC	ABC
+foo$u003Abar	foo:bar
+Outer$$Inner	Outer.Inner
+scala$collection$mutable$Map$$Entry	scala.collection.mutable.Map.Entry
+com$example$Foo	com.example.Foo
+scala$collection$immutable$List	scala.collection.immutable.List
