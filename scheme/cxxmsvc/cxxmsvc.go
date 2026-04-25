@@ -148,7 +148,7 @@ func (p *parser) parseSpecialName() (string, bool, error) {
 		if joined == "" {
 			sep = ""
 		}
-		return prefix + joined + sep + "operator" + opName + "(" + sig.args + ")", true, nil
+		return prefix + joined + sep + "operator" + opName + "(" + sig.args + ")" + sig.cvQual + sig.refQual, true, nil
 	}
 	switch p.s[p.i] {
 	case '0':
@@ -170,7 +170,7 @@ func (p *parser) parseSpecialName() (string, bool, error) {
 		if sig.quals != "" {
 			prefix = sig.quals + " "
 		}
-		return prefix + joined + "::" + base + "(" + sig.args + ")", true, nil
+		return prefix + joined + "::" + base + "(" + sig.args + ")" + sig.cvQual + sig.refQual, true, nil
 	case '1':
 		p.i++
 		chain, err := p.parseNameChain()
@@ -190,7 +190,7 @@ func (p *parser) parseSpecialName() (string, bool, error) {
 		if sig.quals != "" {
 			prefix = sig.quals + " "
 		}
-		return prefix + joined + "::~" + base + "(" + sig.args + ")", true, nil
+		return prefix + joined + "::~" + base + "(" + sig.args + ")" + sig.cvQual + sig.refQual, true, nil
 	case '_':
 		if p.i+1 >= len(p.s) {
 			p.i-- // rewind the consumed '?'
@@ -289,16 +289,12 @@ func (p *parser) parse() (string, error) {
 			if p.eof() {
 				return "", p.truncated()
 			}
-			base := primitiveTypeName(p.s[p.i])
-			if base == "" {
-				return "", p.grammarErr("variable type byte")
+			varName := strings.Join(reverse(chain), "::")
+			vt, err := p.parseVariableType(varName)
+			if err != nil {
+				return "", err
 			}
-			p.i++
-			// Optional cv byte.
-			if !p.eof() {
-				p.i++ // consume cv (A / B / C / D) without rendering for now
-			}
-			return base + " " + strings.Join(reverse(chain), "::"), nil
+			return vt, nil
 		}
 	}
 	sig, err := p.parseSignature()
@@ -307,9 +303,9 @@ func (p *parser) parse() (string, error) {
 	}
 	joined := strings.Join(reverse(chain), "::")
 	if sig.quals != "" {
-		return sig.quals + " " + joined + "(" + sig.args + ")", nil
+		return sig.quals + " " + joined + "(" + sig.args + ")" + sig.cvQual + sig.refQual, nil
 	}
-	return joined + "(" + sig.args + ")", nil
+	return joined + "(" + sig.args + ")" + sig.cvQual + sig.refQual, nil
 }
 
 // parseNameChain reads identifiers separated by '@' until it sees
@@ -606,8 +602,10 @@ func primitiveTypeNameExt(s string) (string, int) {
 }
 
 type signature struct {
-	quals string
-	args  string
+	quals   string
+	args    string
+	refQual string // " &" or " &&" or ""
+	cvQual  string // " const", " volatile", " const volatile", or ""
 }
 
 // parseSignature handles a narrow subset: access+cv qualifiers +
@@ -678,6 +676,20 @@ func (p *parser) parseSignatureMode(ctorDtor bool) (signature, error) {
 	if isMethod && !p.eof() && p.s[p.i] == 'E' {
 		p.i++
 	}
+	// For methods, an optional ref-qualifier byte may follow the __ptr64 byte:
+	//   'G' = lvalue-ref qualifier (&)
+	//   'H' = rvalue-ref qualifier (&&)
+	// This byte is consumed from the wire but rendered after the arg list.
+	if isMethod && !p.eof() {
+		switch p.s[p.i] {
+		case 'G':
+			sig.refQual = " &"
+			p.i++
+		case 'H':
+			sig.refQual = " &&"
+			p.i++
+		}
+	}
 	// For methods, optional cv-byte may follow (A=none, B=const, C=vol, D=cv).
 	if isMethod {
 		if p.eof() {
@@ -689,17 +701,19 @@ func (p *parser) parseSignatureMode(ctorDtor bool) (signature, error) {
 		case 'A':
 			// no extra
 		case 'B':
-			accessQuals += " const"
+			sig.cvQual = " const"
 		case 'C':
-			accessQuals += " volatile"
+			sig.cvQual = " volatile"
 		case 'D':
-			accessQuals += " const volatile"
+			sig.cvQual = " const volatile"
 		default:
 			// Not cv — roll back.
 			p.i--
 		}
 	}
 	// Calling-convention byte.
+	// MSVC uses paired letters: A/B → __cdecl, C/D → __pascal,
+	// E/F → __thiscall, G/H → __stdcall, I/J → __fastcall, Q → __vectorcall.
 	if p.eof() {
 		return sig, p.truncated()
 	}
@@ -707,13 +721,13 @@ func (p *parser) parseSignatureMode(ctorDtor bool) (signature, error) {
 	p.i++
 	convName := ""
 	switch cc {
-	case 'A':
+	case 'A', 'B':
 		convName = "__cdecl"
-	case 'E':
+	case 'E', 'F':
 		convName = "__thiscall"
-	case 'G':
+	case 'G', 'H':
 		convName = "__stdcall"
-	case 'I':
+	case 'I', 'J':
 		convName = "__fastcall"
 	case 'Q':
 		convName = "__vectorcall"
@@ -735,76 +749,11 @@ func (p *parser) parseSignatureMode(ctorDtor bool) (signature, error) {
 		}
 		retName = ""
 	} else {
-		ret := p.s[p.i]
-		switch ret {
-		case 'X':
-			retName = "void"
-			p.i++
-		case 'H':
-			retName = "int"
-			p.i++
-		case 'D':
-			retName = "char"
-			p.i++
-		case 'J':
-			retName = "long"
-			p.i++
-		case 'I':
-			retName = "unsigned int"
-			p.i++
-		case 'K':
-			retName = "unsigned long"
-			p.i++
-		case 'M':
-			retName = "float"
-			p.i++
-		case 'N':
-			retName = "double"
-			p.i++
-		case 'P', 'A', 'Q':
-			// Pointer / lvalue-ref / rvalue-ref return type.
-			// Shape: <marker> <cv> <prim>  (same as arg form).
-			pointerLike := ret
-			if p.i+2 >= len(p.s) {
-				return sig, p.truncated()
-			}
-			p.i++ // past marker
-			cv := p.s[p.i]
-			p.i++
-			if cv == 'E' && !p.eof() {
-				cv = p.s[p.i]
-				p.i++
-			}
-			if p.eof() {
-				return sig, p.truncated()
-			}
-			base := primitiveTypeName(p.s[p.i])
-			if base == "" {
-				return sig, p.grammarErr("pointer/ref return-target primitive")
-			}
-			p.i++
-			qual := ""
-			switch cv {
-			case 'B':
-				qual = " const"
-			case 'C':
-				qual = " volatile"
-			case 'D':
-				qual = " const volatile"
-			}
-			var suf string
-			switch pointerLike {
-			case 'P':
-				suf = "*"
-			case 'A':
-				suf = "&"
-			case 'Q':
-				suf = "&&"
-			}
-			retName = base + qual + suf
-		default:
-			return sig, p.grammarErr("return type byte")
+		rn, err := p.parseReturnType()
+		if err != nil {
+			return sig, err
 		}
+		retName = rn
 	}
 	// Args. Collect types until we hit 'Z' or '@'.
 	var args []string
@@ -925,6 +874,627 @@ func (p *parser) parseSignatureMode(ctorDtor bool) (signature, error) {
 	}
 	sig.quals = prefix
 	return sig, nil
+}
+
+// parseReturnType parses a single return-type token from the current position.
+// It handles all single-byte primitives via primitiveTypeName, extended
+// two-byte primitives (_<letter>), const/volatile-qualified return types via
+// the '?' prefix, and pointer/reference return types (P/A/Q marker + cv + target).
+func (p *parser) parseReturnType() (string, error) {
+	if p.eof() {
+		return "", p.truncated()
+	}
+	ret := p.s[p.i]
+
+	// '?' prefix = qualified return type: ?B=const, ?C=volatile, ?D=const-volatile.
+	if ret == '?' {
+		if p.i+1 >= len(p.s) {
+			return "", p.truncated()
+		}
+		qual := p.s[p.i+1]
+		p.i += 2
+		var qualStr string
+		switch qual {
+		case 'B':
+			qualStr = " const"
+		case 'C':
+			qualStr = " volatile"
+		case 'D':
+			qualStr = " const volatile"
+		default:
+			return "", p.grammarErr("qualified return-type qualifier byte after '?'")
+		}
+		if p.eof() {
+			return "", p.truncated()
+		}
+		base := primitiveTypeName(p.s[p.i])
+		if base != "" {
+			p.i++
+			return base + qualStr, nil
+		}
+		return "", p.grammarErr("qualified return-type primitive")
+	}
+
+	// Two-byte extended primitive.
+	if ret == '_' {
+		if pt, n := primitiveTypeNameExt(p.s[p.i:]); pt != "" {
+			p.i += n
+			return pt, nil
+		}
+	}
+
+	// Single-byte primitive.
+	if base := primitiveTypeName(ret); base != "" {
+		p.i++
+		return base, nil
+	}
+
+	// Pointer / lvalue-ref / rvalue-ref return type.
+	// Shape: <marker> [E] <cv> <target-type>
+	if ret == 'P' || ret == 'A' || ret == 'Q' {
+		pointerLike := ret
+		if p.i+2 >= len(p.s) {
+			return "", p.truncated()
+		}
+		p.i++ // past marker
+		cv := p.s[p.i]
+		p.i++
+		if cv == 'E' && !p.eof() {
+			cv = p.s[p.i]
+			p.i++
+		}
+		if p.eof() {
+			return "", p.truncated()
+		}
+		var base string
+		switch tb := p.s[p.i]; {
+		case tb == 'V' || tb == 'U' || tb == 'T':
+			p.i++
+			subChain, err := p.parseNameChain()
+			if err != nil {
+				return "", err
+			}
+			base = strings.Join(reverse(subChain), "::")
+		default:
+			base = primitiveTypeName(tb)
+			if base == "" {
+				if tb == '_' {
+					if pt, n := primitiveTypeNameExt(p.s[p.i:]); pt != "" {
+						base = pt
+						p.i += n
+						break
+					}
+				}
+				return "", p.grammarErr("pointer/ref return-target type")
+			}
+			p.i++
+		}
+		qual := ""
+		switch cv {
+		case 'B':
+			qual = " const"
+		case 'C':
+			qual = " volatile"
+		case 'D':
+			qual = " const volatile"
+		}
+		var suf string
+		switch pointerLike {
+		case 'P':
+			suf = "*"
+		case 'A':
+			suf = "&"
+		case 'Q':
+			suf = "&&"
+		}
+		return base + qual + suf, nil
+	}
+
+	return "", p.grammarErr("return type byte")
+}
+
+// parseVariableType parses the type of a global/static variable from the
+// current position and returns the full display string "type varName".
+//
+// Supports:
+//   - Primitive types (single-byte and two-byte _<x>).
+//   - Pointer types: P/Q/R/S <cv> <target> (simple pointer).
+//   - Member data pointers: P<Q/R/S/T> <class-chain> <prim-type> + trailing quals.
+//   - Member function pointers: P8 <class-chain> <func-type-with-this> + trailing quals.
+//
+// The variableName argument (already rendered as "Ns::Name") is embedded in
+// the output for member pointer forms that require it in the middle.
+func (p *parser) parseVariableType(varName string) (string, error) {
+	if p.eof() {
+		return "", p.truncated()
+	}
+	c := p.s[p.i]
+
+	// Pointer types: P/Q/R/S prefix.
+	if c == 'P' || c == 'Q' || c == 'R' || c == 'S' {
+		ptrCV := c
+		p.i++
+		// Pointer cv-qualifier from the P/Q/R/S byte itself.
+		ptrQual := ""
+		switch ptrCV {
+		case 'Q':
+			ptrQual = " const"
+		case 'R':
+			ptrQual = " volatile"
+		case 'S':
+			ptrQual = " const volatile"
+		}
+
+		if p.eof() {
+			return "", p.truncated()
+		}
+
+		// Optional 64-bit ext qualifier 'E'.
+		ptr64 := false
+		if p.s[p.i] == 'E' {
+			ptr64 = true
+			p.i++
+			if p.eof() {
+				return "", p.truncated()
+			}
+		}
+
+		next := p.s[p.i]
+
+		// --- Member function pointer: P8 <class> <HasThisQuals func-type> ---
+		// P [E] 8 <class-chain> <func-enc>
+		if next == '8' {
+			p.i++ // consume '8'
+			// Parse the member class name chain (ends with @@).
+			classChain, err := p.parseNameChain()
+			if err != nil {
+				return "", err
+			}
+			className := strings.Join(reverse(classChain), "::")
+
+			// Parse the function type encoding with this-qualifiers.
+			// Format: [ext-quals] [G/H ref-qual] <cv-byte> <callconv> <ret> <params> Z
+			// Then trailing variable-level quals: [E] Q/R/S/T <backref-class> [var-cv]
+			fnDisplay, err := p.parseMemberFunctionPtrType(className, ptrQual, ptr64)
+			if err != nil {
+				return "", err
+			}
+			// Consume trailing variable-cv byte if present (A/B/C/D, not rendered).
+			if !p.eof() {
+				tc := p.s[p.i]
+				if tc == 'A' || tc == 'B' || tc == 'C' || tc == 'D' {
+					p.i++
+				}
+			}
+			return strings.Replace(fnDisplay, "__VARNAME__", varName, 1), nil
+		}
+
+		// --- Member data pointer: P [E] Q/R/S/T <class-chain> <type> ---
+		// Q/R/S/T means member qualifier (isMemberPointer returns true for these).
+		if next == 'Q' || next == 'R' || next == 'S' || next == 'T' {
+			memberQual := next
+			p.i++
+			// Optional 64-bit E after the member-qual.
+			if !p.eof() && p.s[p.i] == 'E' {
+				p.i++
+			}
+			// Parse the member class name chain.
+			classChain, err := p.parseNameChain()
+			if err != nil {
+				return "", err
+			}
+			className := strings.Join(reverse(classChain), "::")
+
+			// Parse the pointee type.
+			if p.eof() {
+				return "", p.truncated()
+			}
+			pointeeType := primitiveTypeName(p.s[p.i])
+			if pointeeType == "" {
+				if p.s[p.i] == '_' {
+					if pt, n := primitiveTypeNameExt(p.s[p.i:]); pt != "" {
+						pointeeType = pt
+						p.i += n
+					}
+				}
+				if pointeeType == "" {
+					return "", p.grammarErr("member data pointer pointee type")
+				}
+			} else {
+				p.i++
+			}
+
+			// Pointee cv-qualifier from the member-qual byte (Q/R/S/T).
+			pointeeQual := ""
+			switch memberQual {
+			case 'R':
+				pointeeQual = " const"
+			case 'S':
+				pointeeQual = " volatile"
+			case 'T':
+				pointeeQual = " const volatile"
+			}
+
+			// Consume trailing variable-level qualifier bytes:
+			// [E] Q/R/S/T <backref-or-class-name> [var-cv]
+			if !p.eof() {
+				if p.s[p.i] == 'E' {
+					p.i++
+				}
+				if !p.eof() {
+					tc := p.s[p.i]
+					if tc == 'Q' || tc == 'R' || tc == 'S' || tc == 'T' {
+						p.i++
+						// Consume the back-reference class name (digit backref or name@@).
+						p.consumeBackRefOrName()
+					}
+				}
+				// Optional trailing var-cv byte.
+				if !p.eof() {
+					tc := p.s[p.i]
+					if tc == 'A' || tc == 'B' || tc == 'C' || tc == 'D' {
+						p.i++
+					}
+				}
+			}
+
+			// Render as: "<pointee-type><pointee-qual> <class>::*[ptrQual ]varName"
+			// ptrQual has a leading space (e.g. " volatile"); we need it without
+			// the leading space before varName, but with a trailing space if non-empty.
+			// e.g. "int Foo::*m", "int volatile B::*volatile memptr1"
+			ptrQualStr := ""
+			if ptrQual != "" {
+				ptrQualStr = strings.TrimPrefix(ptrQual, " ") + " "
+			}
+			return pointeeType + pointeeQual + " " + className + "::*" + ptrQualStr + varName, nil
+		}
+
+		// Simple pointer/ref variable (non-member).
+		// Shape: [cv-on-pointee] <pointee-type> then var-cv byte at end.
+		// cv is next byte after optional E.
+		cv := next
+		p.i++
+		if cv == 'E' && !p.eof() {
+			cv = p.s[p.i]
+			p.i++
+		}
+		if p.eof() {
+			return "", p.truncated()
+		}
+		var base string
+		switch tb := p.s[p.i]; {
+		case tb == 'V' || tb == 'U' || tb == 'T':
+			p.i++
+			subChain, err := p.parseNameChain()
+			if err != nil {
+				return "", err
+			}
+			base = strings.Join(reverse(subChain), "::")
+		default:
+			base = primitiveTypeName(tb)
+			if base == "" {
+				if tb == '_' {
+					if pt, n := primitiveTypeNameExt(p.s[p.i:]); pt != "" {
+						base = pt
+						p.i += n
+						break
+					}
+				}
+				return "", p.grammarErr("pointer variable pointee type")
+			}
+			p.i++
+		}
+		qual := ""
+		switch cv {
+		case 'B':
+			qual = " const"
+		case 'C':
+			qual = " volatile"
+		case 'D':
+			qual = " const volatile"
+		}
+		var suf string
+		switch ptrCV {
+		case 'P':
+			suf = "*"
+		case 'Q':
+			suf = "* const"
+		case 'R':
+			suf = "* volatile"
+		case 'S':
+			suf = "* const volatile"
+		}
+		// Consume optional var-cv byte.
+		if !p.eof() {
+			tc := p.s[p.i]
+			if tc == 'A' || tc == 'B' || tc == 'C' || tc == 'D' {
+				p.i++
+			}
+		}
+		return base + qual + suf + " " + varName, nil
+	}
+
+	// Single-byte primitive.
+	if base := primitiveTypeName(c); base != "" {
+		p.i++
+		// Consume optional cv byte.
+		if !p.eof() {
+			tc := p.s[p.i]
+			if tc == 'A' || tc == 'B' || tc == 'C' || tc == 'D' {
+				p.i++
+			}
+		}
+		return base + " " + varName, nil
+	}
+	// Two-byte extended primitive.
+	if c == '_' {
+		if pt, n := primitiveTypeNameExt(p.s[p.i:]); pt != "" {
+			p.i += n
+			if !p.eof() {
+				tc := p.s[p.i]
+				if tc == 'A' || tc == 'B' || tc == 'C' || tc == 'D' {
+					p.i++
+				}
+			}
+			return pt + " " + varName, nil
+		}
+	}
+	return "", p.grammarErr("variable type byte")
+}
+
+// consumeBackRefOrName consumes a digit backref (single digit) or a full
+// name-chain ending with @@.  Used to skip the class back-reference that
+// follows the member-qualifier byte in variable-encoding for pointer types.
+func (p *parser) consumeBackRefOrName() {
+	if p.eof() {
+		return
+	}
+	c := p.s[p.i]
+	if c >= '0' && c <= '9' {
+		p.i++ // digit backref: single byte
+		// The @ after the digit backref is optional in some forms; consume if present.
+		if !p.eof() && p.s[p.i] == '@' {
+			p.i++
+		}
+		return
+	}
+	// Full name chain: read until @@.
+	for !p.eof() {
+		if p.s[p.i] == '@' {
+			p.i++
+			if !p.eof() && p.s[p.i] == '@' {
+				p.i++
+				return
+			}
+			continue
+		}
+		p.i++
+	}
+}
+
+// parseMemberFunctionPtrType parses the function-type encoding for a member
+// function pointer variable after the class name has been consumed.
+//
+// Wire format (HasThisQuals=true): [ext-quals E/I/F] [G/H ref-qual]
+// <cv-byte A/B/C/D> <callconv> <ret-type> <params> Z
+// Followed by variable-encoding extras: [E] Q/R/S/T <backref-class> [var-cv]
+//
+// Returns a display string of the form:
+//
+//	"<ret> (<callconv> <class>::*<ptrQual>) (<args>)<cv><refQual>"
+//
+// with the literal token "__VARNAME__" where the variable name goes.
+func (p *parser) parseMemberFunctionPtrType(className, ptrQual string, ptr64 bool) (string, error) {
+	// This-qualifier encoding for the member function pointer:
+	// [E/I/F ext] [G/H ref] [A/B/C/D cv]
+	if p.eof() {
+		return "", p.truncated()
+	}
+	// Ext-quals (E=64-bit, I=restrict, F=unaligned) — consume but don't render.
+	if p.s[p.i] == 'E' || p.s[p.i] == 'I' || p.s[p.i] == 'F' {
+		p.i++
+	}
+	// Ref-qualifier G/H.
+	refQual := ""
+	if !p.eof() {
+		switch p.s[p.i] {
+		case 'G':
+			refQual = " &"
+			p.i++
+		case 'H':
+			refQual = " &&"
+			p.i++
+		}
+	}
+	// CV-qualifier A/B/C/D.
+	cvQual := ""
+	if p.eof() {
+		return "", p.truncated()
+	}
+	cv := p.s[p.i]
+	p.i++
+	switch cv {
+	case 'A': // none
+	case 'B':
+		cvQual = " const"
+	case 'C':
+		cvQual = " volatile"
+	case 'D':
+		cvQual = " const volatile"
+	default:
+		// Not a recognised cv-byte; roll back.
+		p.i--
+	}
+
+	// Calling convention.
+	if p.eof() {
+		return "", p.truncated()
+	}
+	cc := p.s[p.i]
+	p.i++
+	convName := ""
+	switch cc {
+	case 'A':
+		convName = "__cdecl"
+	case 'E':
+		convName = "__thiscall"
+	case 'G':
+		convName = "__stdcall"
+	case 'I':
+		convName = "__fastcall"
+	case 'Q':
+		convName = "__vectorcall"
+	default:
+		return "", p.grammarErr("calling convention in member function pointer")
+	}
+
+	// Return type.
+	if p.eof() {
+		return "", p.truncated()
+	}
+	if p.s[p.i] == '@' {
+		// Ctor/dtor: no return type.
+		p.i++
+	}
+	retName, err := p.parseReturnType()
+	if err != nil {
+		return "", err
+	}
+
+	// Parameter list: collect until '@' or 'Z'.
+	var args []string
+	for !p.eof() {
+		c := p.s[p.i]
+		if c == 'Z' || c == '@' {
+			if c == '@' {
+				p.i++
+				if !p.eof() && p.s[p.i] == 'Z' {
+					p.i++
+				}
+			} else {
+				p.i++
+			}
+			break
+		}
+		arg, err := p.parseOneArgType()
+		if err != nil {
+			return "", err
+		}
+		args = append(args, arg)
+	}
+
+	// Consume trailing member-ptr variable-level qualifier bytes:
+	// [E] Q/R/S/T <backref-class>
+	if !p.eof() {
+		if p.s[p.i] == 'E' {
+			p.i++
+		}
+	}
+	if !p.eof() {
+		tc := p.s[p.i]
+		if tc == 'Q' || tc == 'R' || tc == 'S' || tc == 'T' {
+			p.i++
+			p.consumeBackRefOrName()
+		}
+	}
+
+	// Render: "retType (callconv class::*[ptrQual ]__VARNAME__)(args)cvQual refQual"
+	// ptrQual has a leading space (e.g. " volatile"); strip it and add trailing
+	// space so spacing around ::* is correct:
+	//   no ptrQual:   "::*__VARNAME__"
+	//   with ptrQual: "::*volatile __VARNAME__"
+	argsJoined := strings.Join(args, ", ")
+	if argsJoined == "" {
+		argsJoined = "void"
+	}
+	ptrQualStr := ""
+	if ptrQual != "" {
+		ptrQualStr = strings.TrimPrefix(ptrQual, " ") + " "
+	}
+	return retName + " (" + convName + " " + className + "::*" + ptrQualStr + "__VARNAME__)" +
+		"(" + argsJoined + ")" + cvQual + refQual, nil
+}
+
+// parseOneArgType parses a single argument type from the current position and
+// returns its display string.  Mirrors the arg-loop in parseSignatureMode but
+// is callable as a helper from parseMemberFunctionPtrType.
+func (p *parser) parseOneArgType() (string, error) {
+	if p.eof() {
+		return "", p.truncated()
+	}
+	c := p.s[p.i]
+
+	// Pointer / reference shapes: P/A/Q marker + cv + type.
+	if c == 'P' || c == 'A' || c == 'Q' {
+		pointerLike := c
+		if p.i+2 >= len(p.s) {
+			return "", p.truncated()
+		}
+		cv := p.s[p.i+1]
+		p.i += 2
+		if cv == 'E' && !p.eof() {
+			cv = p.s[p.i]
+			p.i++
+		}
+		if p.eof() {
+			return "", p.truncated()
+		}
+		var base string
+		switch tb := p.s[p.i]; {
+		case tb == 'V' || tb == 'U' || tb == 'T':
+			p.i++
+			subChain, err := p.parseNameChain()
+			if err != nil {
+				return "", err
+			}
+			base = strings.Join(reverse(subChain), "::")
+		default:
+			base = primitiveTypeName(tb)
+			if base == "" {
+				if tb == '_' {
+					if pt, n := primitiveTypeNameExt(p.s[p.i:]); pt != "" {
+						base = pt
+						p.i += n
+						break
+					}
+				}
+				return "", p.grammarErr("pointer/ref arg target type")
+			}
+			p.i++
+		}
+		qual := ""
+		switch cv {
+		case 'B':
+			qual = " const"
+		case 'C':
+			qual = " volatile"
+		case 'D':
+			qual = " const volatile"
+		}
+		var suffix string
+		switch pointerLike {
+		case 'P':
+			suffix = "*"
+		case 'A':
+			suffix = "&"
+		case 'Q':
+			suffix = "&&"
+		}
+		return base + qual + suffix, nil
+	}
+	// Extended primitive.
+	if c == '_' {
+		if pt, n := primitiveTypeNameExt(p.s[p.i:]); pt != "" {
+			p.i += n
+			return pt, nil
+		}
+	}
+	// Single-byte primitive.
+	if base := primitiveTypeName(c); base != "" {
+		p.i++
+		return base, nil
+	}
+	return "", p.grammarErr("arg type byte in member function pointer")
 }
 
 // operatorName returns the C++ operator suffix for a single-letter
