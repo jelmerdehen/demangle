@@ -865,11 +865,32 @@ func (p *parser) tryNestedPrivateDecl(inner *demangle.Node) (*demangle.Node, boo
 		idx = n + 1
 	}
 	p.i++ // consume '_'
-	// Consume optional nominal-kind byte (V/C/O/P).
+	// Consume optional nominal-kind byte (V/C/O/P/a).
+	isTypeAlias := false
 	if !p.eof() {
 		k := p.s[p.i]
 		if k == 'V' || k == 'C' || k == 'O' || k == 'P' {
 			p.i++
+		} else if k == 'a' {
+			// TypeAlias local decl — consume 'a' then skip the trailing
+			// 'y <type>+ G' bound-generic args that Apple emits for the
+			// alias's instantiation (not shown in output).
+			p.i++
+			isTypeAlias = true
+		}
+	}
+	// For local TypeAlias, skip trailing 'y...G' bound-generic suffix.
+	if isTypeAlias && !p.eof() && p.s[p.i] == 'y' {
+		p.i++ // consume 'y'
+		depth := 1
+		for !p.eof() && depth > 0 {
+			c := p.s[p.i]
+			p.i++
+			if c == 'y' {
+				depth++
+			} else if c == 'G' {
+				depth--
+			}
 		}
 	}
 	innerStr := common.Print(inner, common.DefaultPrintOptions())
@@ -1619,6 +1640,10 @@ func (p *parser) tryClosureEntity(inner *demangle.Node) (*demangle.Node, bool) {
 // per-result mode bytes begin (i.e. past the header attr bytes).
 func implFnAttrsModeStart(attrs string) int {
 	idx := 0
+	// 's' = @substituted — skip the marker byte.
+	if idx < len(attrs) && attrs[idx] == 's' {
+		idx++
+	}
 	if idx < len(attrs) && attrs[idx] == 'e' {
 		idx++
 	}
@@ -1769,8 +1794,13 @@ func wrapImplFnOptional(node *demangle.Node) *demangle.Node {
 // buildImplFnDisplay parses attrs and builds a KindTypeMangling node
 // for the rendered impl-function-type display string. types must
 // contain exactly the number of type nodes implied by attrs.
+// sigStr and subsStr are non-empty for @substituted impl-fn types:
+//
+//	sigStr  = e.g. "A, B" (generic param list inside angle brackets)
+//	subsStr = e.g. "Swift.Set<T>" (for-clause substitution types)
+//
 // Returns (nil, false) on any parse failure or type count mismatch.
-func buildImplFnDisplay(attrs string, types []*demangle.Node) (*demangle.Node, bool) {
+func buildImplFnDisplay(attrs string, types []*demangle.Node, sigStr, subsStr string) (*demangle.Node, bool) {
 	prefixParts := []string{}
 	escaping := false
 	erasedIsolation := false
@@ -1779,6 +1809,10 @@ func buildImplFnDisplay(attrs string, types []*demangle.Node) (*demangle.Node, b
 	diffExplicit := false
 	calleeConv := "callee_guaranteed"
 	idx := 0
+	// 's' = @substituted — handled via sigStr/subsStr args; skip the byte.
+	if idx < len(attrs) && attrs[idx] == 's' {
+		idx++
+	}
 	if idx < len(attrs) && attrs[idx] == 'e' {
 		escaping = true
 		idx++
@@ -1905,6 +1939,9 @@ func buildImplFnDisplay(attrs string, types []*demangle.Node) (*demangle.Node, b
 		prefixParts = append(prefixParts, "@differentiable"+diffKind)
 	}
 	prefixParts = append(prefixParts, "@"+calleeConv)
+	if sigStr != "" {
+		prefixParts = append(prefixParts, "@substituted <"+sigStr+">")
+	}
 	if funcConv != "" {
 		prefixParts = append(prefixParts, funcConv)
 	}
@@ -2031,9 +2068,313 @@ func buildImplFnDisplay(attrs string, types []*demangle.Node) (*demangle.Node, b
 	}
 	resultsStr := sendingPrefix + "(" + strings.Join(results, ", ") + ")"
 	display := strings.Join(prefixParts, " ") + " " + paramsStr + " -> " + resultsStr
+	if subsStr != "" {
+		display += " for <" + subsStr + ">"
+	}
 	wrap := common.NewNode(common.KindTypeMangling)
 	wrap.Text = display
 	return wrap, true
+}
+
+// tryImplSubstitutedSig parses a @substituted impl-fn generic signature
+// and its substitution type. Called when the type loop in tryImplFunctionType
+// sees 'R' immediately after a protocol type — the standard Apple pattern for
+// @substituted callee types.
+//
+// Entry: p.i points at 'R'; proto1 is the already-parsed first protocol type.
+//
+// Grammar:
+//
+//	<sig>  ::= <proto> 'Rz' (<proto> 'Rz')* 'l'
+//	<subs> ::= 'y' <type>+ (<conformance-ref>)* (before 'I')
+//
+// Returns (sigStr, subsStr, true) on success; reverts p.i on failure.
+func (p *parser) tryImplSubstitutedSig(proto1 *demangle.Node) (sigStr, subsStr string, ok bool) {
+	save := p.i
+	saveSubs := p.subs
+	revert := func() { p.i = save; p.subs = saveSubs }
+	opts := common.DefaultPrintOptions()
+	proto1Str := common.Print(proto1, opts)
+	var constraints []string
+	// Parse requirement for proto1: 'Rz' = "A: proto1".
+	if p.eof() || p.s[p.i] != 'R' {
+		revert()
+		return "", "", false
+	}
+	p.i++ // consume 'R'
+	if p.eof() {
+		revert()
+		return "", "", false
+	}
+	subj1 := p.s[p.i]
+	p.i++
+	paramName1 := implReqSubjectName(subj1)
+	if paramName1 == "" {
+		revert()
+		return "", "", false
+	}
+	constraints = append(constraints, paramName1+": "+proto1Str)
+	// Loop: parse additional <proto> 'R<subj>' pairs until 'l'.
+	for !p.eof() && p.s[p.i] != 'l' {
+		saveInner := p.i
+		saveSubsInner := p.subs
+		proto, err := p.parseType()
+		if err != nil {
+			p.i = saveInner
+			p.subs = saveSubsInner
+			break
+		}
+		if p.eof() || p.s[p.i] != 'R' {
+			p.i = saveInner
+			p.subs = saveSubsInner
+			break
+		}
+		p.i++ // consume 'R'
+		if p.eof() {
+			p.i = saveInner
+			p.subs = saveSubsInner
+			break
+		}
+		subj := p.s[p.i]
+		p.i++
+		paramName := implReqSubjectName(subj)
+		if paramName == "" {
+			p.i = saveInner
+			p.subs = saveSubsInner
+			break
+		}
+		protoStr := common.Print(proto, opts)
+		constraints = append(constraints, paramName+": "+protoStr)
+	}
+	// Consume 'l' (end of generic sig).
+	if p.eof() || p.s[p.i] != 'l' {
+		revert()
+		return "", "", false
+	}
+	p.i++ // consume 'l'
+	// Build sigStr.
+	sig := ""
+	if len(constraints) > 0 {
+		// Extract unique param name(s) from constraints. All constraints here
+		// have the form "A: Proto" (same param). Build "A where A: P1, A: P2".
+		paramName := strings.Split(constraints[0], ":")[0]
+		paramName = strings.TrimSpace(paramName)
+		sig = paramName + " where " + strings.Join(constraints, ", ")
+	}
+	// Parse the substitution bound-generic type using a mini Apple-compatible
+	// stack machine. The body 'y Sh y 4Abcd AH O 6Member V G ...' uses Apple's
+	// addSubstitution-on-every-identifier model which differs from our parser.
+	// We implement a lightweight stack-based mini-demangler here.
+	if !p.eof() && p.s[p.i] == 'y' {
+		subsStr = p.parseAppleSubsBoundGeneric()
+	}
+	// Skip any remaining bytes until 'I' (conformance refs etc.).
+	for !p.eof() && p.s[p.i] != 'I' {
+		p.i++
+	}
+	return sig, subsStr, true
+}
+
+// parseAppleSubsBoundGeneric parses an Apple stack-based bound-generic
+// substitution expression starting with 'y' (EmptyList). Uses Apple's
+// identifier-always-addSubstitution model in a self-contained mini-parser.
+// Consumes bytes until reaching a non-type byte ('A' start of conformance
+// ref or 'I' impl-fn marker). Returns the display string.
+func (p *parser) parseAppleSubsBoundGeneric() string {
+	// Mini-parser state: a stack of display strings and a subs table.
+	// The subs table mirrors Apple's addSubstitution calls.
+	type stackEntry struct{ display string }
+	var stack []stackEntry
+	var miniSubs []string // subs[i] = display string
+	// Push initial subs from p.subs table (our parser's current subs).
+	// Apple's subs at this point include identifiers of all parsed idents.
+	// We pre-populate from p.subs to get the right Foo/Drink/Error entries,
+	// then add Abcd and similar identifiers inline as we parse them.
+	for i := 0; i < p.subs.Len(); i++ {
+		n, ok := p.subs.Get(i)
+		if !ok {
+			break
+		}
+		// Apple's demangleProtocolListType does NOT call addSubstitution for
+		// protocol existential types (e.g. s5Error_p → KindType wrapping
+		// KindProtocol or KindProtocolList). Skip them so miniSubs indices
+		// align with Apple's addSubstitution model.
+		nk := common.NodeKind(n.Kind)
+		if nk == common.KindType && len(n.Children) > 0 {
+			childKind := common.NodeKind(n.Children[0].Kind)
+			if childKind == common.KindProtocol {
+				continue
+			}
+		}
+		miniSubs = append(miniSubs, common.Print(n, common.DefaultPrintOptions()))
+	}
+	pushStack := func(s string) { stack = append(stack, stackEntry{s}) }
+	popStack := func() string {
+		if len(stack) == 0 {
+			return ""
+		}
+		top := stack[len(stack)-1].display
+		stack = stack[:len(stack)-1]
+		return top
+	}
+	_ = popStack
+
+	// Process tokens until 'I' or conformance-ref start.
+	const emptyListMark = "\x00EMPTYLIST"
+miniLoop:
+	for !p.eof() && p.s[p.i] != 'I' {
+		c := p.s[p.i]
+		// Stop at conformance-ref start patterns: 'A' followed by letter.
+		// Conformance refs also appear after 'G', beginning with 'A<upper>'.
+		// Simple heuristic: if stack has a non-emptyList + we see 'A', stop.
+		if c == 'A' && p.i+1 < len(p.s) {
+			next := p.s[p.i+1]
+			if next >= 'A' && next <= 'Z' {
+				// A<upper> = multi-sub lookup (could be bound-generic arg OR
+				// conformance ref). Discriminate by emptyListMark depth:
+				//   depth=0: no y...G at all → conformance ref, stop.
+				//   depth=1: only the outer 'y' separator marker → stop.
+				//   depth>=2: inside an open y...G bound-generic → type arg.
+				emptyListDepth := 0
+				for _, entry := range stack {
+					if entry.display == emptyListMark {
+						emptyListDepth++
+					}
+				}
+				if emptyListDepth <= 1 {
+					break // conformance ref territory
+				}
+				// emptyListDepth >= 2: inside a bound-generic arg list.
+			}
+		}
+		p.i++
+		switch {
+		case c == 'y':
+			// EmptyList: separator for bound-generic type arg lists.
+			pushStack(emptyListMark)
+		case c == 'S' && !p.eof():
+			// Standard substitution S<letter>.
+			letter := p.s[p.i]
+			p.i++
+			n, ok := common.BuildStdlibNominal(letter)
+			if !ok {
+				return ""
+			}
+			display := common.Print(n, common.DefaultPrintOptions())
+			pushStack(display)
+		case c >= '0' && c <= '9':
+			// Length-prefixed identifier.
+			length := int(c - '0')
+			for !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+				length = length*10 + int(p.s[p.i]-'0')
+				p.i++
+			}
+			if p.i+length > len(p.s) {
+				return ""
+			}
+			ident := p.s[p.i : p.i+length]
+			p.i += length
+			// Push ident to miniSubs (Apple always addSubstitution for idents).
+			miniSubs = append(miniSubs, ident)
+			pushStack(ident)
+		case c == 'A' && !p.eof():
+			// Multi-sub lookup: A<letter> = subs[letter-'A'].
+			next := p.s[p.i]
+			if next >= 'A' && next <= 'Z' {
+				idx := int(next - 'A')
+				p.i++
+				if idx < len(miniSubs) {
+					pushStack(miniSubs[idx])
+				} else {
+					return ""
+				}
+			} else if next >= 'a' && next <= 'z' {
+				// Lowercase = push intermediate ref + continue.
+				idx := int(next - 'a')
+				p.i++
+				if idx < len(miniSubs) {
+					pushStack(miniSubs[idx])
+				} else {
+					return ""
+				}
+			} else {
+				return ""
+			}
+		case c == 'V' || c == 'C' || c == 'O' || c == 'P':
+			// Nominal type kind byte: pop name (ident) + context (module or type).
+			if len(stack) < 2 {
+				return ""
+			}
+			name := popStack()
+			ctx := popStack()
+			if ctx == emptyListMark {
+				// Context is the emptyList — just use name.
+				ctx = ""
+			}
+			var display string
+			if ctx != "" {
+				display = ctx + "." + name
+			} else {
+				display = name
+			}
+			// addSubstitution for nominal type.
+			miniSubs = append(miniSubs, display)
+			pushStack(display)
+		case c == 'G':
+			// Bound generic: pop type args (until emptyListMark) + nominal.
+			// Collect type args.
+			var args []string
+			for len(stack) > 0 && stack[len(stack)-1].display != emptyListMark {
+				args = append([]string{popStack()}, args...)
+			}
+			// Pop the EmptyList marker.
+			if len(stack) > 0 && stack[len(stack)-1].display == emptyListMark {
+				popStack()
+			}
+			// Pop nominal.
+			if len(stack) == 0 {
+				return ""
+			}
+			nominal := popStack()
+			if nominal == emptyListMark {
+				nominal = ""
+			}
+			display := nominal + "<" + strings.Join(args, ", ") + ">"
+			// addSubstitution for bound generic.
+			miniSubs = append(miniSubs, display)
+			pushStack(display)
+		default:
+			// Unknown byte — stop.
+			p.i-- // push back
+			break miniLoop
+		}
+	}
+	// The top of stack should be the substitution type.
+	if len(stack) == 0 {
+		return ""
+	}
+	result := stack[len(stack)-1].display
+	if result == emptyListMark {
+		return ""
+	}
+	return result
+}
+
+// implReqSubjectName maps an Apple requirement subject byte to the
+// generic param name letter ('A', 'B', etc.).
+// 'z' → 'A' (same as Qz), '_' → 'B', digit+_ → C onwards.
+func implReqSubjectName(c byte) string {
+	switch c {
+	case 'z':
+		return "A"
+	case '_':
+		return "B"
+	default:
+		if c >= '0' && c <= '9' {
+			return string(rune('C' + (c - '0')))
+		}
+	}
+	return ""
 }
 
 // tryImplFunctionType matches SIL impl-function-type:
@@ -2062,14 +2403,32 @@ func (p *parser) tryImplFunctionType() (*demangle.Node, bool) {
 	// We also handle nested impl-fn-types: when we see 'I' followed
 	// eventually by '_Sg' and another 'I' later, that 'I' is the start
 	// of an inner impl-fn-type that appears as one of our type slots.
+	// We also handle '@substituted' inner impl-fn (attrs start with 's')
+	// where after '_' a 'y<for-clause-types>' follows instead of 'Sg'.
 	var types []*demangle.Node
+	var implSigStr, implSubsStr string // set for outer @substituted form
 	for !p.eof() {
+		// 'r<N>_l' — generic-sig opener before a @substituted impl-fn.
+		// Appears between the type list and the inner 'I'; consume and
+		// record the generic param count but don't add to types.
+		if p.s[p.i] == 'r' {
+			j := p.i + 1
+			for j < len(p.s) && p.s[j] >= '0' && p.s[j] <= '9' {
+				j++
+			}
+			if j < len(p.s) && p.s[j] == '_' {
+				p.i = j + 1
+				// Consume 'l' (sig-close) if present.
+				if !p.eof() && p.s[p.i] == 'l' {
+					p.i++
+				}
+				continue
+			}
+			// Not r<N>_: stop type collection.
+			break
+		}
 		if p.s[p.i] == 'I' {
 			// Speculatively try to parse a nested impl-fn-type.
-			// Heuristic: only commit if '_' is immediately followed by 'Sg'
-			// (the Optional postfix) AND there is another 'I' further along
-			// (the outer impl-fn terminator). This avoids mis-parsing simple
-			// fixtures where 'I' is the outer terminator itself.
 			innerSave := p.i
 			p.i++ // consume inner 'I'
 			innerAttrStart := p.i
@@ -2082,7 +2441,63 @@ func (p *parser) tryImplFunctionType() (*demangle.Node, bool) {
 			}
 			innerAttrs := p.s[innerAttrStart:p.i]
 			p.i++ // consume '_'
-			// Check: '_' must be immediately followed by 'Sg'.
+			// Case 1: '@substituted' inner impl-fn — attrs start with 's'.
+			// After '_', a for-clause 'y<types>' follows until next 'I'.
+			if len(innerAttrs) > 0 && innerAttrs[0] == 's' {
+				// Check: another 'I' must exist after current position.
+				hasOuterI := false
+				for j := p.i; j < len(p.s); j++ {
+					if p.s[j] == 'I' {
+						hasOuterI = true
+						break
+					}
+				}
+				if !hasOuterI {
+					p.i = innerSave
+					break
+				}
+				// Count types needed by inner attrs.
+				needed := implFnTypesNeeded(innerAttrs)
+				if needed < 0 || needed > len(types) {
+					p.i = innerSave
+					break
+				}
+				innerTypes := types[len(types)-needed:]
+				// Parse for-clause: 'y<types>' until next 'I'.
+				var forClauseTypes []string
+				if !p.eof() && p.s[p.i] == 'y' {
+					p.i++ // consume 'y' opener
+					opts := common.DefaultPrintOptions()
+					for !p.eof() && p.s[p.i] != 'I' {
+						beforeFCType := p.i
+						beforeFCSubs := p.subs
+						fcType, fcErr := p.parseType()
+						if fcErr != nil {
+							p.i = beforeFCType
+							p.subs = beforeFCSubs
+							break
+						}
+						forClauseTypes = append(forClauseTypes, common.Print(fcType, opts))
+					}
+					// Skip any non-parseable bytes until 'I'.
+					for !p.eof() && p.s[p.i] != 'I' {
+						p.i++
+					}
+				}
+				// Build inner @substituted node. sigStr = "" since A3
+				// uses r<N>_l for sig count, not proto-constraint form.
+				forClauseStr := strings.Join(forClauseTypes, "")
+				innerNode, ok := buildImplFnDisplay(innerAttrs, innerTypes, "", forClauseStr)
+				if !ok {
+					p.i = innerSave
+					break
+				}
+				types = types[:len(types)-needed]
+				types = append(types, innerNode)
+				continue
+			}
+			// Case 2: Heuristic for '_Sg' form — only commit if '_' is
+			// immediately followed by 'Sg' AND there is another 'I' further.
 			if p.i+1 >= len(p.s) || p.s[p.i] != 'S' || p.s[p.i+1] != 'g' {
 				p.i = innerSave
 				break
@@ -2106,7 +2521,7 @@ func (p *parser) tryImplFunctionType() (*demangle.Node, bool) {
 				break
 			}
 			innerTypes := types[len(types)-needed:]
-			innerNode, ok := buildImplFnDisplay(innerAttrs, innerTypes)
+			innerNode, ok := buildImplFnDisplay(innerAttrs, innerTypes, "", "")
 			if !ok {
 				p.i = innerSave
 				break
@@ -2216,6 +2631,33 @@ func (p *parser) tryImplFunctionType() (*demangle.Node, bool) {
 			p.subs.Push(t)
 		}
 		types = append(types, t)
+		// Detect outer @substituted impl-fn: when a protocol type is
+		// immediately followed by 'R' (generic requirement), try to parse
+		// the full @substituted sig (proto+Rz pairs until 'l') then the
+		// substitution type ('y<type>') and break to reach 'I'.
+		if !p.eof() && p.s[p.i] == 'R' && len(types) > 0 {
+			protoType := types[len(types)-1]
+			isProto := false
+			if common.NodeKind(protoType.Kind) == common.KindType &&
+				len(protoType.Children) > 0 &&
+				common.NodeKind(protoType.Children[0].Kind) == common.KindProtocol {
+				isProto = true
+			} else if common.NodeKind(protoType.Kind) == common.KindProtocol {
+				isProto = true
+			}
+			if isProto {
+				if sigS, subsS, ok2 := p.tryImplSubstitutedSig(protoType); ok2 {
+					// Remove the protocol type — it's now part of the sig.
+					types = types[:len(types)-1]
+					if p.subs.Len() > subsBeforeParse {
+						p.subs = p.subs.TruncateTo(subsBeforeParse)
+					}
+					implSigStr = sigS
+					implSubsStr = subsS
+					break // types loop done; 'I' should be next
+				}
+			}
+		}
 	}
 	if p.eof() || p.s[p.i] != 'I' {
 		revert()
@@ -2233,7 +2675,7 @@ func (p *parser) tryImplFunctionType() (*demangle.Node, bool) {
 	}
 	attrs := p.s[attrStart:p.i]
 	p.i++ // consume '_'
-	node, ok := buildImplFnDisplay(attrs, types)
+	node, ok := buildImplFnDisplay(attrs, types, implSigStr, implSubsStr)
 	if !ok {
 		revert()
 		return nil, false
@@ -3369,14 +3811,17 @@ func extractStdlibExtConstraintSig(b string) string {
 
 // tryExtensionEntity matches the extension-method shape:
 //
-//   <module><nominal-chain><constraints>*E<decl-name>
-//     <label-list>?<result><params>(<gen-sig>)?F
+//	<module><nominal-chain><constraints>*E<decl-name>
+//	  <label-list>?<result><params>(<gen-sig>)?F
 //
 // Renders as:
 //
-//   (extension in <module>):<qualified-host><sig>.<decl>(<params>) -> <ret>
+//	(extension in <module>):<qualified-host><sig>.<decl>(<params>) -> <ret>
 //
-// Narrow: single 'Rj_' inverse constraint + depth-0 gen-sig.
+// Supports: Rj inverse constraints, Rs same-type constraints,
+// multi-element tuple params terminated by 't', labeled params, and
+// populates the substitution table so A-refs in param/result types
+// resolve correctly.
 func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 	// Try stdlib-sub extended type (S<letter>) allocator form first.
 	if n, ok, err := p.tryStdlibExtensionAllocator(); err != nil || ok {
@@ -3389,13 +3834,13 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 	if p.eof() || !(p.s[p.i] >= '0' && p.s[p.i] <= '9') {
 		return nil, false, nil
 	}
-	modStart := p.i
 	modName, err := p.parseIdentifier()
 	if err != nil {
 		restore()
 		return nil, false, nil
 	}
-	_ = modStart
+	// Push module to subs so A-refs inside params/result can resolve it.
+	p.subs.Push(common.NewModule(modName))
 	// Read one nominal chain step + kind byte.
 	if p.eof() || !(p.s[p.i] >= '0' && p.s[p.i] <= '9') {
 		restore()
@@ -3406,6 +3851,8 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 		restore()
 		return nil, false, nil
 	}
+	// Push host identifier to subs.
+	p.subs.Push(common.NewIdentifier(hostName))
 	if p.eof() {
 		restore()
 		return nil, false, nil
@@ -3416,9 +3863,25 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 		return nil, false, nil
 	}
 	p.i++
+	// Push the host nominal Type node to subs so AC/AJ etc resolve.
+	var hostNomKind common.NodeKind
+	switch hostKind {
+	case 'V':
+		hostNomKind = common.KindStructure
+	case 'C':
+		hostNomKind = common.KindClass
+	case 'O':
+		hostNomKind = common.KindEnum
+	case 'P':
+		hostNomKind = common.KindProtocol
+	}
+	hostNom := common.NewNode(hostNomKind)
+	common.AddChildren(hostNom, common.NewModule(modName), common.NewIdentifier(hostName))
+	hostTypeNode := common.NewNode(common.KindType)
+	common.AddChildren(hostTypeNode, hostNom)
+	p.subs.Push(hostTypeNode)
 	// Optional constraints: bytes that end in 'E' marker. Scan for 'E'
 	// within a reasonable window followed by digit (decl-name).
-	constraintBytes := []byte{}
 	scan := p.i
 	eFound := -1
 	for k := scan; k < len(p.s)-1 && k < scan+80; k++ {
@@ -3431,9 +3894,9 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 		restore()
 		return nil, false, nil
 	}
-	constraintBytes = []byte(p.s[scan:eFound])
+	constraintBytes := []byte(p.s[scan:eFound])
 	p.i = eFound + 1 // past 'E'
-	// Parse decl-name.
+	// Parse decl-name and push to subs.
 	declName, err := p.parseIdentifier()
 	if err != nil {
 		restore()
@@ -6808,6 +7271,20 @@ func (p *parser) parseNominalWithModule(module *demangle.Node) (*demangle.Node, 
 		kind = common.KindEnum
 	case 'P':
 		kind = common.KindProtocol
+	case 'a':
+		// TypeAlias — valid as a kind byte for ObjC/Clang-imported
+		// types in the __C module (e.g. simd_double3x3a) and for
+		// local typealias declarations. Displayed as a qualified name,
+		// identical to Structure (Apple's printEntity with NoType).
+		// Guard: only accept when the module is "__C" or a user module
+		// (non-Swift-stdlib modules have Text != "Swift"/"s").
+		modText := module.Text
+		if modText == "__C" || (modText != "" && modText != "Swift" && modText != "s") {
+			kind = common.KindStructure
+		} else {
+			p.i-- // un-consume 'a'
+			return nil, p.grammarErr("nominal kind byte V/C/O/P")
+		}
 	default:
 		return nil, p.grammarErr("nominal kind byte V/C/O/P")
 	}
@@ -7724,6 +8201,44 @@ func (p *parser) tryDependentMemberType() (*demangle.Node, bool) {
 	}
 	// Push ident to subs (mirror normal ident handling).
 	p.subs.Push(common.NewIdentifier(assocName))
+	// Direct form: <assocName> 'Q' ('z' | 'y' digits? '_')
+	// No intervening proto-path type — 'Qz' alone encodes A.<assocName>,
+	// 'Qy_' encodes B.<assocName>, etc. Apple emits this when the
+	// associated type is accessed directly on a generic parameter.
+	if !p.eof() && p.s[p.i] == 'Q' && p.i+1 < len(p.s) &&
+		(p.s[p.i+1] == 'z' || p.s[p.i+1] == 'y') {
+		p.i++ // consume 'Q'
+		kind := p.s[p.i]
+		p.i++
+		var paramName string
+		switch kind {
+		case 'z':
+			paramName = "A"
+		case 'y':
+			start := p.i
+			for !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+				p.i++
+			}
+			if p.eof() || p.s[p.i] != '_' {
+				revert()
+				return nil, false
+			}
+			n := 0
+			if p.i > start {
+				for _, d := range p.s[start:p.i] {
+					n = n*10 + int(d-'0')
+				}
+				n++
+			}
+			p.i++ // '_'
+			paramName = string(rune('B' + byte(n)))
+		}
+		wrap := common.NewNode(common.KindType)
+		tn := common.NewNode(common.KindBuiltinTypeName)
+		tn.Text = paramName + "." + assocName
+		common.AddChildren(wrap, tn)
+		return wrap, true
+	}
 	proto, perr := p.parseType()
 	if perr != nil {
 		revert()
