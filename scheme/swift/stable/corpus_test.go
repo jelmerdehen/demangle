@@ -116,10 +116,11 @@ func TestAppleCorpus(t *testing.T) {
 	//   commit as coverage expands (stdlib subs, nominal paths with
 	//   their full entity trailers, bound generics, functions).
 	// - R1: retroactive inverse-req HD/HI chain in conformance tail.
+	// - T3/K1: ConstantPropKeyPath pk sub-kind + closure chain "of" clause.
 	// - Stage 1 exit gate: equality check per line, zero tolerated
 	//   mismatches outside known-divergences.txt.
-	if matched < 140 {
-		t.Fatalf("expected ≥140 matches, got %d — parser regressed?", matched)
+	if matched < 141 {
+		t.Fatalf("expected ≥141 matches, got %d — parser regressed?", matched)
 	}
 	if mismatch > 0 {
 		t.Fatalf("%d mismatches — parser produced wrong output on a real fixture", mismatch)

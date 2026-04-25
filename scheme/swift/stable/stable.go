@@ -130,6 +130,26 @@ func parseBodyWithOpts(schemeName, origin, body string, prefixBytes int, opts de
 			tree.Children[0] = wrapImplFnOptional(tree.Children[0])
 		}
 	}
+	// Optional trailing WOe/WOy after Sg — outlined consume/copy of
+	// an Optional-wrapped impl-fn type. Wraps tree display with prefix.
+	if p.i+2 < len(p.s) && p.s[p.i] == 'W' && p.s[p.i+1] == 'O' {
+		var outlinedPrefix string
+		switch p.s[p.i+2] {
+		case 'e':
+			outlinedPrefix = "outlined consume of "
+		case 'y':
+			outlinedPrefix = "outlined copy of "
+		}
+		if outlinedPrefix != "" {
+			p.i += 3
+			if len(tree.Children) == 1 {
+				oldDisplay := common.Print(tree.Children[0], common.DefaultPrintOptions())
+				wrap := common.NewNode(common.KindTypeMangling)
+				wrap.Text = outlinedPrefix + oldDisplay
+				tree.Children[0] = wrap
+			}
+		}
+	}
 	// Optional trailing 'D' — type-mangling end marker. Consume
 	// silently; Apple's demangle doesn't render anything extra for
 	// it.
@@ -1403,10 +1423,11 @@ func (p *parser) tryPostfixFunctionTypeWithParams(node *demangle.Node) (*demangl
 	}
 	// Disambiguate: 'cfm' is the macro-entity terminator (fn-entity
 	// result-slot context), not a fn-type escape marker. Also cf<X>
-	// init/deinit suffix.
+	// init/deinit suffix. 'cfu<N>_' is an implicit-closure entity
+	// marker — not a function-type convention byte.
 	if p.i+2 < len(p.s) && p.s[p.i+1] == 'f' {
 		nxt := p.s[p.i+2]
-		if nxt == 'm' || nxt == 'C' || nxt == 'c' || nxt == 'D' || nxt == 'd' {
+		if nxt == 'm' || nxt == 'C' || nxt == 'c' || nxt == 'D' || nxt == 'd' || nxt == 'u' {
 			revert()
 			return node, false
 		}
@@ -2830,6 +2851,18 @@ func (p *parser) tryEntitySuffix(inner *demangle.Node) (*demangle.Node, bool) {
 					}
 				}
 			}
+		case 'O':
+			// WO<letter> = outlined operation.
+			if p.i+2 < len(p.s) {
+				switch p.s[p.i+2] {
+				case 'e':
+					prefix = "outlined consume of "
+					consumed = 3
+				case 'y':
+					prefix = "outlined copy of "
+					consumed = 3
+				}
+			}
 		}
 	case 'T':
 		// T-prefixed thunks and specialisations. Narrow: 3-byte forms
@@ -3351,7 +3384,8 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 	}
 	save := p.i
 	saveSubs := p.subs
-	restore := func() { p.i = save; p.subs = saveSubs }
+	saveWords := p.words
+	restore := func() { p.i = save; p.subs = saveSubs; p.words = saveWords }
 	if p.eof() || !(p.s[p.i] >= '0' && p.s[p.i] <= '9') {
 		return nil, false, nil
 	}
@@ -4099,6 +4133,22 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 					}
 					elements = append(elements, y)
 				}
+				// Generic-param encodings like 'q_' (B) consume their
+				// trailing '_' internally, so the next tuple element may
+				// start without a leading separator. Continue collecting
+				// elements while the current byte can begin a type and
+				// we haven't reached the closing 't'.
+				for !p.eof() && p.s[p.i] != 't' && p.s[p.i] != '_' {
+					saveTuple := p.i
+					saveTupleSubs := p.subs
+					y, err := p.parseType()
+					if err != nil || y == nil {
+						p.i = saveTuple
+						p.subs = saveTupleSubs
+						break
+					}
+					elements = append(elements, y)
+				}
 				if p.eof() || p.s[p.i] != 't' {
 					revert()
 					return false
@@ -4417,20 +4467,36 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 				reqKind := p.s[p.i]
 				p.i++
 				// Narrow constraint rendering for common shapes:
-				//   z   → 'A: <constraint>'  (Conforms-to, subject A)
-				//   _   → next-depth subject (B, C, ...) same protocol
-				//         (Apple's depth-indexed form 'R_' = idx 1)
+				//   z      → 'A: <constraint>'  (Conforms-to, subject A)
+				//   _      → 'B: <constraint>'  (subject at depth-0 idx 0+1=1=B)
+				//   0_     → 'C: <constraint>'  (subject at depth-0 idx 1+1=2=C)
+				//   N_     → param at idx N+2
+				// Apple's demangleIndex: '_'→0, 'N_'→N+1; subject = idx+1.
 				if reqKind == 'z' {
 					cstr := common.Print(constraint, common.DefaultPrintOptions())
 					localConstraints = append(localConstraints, "A: "+cstr)
 				} else if reqKind == '_' {
-					// Subject-index form: 'R_' = subject at depth-0 idx
-					// 1 (= B), 'R0_' = idx 1 (B), 'R1_' = idx 2 (C), ...
-					// via Apple's demangleIndex. We already consumed the
-					// leading '_' as reqKind; treat as idx=1 (B).
+					// 'R_' — demangleIndex '_' = 0, subject = param at idx 1 = B.
 					subj := "B"
 					cstr := common.Print(constraint, common.DefaultPrintOptions())
 					localConstraints = append(localConstraints, subj+": "+cstr)
+				} else if reqKind >= '0' && reqKind <= '9' {
+					// 'R<digit>..._' — collect all digits, consume '_', map to param.
+					// demangleIndex("N_") = N+1; subject = demangleIndex+1 = N+2.
+					num := int(reqKind - '0')
+					for !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+						num = num*10 + int(p.s[p.i]-'0')
+						p.i++
+					}
+					if !p.eof() && p.s[p.i] == '_' {
+						p.i++ // consume '_'
+					}
+					subjIdx := num + 2 // R0_ → idx 2 = C, R1_ → idx 3 = D, ...
+					if subjIdx < 26 {
+						subj := string(rune('A' + subjIdx))
+						cstr := common.Print(constraint, common.DefaultPrintOptions())
+						localConstraints = append(localConstraints, subj+": "+cstr)
+					}
 				}
 				continue
 			}
@@ -4795,11 +4861,8 @@ func (p *parser) parseType() (*demangle.Node, error) {
 				common.NodeKind(node.Children[0].Kind) == common.KindDependentGenericParamType)
 		// Raw stdlib type: KindType wrapping one of the known stdlib
 		// nominals (Struct/Class/Enum) that came from BuildStdlibNominal.
-		isRawStdlib := false
-		if (nk == common.KindType || nk == common.KindStructure ||
-			nk == common.KindClass || nk == common.KindEnum) && c == 'S' {
-			isRawStdlib = true
-		}
+		isRawStdlib := (nk == common.KindType || nk == common.KindStructure ||
+			nk == common.KindClass || nk == common.KindEnum) && c == 'S'
 		if !isGenParam && !isRawStdlib {
 			p.subs.Push(node)
 		}
@@ -5028,7 +5091,7 @@ func (p *parser) skipConformanceRef() bool {
 		// We scan within the first 60 bytes for either a V/C/O/P
 		// followed by H<PCp> within 6 bytes (per the strict form), or
 		// a bare `yH<PCp>` bigram (inline-proto form).
-		limit := 60
+		limit := 75
 		if start+limit > len(p.s) {
 			limit = len(p.s) - start
 		}
@@ -5334,8 +5397,12 @@ func (p *parser) parseGenericParam() (*demangle.Node, error) {
 			v = v*10 + int(c-'0')
 		}
 		if depth == 0 {
-			index = v + 1
+			// Apple's depth-0 q-encoding: demangleIndex("N_") = N+1;
+			// param index = demangleIndex + 1 = N+2.
+			// (q_ with no digit has index=1=B; q0_→C, q1_→D, etc.)
+			index = v + 2
 		} else {
+			// Depth-1+: demangleIndex("N_") = N+1 = param index.
 			index = v + 1
 		}
 	} else if depth == 1 {
@@ -5568,13 +5635,29 @@ func (p *parser) trySpecializationSuffix() (string, bool) {
 	if p.eof() {
 		return "", false
 	}
-	// Fast-path for Tf (function-signature specialization) when the
-	// remaining body starts with a digit (identifier prefix) — the
-	// Apple stack-based demangler pushes identifiers and types
-	// separately before 'Tf'; our parser handles all of it inline.
-	if p.s[p.i] >= '0' && p.s[p.i] <= '9' {
-		if result, ok := p.tryTfSpecializationSuffix(save, saveSubs); ok {
-			return result, true
+	// Fast-path for Tf (function-signature specialization) — the Apple
+	// stack-based demangler pushes identifiers and types separately
+	// before 'Tf'; our parser handles all of it inline.
+	// Try when the preamble starts with a digit (identifier length
+	// prefix) or when it starts with a non-digit type byte and 'Tf' is
+	// detectable within a 256-byte horizon (e.g. preamble begins with a
+	// stdlib sub like 'Si' or a 'cfu<N>_' closure marker).
+	{
+		tfInHorizon := false
+		limit := len(p.s)
+		if p.i+256 < limit {
+			limit = p.i + 256
+		}
+		for j := p.i; j+1 < limit; j++ {
+			if p.s[j] == 'T' && p.s[j+1] == 'f' {
+				tfInHorizon = true
+				break
+			}
+		}
+		if tfInHorizon {
+			if result, ok := p.tryTfSpecializationSuffix(save, saveSubs); ok {
+				return result, true
+			}
 		}
 	}
 	var specArgs []*demangle.Node
@@ -5917,7 +6000,12 @@ func (p *parser) tryTfSpecializationSuffix(save int, saveSubs common.Substitutio
 	// '<module-ident><name-ident><kind>' nominal paths like 4main1SV →
 	// main.S). If parseType fails or overshoots Tf, fall back to
 	// parseIdentifier for bare closure-name identifiers.
+	type closureEntry struct {
+		types  []*demangle.Node
+		number int // 1-based display number
+	}
 	var closureIdents []string
+	var closureEntries []closureEntry
 	var specArgs []*demangle.Node
 	opts := common.DefaultPrintOptions()
 	for p.i < tfPos {
@@ -5946,6 +6034,61 @@ func (p *parser) tryTfSpecializationSuffix(save int, saveSubs common.Substitutio
 		typ, err := p.parseType()
 		if err != nil || p.i > tfPos {
 			p.i = startType
+			// 'yy[Ff]' = function entity signature (empty params, empty
+			// result). Skip rather than reverting.
+			if p.i-startType <= 3 && startType < tfPos && p.s[startType] == 'y' {
+				j := startType
+				for j < tfPos && p.s[j] == 'y' {
+					j++
+				}
+				if j < tfPos && (p.s[j] == 'F' || p.s[j] == 'f') {
+					p.i = j + 1
+					continue
+				}
+			}
+			// 'cfu<digits?>_' = implicit closure marker — skip and reset
+			// specArgs so only post-closure types feed the spec-param codes.
+			// Bare 'c' (escaping function-type marker not part of cfu<N>_)
+			// is also skipped to allow the following type to be parsed.
+			if startType < tfPos && p.s[startType] == 'c' {
+				j := startType + 1
+				if j < tfPos && p.s[j] == 'f' {
+					j++
+				}
+				if j < tfPos && p.s[j] == 'u' {
+					j++
+					for j < tfPos && p.s[j] >= '0' && p.s[j] <= '9' {
+						j++
+					}
+					if j < tfPos && p.s[j] == '_' {
+						// cfu<N>_ closure marker: record closure entry and
+						// reset specArgs so only post-closure types feed the
+						// spec-param codes.
+						digitStart := startType + 3 // byte after 'cfu'
+						closureNum := 1
+						if j > digitStart {
+							n := 0
+							for k := digitStart; k < j; k++ {
+								n = n*10 + int(p.s[k]-'0')
+							}
+							closureNum = n + 2
+						}
+						savedTypes := make([]*demangle.Node, len(specArgs))
+						copy(savedTypes, specArgs)
+						closureEntries = append(closureEntries, closureEntry{
+							types:  savedTypes,
+							number: closureNum,
+						})
+						specArgs = nil
+						p.i = j + 1
+						continue
+					}
+				}
+				// Bare 'c' (e.g. escaping function-type convention marker):
+				// skip the single byte and continue.
+				p.i = startType + 1
+				continue
+			}
 			revert()
 			return "", false
 		}
@@ -6065,6 +6208,21 @@ func (p *parser) tryTfSpecializationSuffix(save int, saveSubs common.Substitutio
 						p.i++
 					}
 					items = append(items, "[Constant Propagated Float : "+p.s[start:p.i]+"]")
+				case 'k':
+					// ConstantPropKeyPath: pop last closure ident (SHA-1 hash)
+					// and two types from specArgs (the KeyPath value types).
+					// Mirrors Demangler.cpp demangleKeyPathThunkHelper which
+					// pops Type, Type, Identifier from the Apple stack.
+					if len(closureIdents) == 0 || specArgIdx+1 >= len(specArgs) {
+						unknownKind = true
+						break pLoop
+					}
+					ident := closureIdents[len(closureIdents)-1]
+					t1 := specArgs[specArgIdx]
+					t2 := specArgs[specArgIdx+1]
+					specArgIdx += 2
+					items = append(items, "[Constant Propagated KeyPath : "+ident+"<"+
+						common.Print(t1, opts)+","+common.Print(t2, opts)+">]")
 				default:
 					// Unrecognised sub-kind: push byte back and stop the sub-loop.
 					p.i--
@@ -6106,7 +6264,33 @@ func (p *parser) tryTfSpecializationSuffix(save int, saveSubs common.Substitutio
 	if len(argParts) > 0 {
 		display += " <" + strings.Join(argParts, ", ") + ">"
 	}
-	display += " of "
+	// Build closure chain: closureEntries are recorded in preamble order
+	// (lowest number first). The Apple printer emits them in descending
+	// order (highest first), separated by " in ", followed by " in ".
+	if len(closureEntries) > 0 {
+		var chain []string
+		for i := len(closureEntries) - 1; i >= 0; i-- {
+			ce := closureEntries[i]
+			var fnStr string
+			if len(ce.types) >= 2 {
+				// types[0] = result type, types[last] = params type.
+				// Function type = (params) -> result.
+				paramsStr := common.Print(ce.types[len(ce.types)-1], opts)
+				resultStr := common.Print(ce.types[0], opts)
+				fnStr = "(" + paramsStr + ") -> " + resultStr
+			} else if len(ce.types) == 1 {
+				fnStr = common.Print(ce.types[0], opts)
+			}
+			entry := "implicit closure #" + strconv.Itoa(ce.number)
+			if fnStr != "" {
+				entry += " " + fnStr
+			}
+			chain = append(chain, entry)
+		}
+		display += " of " + strings.Join(chain, " in ") + " in "
+	} else {
+		display += " of "
+	}
 	return display, true
 }
 
@@ -7515,7 +7699,8 @@ func renderIndexSubset(s string) string {
 func (p *parser) tryDependentMemberType() (*demangle.Node, bool) {
 	save := p.i
 	saveSubs := p.subs
-	revert := func() { p.i = save; p.subs = saveSubs }
+	saveWords := p.words
+	revert := func() { p.i = save; p.subs = saveSubs; p.words = saveWords }
 	if p.eof() || !(p.s[p.i] >= '0' && p.s[p.i] <= '9') {
 		return nil, false
 	}
