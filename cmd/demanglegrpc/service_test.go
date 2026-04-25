@@ -240,6 +240,69 @@ func TestGRPCUploadAndResolveProGuard(t *testing.T) {
 	}
 }
 
+func TestGRPCMangle(t *testing.T) {
+	t.Parallel()
+	client, cleanup := startServer(t)
+	defer cleanup()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	// JNI round-trip: pass the already-mangled symbol as input; the server
+	// demangling-parses it to a Node tree and re-mangles it back.
+	// "Java_com_example_Foo_bar" → demangle → tree → mangle → "Java_com_example_Foo_bar"
+	r, err := client.Mangle(ctx, &pb.MangleRequest{
+		Scheme: "jni",
+		Input:  "Java_com_example_Foo_bar",
+	})
+	if err != nil {
+		t.Fatalf("Mangle jni: %v", err)
+	}
+	if r.GetError() != "" {
+		t.Fatalf("Mangle jni error: %q", r.GetError())
+	}
+	if r.GetMangled() != "Java_com_example_Foo_bar" {
+		t.Fatalf("jni mangled = %q, want %q", r.GetMangled(), "Java_com_example_Foo_bar")
+	}
+
+	// JVM descriptor round-trip: "Ljava/lang/String;" → tree → mangle → same.
+	r2, err := client.Mangle(ctx, &pb.MangleRequest{
+		Scheme: "jvmdesc",
+		Input:  "Ljava/lang/String;",
+	})
+	if err != nil {
+		t.Fatalf("Mangle jvmdesc: %v", err)
+	}
+	if r2.GetError() != "" {
+		t.Fatalf("Mangle jvmdesc error: %q", r2.GetError())
+	}
+	if r2.GetMangled() != "Ljava/lang/String;" {
+		t.Fatalf("jvmdesc mangled = %q, want %q", r2.GetMangled(), "Ljava/lang/String;")
+	}
+
+	// Unknown scheme returns a MangleResponse with a non-empty Error field,
+	// not a gRPC-level error.
+	r3, err := client.Mangle(ctx, &pb.MangleRequest{
+		Scheme: "no-such-scheme",
+		Input:  "whatever",
+	})
+	if err != nil {
+		t.Fatalf("Mangle unknown scheme: unexpected gRPC error %v", err)
+	}
+	if r3.GetError() == "" {
+		t.Fatal("Mangle unknown scheme: expected Error in response")
+	}
+
+	// Empty scheme returns an error in the response.
+	r4, err := client.Mangle(ctx, &pb.MangleRequest{Input: "whatever"})
+	if err != nil {
+		t.Fatalf("Mangle empty scheme: unexpected gRPC error %v", err)
+	}
+	if r4.GetError() == "" {
+		t.Fatal("Mangle empty scheme: expected Error in response")
+	}
+}
+
 func TestGRPCDemangleStream(t *testing.T) {
 	t.Parallel()
 	client, cleanup := startServer(t)

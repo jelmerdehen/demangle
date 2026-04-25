@@ -7,10 +7,7 @@ package demangle.v1;
 option go_package = "github.com/jelmerdehen/demangle/cmd/demanglegrpc/proto/demanglepb;demanglepb";
 
 // Demangle is the wire-level mirror of the github.com/jelmerdehen/demangle
-// library surface. No Mangle RPC on day one — the library's Mangle is
-// round-trip-test-only until a concrete caller needs wire access.
-// When that happens, Mangle lands on BOTH GraphQL and gRPC in the
-// same PR (symmetry rule from the v5.1 plan).
+// library surface.
 service Demangle {
   rpc Demangle(Request)              returns (Response);
   rpc Detect(DetectRequest)          returns (DetectResponse);
@@ -20,6 +17,11 @@ service Demangle {
   rpc UploadContext(UploadContextRequest) returns (UploadContextResponse);
   rpc ListContexts(ListContextsRequest)   returns (ListContextsResponse);
   rpc DeleteContext(DeleteContextRequest) returns (Empty);
+
+  // Mangle is the inverse of Demangle. The caller supplies a raw demangled
+  // symbol string (req.input) and the target scheme (req.scheme); the server
+  // demangling-parses it to a Node tree and then re-mangles it.
+  rpc Mangle(MangleRequest) returns (MangleResponse);
 }
 
 message Empty {}
@@ -153,4 +155,16 @@ message ListContextsResponse {
 
 message DeleteContextRequest {
   string sha256 = 1;
+}
+
+message MangleRequest {
+  string scheme = 1;
+  // Raw demangled output string. The server demangling-parses it to a Node
+  // tree with the named scheme and then mangles the tree back to a symbol.
+  string input  = 2;
+}
+
+message MangleResponse {
+  string mangled = 1;
+  string error   = 2;
 }

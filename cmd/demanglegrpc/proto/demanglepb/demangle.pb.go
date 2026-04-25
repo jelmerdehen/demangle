@@ -1290,6 +1290,112 @@ func (x *DeleteContextRequest) GetSha256() string {
 	return ""
 }
 
+type MangleRequest struct {
+	state  protoimpl.MessageState `protogen:"open.v1"`
+	Scheme string                 `protobuf:"bytes,1,opt,name=scheme,proto3" json:"scheme,omitempty"`
+	// Raw demangled output string. The server demangling-parses it to a Node
+	// tree with the named scheme and then mangles the tree back to a symbol.
+	Input         string `protobuf:"bytes,2,opt,name=input,proto3" json:"input,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MangleRequest) Reset() {
+	*x = MangleRequest{}
+	mi := &file_demangle_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MangleRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MangleRequest) ProtoMessage() {}
+
+func (x *MangleRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_demangle_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MangleRequest.ProtoReflect.Descriptor instead.
+func (*MangleRequest) Descriptor() ([]byte, []int) {
+	return file_demangle_proto_rawDescGZIP(), []int{18}
+}
+
+func (x *MangleRequest) GetScheme() string {
+	if x != nil {
+		return x.Scheme
+	}
+	return ""
+}
+
+func (x *MangleRequest) GetInput() string {
+	if x != nil {
+		return x.Input
+	}
+	return ""
+}
+
+type MangleResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Mangled       string                 `protobuf:"bytes,1,opt,name=mangled,proto3" json:"mangled,omitempty"`
+	Error         string                 `protobuf:"bytes,2,opt,name=error,proto3" json:"error,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MangleResponse) Reset() {
+	*x = MangleResponse{}
+	mi := &file_demangle_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MangleResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MangleResponse) ProtoMessage() {}
+
+func (x *MangleResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_demangle_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MangleResponse.ProtoReflect.Descriptor instead.
+func (*MangleResponse) Descriptor() ([]byte, []int) {
+	return file_demangle_proto_rawDescGZIP(), []int{19}
+}
+
+func (x *MangleResponse) GetMangled() string {
+	if x != nil {
+		return x.Mangled
+	}
+	return ""
+}
+
+func (x *MangleResponse) GetError() string {
+	if x != nil {
+		return x.Error
+	}
+	return ""
+}
+
 var File_demangle_proto protoreflect.FileDescriptor
 
 const file_demangle_proto_rawDesc = "" +
@@ -1414,7 +1520,13 @@ const file_demangle_proto_rawDesc = "" +
 	"\x14ListContextsResponse\x124\n" +
 	"\bcontexts\x18\x01 \x03(\v2\x18.demangle.v1.ContextInfoR\bcontexts\".\n" +
 	"\x14DeleteContextRequest\x12\x16\n" +
-	"\x06sha256\x18\x01 \x01(\tR\x06sha2562\xfb\x03\n" +
+	"\x06sha256\x18\x01 \x01(\tR\x06sha256\"=\n" +
+	"\rMangleRequest\x12\x16\n" +
+	"\x06scheme\x18\x01 \x01(\tR\x06scheme\x12\x14\n" +
+	"\x05input\x18\x02 \x01(\tR\x05input\"@\n" +
+	"\x0eMangleResponse\x12\x18\n" +
+	"\amangled\x18\x01 \x01(\tR\amangled\x12\x14\n" +
+	"\x05error\x18\x02 \x01(\tR\x05error2\xbe\x04\n" +
 	"\bDemangle\x127\n" +
 	"\bDemangle\x12\x14.demangle.v1.Request\x1a\x15.demangle.v1.Response\x12A\n" +
 	"\x06Detect\x12\x1a.demangle.v1.DetectRequest\x1a\x1b.demangle.v1.DetectResponse\x12;\n" +
@@ -1422,7 +1534,8 @@ const file_demangle_proto_rawDesc = "" +
 	"\x0eDemangleStream\x12\x14.demangle.v1.Request\x1a\x15.demangle.v1.Response(\x010\x01\x12V\n" +
 	"\rUploadContext\x12!.demangle.v1.UploadContextRequest\x1a\".demangle.v1.UploadContextResponse\x12S\n" +
 	"\fListContexts\x12 .demangle.v1.ListContextsRequest\x1a!.demangle.v1.ListContextsResponse\x12F\n" +
-	"\rDeleteContext\x12!.demangle.v1.DeleteContextRequest\x1a\x12.demangle.v1.EmptyBNZLgithub.com/jelmerdehen/demangle/cmd/demanglegrpc/proto/demanglepb;demanglepbb\x06proto3"
+	"\rDeleteContext\x12!.demangle.v1.DeleteContextRequest\x1a\x12.demangle.v1.Empty\x12A\n" +
+	"\x06Mangle\x12\x1a.demangle.v1.MangleRequest\x1a\x1b.demangle.v1.MangleResponseBNZLgithub.com/jelmerdehen/demangle/cmd/demanglegrpc/proto/demanglepb;demanglepbb\x06proto3"
 
 var (
 	file_demangle_proto_rawDescOnce sync.Once
@@ -1436,7 +1549,7 @@ func file_demangle_proto_rawDescGZIP() []byte {
 	return file_demangle_proto_rawDescData
 }
 
-var file_demangle_proto_msgTypes = make([]protoimpl.MessageInfo, 21)
+var file_demangle_proto_msgTypes = make([]protoimpl.MessageInfo, 23)
 var file_demangle_proto_goTypes = []any{
 	(*Empty)(nil),                 // 0: demangle.v1.Empty
 	(*Options)(nil),               // 1: demangle.v1.Options
@@ -1456,12 +1569,14 @@ var file_demangle_proto_goTypes = []any{
 	(*ListContextsRequest)(nil),   // 15: demangle.v1.ListContextsRequest
 	(*ListContextsResponse)(nil),  // 16: demangle.v1.ListContextsResponse
 	(*DeleteContextRequest)(nil),  // 17: demangle.v1.DeleteContextRequest
-	nil,                           // 18: demangle.v1.Options.SchemeSpecificEntry
-	nil,                           // 19: demangle.v1.UploadContextRequest.MetadataEntry
-	nil,                           // 20: demangle.v1.ContextInfo.MetadataEntry
+	(*MangleRequest)(nil),         // 18: demangle.v1.MangleRequest
+	(*MangleResponse)(nil),        // 19: demangle.v1.MangleResponse
+	nil,                           // 20: demangle.v1.Options.SchemeSpecificEntry
+	nil,                           // 21: demangle.v1.UploadContextRequest.MetadataEntry
+	nil,                           // 22: demangle.v1.ContextInfo.MetadataEntry
 }
 var file_demangle_proto_depIdxs = []int32{
-	18, // 0: demangle.v1.Options.scheme_specific:type_name -> demangle.v1.Options.SchemeSpecificEntry
+	20, // 0: demangle.v1.Options.scheme_specific:type_name -> demangle.v1.Options.SchemeSpecificEntry
 	1,  // 1: demangle.v1.Request.options:type_name -> demangle.v1.Options
 	4,  // 2: demangle.v1.Node.children:type_name -> demangle.v1.Node
 	3,  // 3: demangle.v1.Node.attrs:type_name -> demangle.v1.Annotation
@@ -1470,8 +1585,8 @@ var file_demangle_proto_depIdxs = []int32{
 	5,  // 6: demangle.v1.Response.err:type_name -> demangle.v1.Error
 	8,  // 7: demangle.v1.DetectResponse.candidates:type_name -> demangle.v1.Candidate
 	10, // 8: demangle.v1.SchemesResponse.schemes:type_name -> demangle.v1.SchemeInfo
-	19, // 9: demangle.v1.UploadContextRequest.metadata:type_name -> demangle.v1.UploadContextRequest.MetadataEntry
-	20, // 10: demangle.v1.ContextInfo.metadata:type_name -> demangle.v1.ContextInfo.MetadataEntry
+	21, // 9: demangle.v1.UploadContextRequest.metadata:type_name -> demangle.v1.UploadContextRequest.MetadataEntry
+	22, // 10: demangle.v1.ContextInfo.metadata:type_name -> demangle.v1.ContextInfo.MetadataEntry
 	14, // 11: demangle.v1.ListContextsResponse.contexts:type_name -> demangle.v1.ContextInfo
 	2,  // 12: demangle.v1.Demangle.Demangle:input_type -> demangle.v1.Request
 	7,  // 13: demangle.v1.Demangle.Detect:input_type -> demangle.v1.DetectRequest
@@ -1480,15 +1595,17 @@ var file_demangle_proto_depIdxs = []int32{
 	12, // 16: demangle.v1.Demangle.UploadContext:input_type -> demangle.v1.UploadContextRequest
 	15, // 17: demangle.v1.Demangle.ListContexts:input_type -> demangle.v1.ListContextsRequest
 	17, // 18: demangle.v1.Demangle.DeleteContext:input_type -> demangle.v1.DeleteContextRequest
-	6,  // 19: demangle.v1.Demangle.Demangle:output_type -> demangle.v1.Response
-	9,  // 20: demangle.v1.Demangle.Detect:output_type -> demangle.v1.DetectResponse
-	11, // 21: demangle.v1.Demangle.Schemes:output_type -> demangle.v1.SchemesResponse
-	6,  // 22: demangle.v1.Demangle.DemangleStream:output_type -> demangle.v1.Response
-	13, // 23: demangle.v1.Demangle.UploadContext:output_type -> demangle.v1.UploadContextResponse
-	16, // 24: demangle.v1.Demangle.ListContexts:output_type -> demangle.v1.ListContextsResponse
-	0,  // 25: demangle.v1.Demangle.DeleteContext:output_type -> demangle.v1.Empty
-	19, // [19:26] is the sub-list for method output_type
-	12, // [12:19] is the sub-list for method input_type
+	18, // 19: demangle.v1.Demangle.Mangle:input_type -> demangle.v1.MangleRequest
+	6,  // 20: demangle.v1.Demangle.Demangle:output_type -> demangle.v1.Response
+	9,  // 21: demangle.v1.Demangle.Detect:output_type -> demangle.v1.DetectResponse
+	11, // 22: demangle.v1.Demangle.Schemes:output_type -> demangle.v1.SchemesResponse
+	6,  // 23: demangle.v1.Demangle.DemangleStream:output_type -> demangle.v1.Response
+	13, // 24: demangle.v1.Demangle.UploadContext:output_type -> demangle.v1.UploadContextResponse
+	16, // 25: demangle.v1.Demangle.ListContexts:output_type -> demangle.v1.ListContextsResponse
+	0,  // 26: demangle.v1.Demangle.DeleteContext:output_type -> demangle.v1.Empty
+	19, // 27: demangle.v1.Demangle.Mangle:output_type -> demangle.v1.MangleResponse
+	20, // [20:28] is the sub-list for method output_type
+	12, // [12:20] is the sub-list for method input_type
 	12, // [12:12] is the sub-list for extension type_name
 	12, // [12:12] is the sub-list for extension extendee
 	0,  // [0:12] is the sub-list for field type_name
@@ -1505,7 +1622,7 @@ func file_demangle_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_demangle_proto_rawDesc), len(file_demangle_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   21,
+			NumMessages:   23,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

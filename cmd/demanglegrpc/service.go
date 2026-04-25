@@ -66,6 +66,51 @@ func (s *service) Demangle(ctx context.Context, req *pb.Request) (*pb.Response, 
 	return wrapResult(req.GetId(), req.GetInput(), r, dErr), nil
 }
 
+// Mangle is the inverse of Demangle.  The caller supplies a raw demangled
+// symbol string (req.Input) and the target scheme (req.Scheme).  The server
+// demangling-parses the string to a Node tree using the named scheme, then
+// mangles the tree back to a canonical symbol via Catalog.Mangle.
+func (s *service) Mangle(ctx context.Context, req *pb.MangleRequest) (*pb.MangleResponse, error) {
+	s.health.requests.Add(1)
+	s.health.bytesIn.Add(uint64(len(req.GetInput())))
+
+	schemeName := req.GetScheme()
+	if schemeName == "" {
+		s.health.errors.Add(1)
+		return &pb.MangleResponse{Error: "scheme is required for Mangle"}, nil
+	}
+
+	sch, ok := s.cat.Scheme(schemeName)
+	if !ok {
+		s.health.errors.Add(1)
+		return &pb.MangleResponse{Error: "unknown scheme: " + schemeName}, nil
+	}
+
+	// Parse the raw demangled string to a Node tree.
+	dr, dErr := sch.Demangle(ctx, req.GetInput(), demangle.Options{ReturnTree: true})
+	if dErr != nil {
+		s.health.errors.Add(1)
+		return &pb.MangleResponse{Error: dErr.Error()}, nil
+	}
+	if dr == nil || dr.Tree == nil {
+		s.health.errors.Add(1)
+		return &pb.MangleResponse{Error: "demangle returned no tree for scheme " + schemeName}, nil
+	}
+
+	// Mangle the tree back to a symbol.
+	mr, mErr := s.cat.Mangle(ctx, schemeName, dr.Tree, nil)
+	if mErr != nil {
+		s.health.errors.Add(1)
+		return &pb.MangleResponse{Error: mErr.Error()}, nil
+	}
+
+	s.health.bytesOut.Add(uint64(len(mr.Output)))
+	v, _ := s.health.perScheme.LoadOrStore(schemeName, &atomic.Uint64{})
+	v.(*atomic.Uint64).Add(1)
+
+	return &pb.MangleResponse{Mangled: mr.Output}, nil
+}
+
 func (s *service) Detect(ctx context.Context, req *pb.DetectRequest) (*pb.DetectResponse, error) {
 	cands := s.cat.Detect(req.GetInput(), demangle.DetectOptions{
 		MaxCandidates:    int(req.GetMaxCandidates()),

@@ -29,6 +29,7 @@ const (
 	Demangle_UploadContext_FullMethodName  = "/demangle.v1.Demangle/UploadContext"
 	Demangle_ListContexts_FullMethodName   = "/demangle.v1.Demangle/ListContexts"
 	Demangle_DeleteContext_FullMethodName  = "/demangle.v1.Demangle/DeleteContext"
+	Demangle_Mangle_FullMethodName         = "/demangle.v1.Demangle/Mangle"
 )
 
 // DemangleClient is the client API for Demangle service.
@@ -36,10 +37,7 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 //
 // Demangle is the wire-level mirror of the github.com/jelmerdehen/demangle
-// library surface. No Mangle RPC on day one — the library's Mangle is
-// round-trip-test-only until a concrete caller needs wire access.
-// When that happens, Mangle lands on BOTH GraphQL and gRPC in the
-// same PR (symmetry rule from the v5.1 plan).
+// library surface.
 type DemangleClient interface {
 	Demangle(ctx context.Context, in *Request, opts ...grpc.CallOption) (*Response, error)
 	Detect(ctx context.Context, in *DetectRequest, opts ...grpc.CallOption) (*DetectResponse, error)
@@ -48,6 +46,10 @@ type DemangleClient interface {
 	UploadContext(ctx context.Context, in *UploadContextRequest, opts ...grpc.CallOption) (*UploadContextResponse, error)
 	ListContexts(ctx context.Context, in *ListContextsRequest, opts ...grpc.CallOption) (*ListContextsResponse, error)
 	DeleteContext(ctx context.Context, in *DeleteContextRequest, opts ...grpc.CallOption) (*Empty, error)
+	// Mangle is the inverse of Demangle. The caller supplies a raw demangled
+	// symbol string (req.input) and the target scheme (req.scheme); the server
+	// demangling-parses it to a Node tree and then re-mangles it.
+	Mangle(ctx context.Context, in *MangleRequest, opts ...grpc.CallOption) (*MangleResponse, error)
 }
 
 type demangleClient struct {
@@ -131,15 +133,22 @@ func (c *demangleClient) DeleteContext(ctx context.Context, in *DeleteContextReq
 	return out, nil
 }
 
+func (c *demangleClient) Mangle(ctx context.Context, in *MangleRequest, opts ...grpc.CallOption) (*MangleResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(MangleResponse)
+	err := c.cc.Invoke(ctx, Demangle_Mangle_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // DemangleServer is the server API for Demangle service.
 // All implementations must embed UnimplementedDemangleServer
 // for forward compatibility.
 //
 // Demangle is the wire-level mirror of the github.com/jelmerdehen/demangle
-// library surface. No Mangle RPC on day one — the library's Mangle is
-// round-trip-test-only until a concrete caller needs wire access.
-// When that happens, Mangle lands on BOTH GraphQL and gRPC in the
-// same PR (symmetry rule from the v5.1 plan).
+// library surface.
 type DemangleServer interface {
 	Demangle(context.Context, *Request) (*Response, error)
 	Detect(context.Context, *DetectRequest) (*DetectResponse, error)
@@ -148,6 +157,10 @@ type DemangleServer interface {
 	UploadContext(context.Context, *UploadContextRequest) (*UploadContextResponse, error)
 	ListContexts(context.Context, *ListContextsRequest) (*ListContextsResponse, error)
 	DeleteContext(context.Context, *DeleteContextRequest) (*Empty, error)
+	// Mangle is the inverse of Demangle. The caller supplies a raw demangled
+	// symbol string (req.input) and the target scheme (req.scheme); the server
+	// demangling-parses it to a Node tree and then re-mangles it.
+	Mangle(context.Context, *MangleRequest) (*MangleResponse, error)
 	mustEmbedUnimplementedDemangleServer()
 }
 
@@ -178,6 +191,9 @@ func (UnimplementedDemangleServer) ListContexts(context.Context, *ListContextsRe
 }
 func (UnimplementedDemangleServer) DeleteContext(context.Context, *DeleteContextRequest) (*Empty, error) {
 	return nil, status.Error(codes.Unimplemented, "method DeleteContext not implemented")
+}
+func (UnimplementedDemangleServer) Mangle(context.Context, *MangleRequest) (*MangleResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method Mangle not implemented")
 }
 func (UnimplementedDemangleServer) mustEmbedUnimplementedDemangleServer() {}
 func (UnimplementedDemangleServer) testEmbeddedByValue()                  {}
@@ -315,6 +331,24 @@ func _Demangle_DeleteContext_Handler(srv interface{}, ctx context.Context, dec f
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Demangle_Mangle_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MangleRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DemangleServer).Mangle(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Demangle_Mangle_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DemangleServer).Mangle(ctx, req.(*MangleRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Demangle_ServiceDesc is the grpc.ServiceDesc for Demangle service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -345,6 +379,10 @@ var Demangle_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeleteContext",
 			Handler:    _Demangle_DeleteContext_Handler,
+		},
+		{
+			MethodName: "Mangle",
+			Handler:    _Demangle_Mangle_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{
