@@ -3896,6 +3896,20 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 	}
 	constraintBytes := []byte(p.s[scan:eFound])
 	p.i = eFound + 1 // past 'E'
+	// Populate subs from stdlib types in constraint bytes so that
+	// A<idx> refs in params/result resolve correctly. Apple's demangler
+	// pushes every type it encounters during generic-sig parsing.
+	// Narrow heuristic: push each 'S<letter>' stdlib nominal type found
+	// in the raw constraint bytes (e.g. "Sd" → Swift.Double → subs[3]).
+	for ci := 0; ci+1 < len(constraintBytes); ci++ {
+		if constraintBytes[ci] == 'S' {
+			letter := constraintBytes[ci+1]
+			if n, ok := common.BuildStdlibNominal(letter); ok {
+				p.subs.Push(n)
+				ci++ // skip the letter byte
+			}
+		}
+	}
 	// Parse decl-name and push to subs.
 	declName, err := p.parseIdentifier()
 	if err != nil {
@@ -3943,8 +3957,10 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 		}
 		retNode = t
 	}
-	// Params-type.
+	// Params-type: may be empty, a single type, or a multi-element
+	// tuple encoded as <type> ('_' <type>)* 't'.
 	var paramsNode *demangle.Node
+	var paramTypes []*demangle.Node
 	if p.paramsSlotIsEmpty() {
 		p.i++
 		paramsNode = common.NewNode(common.KindEmptyList)
@@ -3954,7 +3970,37 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 			restore()
 			return nil, false, nil
 		}
-		paramsNode = t
+		paramTypes = append(paramTypes, t)
+		// Consume additional tuple elements separated by '_'.
+		for !p.eof() && p.s[p.i] == '_' {
+			p.i++ // consume '_'
+			if p.eof() {
+				restore()
+				return nil, false, nil
+			}
+			if p.s[p.i] == 't' {
+				// '_t' without a following type — shouldn't happen in
+				// well-formed input but tolerate by treating as terminator.
+				break
+			}
+			elem, eerr := p.parseType()
+			if eerr != nil {
+				restore()
+				return nil, false, nil
+			}
+			paramTypes = append(paramTypes, elem)
+		}
+		// Tuple terminator 't' (only present when > 1 element).
+		if !p.eof() && p.s[p.i] == 't' {
+			p.i++ // consume 't'
+		}
+		if len(paramTypes) == 1 {
+			paramsNode = paramTypes[0]
+		} else {
+			tl := common.NewNode(common.KindTypeList)
+			common.AddChildren(tl, paramTypes...)
+			paramsNode = tl
+		}
 	} else {
 		paramsNode = common.NewNode(common.KindEmptyList)
 	}
@@ -3970,17 +4016,38 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 	}
 	p.i++
 	// Render.
+	opts := common.DefaultPrintOptions()
+	sig, sameTypeConstraint := extractConstraintSigFull(constraintBytes)
 	hostQualified := modName + "." + hostName
-	// Parse constraint bytes into a simple where-clause.
-	sig := extractConstraintSig(constraintBytes)
-	paramsStr := "()"
-	if common.NodeKind(paramsNode.Kind) != common.KindEmptyList {
-		paramsStr = "(" + common.Print(paramsNode, common.DefaultPrintOptions()) + ")"
+	if sameTypeConstraint != "" {
+		hostQualified += "<" + sameTypeConstraint + ">"
 	}
-	_ = labels
+	// Build params string, applying labels when present.
+	var paramsStr string
+	switch {
+	case paramsNode == nil || common.NodeKind(paramsNode.Kind) == common.KindEmptyList:
+		paramsStr = "()"
+	case common.NodeKind(paramsNode.Kind) == common.KindTypeList:
+		var parts []string
+		for idx, c := range paramsNode.Children {
+			s := common.Print(c, opts)
+			if idx < len(labels) && labels[idx] != "" {
+				parts = append(parts, labels[idx]+": "+s)
+			} else {
+				parts = append(parts, s)
+			}
+		}
+		paramsStr = "(" + strings.Join(parts, ", ") + ")"
+	default:
+		s := common.Print(paramsNode, opts)
+		if len(labels) > 0 && labels[0] != "" {
+			s = labels[0] + ": " + s
+		}
+		paramsStr = "(" + s + ")"
+	}
 	retStr := "()"
-	if common.NodeKind(retNode.Kind) != common.KindEmptyList {
-		retStr = common.Print(retNode, common.DefaultPrintOptions())
+	if retNode != nil && common.NodeKind(retNode.Kind) != common.KindEmptyList {
+		retStr = common.Print(retNode, opts)
 	}
 	wrap := common.NewNode(common.KindTypeMangling)
 	wrap.Text = "(extension in " + modName + "):" + hostQualified + sig +
@@ -4051,6 +4118,35 @@ func extractConstraintSig(b []byte) string {
 		proto = fmt.Sprintf("Swift.<bit %d>", idx)
 	}
 	return "< where A." + name + ": ~" + proto + ">"
+}
+
+// extractConstraintSigFull extends extractConstraintSig to also
+// recognise 'Rs' (same-type requirement) in addition to 'Rj'
+// (inverse/bitwise requirement). Returns (sig, sameTypeConstraint)
+// where sameTypeConstraint is the concrete type string (e.g.
+// "Swift.Double") when an Rs constraint is found, or "" otherwise.
+func extractConstraintSigFull(b []byte) (sig, sameTypeConstraint string) {
+	s := string(b)
+	// Same-type requirement: '<S<letter>> Rs z' encodes "A == <stdlib-type>".
+	rs := strings.Index(s, "Rs")
+	if rs >= 0 && rs+2 < len(s) {
+		subjectByte := s[rs+2]
+		var paramName string
+		switch subjectByte {
+		case 'z':
+			paramName = "A"
+		}
+		if paramName != "" && rs >= 2 && s[rs-2] == 'S' {
+			letter := s[rs-1]
+			if nomNode, ok := common.BuildStdlibNominal(letter); ok {
+				concreteType := common.Print(nomNode, common.DefaultPrintOptions())
+				sig = "<" + paramName + " where " + paramName + " == " + concreteType + ">"
+				return sig, concreteType
+			}
+		}
+	}
+	// Fall back to Rj-based inverse constraint.
+	return extractConstraintSig(b), ""
 }
 
 // tryFunctionEntity attempts to match:
@@ -4559,6 +4655,7 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 			// and treat as real params-type.
 			specSave := p.i
 			specSubs := p.subs
+			specWords := p.words
 			if tt, terr := p.parseType(); terr == nil && !p.eof() &&
 				p.i+1 < len(p.s) && p.s[p.i] == 'Y' && p.s[p.i+1] == 'K' {
 				p.i += 2
@@ -4569,6 +4666,7 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 			}
 			p.i = specSave
 			p.subs = specSubs
+			p.words = specWords
 			x, err := p.parseType()
 			if err != nil {
 				revert()
@@ -5509,6 +5607,19 @@ afterNestedLoop:
 		p.subs.Push(wrap)
 		node = wrap
 	}
+	// Metatype postfix: 'm' = Metatype (renders as "<type>.Type").
+	// Lowercase only — uppercase 'M' opens entity-suffix sequences
+	// (Mn, Ma, MD, …) and must not be consumed here.
+	if !p.eof() && p.s[p.i] == 'm' {
+		p.i++
+		innerStr := common.Print(node, common.DefaultPrintOptions())
+		wrap := common.NewNode(common.KindType)
+		tn := common.NewNode(common.KindBuiltinTypeName)
+		tn.Text = innerStr + ".Type"
+		common.AddChildren(wrap, tn)
+		p.subs.Push(wrap)
+		node = wrap
+	}
 	return node, nil
 }
 
@@ -5663,13 +5774,13 @@ func (p *parser) skipConformanceRef() bool {
 	if !looksLike {
 		return false
 	}
-	// Scan forward for 'g' followed by optional digits + '_' —
-	// the conformance-ref metadata terminator. Cap at 80 bytes to
-	// avoid runaway consumption.
+	// Find the terminator: 'g' followed by optional digits + '_'.
+	// Cap at 80 bytes.
 	limit := start + 80
 	if limit > len(p.s) {
 		limit = len(p.s)
 	}
+	end := -1
 	for j := start; j < limit; j++ {
 		if p.s[j] != 'g' {
 			continue
@@ -5679,40 +5790,182 @@ func (p *parser) skipConformanceRef() bool {
 			k++
 		}
 		if k < len(p.s) && p.s[k] == '_' {
-			// Before advancing, push any protocol identifiers embedded in
-			// the conformance block so our subs table stays aligned with
-			// Apple's. Apple calls addSubstitution for every identifier it
-			// parses (including 's<len><name>' protocol refs inside the
-			// block). Scan for 's<digits><name>' patterns and push each.
-			block := p.s[start : k+1]
-			for bi := 0; bi < len(block); bi++ {
-				if block[bi] != 's' {
-					continue
-				}
-				ni := bi + 1
-				digStart := ni
-				for ni < len(block) && block[ni] >= '0' && block[ni] <= '9' {
-					ni++
-				}
-				if ni == digStart || ni >= len(block) {
-					continue
-				}
-				nameLen := 0
-				for _, d := range block[digStart:ni] {
-					nameLen = nameLen*10 + int(d-'0')
-				}
-				if nameLen <= 0 || ni+nameLen > len(block) {
-					continue
-				}
-				name := block[ni : ni+nameLen]
-				p.subs.Push(common.NewIdentifier(name))
-				bi = ni + nameLen - 1
-			}
-			p.i = k + 1
-			return true
+			end = k + 1
+			break
 		}
 	}
-	return false
+	if end < 0 {
+		return false
+	}
+	// Parse the conformance block, mirroring the substitutions Apple's
+	// demangler pushes. Apple calls addSubstitution for every identifier
+	// it parses during conformance reference demangling. We replay the
+	// key pushes so that subsequent A<idx>_ references resolve correctly.
+	//
+	// Common patterns in a retroactive conformance block:
+	//   A<lower>+<upper>    multi-sub: lowercase pushes, uppercase returns.
+	//   <digit>+<name>      plain identifier — pushed as Ident or nominal.
+	//   0<word-refs><chunk>0 word-sub identifier.
+	//   's'<len><name>       stdlib-module ident.
+	//   x / q...            generic params — not pushed.
+	//   H<kind>...           conformance-kind markers — consumed silently.
+	//
+	// We track the last resolved sub (from A-chains) as the "current
+	// context module" for subsequent identifier + kind-byte parsing.
+	p.i = start
+	var ctxModule *demangle.Node // last A<upper>-resolved module/context
+	for p.i < end {
+		c := p.s[p.i]
+		// Multi-sub A<letter+>: lowercase pushes copies, uppercase returns.
+		if c == 'A' {
+			p.i++
+			if p.i >= end {
+				break
+			}
+			var lastReturned *demangle.Node
+			for p.i < end {
+				lc := p.s[p.i]
+				if lc >= 'a' && lc <= 'z' {
+					idx := int(lc - 'a')
+					if n, ok := p.subs.Get(idx); ok {
+						p.subs.Push(n)
+					}
+					p.i++
+					continue
+				}
+				if lc >= 'A' && lc <= 'Z' {
+					idx := int(lc - 'A')
+					if n, ok := p.subs.Get(idx); ok {
+						lastReturned = n
+					}
+					p.i++
+					break
+				}
+				break
+			}
+			// Track returned sub as current context if it's a module/ident.
+			if lastReturned != nil {
+				nk := common.NodeKind(lastReturned.Kind)
+				if nk == common.KindModule || nk == common.KindIdentifier {
+					ctxModule = lastReturned
+					if nk == common.KindIdentifier {
+						ctxModule = common.NewModule(lastReturned.Text)
+					}
+				}
+			}
+			continue
+		}
+		// Entity-suffix H<kind> — skip H + kind-byte + optional index + '_'.
+		if c == 'H' && p.i+1 < end {
+			p.i += 2 // H + kind
+			for p.i < end && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+				p.i++
+			}
+			if p.i < end && p.s[p.i] == '_' {
+				p.i++
+			}
+			ctxModule = nil // reset context after conformance-kind marker
+			continue
+		}
+		// 'x' generic-param — skip.
+		if c == 'x' {
+			p.i++
+			continue
+		}
+		// 'q' generic-param — skip including index/depth suffix.
+		if c == 'q' {
+			p.i++
+			if p.i < end && p.s[p.i] == 'd' {
+				p.i++
+			}
+			for p.i < end && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+				p.i++
+			}
+			if p.i < end && p.s[p.i] == '_' {
+				p.i++
+			}
+			continue
+		}
+		// '_' separator — skip.
+		if c == '_' {
+			p.i++
+			continue
+		}
+		// Identifier: digit-led, '0' word-sub, or 's'-prefixed (stdlib).
+		// Parse via parseIdentifier and push the Ident (and nominal) to subs.
+		if c == 's' || c == '0' || (c >= '1' && c <= '9') {
+			savePos := p.i
+			name, err := p.parseIdentifier()
+			if err != nil || p.i > end {
+				p.i = savePos + 1
+				continue
+			}
+			// Determine context module: prefer ctxModule (from last A-ref)
+			// over searching subs backwards.
+			modForNominal := ctxModule
+			if modForNominal == nil {
+				for ii := p.subs.Len() - 1; ii >= 0; ii-- {
+					n, ok := p.subs.Get(ii)
+					if ok && n != nil && (common.NodeKind(n.Kind) == common.KindModule) {
+						modForNominal = n
+						break
+					}
+				}
+			}
+			// Check for nominal-kind or entity-suffix byte after ident.
+			if p.i < end {
+				kb := p.s[p.i]
+				if kb == 'V' || kb == 'C' || kb == 'O' || kb == 'P' {
+					p.i++
+					var nk common.NodeKind
+					switch kb {
+					case 'V':
+						nk = common.KindStructure
+					case 'C':
+						nk = common.KindClass
+					case 'O':
+						nk = common.KindEnum
+					case 'P':
+						nk = common.KindProtocol
+					}
+					identNode := common.NewIdentifier(name)
+					p.subs.Push(identNode)
+					if modForNominal != nil {
+						nom := common.NewNode(nk)
+						common.AddChildren(nom, modForNominal, identNode)
+						typ := common.NewNode(common.KindType)
+						common.AddChildren(typ, nom)
+						p.subs.Push(typ)
+					}
+					ctxModule = nil
+					continue
+				}
+				if entitySuffixStart(kb) {
+					identNode := common.NewIdentifier(name)
+					p.subs.Push(identNode)
+					if modForNominal != nil {
+						nom := common.NewNode(common.KindProtocol)
+						common.AddChildren(nom, modForNominal, identNode)
+						typ := common.NewNode(common.KindType)
+						common.AddChildren(typ, nom)
+						p.subs.Push(typ)
+					}
+					ctxModule = nil
+					continue
+				}
+			}
+			// Identifier not followed by kind-byte or entity-suffix:
+			// consumed as context (Apple uses it as a name reference but
+			// does NOT call addSubstitution for bare identifiers in
+			// conformance-ref blocks — only full nominals are pushed).
+			ctxModule = nil
+			continue
+		}
+		// Other uppercase or special — skip one byte.
+		p.i++
+	}
+	p.i = end
+	return true
 }
 
 func (p *parser) tryBoundGeneric(base *demangle.Node) (*demangle.Node, bool, error) {
@@ -7581,6 +7834,7 @@ func (p *parser) tryPostfixFunctionType(node *demangle.Node) (*demangle.Node, bo
 		if c != 'Y' {
 			specSave := p.i
 			specSubs := p.subs
+			specWords := p.words
 			if at, terr := p.parseType(); terr == nil && !p.eof() &&
 				p.i+1 < len(p.s) && p.s[p.i] == 'Y' && p.s[p.i+1] == 'c' {
 				p.i += 2
@@ -7589,6 +7843,7 @@ func (p *parser) tryPostfixFunctionType(node *demangle.Node) (*demangle.Node, bo
 			}
 			p.i = specSave
 			p.subs = specSubs
+			p.words = specWords
 			break
 		}
 		if p.i+1 >= len(p.s) {
