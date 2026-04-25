@@ -251,6 +251,15 @@ type parser struct {
 	// names holds the seen names (in order of first appearance) so
 	// MSVC digit backrefs 0..9 can resolve.
 	names []string
+	// tplArgs holds the per-template-instantiation type-backref memo.
+	// Within a single template arg list, a bare digit 0..9 refers to
+	// the Nth entry in this slice (0-indexed, order of first appearance).
+	// Only "multi-byte" arg representations are recorded (class/struct/union
+	// types, pointer/reference types, extended primitives like _N/_W); single-
+	// byte primitives (H, D, X, …) are NOT recorded, matching MSVC behaviour.
+	// The slice is replaced per parseTemplate call (each template instantiation
+	// has its own memo) and restored on return.
+	tplArgs []string
 }
 
 func (p *parser) eof() bool { return p.i >= len(p.s) }
@@ -367,6 +376,8 @@ func (p *parser) parseNameChain() ([]string, error) {
 //   - user-defined class/struct/union/enum: 'V'|'U'|'T'|'W4' followed
 //     by a scope chain "<name>@<name>@…@@" resolving to "N1::N2".
 //   - integer constant: '$0<digits>@' or '$00' / '$0?...@' (narrow).
+//   - template-arg type backref: bare digit 0..9 references the Nth
+//     previously-seen multi-byte arg in this template's own memo.
 //
 // Covers common std::vector<int>, std::basic_string<char, ...>,
 // std::shared_ptr<Foo>, std::map<Foo, int>, container<N>, etc.
@@ -384,6 +395,13 @@ func (p *parser) parseTemplate() (string, error) {
 		return "", p.grammarErr("'@' after template name")
 	}
 	p.i++ // consume '@'
+
+	// Each template instantiation has its own type-backref memo.
+	// Save the caller's memo and install a fresh one; restore on return.
+	savedTplArgs := p.tplArgs
+	p.tplArgs = nil
+	defer func() { p.tplArgs = savedTplArgs }()
+
 	var args []string
 	for !p.eof() {
 		// Template arg list ends at '@' (followed by outer-scope chain
@@ -392,12 +410,16 @@ func (p *parser) parseTemplate() (string, error) {
 			p.i++
 			break
 		}
-		arg, ok, err := p.parseTemplateArg()
+		arg, ok, multiByteArg, err := p.parseTemplateArg()
 		if err != nil {
 			return "", err
 		}
 		if !ok {
 			break
+		}
+		// Record multi-byte args in the per-template backref memo (up to 10).
+		if multiByteArg && len(p.tplArgs) < 10 {
+			p.tplArgs = append(p.tplArgs, arg)
 		}
 		args = append(args, arg)
 	}
@@ -405,14 +427,36 @@ func (p *parser) parseTemplate() (string, error) {
 }
 
 // parseTemplateArg reads one template argument. Returns (text, matched,
-// err). matched=false means we hit a byte we don't know how to parse
-// as an arg; the caller stops collecting args. Always returns a clean
-// parser position on ok=true.
-func (p *parser) parseTemplateArg() (string, bool, error) {
+// multiByteArg, err).
+//
+//   - matched=false means we hit a byte we don't know how to parse as an
+//     arg; the caller stops collecting args.
+//   - multiByteArg=true when the arg occupies more than one byte in the
+//     wire encoding (class/struct/union types, pointer types, extended
+//     two-byte primitives like _N/_W/_J). Single-byte primitives (H, D,
+//     X, …) and integer constants return multiByteArg=false. Only multi-
+//     byte args are entered into the per-template type-backref memo.
+//
+// Always returns a clean parser position on matched=true.
+func (p *parser) parseTemplateArg() (string, bool, bool, error) {
 	if p.eof() {
-		return "", false, nil
+		return "", false, false, nil
 	}
 	c := p.s[p.i]
+
+	// Template-arg type backref: bare digit 0..9.
+	// Each template instantiation has its own memo (p.tplArgs); a digit
+	// here references the Nth previously-seen multi-byte type arg.
+	if c >= '0' && c <= '9' {
+		idx := int(c - '0')
+		p.i++
+		if idx >= len(p.tplArgs) {
+			return "", false, false, p.grammarErr("valid template-arg backref index")
+		}
+		// Backrefs themselves are not re-entered into the memo.
+		return p.tplArgs[idx], true, false, nil
+	}
+
 	// Class/struct/union/enum: 'V'/'U'/'T' + scope + '@@'.
 	// MSVC syntax: "Vclass@ns1@@" = "ns1::class".
 	if c == 'V' || c == 'U' || c == 'T' {
@@ -421,9 +465,9 @@ func (p *parser) parseTemplateArg() (string, bool, error) {
 		chain, err := p.parseNameChain()
 		if err != nil {
 			p.i = saveI
-			return "", false, err
+			return "", false, false, err
 		}
-		return strings.Join(reverse(chain), "::"), true, nil
+		return strings.Join(reverse(chain), "::"), true, true, nil
 	}
 	// Integer constant: '$0<digits>@' (positive) or '$0?<digits>@'
 	// (negative). We keep it narrow — just digits.
@@ -442,18 +486,18 @@ func (p *parser) parseTemplateArg() (string, bool, error) {
 		if digitStart == p.i {
 			// '$0?' with no digits, or bare '$0'. Back out.
 			p.i = saveI
-			return "", false, nil
+			return "", false, false, nil
 		}
 		if p.eof() || p.s[p.i] != '@' {
 			p.i = saveI
-			return "", false, nil
+			return "", false, false, nil
 		}
 		digits := p.s[digitStart:p.i]
 		p.i++ // consume '@'
 		if neg {
-			return "-" + digits, true, nil
+			return "-" + digits, true, false, nil
 		}
-		return digits, true, nil
+		return digits, true, false, nil
 	}
 	// Pointer to primitive: "PA<cv><prim>".
 	if c == 'P' && p.i+2 < len(p.s) {
@@ -466,14 +510,14 @@ func (p *parser) parseTemplateArg() (string, bool, error) {
 				if !p.eof() && p.s[p.i] == '@' {
 					p.i++
 				}
-				return base + "*", true, nil
+				return base + "*", true, true, nil
 			}
 			if pt, n := primitiveTypeNameExt(p.s[p.i:]); pt != "" {
 				p.i += n
 				if !p.eof() && p.s[p.i] == '@' {
 					p.i++
 				}
-				return pt + "*", true, nil
+				return pt + "*", true, true, nil
 			}
 		}
 		p.i = saveI
@@ -485,7 +529,7 @@ func (p *parser) parseTemplateArg() (string, bool, error) {
 			if !p.eof() && p.s[p.i] == '@' {
 				p.i++
 			}
-			return pt, true, nil
+			return pt, true, true, nil
 		}
 	}
 	// Single-byte primitive.
@@ -494,9 +538,9 @@ func (p *parser) parseTemplateArg() (string, bool, error) {
 		if !p.eof() && p.s[p.i] == '@' {
 			p.i++
 		}
-		return base, true, nil
+		return base, true, false, nil
 	}
-	return "", false, nil
+	return "", false, false, nil
 }
 
 // primitiveTypeName returns the MSVC primitive-type byte's C/C++

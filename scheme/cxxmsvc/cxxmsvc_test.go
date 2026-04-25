@@ -285,6 +285,66 @@ func TestMSVCExtendedPrimitives(t *testing.T) {
 	}
 }
 
+// TestMSVCTemplateArgBackrefs covers M2: template-arg type backrefs.
+//
+// Within a template argument list, a bare digit 0..9 refers back to the Nth
+// previously-seen "multi-byte" type argument (class/struct/union, pointer, or
+// extended two-byte primitive).  Single-byte primitives (H, D, X, …) and
+// integer NTTPs ($0…) are NOT entered into the per-template memo.
+//
+// LLVM's undname explicitly does not implement this feature ("Template
+// parameter lists don't participate in back-referencing" — MicrosoftDemangle.cpp).
+// These fixtures are manufactured test cases whose expected values are derived
+// from first principles and validated against Ghidra's MDMang implementation,
+// which does support this encoding.
+func TestMSVCTemplateArgBackrefs(t *testing.T) {
+	t.Parallel()
+	cat := newCatalog(t)
+	cases := []struct {
+		in, want string
+	}{
+		// $0: second arg is backref to first (class Foo).
+		{"?fn@?$A@VFoo@@0@@@YAXXZ", "void __cdecl A<Foo, Foo>::fn(void)"},
+		// $0 at position 2: third arg backrefs to first (Foo).
+		{"?fn@?$A@VFoo@@VBar@@0@@@YAXXZ", "void __cdecl A<Foo, Bar, Foo>::fn(void)"},
+		// $1 then $0: third arg = Bar (memo[1]), fourth arg = Foo (memo[0]).
+		{"?fn@?$A@VFoo@@VBar@@10@@@YAXXZ", "void __cdecl A<Foo, Bar, Bar, Foo>::fn(void)"},
+		// $0 twice: all three args are Foo.
+		{"?fn@?$A@VFoo@@00@@@YAXXZ", "void __cdecl A<Foo, Foo, Foo>::fn(void)"},
+		// Pointer type (PA<cv><prim>) is multi-byte → enters memo; $0 backrefs int*.
+		{"?fn@?$A@PAH0@@@YAXXZ", "void __cdecl A<int*, int*>::fn(void)"},
+		// Extended two-byte primitive _W (wchar_t) is multi-byte → enters memo; $0 backrefs it.
+		{"?fn@?$A@_W0@@@YAXXZ", "void __cdecl A<wchar_t, wchar_t>::fn(void)"},
+		// Extended two-byte primitive _J (__int64) → enters memo; $0 backrefs it.
+		{"?fn@?$A@_J0@@@YAXXZ", "void __cdecl A<__int64, __int64>::fn(void)"},
+		// Single-byte primitive H (int) does NOT enter memo; Foo is memo[0].
+		{"?fn@?$A@HVFoo@@0@@@YAXXZ", "void __cdecl A<int, Foo, Foo>::fn(void)"},
+		// Three classes in memo; backrefs 0, 1, 2 reconstruct them in order.
+		{"?fn@?$A@VFoo@@VBar@@VBaz@@012@@@YAXXZ", "void __cdecl A<Foo, Bar, Baz, Foo, Bar, Baz>::fn(void)"},
+		// Nested template: each template instantiation has its own fresh memo.
+		// inner<Foo, Foo> uses inner's memo (Foo=0). outer's memo gets
+		// inner<Foo,Foo> as memo[0]; $0 in outer's arg list → inner<Foo,Foo>.
+		{"?fn@?$outer@V?$inner@VFoo@@0@@@0@@@YAXXZ", "void __cdecl outer<inner<Foo, Foo>, inner<Foo, Foo>>::fn(void)"},
+		// Integer NTTP ($07@) is NOT added to the memo; Foo is memo[0]; $0 → Foo.
+		{"?fn@?$A@$07@VFoo@@0@@@YAXXZ", "void __cdecl A<7, Foo, Foo>::fn(void)"},
+		// Four classes; reverse backrefs 3, 2, 1, 0.
+		{"?fn@?$A@VFoo@@VBar@@VBaz@@VQux@@3210@@@YAXXZ", "void __cdecl A<Foo, Bar, Baz, Qux, Qux, Baz, Bar, Foo>::fn(void)"},
+	}
+	for _, c := range cases {
+		c := c
+		t.Run(c.in, func(t *testing.T) {
+			t.Parallel()
+			r, err := cat.Demangle(context.Background(), c.in, nil)
+			if err != nil {
+				t.Fatalf("demangle: %v", err)
+			}
+			if r.Output != c.want {
+				t.Fatalf("output = %q, want %q", r.Output, c.want)
+			}
+		})
+	}
+}
+
 func FuzzMSVC(f *testing.F) {
 	seeds := []string{
 		"?foo@@YAXXZ",
@@ -293,6 +353,10 @@ func FuzzMSVC(f *testing.F) {
 		"",
 		"?",
 		"?invalid",
+		// M2 template-arg backref seeds.
+		"?fn@?$A@VFoo@@0@@@YAXXZ",
+		"?fn@?$A@VFoo@@VBar@@10@@@YAXXZ",
+		"?fn@?$outer@V?$inner@VFoo@@0@@@0@@@YAXXZ",
 	}
 	for _, s := range seeds {
 		f.Add(s)
