@@ -3896,13 +3896,32 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 	}
 	constraintBytes := []byte(p.s[scan:eFound])
 	p.i = eFound + 1 // past 'E'
-	// Populate subs from stdlib types in constraint bytes so that
-	// A<idx> refs in params/result resolve correctly. Apple's demangler
-	// pushes every type it encounters during generic-sig parsing.
-	// Narrow heuristic: push each 'S<letter>' stdlib nominal type found
-	// in the raw constraint bytes (e.g. "Sd" → Swift.Double → subs[3]).
+	// Populate subs from types in constraint bytes so that A<idx> refs
+	// in params/result resolve correctly. Apple's demangler pushes every
+	// type it encounters during generic-sig parsing.
+	// Heuristic: push each 'A<letter>' multi-sub (resolved from current
+	// subs table) and each 'S<letter>' stdlib nominal type found in the
+	// raw constraint bytes (e.g. "AA" → re-push subs[0], "Sd" → Swift.Double).
 	for ci := 0; ci+1 < len(constraintBytes); ci++ {
-		if constraintBytes[ci] == 'S' {
+		switch constraintBytes[ci] {
+		case 'A':
+			letter := constraintBytes[ci+1]
+			if letter >= 'A' && letter <= 'Z' {
+				idx := int(letter - 'A')
+				if n, ok := p.subs.Get(idx); ok {
+					p.subs.Push(n)
+				}
+				ci++ // skip letter
+			} else if letter >= 'a' && letter <= 'z' {
+				// Lowercase 'a' = push sub and continue loop; uppercase = terminal.
+				// For simplicity just push the resolved sub for each letter.
+				idx := int(letter - 'a')
+				if n, ok := p.subs.Get(idx); ok {
+					p.subs.Push(n)
+				}
+				ci++ // skip letter
+			}
+		case 'S':
 			letter := constraintBytes[ci+1]
 			if n, ok := common.BuildStdlibNominal(letter); ok {
 				p.subs.Push(n)
@@ -3971,22 +3990,29 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 			return nil, false, nil
 		}
 		paramTypes = append(paramTypes, t)
-		// Consume additional tuple elements separated by '_'.
-		for !p.eof() && p.s[p.i] == '_' {
-			p.i++ // consume '_'
-			if p.eof() {
-				restore()
-				return nil, false, nil
+		// Consume additional tuple elements. In Swift ABI, a multi-element
+		// tuple terminates with 't'. Between elements, an optional '_' byte
+		// may appear as a disambiguation separator. Parse types consecutively
+		// (skipping any '_') until we see 't' (tuple end) or a non-type byte.
+		//
+		// We speculatively try to parse each element; on failure we stop
+		// (the remaining byte will be 'F' or another terminal).
+		for !p.eof() && p.s[p.i] != 't' && p.s[p.i] != 'F' {
+			// Skip optional '_' separator between tuple elements.
+			if p.s[p.i] == '_' {
+				p.i++
+				if p.eof() || p.s[p.i] == 't' {
+					break
+				}
 			}
-			if p.s[p.i] == 't' {
-				// '_t' without a following type — shouldn't happen in
-				// well-formed input but tolerate by treating as terminator.
-				break
-			}
+			elemSave := p.i
+			elemSubs := p.subs
 			elem, eerr := p.parseType()
 			if eerr != nil {
-				restore()
-				return nil, false, nil
+				// Not a valid type — stop tuple parsing here.
+				p.i = elemSave
+				p.subs = elemSubs
+				break
 			}
 			paramTypes = append(paramTypes, elem)
 		}
@@ -5420,11 +5446,16 @@ func (p *parser) parseType() (*demangle.Node, error) {
 		isGenParam := nk == common.KindDependentGenericParamType ||
 			(nk == common.KindType && len(node.Children) == 1 &&
 				common.NodeKind(node.Children[0].Kind) == common.KindDependentGenericParamType)
-		// Raw stdlib type: KindType wrapping one of the known stdlib
-		// nominals (Struct/Class/Enum) that came from BuildStdlibNominal.
-		isRawStdlib := (nk == common.KindType || nk == common.KindStructure ||
-			nk == common.KindClass || nk == common.KindEnum) && c == 'S'
-		if !isGenParam && !isRawStdlib {
+		// Raw stdlib type: only a bare S<letter> substitution (not
+		// So/Sc module-shortcut forms which produce named Clang/concurrency
+		// types that should be pushed). parsedRawStdlib is set above.
+		// Apple's demangler pushes ALL nominal types including stdlib ones
+		// when they appear as bound-generic type args or in constraint sigs.
+		// We skip the push only for standalone bare S<letter> uses at the
+		// top type level (i.e. parsedRawStdlib=true AND not inside a bound-
+		// generic context). For simplicity, always push: the extra entries
+		// only affect back-reference resolution, not display.
+		if !isGenParam {
 			p.subs.Push(node)
 		}
 	}

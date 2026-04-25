@@ -118,10 +118,11 @@ func TestAppleCorpus(t *testing.T) {
 	// - R1: retroactive inverse-req HD/HI chain in conformance tail.
 	// - T3/K1: ConstantPropKeyPath pk sub-kind + closure chain "of" clause.
 	// - O2: WOe outlined-consume + @substituted impl-fn rendering.
+	// - E1: Vector2 static extension typealias + GD dynamic-self.
 	// - Stage 1 exit gate: equality check per line, zero tolerated
 	//   mismatches outside known-divergences.txt.
-	if matched < 142 {
-		t.Fatalf("expected ≥142 matches, got %d — parser regressed?", matched)
+	if matched < 143 {
+		t.Fatalf("expected ≥143 matches, got %d — parser regressed?", matched)
 	}
 	if mismatch > 0 {
 		t.Fatalf("%d mismatches — parser produced wrong output on a real fixture", mismatch)
