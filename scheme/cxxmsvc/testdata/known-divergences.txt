@@ -1,0 +1,65 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2026 Jelmer de Hen
+//
+// Known divergences between our cpp-msvc demangler and llvm-undname.
+// One mangled symbol per line; blank lines and //-comments are ignored.
+//
+// For each entry the cause of the divergence is noted inline.
+
+// --- Pointer / reference spacing ---
+// Our output: "int*"  llvm-undname: "int *"
+?foo@@YAXPAH@Z
+// Our output: "char const*"  llvm-undname: "char const *"
+?bar@@YAXPBD@Z
+// Our output: "int&"  llvm-undname: "int &"
+?ref@@YAXAAH@Z
+// Our output: "char const&"  llvm-undname: "char const &"
+?cref@@YAXABD@Z
+// Our output: "int& __cdecl Foo::at(void)"  llvm-undname: "int & __cdecl Foo::at(void)"
+?at@Foo@@YAAAHXZ
+// Our output: "char* __cdecl ..."  llvm-undname: "char * __cdecl ..."
+?data@?$basic_string@D@std@@YAPADXZ
+
+// --- Class-type prefix in template arguments ---
+// Our output: "std::shared_ptr<Foo>"  llvm-undname: "std::shared_ptr<class Foo>"
+?get@?$shared_ptr@VFoo@@@std@@YAXXZ
+// Our output: "Foo::operator=(Foo&)"  llvm-undname: "operator=(class Foo &)"
+??4Foo@@QEAAXAAV0@@Z
+
+// --- NTTP integer encoding ($0N@ is N+1, not N) ---
+// Our output: "std::array<int, 7>"  llvm-undname: "std::array<int, 8>"
+// MSVC $07@ encodes value 8 (the digit is offset by 1).
+?method@?$array@H$07@std@@YAXXZ
+
+// --- RTTI type descriptor (llvm-undname errors; we succeed) ---
+??_R0?AVFoo@@
+
+// --- Template-arg type backrefs (llvm-undname errors; we succeed) ---
+// LLVM explicitly does not implement intra-template-arg-list type backrefs.
+?fn@?$A@VFoo@@0@@@YAXXZ
+?fn@?$A@VFoo@@VBar@@0@@@YAXXZ
+?fn@?$A@VFoo@@VBar@@10@@@YAXXZ
+?fn@?$A@VFoo@@00@@@YAXXZ
+?fn@?$A@PAH0@@@YAXXZ
+?fn@?$A@_W0@@@YAXXZ
+?fn@?$A@_J0@@@YAXXZ
+?fn@?$A@HVFoo@@0@@@YAXXZ
+?fn@?$A@VFoo@@VBar@@VBaz@@012@@@YAXXZ
+?fn@?$outer@V?$inner@VFoo@@0@@@0@@@YAXXZ
+?fn@?$A@$07@VFoo@@0@@@YAXXZ
+?fn@?$A@VFoo@@VBar@@VBaz@@VQux@@3210@@@YAXXZ
+
+// --- Access qualifier byte mapping ---
+// C=protected: our "protected: void __cdecl C::m(void)"  llvm: error
+?m@C@@CAAXXZ
+// I=private static: our "private: static void __cdecl C::m(void)"  llvm: "protected: void __cdecl C::m(void)"
+?m@C@@IAAXXZ
+// K=protected static: our "protected: static void __cdecl C::m(void)"  llvm: error
+?m@C@@KAAXXZ
+// M=public static: our "public: static void __cdecl C::m(void)"  llvm: "protected: virtual void __cdecl C::m(void)"
+?m@C@@MAAXXZ
+
+// --- Extended primitive type mapping (_S / _T) ---
+// Our _S=char8_t, _T=char16_t; llvm _S=char16_t, _T=decltype(auto)
+?fn@@YAX_S@Z
+?fn@@YAX_T@Z

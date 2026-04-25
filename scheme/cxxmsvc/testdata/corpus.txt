@@ -1,0 +1,119 @@
+?foo@@YAXXZ ---> void __cdecl foo(void)
+?bar@@YAXH@Z ---> void __cdecl bar(int)
+?baz@@YAHXZ ---> int __cdecl baz(void)
+?qux@@YAHH@Z ---> int __cdecl qux(int)
+?fn@@YANXZ ---> double __cdecl fn(void)
+?fn@@YAMXZ ---> float __cdecl fn(void)
+?fn@@YAJXZ ---> long __cdecl fn(void)
+?fn@@YAKXZ ---> unsigned long __cdecl fn(void)
+?fn@@YAIXZ ---> unsigned int __cdecl fn(void)
+?fn@@YAFXZ ---> short __cdecl fn(void)
+?fn@@YAGXZ ---> unsigned short __cdecl fn(void)
+?fn@@YADXZ ---> char __cdecl fn(void)
+?fn@@YAEXZ ---> unsigned char __cdecl fn(void)
+?fn@@YAOXZ ---> long double __cdecl fn(void)
+?baz@Bar@Foo@@YAXXZ ---> void __cdecl Foo::Bar::baz(void)
+?func@ns1@ns2@@YAHXZ ---> int __cdecl ns2::ns1::func(void)
+?method@Inner@Outer@@YAXXZ ---> void __cdecl Outer::Inner::method(void)
+?add@@YAHHH@Z ---> int __cdecl add(int, int)
+?sub@@YAHHH@Z ---> int __cdecl sub(int, int)
+?test@@YAXHND@Z ---> void __cdecl test(int, double, char)
+?foo@@YAXHEF@Z ---> void __cdecl foo(int, unsigned char, short)
+?foo@@YAXPAH@Z ---> void __cdecl foo(int*)
+?bar@@YAXPBD@Z ---> void __cdecl bar(char const*)
+?ref@@YAXAAH@Z ---> void __cdecl ref(int&)
+?cref@@YAXABD@Z ---> void __cdecl cref(char const&)
+?pfn@@YAXPAN@Z ---> void __cdecl pfn(double*)
+?reffn@@YAXAAN@Z ---> void __cdecl reffn(double&)
+?b@@YAX_N@Z ---> void __cdecl b(bool)
+?w@@YAX_W@Z ---> void __cdecl w(wchar_t)
+?i@@YAX_J@Z ---> void __cdecl i(__int64)
+?u@@YAX_K@Z ---> void __cdecl u(unsigned __int64)
+?c16@@YAX_T@Z ---> void __cdecl c16(char16_t)
+?c32@@YAX_U@Z ---> void __cdecl c32(char32_t)
+?data@str@@YAPADXZ ---> char* __cdecl str::data(void)
+?at@Foo@@YAAAHXZ ---> int& __cdecl Foo::at(void)
+?ptr@@YAPAHXZ ---> int* __cdecl ptr(void)
+?foo@@3HA ---> int foo
+?v@@3NA ---> double v
+?g@@3FA ---> short g
+?x@@3KA ---> unsigned long x
+?pi@@3MA ---> float pi
+?flag@@3_NA ---> bool flag
+?wc@@3_WA ---> wchar_t wc
+?big@@3_JA ---> __int64 big
+??0Foo@@QAE@XZ ---> public: __thiscall Foo::Foo(void)
+??1Foo@@QAE@XZ ---> public: __thiscall Foo::~Foo(void)
+??0Bar@Ns@@QAE@XZ ---> public: __thiscall Ns::Bar::Bar(void)
+??1Bar@Ns@@QAE@XZ ---> public: __thiscall Ns::Bar::~Bar(void)
+??_7Foo@@6B@ ---> const Foo::`vftable'
+??_7Bar@Ns@@6B@ ---> const Ns::Bar::`vftable'
+?m@C@@AAAXXZ ---> private: void __cdecl C::m(void)
+?m@C@@QAAXXZ ---> public: void __cdecl C::m(void)
+?bar@Foo@@AEAAXXZ ---> private: void __cdecl Foo::bar(void)
+?baz@Foo@@QEAAHH@Z ---> public: int __cdecl Foo::baz(int)
+?m@C@@IAAXXZ ---> private: static void __cdecl C::m(void)
+?m@C@@MAAXXZ ---> public: static void __cdecl C::m(void)
+??HFoo@@QEAAHH@Z ---> public: int __cdecl Foo::operator+(int)
+??GFoo@@QEAAHH@Z ---> public: int __cdecl Foo::operator-(int)
+??AFoo@@QEAAHH@Z ---> public: int __cdecl Foo::operator[](int)
+??RFoo@@QEAAXXZ ---> public: void __cdecl Foo::operator()(void)
+??4Foo@@QEAAXAAV0@@Z ---> public: void __cdecl Foo::operator=(Foo&)
+??OFoo@@QEAAHH@Z ---> public: int __cdecl Foo::operator>(int)
+??MFoo@@QEAAHH@Z ---> public: int __cdecl Foo::operator<(int)
+??6Foo@@QEAAHH@Z ---> public: int __cdecl Foo::operator<<(int)
+??5Foo@@QEAAHH@Z ---> public: int __cdecl Foo::operator>>(int)
+??7Foo@@QEAAHXZ ---> public: int __cdecl Foo::operator!(void)
+??9Foo@@QEAAHH@Z ---> public: int __cdecl Foo::operator!=(int)
+?method@?$vector@H@std@@YAXXZ ---> void __cdecl std::vector<int>::method(void)
+?method@?$array@H$07@std@@YAXXZ ---> void __cdecl std::array<int, 7>::method(void)
+?get@?$shared_ptr@VFoo@@@std@@YAXXZ ---> void __cdecl std::shared_ptr<Foo>::get(void)
+?data@?$basic_string@D@std@@YAPADXZ ---> char* __cdecl std::basic_string<char>::data(void)
+?fn@?$pair@HN@std@@YAXXZ ---> void __cdecl std::pair<int, double>::fn(void)
+?fn@?$vector@_N@std@@YAXXZ ---> void __cdecl std::vector<bool>::fn(void)
+?fn@?$vector@PAH@ns@@YAXXZ ---> void __cdecl ns::vector<int*>::fn(void)
+?fn@?$map@HN@std@@YAXXZ ---> void __cdecl std::map<int, double>::fn(void)
+?fn@@YBXXZ ---> void __cdecl fn(void)
+?fn@@YCXXZ ---> void __pascal fn(void)
+?fn@@YDXXZ ---> void __pascal fn(void)
+?fn@@YEXXZ ---> void __thiscall fn(void)
+?fn@@YGXXZ ---> void __stdcall fn(void)
+?fn@@YIXXZ ---> void __fastcall fn(void)
+?fn@@YMXXZ ---> void __clrcall fn(void)
+?fn@@YNXXZ ---> void __clrcall fn(void)
+?m@C@@QEGAAXXZ ---> public: void __cdecl C::m(void) &
+?m@C@@QEHAAXXZ ---> public: void __cdecl C::m(void) &&
+?m@C@@QEGBAXXZ ---> public: void __cdecl C::m(void) const &
+?m@C@@QEHBBXXZ ---> public: void __cdecl C::m(void) const &&
+?l@@3P8foo@@AEHH@ZQ1@ ---> int (__thiscall foo::*l)(int)
+?pm@@3P8Foo@@AEHH@ZQFoo@@A ---> int (__thiscall Foo::*pm)(int)
+?pm@@3P8B@@EAAXXZEQ1@ ---> void (__cdecl B::*pm)(void)
+?memptrtofun1@@3R8B@@EAAXXZEQ1@ ---> void (__cdecl B::*volatile memptrtofun1)(void)
+?memptrtofun5@@3P8B@@EAA?CHXZEQ1@ ---> int volatile (__cdecl B::*memptrtofun5)(void)
+?memptrtofun6@@3P8B@@EAA?BHXZEQ1@ ---> int const (__cdecl B::*memptrtofun6)(void)
+?m@@3PQFoo@@HQFoo@@A ---> int Foo::*m
+?m@@3PRfoo@@DR1@ ---> char const foo::*m
+?memptr1@@3RESB@@HES1@ ---> int volatile B::*volatile memptr1
+?memptr2@@3PESB@@HES1@ ---> int volatile B::*memptr2
+?m@C@@QACXXZ ---> public: void __pascal C::m(void)
+?m@C@@AACXXZ ---> private: void __pascal C::m(void)
+?fn@Bar@Foo@@YCXXZ ---> void __pascal Foo::Bar::fn(void)
+?m@C@@QAMXXZ ---> public: void __clrcall C::m(void)
+?m@C@@AAMXXZ ---> private: void __clrcall C::m(void)
+?m@C@@AEAMXXZ ---> private: void __clrcall C::m(void)
+?fn@@3P8Foo@@AMHXZQ1@ ---> int (__clrcall Foo::*fn)(void)
+?fn@@3P8Foo@@ACHXZQ1@ ---> int (__pascal Foo::*fn)(void)
+?fn@@3P8Foo@@EAMHXZEQ1@ ---> int (__clrcall Foo::*fn)(void)
+?fn@@3P8Foo@@EACHXZEQ1@ ---> int (__pascal Foo::*fn)(void)
+??_C@_05CMABKHDM@hello?$AA@ ---> "hello"
+??_C@_01KICIPPFI@?2?$AA@ ---> "\\"
+??_C@_01JFGIGPJE@?6?$AA@ ---> "\n"
+??_C@_02PCEFGMJL@hi?$AA@ ---> "hi"
+??_C@_01PBGEDEHF@?0?$AA@ ---> ","
+?m@C@@QBEXXZ ---> public: void __thiscall C::m(void) const
+?m@C@@QAEXXZ ---> public: void __thiscall C::m(void)
+?m@C@@QCEXXZ ---> public: void __thiscall C::m(void) volatile
+?fn@@YA?BHXZ ---> int const __cdecl fn(void)
+?fn@@YA?CHXZ ---> int volatile __cdecl fn(void)
+?bar@@YCHH@Z ---> int __pascal bar(int)
+?bar@@YMHH@Z ---> int __clrcall bar(int)
