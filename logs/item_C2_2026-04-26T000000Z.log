@@ -1,0 +1,62 @@
+# Item C2 — Makefile + extraction script + oracle pipeline
+# Date: 2026-04-26T00:00:00Z
+# Agent: Claude Sonnet 4.6 in worktree agent-a52ca4fbc03ed1771
+
+## Files Created
+
+- scheme/swift/stable/testdata/swiftc/Makefile
+    Targets: compile, extract, oracle, clean, regenerate, check-reproducible
+    Module name derivation: strips leading NN_ prefix, CamelCases remainder (e.g. 01_basic_types → BasicTypes)
+    Parallelism: make -j$(nproc) supported on compile
+
+- scheme/swift/stable/testdata/swiftc/out/.gitkeep
+    Stub to track out/ directory in git
+
+- scheme/swift/stable/testdata/swiftc/swiftc-oracle-divergences.txt
+    Empty with format comment header
+
+## Source File Fixes (Linux compat)
+
+- src/08_structs.swift: replaced String(format: "#%02X%02X%02X", ...) with stdlib hex helper
+    (String.init(format:) requires Foundation; unavailable on Linux without import)
+
+- src/18_opaque_types.swift: added primary associated type syntax to Sequence2 protocol
+    Changed: protocol Sequence2 { associatedtype Element }
+    To:      protocol Sequence2<Element> { associatedtype Element }
+    (required for `some Sequence2<Int>` return type syntax)
+
+- src/19_extensions.swift: replaced components(separatedBy:) with split(separator:).map(String.init)
+    (components(separatedBy:) requires Foundation)
+
+- src/21_result_builders.swift: added buildEither + buildArray + buildExpression to ArrayBuilder
+    Added buildEither to StringBuidler; changed ArrayBuilder to use [T]... blocks
+    (Swift requires these for if/else in result builder contexts)
+
+## Make Dry-Run Results
+
+  make -n compile: OK — showed 30 swiftc invocations with valid CamelCase module names
+  make -n extract: OK — showed nm | awk | grep | sort pipeline
+  make -n oracle:  OK — showed swift-demangle loop with correct ---> format extraction
+
+## End-to-End Test Results
+
+  Sources compiled: 30 of 30 (src/01_basic_types.swift … src/30_subscripts.swift)
+  Symbols extracted: 633 unique $s-prefixed symbols in corpus-raw.txt
+  Oracle run: 633 symbols demangled → corpus.txt (all symbols successfully resolved)
+  Divergences: 0 actual divergences (swiftc-oracle-divergences.txt contains only header)
+
+## Sample corpus.txt lines
+
+  $s10BasicTypes04makeA0A2AVyF ---> BasicTypes.makeBasic() -> BasicTypes.BasicTypes
+  $s9Functions7zeroArgSiyF ---> Functions.zeroArg() -> Swift.Int
+  $sSS10ExtensionsE5wordsSaySSGvg ---> (extension in Extensions):Swift.String.words.getter : [Swift.String]
+
+## Divergences in Smoke Test
+
+  None. All 633 symbols were demangled by swift-demangle.
+  swiftc-oracle-divergences.txt contains only the 4-line format header.
+
+## Swift Version
+
+  Swift version 6.3 (swift-6.3-RELEASE)
+  Target: x86_64-unknown-linux-gnu

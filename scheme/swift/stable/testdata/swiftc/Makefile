@@ -99,7 +99,7 @@ $(CORPUS): $(CORPUS_RAW)
 	done < $(CORPUS_RAW)
 	@mv $(DIVERGENCES).new $(DIVERGENCES)
 	@echo "oracle: $$(grep -c '^\$$s' $@ || echo 0) demangled → $@"
-	@echo "oracle: $$(grep -c '^# [^\s]' $(DIVERGENCES) 2>/dev/null | head -1 || echo 0) divergences → $(DIVERGENCES)"
+	@echo "oracle: $$(grep -c '^# [^ ]' $(DIVERGENCES) 2>/dev/null || echo 0) divergence blocks → $(DIVERGENCES)"
 
 # ── clean ────────────────────────────────────────────────────────────────────
 clean:
