@@ -19,6 +19,16 @@
 ?at@Foo@@YAAAHXZ
 // Our output: "char* __cdecl ..."  llvm-undname: "char * __cdecl ..."
 ?data@?$basic_string@D@std@@YAPADXZ
+// Our output: "double*"  llvm-undname: "double *"
+?pfn@@YAXPAN@Z
+// Our output: "double&"  llvm-undname: "double &"
+?reffn@@YAXAAN@Z
+// Our output: "char* __cdecl str::data(void)"  llvm-undname: "char * __cdecl str::data(void)"
+?data@str@@YAPADXZ
+// Our output: "int* __cdecl ptr(void)"  llvm-undname: "int * __cdecl ptr(void)"
+?ptr@@YAPAHXZ
+// Our output: "ns::vector<int*>" llvm-undname: "ns::vector<int *>"
+?fn@?$vector@PAH@ns@@YAXXZ
 
 // --- Class-type prefix in template arguments ---
 // Our output: "std::shared_ptr<Foo>"  llvm-undname: "std::shared_ptr<class Foo>"
@@ -63,3 +73,6 @@
 // Our _S=char8_t, _T=char16_t; llvm _S=char16_t, _T=decltype(auto)
 ?fn@@YAX_S@Z
 ?fn@@YAX_T@Z
+// Same divergence with different variable names (_T maps to char16_t in our code,
+// but llvm-undname produces decltype(auto) for the _T byte).
+?c16@@YAX_T@Z
