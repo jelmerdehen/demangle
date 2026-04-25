@@ -1411,6 +1411,10 @@ func (p *parser) tryPostfixCompactTuple(node *demangle.Node) (*demangle.Node, bo
 		n := 0
 		for _, d := range p.s[digStart:p.i] {
 			n = n*10 + int(d-'0')
+			if n > 512 {
+				revert()
+				return node, false
+			}
 		}
 		if n < 1 {
 			revert()
@@ -2323,6 +2327,9 @@ miniLoop:
 			for !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
 				length = length*10 + int(p.s[p.i]-'0')
 				p.i++
+				if length > len(p.s) {
+					return ""
+				}
 			}
 			if p.i+length > len(p.s) {
 				return ""
@@ -2646,6 +2653,10 @@ func (p *parser) tryImplFunctionType() (*demangle.Node, bool) {
 			n := 0
 			for _, d := range p.s[digStart:j] {
 				n = n*10 + int(d-'0')
+				if n > 512 {
+					revert()
+					return nil, false
+				}
 			}
 			if n < 1 {
 				revert()
@@ -2682,19 +2693,26 @@ func (p *parser) tryImplFunctionType() (*demangle.Node, bool) {
 			}
 			if p.i < len(p.s) && p.s[p.i] >= 'A' && p.s[p.i] <= 'Z' {
 				num := 0
+				overflow := false
 				for k := digStart; k < p.i; k++ {
 					num = num*10 + int(p.s[k]-'0')
+					if num > 512 {
+						overflow = true
+						break
+					}
 				}
 				idx := int(p.s[p.i] - 'A')
-				if n, ok := p.subs.Get(idx); ok {
-					p.i++
-					// Apple's pushMultiSubstitutions pushes RepeatCount
-					// copies total onto the parse stack for A<N><letter>
-					// (N-1 extras inside + 1 final from caller).
-					for k := 0; k < num; k++ {
-						types = append(types, n)
+				if !overflow {
+					if n, ok := p.subs.Get(idx); ok {
+						p.i++
+						// Apple's pushMultiSubstitutions pushes RepeatCount
+						// copies total onto the parse stack for A<N><letter>
+						// (N-1 extras inside + 1 final from caller).
+						for k := 0; k < num; k++ {
+							types = append(types, n)
+						}
+						continue
 					}
-					continue
 				}
 			}
 			p.i = savePos
@@ -5033,6 +5051,9 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 				n := 0
 				for _, d := range p.s[ds:jj] {
 					n = n*10 + int(d-'0')
+					if n > 512 {
+						return nil, false
+					}
 				}
 				if n < 1 {
 					return nil, false
@@ -8010,7 +8031,8 @@ func (p *parser) parseMultiSubstitution() (*demangle.Node, int, bool) {
 			return n, 0, true
 		}
 		if c >= '0' && c <= '9' {
-			// Natural-number repeat count.
+			// Natural-number repeat count. Cap at 512 — real Swift
+			// symbols never need thousands of repeated subs copies.
 			start := p.i
 			for !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
 				p.i++
@@ -8018,6 +8040,10 @@ func (p *parser) parseMultiSubstitution() (*demangle.Node, int, bool) {
 			n := 0
 			for _, d := range p.s[start:p.i] {
 				n = n*10 + int(d-'0')
+				if n > 512 {
+					p.i = save
+					return nil, 0, false
+				}
 			}
 			repeatCount = n
 			continue
@@ -8226,6 +8252,9 @@ func (p *parser) tryStdlibCompactFunctionType() (*demangle.Node, bool) {
 	n := 0
 	for _, d := range p.s[digStart:j] {
 		n = n*10 + int(d-'0')
+		if n > 512 {
+			return nil, false
+		}
 	}
 	if n < 2 {
 		return nil, false
@@ -8839,6 +8868,9 @@ func (p *parser) parseIdentifier() (string, error) {
 			length := 0
 			for _, c := range p.s[start:p.i] {
 				length = length*10 + int(c-'0')
+				if length > len(p.s) {
+					return "", p.grammarErr("punycoded identifier length")
+				}
 			}
 			if length <= 0 || p.i+length > len(p.s) {
 				return "", p.grammarErr("punycoded identifier length")
@@ -8929,6 +8961,9 @@ func (p *parser) parseIdentifier() (string, error) {
 		length := 0
 		for _, c := range p.s[start:p.i] {
 			length = length*10 + int(c-'0')
+			if length > len(p.s) {
+				return "", p.grammarErr("identifier length too large")
+			}
 		}
 		if length <= 0 {
 			return "", p.grammarErr("positive identifier length")

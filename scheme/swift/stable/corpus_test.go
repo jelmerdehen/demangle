@@ -16,18 +16,41 @@ import (
 	"github.com/jelmerdehen/demangle/scheme/swift/stable"
 )
 
-// TestAppleCorpus runs every "$s" fixture from Apple's manglings.txt
-// through the parser and reports match counts by category.
-//
-// This test NEVER fails on a wrong result — Stage 1 is mid-build-out
-// and many inputs exercise grammar we don't handle yet. It does fail
-// on panics or internal errors: the parser must stay crash-free even
-// on adversarial input.
-//
-// Exit-gate expectation (end of Stage 1): this test upgrades to a
-// strict per-line equality gate.
-func TestAppleCorpus(t *testing.T) {
+// loadKnownDivergences reads testdata/apple/known-divergences.txt and returns
+// the set of mangled symbols that are allowed to produce non-matching output.
+// Lines starting with "//" and blank lines are skipped.
+func loadKnownDivergences(t *testing.T, path string) map[string]struct{} {
+	t.Helper()
+	f, err := os.Open(path)
+	if err != nil {
+		t.Fatalf("open known-divergences: %v", err)
+	}
+	defer f.Close()
+	out := map[string]struct{}{}
+	sc := bufio.NewScanner(f)
+	for sc.Scan() {
+		line := strings.TrimSpace(sc.Text())
+		if line == "" || strings.HasPrefix(line, "//") {
+			continue
+		}
+		out[line] = struct{}{}
+	}
+	if err := sc.Err(); err != nil {
+		t.Fatalf("scan known-divergences: %v", err)
+	}
+	return out
+}
+
+// TestAppleCorpusStrict is the Stage-1 exit gate: every $s fixture in
+// Apple's manglings.txt must produce output that exactly matches the
+// expected column, unless the symbol appears in known-divergences.txt.
+// Any fixture not in known-divergences.txt that fails the equality
+// check causes an immediate test failure.
+func TestAppleCorpusStrict(t *testing.T) {
 	t.Parallel()
+	divPath := filepath.Join("testdata", "apple", "known-divergences.txt")
+	knownDiv := loadKnownDivergences(t, divPath)
+
 	path := filepath.Join("testdata", "apple", "manglings.txt")
 	f, err := os.Open(path)
 	if err != nil {
@@ -46,7 +69,7 @@ func TestAppleCorpus(t *testing.T) {
 		matched       int
 		unsupported   int
 		grammarErrors int
-		mismatch      int
+		diverged      int
 		skipped       int
 	)
 
@@ -55,7 +78,6 @@ func TestAppleCorpus(t *testing.T) {
 		if line == "" || strings.HasPrefix(line, "//") {
 			continue
 		}
-		// "mangled ---> expected"
 		i := strings.Index(line, " ---> ")
 		if i < 0 {
 			continue
@@ -69,22 +91,24 @@ func TestAppleCorpus(t *testing.T) {
 		}
 		totalStable++
 
-		// Trim "{T:}" annotation prefixes the Apple corpus uses to mark
-		// re-entry-point expectations — they aren't part of the
-		// demangle output and throw off direct string match.
 		want = trimAnnotations(want)
+		_, inDiv := knownDiv[mangled]
 
-		got, err := cat.Demangle(context.Background(), mangled, nil)
+		got, demErr := cat.Demangle(context.Background(), mangled, nil)
 		switch {
-		case err == nil:
+		case demErr == nil:
 			if got.Output == want {
 				matched++
 			} else {
-				mismatch++
+				if inDiv {
+					diverged++
+				} else {
+					t.Errorf("mismatch: %s\n  got:  %q\n  want: %q", mangled, got.Output, want)
+				}
 			}
 		default:
 			var e *demangle.Error
-			if errors.As(err, &e) {
+			if errors.As(demErr, &e) {
 				switch e.Kind {
 				case demangle.ErrUnsupported:
 					unsupported++
@@ -96,57 +120,32 @@ func TestAppleCorpus(t *testing.T) {
 			} else {
 				grammarErrors++
 			}
+			if !inDiv {
+				t.Errorf("unexpected error (not in known-divergences): %s: %v", mangled, demErr)
+			} else {
+				diverged++
+			}
 		}
 	}
 	if err := sc.Err(); err != nil {
 		t.Fatalf("scan: %v", err)
 	}
 
-	t.Logf("Apple corpus results (subset coverage — Stage 1 mid-build):")
+	t.Logf("Apple corpus results (Stage-1 strict gate):")
 	t.Logf("  total $s entries     : %d", totalStable)
 	t.Logf("  matched              : %d (%.1f%%)", matched, pct(matched, totalStable))
-	t.Logf("  unsupported trailers : %d", unsupported)
-	t.Logf("  grammar errors       : %d", grammarErrors)
-	t.Logf("  mismatches           : %d", mismatch)
+	t.Logf("  known-divergences    : %d", diverged)
+	t.Logf("  unsupported trailers : %d (subset of diverged)", unsupported)
+	t.Logf("  grammar errors       : %d (subset of diverged)", grammarErrors)
 	t.Logf("  non-$s lines skipped : %d", skipped)
 
-	// Minimum sanity gate (ramps up across Stage 1 commits):
-	// - Stage 1 MVP: ≥4 matches (basic builtins Bf32/Bf64/Bf80/Bi32).
-	// - Stage 1 grammar build-out: this gate is raised commit-by-
-	//   commit as coverage expands (stdlib subs, nominal paths with
-	//   their full entity trailers, bound generics, functions).
-	// - R1: retroactive inverse-req HD/HI chain in conformance tail.
-	// - T3/K1: ConstantPropKeyPath pk sub-kind + closure chain "of" clause.
-	// - O2: WOe outlined-consume + @substituted impl-fn rendering.
-	// - E1: Vector2 static extension typealias + GD dynamic-self.
-	// - R1 fix: s5Error bare-ident push in skipConformanceRef; parsedRawStdlib
-	//   only when stdlib type is base of bound-generic ('y' follows).
-	// - A3: autodiff subset params thunk "of type" impl-fn with r<N>_l sig
-	//   + y-EmptyList for-clause + tryForClauseAMultiSub.
-	// - ~Copyable ext: words-table constraint-ident scan + Ri_z/Rj_z multi-
-	//   constraint + local gen-sig for ncElement/copyableIter/ncC0.
-	// - use.x: QOyQo_ opaque bare form + bound-generic conformance gate.
-	// - Stage 1 exit gate: equality check per line, zero tolerated
-	//   mismatches outside known-divergences.txt.
-	if matched < 148 {
-		t.Fatalf("expected ≥148 matches, got %d — parser regressed?", matched)
-	}
-	// C3 tightened gate: cap unsupported + grammar so any future regression
-	// that converts a matched fixture to an error is caught immediately.
-	if unsupported > 4 {
-		t.Fatalf("unsupported count %d > 4 — a previously matched fixture regressed to unsupported?", unsupported)
-	}
-	if grammarErrors > 1 {
-		t.Fatalf("grammar errors %d > 1 — a previously matched fixture regressed to grammar error?", grammarErrors)
-	}
-	if mismatch > 0 {
-		t.Fatalf("%d mismatches — parser produced wrong output on a real fixture", mismatch)
+	if matched < 149 {
+		t.Fatalf("regression: want ≥149 matched, got %d", matched)
 	}
 }
 
 func trimAnnotations(s string) string {
 	s = strings.TrimPrefix(s, "{T:}")
-	// Also trim the "{T:...}" form.
 	if strings.HasPrefix(s, "{T:") {
 		if j := strings.Index(s, "} "); j >= 0 {
 			s = s[j+2:]
