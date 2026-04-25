@@ -19,9 +19,6 @@ $sxxxIxzCXxxxesy
 // Inputs where our output diverges from Apple's oracle.
 // Reasons: unsupported grammar features, identity-returned by oracle,
 // or known terminology differences (e.g. yielding_mutate vs modify2).
-$s3foo7closureSSTf1cC0_n
-$s3Bar3FooVAA5DrinkVyxGs5Error_pSeRzSERzlyShy4AbcdAHO6MemberVGALSeHPAKSeAAyHC_HCg_ALSEHPAKSEAAyHC_HCg0_Iseggozo_SgWOe
-$s4test3fooV4blahyAA1SV1fQryFQOy_Qo_AHF
 $s4mini3SeqPxAA06BorrowB0TN
 $s4mini3SeqPxAA06BorrowB0Tn
 $sSUss17FixedWidthIntegerRzrlEyxqd__cSzRd__lufCSu_SiTg5
