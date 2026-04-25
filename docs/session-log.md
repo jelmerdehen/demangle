@@ -56,6 +56,8 @@ package doc.
 | 2 | 2026-04-25T211017Z | dd26589…1a99c3a | W1 swift-old OldDemangler; O2 Itanium oracle; D1/D2/D3 dlang |
 | 3 | 2026-04-25T214328Z | e19f028…7415d0e | R1 jni; R2 jvmdesc; R3 dlang; W2 swift-old generics; M2/M3 MSVC |
 | 4 | 2026-04-25T221203Z | 181ed4b…be6b22d | F1 cross-scheme fuzz; B2 binary gate; B3 nightly fuzz; M4 MSVC; F2 corpus seeds; B1 bench gate; C1 scala3 |
+| 5 | 2026-04-25T222612Z | 631bcee…2950bff | M5 MSVC corpus 119 + strict gate; G1 gRPC Mangle RPC; G3 deploy artifacts; O3 MSVC oracle; S1 CHANGELOG |
+| S2 | 2026-04-25T223734Z | — (docs only) | S2 archive: state + tick-log copied to old/; 24 commits fbd2ede..93f686b; 53+ unpushed |
 
 ## Scheme registry
 
