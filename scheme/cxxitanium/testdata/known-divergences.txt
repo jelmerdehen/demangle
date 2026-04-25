@@ -1,0 +1,32 @@
+// Known divergences between cpp-itanium and c++filt.
+//
+// Clone-suffix symbols (.cold, .part, .isra, .constprop, etc.):
+// c++filt appends "[clone .suffix]" to the demangled name, but our
+// scheme passes ilt.NoClones (because Options.DisplayThunks defaults
+// to false), which strips those suffixes. The base demangling is
+// otherwise identical. Consumers that need clone annotations should
+// pass Options{DisplayThunks: true}.
+_ZN3foo5innerEv.cold.1
+_ZN3foo5innerEv.part.0
+
+// Sugar-vs-expansion: ianlancetaylor/demangle uses Itanium ABI
+// abbreviations (St → std::, Ss → std::string, So → std::ostream) and
+// emits the short forms. GNU c++filt expands those to the full
+// template instantiations. Both representations are correct; ours is
+// more compact.
+_ZlsRSoRKSs
+
+// Template-closing-bracket spacing: ianlancetaylor emits GNU-style "X<A, B >"
+// (space before ">") whereas llvm-cxxfilt emits C++11-style "X<A, B>".
+// Only affects the LLVM secondary oracle; GNU c++filt agrees with us.
+_ZSt4endlIcSt11char_traitsIcEERSt13basic_ostreamIT_T0_ES6_
+_ZSt7forwardIRKNSt6vectorIiSaIiEEEEOT_RNSt16remove_referenceIS4_E4typeE
+_ZNSt3__16vectorIiNS_9allocatorIiEEE9push_backERKi
+_ZN3std6vectorIiSaIiEEixEm
+
+// llvm-cxxfilt does not decode lambda-encoding (UlXE) or Java-ABI
+// symbols with J-prefix return types. These are valid Itanium and our
+// scheme decodes them correctly per GNU c++filt.
+_ZN3foo3barEUlvE_
+_ZN3foo3barEUlvE0_
+_ZN4java4lang4Math4acosEJdd

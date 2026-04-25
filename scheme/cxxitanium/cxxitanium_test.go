@@ -89,6 +89,20 @@ func TestItaniumSniff(t *testing.T) {
 	}
 }
 
+func TestItaniumMacOSDoubleUnderscorePrefix(t *testing.T) {
+	t.Parallel()
+	cat := newCatalog(t)
+	// macOS / Darwin linker emits an extra leading '_' before _Z symbols.
+	// Our scheme strips it before forwarding to ianlancetaylor.
+	r, err := cat.Demangle(context.Background(), "__ZN4llvm5Value4dumpEv", nil)
+	if err != nil {
+		t.Fatalf("demangle: %v", err)
+	}
+	if r.Output != "llvm::Value::dump()" {
+		t.Fatalf("output = %q, want %q", r.Output, "llvm::Value::dump()")
+	}
+}
+
 func TestItaniumNotMangled(t *testing.T) {
 	t.Parallel()
 	cat := newCatalog(t)

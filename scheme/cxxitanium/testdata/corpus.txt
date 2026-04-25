@@ -1,0 +1,81 @@
+// Itanium C++ ABI corpus — oracle-verified against c++filt (GNU Binutils 2.46)
+// Format: mangled ---> expected
+// Symbols with .cold / .part clone suffixes are in known-divergences.txt.
+
+// Basic functions
+_Z1fv ---> f()
+_Z3addii ---> add(int, int)
+_Z3addff ---> add(float, float)
+_Z3adddd ---> add(double, double)
+_Z9factorialm ---> factorial(unsigned long)
+_ZL3foov ---> foo()
+
+// LLVM symbols
+_ZN4llvm5Value4dumpEv ---> llvm::Value::dump()
+_ZN4llvm5ValueD0Ev ---> llvm::Value::~Value()
+_ZN4llvm5ValueC2EPKcj ---> llvm::Value::Value(char const*, unsigned int)
+_ZN4llvm5ValueaSERKS0_ ---> llvm::Value::operator=(llvm::Value const&)
+
+// Operators
+_Znwm ---> operator new(unsigned long)
+_Znam ---> operator new[](unsigned long)
+_ZdlPv ---> operator delete(void*)
+// _ZlsRSoRKSs: ianlancetaylor uses sugar abbreviations (std::ostream /
+// std::string) while c++filt expands them. Listed in known-divergences.txt.
+_ZlsRSoRKSs ---> operator<<(std::basic_ostream<char, std::char_traits<char> >&, std::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)
+
+// Standard library
+_ZSt4cout ---> std::cout
+_ZSt3cin ---> std::cin
+_ZSt4endlIcSt11char_traitsIcEERSt13basic_ostreamIT_T0_ES6_ ---> std::basic_ostream<char, std::char_traits<char> >& std::endl<char, std::char_traits<char> >(std::basic_ostream<char, std::char_traits<char> >&)
+_ZSt7forwardIRKNSt6vectorIiSaIiEEEEOT_RNSt16remove_referenceIS4_E4typeE ---> std::vector<int, std::allocator<int> > const& std::forward<std::vector<int, std::allocator<int> > const&>(std::remove_reference<std::vector<int, std::allocator<int> > const&>::type&)
+
+// libstdc++ libc++ symbols
+_ZNSt3__14pairIiiEC2Ev ---> std::__1::pair<int, int>::pair()
+_ZNSt3__16vectorIiNS_9allocatorIiEEE9push_backERKi ---> std::__1::vector<int, std::__1::allocator<int> >::push_back(int const&)
+_ZN3std6vectorIiSaIiEEixEm ---> std::vector<int, std::allocator<int> >::operator[](unsigned long)
+
+// Typeinfo / RTTI
+_ZTI5Shape ---> typeinfo for Shape
+_ZTS5Shape ---> typeinfo name for Shape
+_ZTVb ---> vtable for bool
+
+// Namespaces and nested types
+_ZN5Outer5Inner3fooEv ---> Outer::Inner::foo()
+_ZN12_GLOBAL__N_15NullSEv ---> (anonymous namespace)::NullS()
+
+// Templates
+_Z2f2IiEiT_ ---> int f2<int>(int)
+_Z1fILi5EEvv ---> void f<5>()
+
+// Class methods
+_ZN3FooC1EOS_ ---> Foo::Foo(Foo&&)
+_ZN3FooD1Ev ---> Foo::~Foo()
+_ZNK3Foo3barEv ---> Foo::bar() const
+_ZN3Foo3bazERi ---> Foo::baz(int&)
+_ZN3Foo3quxEPKc ---> Foo::qux(char const*)
+_ZN3FooaSERKS_ ---> Foo::operator=(Foo const&)
+_ZN3Foo4swapERS_ ---> Foo::swap(Foo&)
+
+// Lambdas
+_ZN3foo3barEUlvE_ ---> foo::bar({lambda()#1})
+_ZN3foo3barEUlvE0_ ---> foo::bar({lambda()#2})
+
+// Variadic
+_ZNK3foo6printfEPKcz ---> foo::printf(char const*, ...) const
+
+// Boost
+_ZN5boost6python7objects21py_function_impl_baseD2Ev ---> boost::python::objects::py_function_impl_base::~py_function_impl_base()
+_ZN5boost6python7objects21py_function_impl_baseD0Ev ---> boost::python::objects::py_function_impl_base::~py_function_impl_base()
+
+// Mixed Java-style (Itanium can encode Java)
+_ZN4java4lang4Math4acosEJdd ---> double java::lang::Math::acos(double)
+
+// macOS leading underscore prefix — c++filt (GNU) does not strip the extra
+// '_' and returns the symbol unchanged, but llvm-cxxfilt demangles it.
+// Excluded from the primary corpus; covered by unit tests in cxxitanium_test.go.
+
+// Clone-suffix symbols — diverge because NoClones strips the suffix.
+// Listed here so RunDiff exercises them; entries are in known-divergences.txt.
+_ZN3foo5innerEv.cold.1 ---> foo::inner() [clone .cold.1]
+_ZN3foo5innerEv.part.0 ---> foo::inner() [clone .part.0]

@@ -74,7 +74,13 @@ func (Scheme) Sniff(s string) (int, bool) {
 //	!DisplayThunks                    → NoClones (closest approximation)
 func (Scheme) Demangle(_ context.Context, in string, opts demangle.Options) (*demangle.Result, error) {
 	flags := iltFlags(opts)
-	out, err := ilt.ToString(in, flags...)
+	// macOS / Darwin emits an extra leading '_' before _Z; strip it so
+	// ianlancetaylor sees the canonical _Z prefix.
+	sym := in
+	if strings.HasPrefix(sym, "__Z") {
+		sym = sym[1:]
+	}
+	out, err := ilt.ToString(sym, flags...)
 	if err != nil {
 		return nil, translateErr(in, err)
 	}
