@@ -5196,8 +5196,9 @@ func (p *parser) parseType() (*demangle.Node, error) {
 	}
 	c := p.s[p.i]
 	var (
-		node *demangle.Node
-		err  error
+		node            *demangle.Node
+		err             error
+		parsedRawStdlib bool
 	)
 	switch {
 	case c == 'B':
@@ -5213,6 +5214,12 @@ func (p *parser) parseType() (*demangle.Node, error) {
 		}
 		p.i++
 		node, err = p.parseStdlibSubstitution()
+		// Apple's demangler does NOT add bare S<letter> stdlib types to the
+		// substitution table when they will be wrapped by an immediately
+		// following bound-generic ('y' next byte). The outer tryBoundGeneric
+		// push handles it. When 'y' does NOT follow (e.g. 'Sd' as a plain
+		// argument), push normally so downstream A<idx> refs resolve.
+		parsedRawStdlib = err == nil && !p.eof() && p.s[p.i] == 'y'
 	case c == 's':
 		p.i++
 		node, err = p.parseNominalWithModule(common.NewModule("Swift"))
@@ -5436,9 +5443,9 @@ func (p *parser) parseType() (*demangle.Node, error) {
 	}
 	// Record the newly-parsed node as a substitution candidate so
 	// later A<n>_ references can dereference it.
-	// Mirror Apple: generic params and raw stdlib types are NOT added to
-	// the substitutions table (only bound-generics of stdlib types are,
-	// via the postfix tryBoundGeneric push at line ~4219).
+	// Mirror Apple: generic params and bare stdlib types are NOT added to
+	// the substitution table. Bound-generics of stdlib types ARE pushed
+	// via the postfix tryBoundGeneric / Sg handlers below.
 	if node != nil {
 		nk := common.NodeKind(node.Kind)
 		// Generic-param: DependentGenericParamType directly, or a KindType
@@ -5446,16 +5453,7 @@ func (p *parser) parseType() (*demangle.Node, error) {
 		isGenParam := nk == common.KindDependentGenericParamType ||
 			(nk == common.KindType && len(node.Children) == 1 &&
 				common.NodeKind(node.Children[0].Kind) == common.KindDependentGenericParamType)
-		// Raw stdlib type: only a bare S<letter> substitution (not
-		// So/Sc module-shortcut forms which produce named Clang/concurrency
-		// types that should be pushed). parsedRawStdlib is set above.
-		// Apple's demangler pushes ALL nominal types including stdlib ones
-		// when they appear as bound-generic type args or in constraint sigs.
-		// We skip the push only for standalone bare S<letter> uses at the
-		// top type level (i.e. parsedRawStdlib=true AND not inside a bound-
-		// generic context). For simplicity, always push: the extra entries
-		// only affect back-reference resolution, not display.
-		if !isGenParam {
+		if !isGenParam && !parsedRawStdlib {
 			p.subs.Push(node)
 		}
 	}
@@ -5845,6 +5843,7 @@ func (p *parser) skipConformanceRef() bool {
 	// context module" for subsequent identifier + kind-byte parsing.
 	p.i = start
 	var ctxModule *demangle.Node // last A<upper>-resolved module/context
+	afterStdlibPrefix := false   // set when a bare 's' stdlib-prefix was just skipped
 	for p.i < end {
 		c := p.s[p.i]
 		// Multi-sub A<letter+>: lowercase pushes copies, uppercase returns.
@@ -5926,8 +5925,16 @@ func (p *parser) skipConformanceRef() bool {
 		// Parse via parseIdentifier and push the Ident (and nominal) to subs.
 		if c == 's' || c == '0' || (c >= '1' && c <= '9') {
 			savePos := p.i
+			wasStdlibPrefix := afterStdlibPrefix
+			afterStdlibPrefix = false
 			name, err := p.parseIdentifier()
 			if err != nil || p.i > end {
+				// 's' alone cannot be a length-prefixed ident — it's the
+				// Swift stdlib-module prefix. Record that the next digit-led
+				// ident should be treated as a stdlib-module identifier.
+				if c == 's' {
+					afterStdlibPrefix = true
+				}
 				p.i = savePos + 1
 				continue
 			}
@@ -5985,14 +5992,20 @@ func (p *parser) skipConformanceRef() bool {
 					continue
 				}
 			}
-			// Identifier not followed by kind-byte or entity-suffix:
-			// consumed as context (Apple uses it as a name reference but
-			// does NOT call addSubstitution for bare identifiers in
-			// conformance-ref blocks — only full nominals are pushed).
+			// Bare identifier (no kind-byte or entity-suffix): push to subs
+			// only when it was the name portion of a Swift stdlib-module ref
+			// (preceded by a bare 's' that parseIdentifier couldn't consume).
+			// Apple's demangleIdentifier calls addSubstitution in this context
+			// (e.g. 's5Error' → ident("Error") pushed so 'sAF' can resolve it
+			// later in the generic sig).
+			if wasStdlibPrefix {
+				p.subs.Push(common.NewIdentifier(name))
+			}
 			ctxModule = nil
 			continue
 		}
 		// Other uppercase or special — skip one byte.
+		afterStdlibPrefix = false
 		p.i++
 	}
 	p.i = end
