@@ -6686,11 +6686,14 @@ func (p *parser) parseOpaqueType() (*demangle.Node, error) {
 // tryOpaqueContextPostfix handles the inline opaque-return-type reference
 // that the C++ stack-based demangler builds via QO + Qo<N>_. Called
 // after parseType has returned a nominal context type (ctx) and pushed
-// it to subs. Consumes the sequence:
+// it to subs. Consumes one of two forms:
 //
 //	<fn-ident> 'Qr' 'y' 'F' 'QO' 'y' '_' 'Qo' <index>
+//	<fn-ident> 'Qr' 'y' 'F' 'QO' 'y' 'Qo' <index> '_' 'G'
 //
 // where <index> is '_' (→ 0) or digits + '_' (→ digits+1).
+// The second form has 'Qo' as the single bound-generic element, closed
+// by 'G' (the outer bound-generic close for the enclosing type arg).
 //
 // On success, pushes the OpaqueType to subs (mirrors C++ addSubstitution
 // for the Qo case) and returns the display node.
@@ -6744,20 +6747,25 @@ func (p *parser) tryOpaqueContextPostfix(ctx *demangle.Node) (*demangle.Node, bo
 	}
 	p.i += 2 // consume 'QO'
 
-	// Expect 'y' '_' — empty bound-generic list (demangleBoundGenerics
-	// with EmptyList + FirstElementMarker in C++).
+	// Expect 'y' — opens the bound-generic arg-list for the QO wrapper.
+	// Two forms follow:
+	//   Form 1: 'y' '_' 'Qo' <index>  (EmptyList + FirstElementMarker + Qo)
+	//   Form 2: 'y' 'Qo' <index>      (Qo directly, no FirstElementMarker)
+	//
+	// In Form 2 the 'G' that follows is the outer bound-generic closer
+	// (for lib.G or similar) and is NOT consumed here — it is left for
+	// the enclosing tryBoundGeneric to consume.
 	if p.eof() || p.s[p.i] != 'y' {
 		revert()
 		return nil, false
 	}
 	p.i++ // consume 'y'
-	if p.eof() || p.s[p.i] != '_' {
-		revert()
-		return nil, false
-	}
-	p.i++ // consume '_'
 
-	// Expect 'Qo' followed by the index.
+	// Optional FirstElementMarker '_' (Form 1 only).
+	if !p.eof() && p.s[p.i] == '_' {
+		p.i++ // consume '_'
+	}
+	// Both forms now expect 'Qo'.
 	if p.i+1 >= len(p.s) || p.s[p.i] != 'Q' || p.s[p.i+1] != 'o' {
 		revert()
 		return nil, false
