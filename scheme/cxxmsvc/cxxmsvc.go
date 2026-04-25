@@ -22,7 +22,6 @@
 //   - String literals ??_C@_
 //   - Backref counters beyond simple single-digit (?$ template arg
 //     backrefs, type backrefs)
-//   - Non-void / non-cdecl calling conventions
 //   - Full type grammar
 //
 // Inputs the parser doesn't recognise return ErrUnsupported with the
@@ -713,7 +712,8 @@ func (p *parser) parseSignatureMode(ctorDtor bool) (signature, error) {
 	}
 	// Calling-convention byte.
 	// MSVC uses paired letters: A/B → __cdecl, C/D → __pascal,
-	// E/F → __thiscall, G/H → __stdcall, I/J → __fastcall, Q → __vectorcall.
+	// E/F → __thiscall, G/H → __stdcall, I/J → __fastcall,
+	// M/N → __clrcall, Q → __vectorcall.
 	if p.eof() {
 		return sig, p.truncated()
 	}
@@ -723,12 +723,16 @@ func (p *parser) parseSignatureMode(ctorDtor bool) (signature, error) {
 	switch cc {
 	case 'A', 'B':
 		convName = "__cdecl"
+	case 'C', 'D':
+		convName = "__pascal"
 	case 'E', 'F':
 		convName = "__thiscall"
 	case 'G', 'H':
 		convName = "__stdcall"
 	case 'I', 'J':
 		convName = "__fastcall"
+	case 'M', 'N':
+		convName = "__clrcall"
 	case 'Q':
 		convName = "__vectorcall"
 	case 'Y':
@@ -1336,12 +1340,16 @@ func (p *parser) parseMemberFunctionPtrType(className, ptrQual string, ptr64 boo
 	switch cc {
 	case 'A':
 		convName = "__cdecl"
+	case 'C':
+		convName = "__pascal"
 	case 'E':
 		convName = "__thiscall"
 	case 'G':
 		convName = "__stdcall"
 	case 'I':
 		convName = "__fastcall"
+	case 'M':
+		convName = "__clrcall"
 	case 'Q':
 		convName = "__vectorcall"
 	default:

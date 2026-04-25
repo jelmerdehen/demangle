@@ -467,6 +467,88 @@ func TestMSVCM3(t *testing.T) {
 	}
 }
 
+// TestMSVCM4 covers M4: extra calling conventions __pascal (C/D) and
+// __clrcall (M/N) in free functions, methods, and member function pointers.
+//
+// All expected values are verified against llvm-undname output (zero mismatches
+// required).
+func TestMSVCM4(t *testing.T) {
+	t.Parallel()
+	cat := newCatalog(t)
+	cases := []struct {
+		in, want string
+	}{
+		// --- __pascal free functions ---
+		// llvm-undname: "void __pascal fn(void)"
+		{"?fn@@YCXXZ", "void __pascal fn(void)"},
+		// Even-form D also maps to __pascal.
+		// llvm-undname: "void __pascal fn(void)"
+		{"?fn@@YDXXZ", "void __pascal fn(void)"},
+		// __pascal with int return and int arg.
+		// llvm-undname: "int __pascal bar(int)"
+		{"?bar@@YCHH@Z", "int __pascal bar(int)"},
+
+		// --- __clrcall free functions ---
+		// llvm-undname: "void __clrcall fn(void)"
+		{"?fn@@YMXXZ", "void __clrcall fn(void)"},
+		// Even-form N also maps to __clrcall.
+		// llvm-undname: "void __clrcall fn(void)"
+		{"?fn@@YNXXZ", "void __clrcall fn(void)"},
+		// __clrcall with int return and int arg.
+		// llvm-undname: "int __clrcall bar(int)"
+		{"?bar@@YMHH@Z", "int __clrcall bar(int)"},
+
+		// --- __pascal methods ---
+		// public: void __pascal C::m(void)
+		// llvm-undname: "public: void __pascal C::m(void)"
+		{"?m@C@@QACXXZ", "public: void __pascal C::m(void)"},
+		// private: void __pascal C::m(void)
+		// llvm-undname: "private: void __pascal C::m(void)"
+		{"?m@C@@AACXXZ", "private: void __pascal C::m(void)"},
+		// __pascal on nested namespace: Foo::Bar::fn
+		// llvm-undname: "void __pascal Foo::Bar::fn(void)"
+		{"?fn@Bar@Foo@@YCXXZ", "void __pascal Foo::Bar::fn(void)"},
+
+		// --- __clrcall methods ---
+		// public: void __clrcall C::m(void)
+		// llvm-undname: "public: void __clrcall C::m(void)"
+		{"?m@C@@QAMXXZ", "public: void __clrcall C::m(void)"},
+		// private: void __clrcall C::m(void)
+		// llvm-undname: "private: void __clrcall C::m(void)"
+		{"?m@C@@AAMXXZ", "private: void __clrcall C::m(void)"},
+		// private __clrcall with 64-bit E modifier.
+		// llvm-undname: "private: void __clrcall C::m(void)"
+		{"?m@C@@AEAMXXZ", "private: void __clrcall C::m(void)"},
+
+		// --- Member function pointers ---
+		// int (__clrcall Foo::*fn)(void) — 32-bit.
+		// llvm-undname: "int (__clrcall Foo::*fn)(void)"
+		{"?fn@@3P8Foo@@AMHXZQ1@", "int (__clrcall Foo::*fn)(void)"},
+		// int (__pascal Foo::*fn)(void) — 32-bit.
+		// llvm-undname: "int (__pascal Foo::*fn)(void)"
+		{"?fn@@3P8Foo@@ACHXZQ1@", "int (__pascal Foo::*fn)(void)"},
+		// int (__clrcall Foo::*fn)(void) — 64-bit (E ext-qualifier).
+		// llvm-undname: "int (__clrcall Foo::*fn)(void)"
+		{"?fn@@3P8Foo@@EAMHXZEQ1@", "int (__clrcall Foo::*fn)(void)"},
+		// int (__pascal Foo::*fn)(void) — 64-bit.
+		// llvm-undname: "int (__pascal Foo::*fn)(void)"
+		{"?fn@@3P8Foo@@EACHXZEQ1@", "int (__pascal Foo::*fn)(void)"},
+	}
+	for _, c := range cases {
+		c := c
+		t.Run(c.in, func(t *testing.T) {
+			t.Parallel()
+			r, err := cat.Demangle(context.Background(), c.in, nil)
+			if err != nil {
+				t.Fatalf("demangle: %v", err)
+			}
+			if r.Output != c.want {
+				t.Fatalf("output = %q, want %q", r.Output, c.want)
+			}
+		})
+	}
+}
+
 func FuzzMSVC(f *testing.F) {
 	seeds := []string{
 		"?foo@@YAXXZ",
@@ -488,6 +570,10 @@ func FuzzMSVC(f *testing.F) {
 		// M3 member data pointer seeds.
 		"?m@@3PQFoo@@HQFoo@@A",
 		"?memptr1@@3RESB@@HES1@",
+		// M4 extra calling conventions.
+		"?fn@@YCXXZ",
+		"?fn@@YMXXZ",
+		"?fn@@3P8Foo@@AMHXZQ1@",
 	}
 	for _, s := range seeds {
 		f.Add(s)
