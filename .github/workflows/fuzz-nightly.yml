@@ -1,0 +1,118 @@
+# SPDX-License-Identifier: Apache-2.0
+# B3: nightly fuzz workflow — 10m per harness, crashers committed back.
+name: fuzz-nightly
+
+on:
+  schedule:
+    - cron: '0 2 * * *'
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  fuzz:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # root package
+          - harness: FuzzCatalogDemangle
+            package: .
+          - harness: FuzzDetectOnly
+            package: .
+          # internal/fuzz
+          - harness: FuzzCrossScheme
+            package: ./internal/fuzz
+          # scheme/dlang
+          - harness: FuzzDLang
+            package: ./scheme/dlang
+          # scheme/js
+          - harness: FuzzSourceMap
+            package: ./scheme/js/sourcemap
+          - harness: FuzzMinified
+            package: ./scheme/js/minified
+          # scheme/swift
+          - harness: FuzzSwiftV40
+            package: ./scheme/swift/v40
+          - harness: FuzzSwiftV42
+            package: ./scheme/swift/v42
+          - harness: FuzzSwiftStable
+            package: ./scheme/swift/stable
+          - harness: FuzzSwiftEmbedded
+            package: ./scheme/swift/embedded
+          - harness: FuzzSwiftMacro
+            package: ./scheme/swift/macro
+          - harness: FuzzSwiftOld
+            package: ./scheme/swift/old
+          # scheme/rust
+          - harness: FuzzRust
+            package: ./scheme/rust
+          # scheme/gosym
+          - harness: FuzzGoSym
+            package: ./scheme/gosym
+          # scheme/cxx
+          - harness: FuzzMSVC
+            package: ./scheme/cxxmsvc
+          - harness: FuzzCxxItanium
+            package: ./scheme/cxxitanium
+          # scheme/runtime
+          - harness: FuzzRuntime
+            package: ./scheme/runtime
+          # scheme/objc
+          - harness: FuzzObjC
+            package: ./scheme/objc
+          # scheme/java
+          - harness: FuzzKotlin
+            package: ./scheme/java/kotlin
+          - harness: FuzzProGuard
+            package: ./scheme/java/proguard
+          - harness: FuzzDex
+            package: ./scheme/java/dex
+          - harness: FuzzJNI
+            package: ./scheme/java/jni
+          - harness: FuzzScala2
+            package: ./scheme/java/scala2
+          - harness: FuzzJVMDesc
+            package: ./scheme/java/jvmdesc
+
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version: "1.26"
+          cache: true
+
+      - name: fuzz ${{ matrix.harness }} (10m)
+        env:
+          HARNESS: ${{ matrix.harness }}
+          PKG: ${{ matrix.package }}
+        run: |
+          go test -run='^$' \
+            -fuzz="${HARNESS}" \
+            -fuzztime=10m \
+            "${PKG}"
+
+      - name: commit crashers (if any)
+        if: failure()
+        env:
+          HARNESS: ${{ matrix.harness }}
+          PKG: ${{ matrix.package }}
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          # Identify crasher files written by the fuzzer.
+          # go test writes them under <package>/testdata/fuzz/<Harness>/.
+          pkg_dir=$(echo "${PKG}" | sed 's|^\./||')
+          corpus_dir="${pkg_dir}/testdata/fuzz/${HARNESS}"
+          if [ -d "${corpus_dir}" ] && [ -n "$(git status --porcelain "${corpus_dir}")" ]; then
+            git add "${corpus_dir}"
+            git commit -m "fuzz: crasher for ${HARNESS} [skip ci]"
+            git push
+          else
+            echo "No new crashers to commit."
+          fi
