@@ -1,4 +1,4 @@
-.PHONY: all build test vet fmt lint fuzz bench tidy clean size-check
+.PHONY: all build test vet fmt lint fuzz bench bench-check tidy clean size-check
 
 GO      ?= go
 PKGS    := ./...
@@ -26,8 +26,31 @@ lint:
 fuzz:
 	$(GO) test -fuzz=. -fuzztime=$${DURATION:-5m} $(PKGS)
 
+BENCH_BASELINE := internal/bench/testdata/baselines.bench
+BENCH_NEW      := build/bench.new
+
+# B1: update the committed bench baseline.
+# Run: make bench
+# Regenerates internal/bench/testdata/baselines.bench from the current machine.
+# Commit the result to lock in the new baseline.
 bench:
-	$(GO) test -run='^$$' -bench=. -benchmem -count=1 $(PKGS)
+	@mkdir -p build
+	$(GO) test -run='^$$' -bench=. -benchmem -benchtime=3s -count=1 \
+	    ./internal/bench/... | tee $(BENCH_NEW)
+	@cp $(BENCH_NEW) $(BENCH_BASELINE)
+	@echo "bench: baseline written to $(BENCH_BASELINE)"
+
+# B1: regression gate — compare a fresh run against the committed baseline.
+# Fails if any tracked benchmark regresses > 10 %.
+# Run: make bench-check
+bench-check:
+	@mkdir -p build
+	$(GO) test -run='^$$' -bench=. -benchmem -benchtime=3s -count=1 \
+	    ./internal/bench/... > $(BENCH_NEW) 2>&1
+	$(GO) run ./internal/bench/cmd/bench-compare \
+	    -old $(BENCH_BASELINE) \
+	    -new $(BENCH_NEW) \
+	    -threshold 10
 
 tidy:
 	$(GO) mod tidy
