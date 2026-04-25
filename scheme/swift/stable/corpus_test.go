@@ -121,10 +121,12 @@ func TestAppleCorpus(t *testing.T) {
 	// - E1: Vector2 static extension typealias + GD dynamic-self.
 	// - R1 fix: s5Error bare-ident push in skipConformanceRef; parsedRawStdlib
 	//   only when stdlib type is base of bound-generic ('y' follows).
+	// - A3: autodiff subset params thunk "of type" impl-fn with r<N>_l sig
+	//   + y-EmptyList for-clause + tryForClauseAMultiSub.
 	// - Stage 1 exit gate: equality check per line, zero tolerated
 	//   mismatches outside known-divergences.txt.
-	if matched < 144 {
-		t.Fatalf("expected ≥144 matches, got %d — parser regressed?", matched)
+	if matched < 148 {
+		t.Fatalf("expected ≥148 matches, got %d — parser regressed?", matched)
 	}
 	if mismatch > 0 {
 		t.Fatalf("%d mismatches — parser produced wrong output on a real fixture", mismatch)

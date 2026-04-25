@@ -2407,6 +2407,8 @@ func (p *parser) tryImplFunctionType() (*demangle.Node, bool) {
 	// where after '_' a 'y<for-clause-types>' follows instead of 'Sg'.
 	var types []*demangle.Node
 	var implSigStr, implSubsStr string // set for outer @substituted form
+	var innerSubstitutedParamCount int // set by r<N>_l for @substituted inner sig
+	var pendingForClause []string      // for-clause types collected at 'y' EmptyList boundary
 	for !p.eof() {
 		// 'r<N>_l' — generic-sig opener before a @substituted impl-fn.
 		// Appears between the type list and the inner 'I'; consume and
@@ -2417,6 +2419,13 @@ func (p *parser) tryImplFunctionType() (*demangle.Node, bool) {
 				j++
 			}
 			if j < len(p.s) && p.s[j] == '_' {
+				// Decode index: r<N>_ → demangleIndex gives N, count = N+1+1
+				// For r0_: N=0, count=2 (A, B).
+				num := 0
+				for k := p.i + 1; k < j; k++ {
+					num = num*10 + int(p.s[k]-'0')
+				}
+				innerSubstitutedParamCount = num + 2
 				p.i = j + 1
 				// Consume 'l' (sig-close) if present.
 				if !p.eof() && p.s[p.i] == 'l' {
@@ -2463,14 +2472,34 @@ func (p *parser) tryImplFunctionType() (*demangle.Node, bool) {
 					break
 				}
 				innerTypes := types[len(types)-needed:]
-				// Parse for-clause: 'y<types>' until next 'I'.
+				// Determine for-clause types. Two sources:
+				// 1. pendingForClause: pre-collected at 'y' EmptyList boundary
+				//    before this 'I' (A3 autodiff thunk pattern).
+				// 2. Inline 'y<types>' following attrs '_' (other patterns).
 				var forClauseTypes []string
-				if !p.eof() && p.s[p.i] == 'y' {
+				if len(pendingForClause) > 0 {
+					forClauseTypes = pendingForClause
+					pendingForClause = nil // consume
+				} else if !p.eof() && p.s[p.i] == 'y' {
 					p.i++ // consume 'y' opener
 					opts := common.DefaultPrintOptions()
 					for !p.eof() && p.s[p.i] != 'I' {
 						beforeFCType := p.i
 						beforeFCSubs := p.subs
+						// Try DependentMemberType first (digit-led assoc-type refs).
+						if fcType, ok2 := p.tryDependentMemberType(); ok2 {
+							forClauseTypes = append(forClauseTypes, common.Print(fcType, opts))
+							continue
+						}
+						p.i = beforeFCType
+						p.subs = beforeFCSubs
+						// Try for-clause multi-sub pattern (A<lower>*<upper>Q{z,y}).
+						if fcType, ok2 := p.tryForClauseAMultiSub(); ok2 {
+							forClauseTypes = append(forClauseTypes, common.Print(fcType, opts))
+							continue
+						}
+						p.i = beforeFCType
+						p.subs = beforeFCSubs
 						fcType, fcErr := p.parseType()
 						if fcErr != nil {
 							p.i = beforeFCType
@@ -2484,10 +2513,18 @@ func (p *parser) tryImplFunctionType() (*demangle.Node, bool) {
 						p.i++
 					}
 				}
-				// Build inner @substituted node. sigStr = "" since A3
-				// uses r<N>_l for sig count, not proto-constraint form.
+				// Build inner @substituted node.
+				// Build sig string from innerSubstitutedParamCount if set.
+				innerSigStr := ""
+				if innerSubstitutedParamCount > 0 {
+					letters := make([]string, innerSubstitutedParamCount)
+					for i2 := range letters {
+						letters[i2] = string(rune('A' + i2))
+					}
+					innerSigStr = strings.Join(letters, ", ")
+				}
 				forClauseStr := strings.Join(forClauseTypes, "")
-				innerNode, ok := buildImplFnDisplay(innerAttrs, innerTypes, "", forClauseStr)
+				innerNode, ok := buildImplFnDisplay(innerAttrs, innerTypes, innerSigStr, forClauseStr)
 				if !ok {
 					p.i = innerSave
 					break
@@ -2607,6 +2644,48 @@ func (p *parser) tryImplFunctionType() (*demangle.Node, bool) {
 			}
 			p.i = savePos
 			p.subs = saveSubsPos
+		}
+		// 'y' (not 'yt') after r<N>_l is the EmptyList boundary that
+		// introduces the for-clause types for the upcoming @substituted
+		// inner impl-fn. Collect them now into pendingForClause so the
+		// subsequent 'I' branch can use them directly.
+		if p.s[p.i] == 'y' && innerSubstitutedParamCount > 0 &&
+			!(p.i+1 < len(p.s) && p.s[p.i+1] == 't') {
+			yPos := p.i
+			ySubs := p.subs
+			p.i++ // consume 'y'
+			opts := common.DefaultPrintOptions()
+			var fcTypes []string
+			for !p.eof() && p.s[p.i] != 'I' {
+				beforeFC := p.i
+				beforeFCSubs := p.subs
+				if fcNode, ok2 := p.tryDependentMemberType(); ok2 {
+					fcTypes = append(fcTypes, common.Print(fcNode, opts))
+					continue
+				}
+				p.i = beforeFC
+				p.subs = beforeFCSubs
+				if fcNode, ok2 := p.tryForClauseAMultiSub(); ok2 {
+					fcTypes = append(fcTypes, common.Print(fcNode, opts))
+					continue
+				}
+				p.i = beforeFC
+				p.subs = beforeFCSubs
+				fcNode, fcErr := p.parseType()
+				if fcErr != nil {
+					p.i = beforeFC
+					p.subs = beforeFCSubs
+					break
+				}
+				fcTypes = append(fcTypes, common.Print(fcNode, opts))
+			}
+			if !p.eof() && p.s[p.i] == 'I' && len(fcTypes) > 0 {
+				pendingForClause = fcTypes
+				continue // let the 'I' branch pick up next iteration
+			}
+			// Couldn't treat as boundary — restore and fall through.
+			p.i = yPos
+			p.subs = ySubs
 		}
 		subsBeforeParse := p.subs.Len()
 		t, err := p.parseType()
@@ -9037,6 +9116,122 @@ func (p *parser) tryDependentMemberType() (*demangle.Node, bool) {
 		return nil, false
 	}
 	protoText := common.Print(proto, common.DefaultPrintOptions())
+	wrap := common.NewNode(common.KindType)
+	tn := common.NewNode(common.KindBuiltinTypeName)
+	tn.Text = paramName + "." + protoText + "." + assocName
+	common.AddChildren(wrap, tn)
+	return wrap, true
+}
+
+// tryForClauseAMultiSub handles the for-clause dependent-member-type pattern
+// emitted by Apple's demangler as multi-substitution references inside
+// @substituted impl-fn for-clauses:
+//
+//	'A' <lower>* <upper> 'Q' ('z' | 'y' digits? '_')
+//
+// The lowercase letters are intermediate multi-sub pushes (each pops a subs
+// entry and pushes it again, extending the subs table). The final uppercase
+// letter selects the terminal subs entry (typically a Module — discarded in
+// our model since we use the Protocol entry from the subs table instead).
+// 'Qz' encodes param A, 'Qy_' encodes param B, etc.
+//
+// The function searches backwards through the subs table for the most
+// recently recorded Protocol type and Identifier (assoc-name) to reconstruct
+// the "GenericParam.Proto.AssocName" string.
+func (p *parser) tryForClauseAMultiSub() (*demangle.Node, bool) {
+	if p.eof() || p.s[p.i] != 'A' {
+		return nil, false
+	}
+	save := p.i
+	saveSubs := p.subs
+	revert := func() { p.i = save; p.subs = saveSubs }
+
+	p.i++ // consume 'A'
+
+	// Process lowercase intermediate multi-sub letters: each pushes
+	// subs[letter-'a'] back onto the subs table (extending it).
+	for !p.eof() && p.s[p.i] >= 'a' && p.s[p.i] <= 'z' {
+		idx := int(p.s[p.i] - 'a')
+		if n, ok2 := p.subs.Get(idx); ok2 {
+			p.subs.Push(n)
+		}
+		p.i++
+	}
+
+	// Expect a capital letter (terminal subs index) — we don't use
+	// the result directly; we search subs backwards for the Protocol.
+	if p.eof() || !(p.s[p.i] >= 'A' && p.s[p.i] <= 'Z') {
+		revert()
+		return nil, false
+	}
+	p.i++ // consume final uppercase (terminal sub idx)
+
+	// Expect 'Q' followed by 'z' or 'y'.
+	if p.eof() || p.s[p.i] != 'Q' {
+		revert()
+		return nil, false
+	}
+	p.i++ // consume 'Q'
+	if p.eof() {
+		revert()
+		return nil, false
+	}
+	kind := p.s[p.i]
+	p.i++
+	var paramName string
+	switch kind {
+	case 'z':
+		paramName = "A"
+	case 'y':
+		start := p.i
+		for !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+			p.i++
+		}
+		if p.eof() || p.s[p.i] != '_' {
+			revert()
+			return nil, false
+		}
+		n := 0
+		if p.i > start {
+			for _, d := range p.s[start:p.i] {
+				n = n*10 + int(d-'0')
+			}
+			n++
+		}
+		p.i++ // consume '_'
+		paramName = string(rune('B' + byte(n)))
+	default:
+		revert()
+		return nil, false
+	}
+
+	// Search backwards through the subs table for the most recent
+	// Protocol Type and the most recent Identifier (assoc-name).
+	// The Protocol was pushed by the last parseType that returned a
+	// Protocol node; the Identifier was pushed by tryDependentMemberType's
+	// assocName push just before this call.
+	opts := common.DefaultPrintOptions()
+	var protoText, assocName string
+	for k := p.subs.Len() - 1; k >= 0 && (protoText == "" || assocName == ""); k-- {
+		n, ok2 := p.subs.Get(k)
+		if !ok2 {
+			continue
+		}
+		if protoText == "" {
+			if common.NodeKind(n.Kind) == common.KindType && len(n.Children) > 0 &&
+				common.NodeKind(n.Children[0].Kind) == common.KindProtocol {
+				protoText = common.Print(n, opts)
+				continue
+			}
+		}
+		if assocName == "" && common.NodeKind(n.Kind) == common.KindIdentifier {
+			assocName = n.Text
+		}
+	}
+	if protoText == "" || assocName == "" {
+		revert()
+		return nil, false
+	}
 	wrap := common.NewNode(common.KindType)
 	tn := common.NewNode(common.KindBuiltinTypeName)
 	tn.Text = paramName + "." + protoText + "." + assocName
