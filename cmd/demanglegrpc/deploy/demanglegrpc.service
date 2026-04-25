@@ -1,0 +1,47 @@
+[Unit]
+Description=demangle gRPC service
+Documentation=https://github.com/jelmerdehen/demangle
+After=network.target
+
+[Service]
+Type=simple
+User=demanglegrpc
+Group=demanglegrpc
+EnvironmentFile=-/etc/default/demanglegrpc
+ExecStart=/usr/local/bin/demanglegrpc \
+    --listen=${DEMANGLE_GRPC_LISTEN:-0.0.0.0:50061} \
+    --health-listen=${DEMANGLE_HEALTH_LISTEN:-0.0.0.0:50062} \
+    --context-db=${DEMANGLE_CONTEXT_DB:-/var/lib/demanglegrpc/contexts.db}
+Restart=always
+RestartSec=5
+TimeoutStopSec=15
+
+# Resource limits.
+LimitNOFILE=65535
+
+# Hardening.
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictNamespaces=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+SystemCallFilter=@system-service
+SystemCallErrorNumber=EPERM
+
+# Writable paths.
+ReadWritePaths=/var/lib/demanglegrpc
+
+# Environment.
+Environment=GOMAXPROCS=4
+Environment=GOGC=100
+
+[Install]
+WantedBy=multi-user.target

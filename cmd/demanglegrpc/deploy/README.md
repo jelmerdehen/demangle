@@ -1,8 +1,25 @@
 # demanglegrpc deploy
 
-Ships the gRPC service as `skynet-demangle.service` on **lux**
-(10.13.38.4). Stage 6.5 in the v5.1 plan — not deployed until a
-concrete non-Go non-skynet caller materialises.
+Ships the gRPC service. Stage 6.5 in the v5.1 plan — not deployed
+until a concrete non-Go non-skynet caller materialises.
+
+## Files in this directory
+
+| File | Purpose |
+|---|---|
+| `demanglegrpc.service` | Systemd unit for generic installs (`User=demanglegrpc`) |
+| `skynet-demangle.service` | Systemd unit for the lux/skynet deployment (`User=demangle`) |
+| `build.sh` | Build the binary and verify it is under 15 MB |
+| `README.md` | This file |
+
+## Building
+
+```sh
+bash cmd/demanglegrpc/deploy/build.sh
+```
+
+Produces `./demanglegrpc` in the repository root. Fails if the binary
+exceeds 15 MB.
 
 ## Endpoints
 
