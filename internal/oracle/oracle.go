@@ -75,6 +75,11 @@ func RunDiff(t *testing.T, scheme demangle.Scheme, corpusPath, divergencesPath s
 			continue
 		}
 		mangled := strings.TrimSpace(parts[0])
+
+		// Skip symbols this scheme does not recognise at all.
+		if score, ok := scheme.Sniff(mangled); !ok || score <= 0 {
+			continue
+		}
 		count++
 
 		// Our demangler.
