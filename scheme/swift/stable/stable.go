@@ -3902,6 +3902,73 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 	// Heuristic: push each 'A<letter>' multi-sub (resolved from current
 	// subs table) and each 'S<letter>' stdlib nominal type found in the
 	// raw constraint bytes (e.g. "AA" → re-push subs[0], "Sd" → Swift.Double).
+	// Additionally, scan for length-prefixed identifiers (<digits><chars>) and
+	// push them as Identifier nodes so that later A<idx> refs (e.g. "AD" where
+	// D=3 maps to the Identifier("Element") pushed here) resolve correctly.
+	// Apple's demangler encounters these as top-level ops during generic-sig
+	// processing (e.g. `7Element` → Identifier pushed to the substitution table).
+	addWordsFromConstraintIdent := func(ident string) {
+		// Mirror parseIdentifier's captureWords: split at camelCase boundaries,
+		// add runs of ≥2 letters to p.words.
+		isUpper := func(c byte) bool { return c >= 'A' && c <= 'Z' }
+		isLower := func(c byte) bool { return c >= 'a' && c <= 'z' }
+		isLetter := func(c byte) bool { return isUpper(c) || isLower(c) }
+		isWordStart := func(c byte) bool { return isLetter(c) || c == '_' }
+		isWordEnd := func(c, prev byte) bool {
+			if !isLetter(c) {
+				return true
+			}
+			if isUpper(c) && isLower(prev) {
+				return true
+			}
+			return false
+		}
+		wordStart := -1
+		for i := 0; i <= len(ident); i++ {
+			var c byte
+			if i < len(ident) {
+				c = ident[i]
+			}
+			if wordStart >= 0 && (i == len(ident) || isWordEnd(c, ident[i-1])) {
+				if i-wordStart >= 2 && len(p.words) < 26 {
+					p.words = append(p.words, ident[wordStart:i])
+				}
+				wordStart = -1
+			}
+			if wordStart < 0 && i < len(ident) && isWordStart(c) {
+				wordStart = i
+			}
+		}
+	}
+	// First pass: scan for <digits><chars> identifiers and push them.
+	for ci := 0; ci < len(constraintBytes); {
+		if constraintBytes[ci] >= '0' && constraintBytes[ci] <= '9' {
+			// Parse decimal length prefix.
+			lenStart := ci
+			for ci < len(constraintBytes) && constraintBytes[ci] >= '0' && constraintBytes[ci] <= '9' {
+				ci++
+			}
+			length := 0
+			for _, d := range constraintBytes[lenStart:ci] {
+				length = length*10 + int(d-'0')
+			}
+			end := ci + length
+			if end <= len(constraintBytes) && length > 0 {
+				ident := string(constraintBytes[ci:end])
+				// Push Identifier node to subs (mirrors Apple's demangleIdentifier
+				// adding to Substitutions when parsing constraint sig ops).
+				p.subs.Push(common.NewIdentifier(ident))
+				// Also populate words table for later word-substitution decoding.
+				addWordsFromConstraintIdent(ident)
+				ci = end
+			} else {
+				break
+			}
+		} else {
+			ci++
+		}
+	}
+	// Second pass: push A<letter> and S<letter> subs.
 	for ci := 0; ci+1 < len(constraintBytes); ci++ {
 		switch constraintBytes[ci] {
 		case 'A':
@@ -3997,6 +4064,11 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 		//
 		// We speculatively try to parse each element; on failure we stop
 		// (the remaining byte will be 'F' or another terminal).
+		//
+		// Key boundary: a parsed type immediately followed by 'R' is NOT
+		// another param — it is the start of the local generic-sig
+		// (type-R-subject requirement pattern). Stop tuple parsing and let
+		// the gen-sig loop below handle it.
 		for !p.eof() && p.s[p.i] != 't' && p.s[p.i] != 'F' {
 			// Skip optional '_' separator between tuple elements.
 			if p.s[p.i] == '_' {
@@ -4010,6 +4082,14 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 			elem, eerr := p.parseType()
 			if eerr != nil {
 				// Not a valid type — stop tuple parsing here.
+				p.i = elemSave
+				p.subs = elemSubs
+				break
+			}
+			// If the type is immediately followed by 'R', this is the start of
+			// the local generic sig (e.g. "AA1PRd__" = protocol-type + R +
+			// subject). Back up and break to enter the gen-sig loop.
+			if !p.eof() && p.s[p.i] == 'R' {
 				p.i = elemSave
 				p.subs = elemSubs
 				break
@@ -4030,8 +4110,218 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 	} else {
 		paramsNode = common.NewNode(common.KindEmptyList)
 	}
-	// Optional gen-sig trailer (narrow: 'l' only).
-	for !p.eof() && (p.s[p.i] == 'l' || p.s[p.i] == 'r' ||
+	// Local generic sig parser: handles [<type> R <subject-enc>]* l
+	// where subject-enc 'd__' = depth-1 generic param = A1.
+	// Recognises:
+	//   <proto-type> R d__ → "A1: <proto>" (conformance requirement)
+	//   <module-sub>  R j _ d__ → "A1.<assocName>: ~Swift.Copyable"
+	//     (the module-sub resolves to an Identifier node pushed during
+	//      constraint-byte scanning; that identifier is the assoc-type name)
+	//   <stdlib-type> <ident> R p d__ → "A1.<ident>: <stdlib-type>"
+	//     (positive assoc-type conformance, e.g. A1.Iterator: Swift.Copyable)
+	var localConstraints []string
+	for !p.eof() {
+		c := p.s[p.i]
+		if c == 'l' {
+			p.i++
+			break
+		}
+		// r<N>_  or plain r before l: skip requirement-count prefix.
+		if c == 'r' {
+			j := p.i + 1
+			for j < len(p.s) && p.s[j] >= '0' && p.s[j] <= '9' {
+				j++
+			}
+			if j < len(p.s) && p.s[j] == '_' {
+				p.i = j + 1
+				continue
+			}
+			break
+		}
+		if c == 'S' || c == 's' || c == 'x' || c == 'q' || c == 'A' ||
+			c == 'B' || (c >= '0' && c <= '9') {
+			saveSig := p.i
+			saveSubsSig := p.subs
+			// Special-case: 's<proto-ident><assoc-ident>Rpd__' — two
+			// separate identifier ops followed by a protocol/assoc
+			// conformance requirement. Apple's demangler pushes them
+			// independently onto the node stack; our parseType would fail
+			// trying to interpret the second ident as a nominal kind byte.
+			// Handle this form directly.
+			if c == 's' {
+				specsave := p.i
+				specsaveSubs := p.subs
+				p.i++ // consume 's'
+				protoName, perr := p.parseIdentifier()
+				if perr == nil {
+					assocName, aerr := p.parseIdentifier()
+					if aerr == nil && p.i+1 < len(p.s) && p.s[p.i] == 'R' && p.s[p.i+1] == 'p' {
+						p.i += 2 // consume Rp
+						// Subject: d__ = A1.
+						if !p.eof() && p.s[p.i] == 'd' {
+							p.i++
+							if !p.eof() && p.s[p.i] == '_' {
+								p.i++
+								if !p.eof() && p.s[p.i] == '_' {
+									p.i++
+								}
+							}
+						}
+						localConstraints = append(localConstraints,
+							"A1."+assocName+": Swift."+protoName)
+						continue
+					}
+				}
+				p.i = specsave
+				p.subs = specsaveSubs
+			}
+			constraint, cerr := p.parseType()
+			if cerr != nil {
+				p.i = saveSig
+				p.subs = saveSubsSig
+				break
+			}
+			if p.eof() || p.s[p.i] != 'R' {
+				p.i = saveSig
+				p.subs = saveSubsSig
+				break
+			}
+			p.i++ // consume R
+			if p.eof() {
+				p.i = saveSig
+				p.subs = saveSubsSig
+				break
+			}
+			reqKind := p.s[p.i]
+			p.i++
+			cstr := common.Print(constraint, common.DefaultPrintOptions())
+			switch reqKind {
+			case 'z':
+				localConstraints = append(localConstraints, "A: "+cstr)
+			case '_':
+				localConstraints = append(localConstraints, "B: "+cstr)
+			case 'd':
+				// d__ = DependentGenericParamType(depth=1, idx=0) = A1.
+				if !p.eof() && p.s[p.i] == '_' {
+					p.i++
+					if !p.eof() && p.s[p.i] == '_' {
+						p.i++
+					}
+				}
+				// Distinguish constraint kinds by the type of 'constraint':
+				// - Protocol/Module type → conformance req "A1: <proto>"
+				// - Identifier → assoc-type inverse req "A1.<ident>: ~Swift.Copyable"
+				//   (this happens when the constraint sub resolved to an Identifier,
+				//    e.g. AD where subs[3]=Identifier("Element"))
+				// - Module resolved as bare module → look for assoc-ident via
+				//   stdlib/proto type on the node stack (handled by 'j' below)
+				cKind := common.NodeKind(constraint.Kind)
+				if cKind == common.KindIdentifier {
+					// Module-sub resolved to Identifier("Element") → this is
+					// the assoc-type name for an inverse req. Peek for 'j' to confirm.
+					// (This case should not normally reach here since 'j' is handled
+					// below; treat as "A1.<ident>: ~Swift.Copyable" heuristically.)
+					localConstraints = append(localConstraints, "A1."+constraint.Text+": ~Swift.Copyable")
+				} else {
+					localConstraints = append(localConstraints, "A1: "+cstr)
+				}
+			case 'j':
+				// Inverse assoc-type req: Rj <idx> _ d__ →
+				// "A1.<assocName>: ~Swift.<proto>".
+				// inverseKind index: _ = 0 = Copyable, 1_ = Escapable.
+				idx := 0
+				start := p.i
+				for !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+					p.i++
+				}
+				if !p.eof() && p.s[p.i] == '_' {
+					if p.i > start {
+						num := 0
+						for k := start; k < p.i; k++ {
+							num = num*10 + int(p.s[k]-'0')
+						}
+						idx = num + 1
+					}
+					p.i++
+				}
+				// Consume optional subject marker 'd__' (depth-1 idx-0 = A1).
+				if !p.eof() && p.s[p.i] == 'd' {
+					p.i++
+					if !p.eof() && p.s[p.i] == '_' {
+						p.i++
+						if !p.eof() && p.s[p.i] == '_' {
+							p.i++
+						}
+					}
+				}
+				proto := "Swift.Copyable"
+				if idx == 1 {
+					proto = "Swift.Escapable"
+				} else if idx > 1 {
+					proto = fmt.Sprintf("Swift.<bit %d>", idx)
+				}
+				// The assoc-type name comes from 'constraint': when it's a
+				// Module sub (e.g. AD where D=subs[3]=Identifier("Element")),
+				// the text is the module name itself (wrong). Instead, look for
+				// an Identifier in the recently-pushed subs.
+				assocName := ""
+				cKind := common.NodeKind(constraint.Kind)
+				if cKind == common.KindIdentifier {
+					assocName = constraint.Text
+				} else if cKind == common.KindModule {
+					// Apple's AD = multi-sub returning subs[3]=Identifier("Element");
+					// the Identifier was pushed during constraint-byte scanning.
+					// Walk back through subs to find the most recently pushed Identifier.
+					for k := p.subs.Len() - 1; k >= 0; k-- {
+						n, ok := p.subs.Get(k)
+						if ok && n != nil && common.NodeKind(n.Kind) == common.KindIdentifier {
+							assocName = n.Text
+							break
+						}
+					}
+				}
+				if assocName != "" {
+					localConstraints = append(localConstraints, "A1."+assocName+": ~"+proto)
+				}
+			case 'p':
+				// Positive assoc-type conformance: Rp d__ →
+				// "A1.<assocName>: <proto>".
+				// Subject: d__ = A1. Consume d__.
+				if !p.eof() && p.s[p.i] == 'd' {
+					p.i++
+					if !p.eof() && p.s[p.i] == '_' {
+						p.i++
+						if !p.eof() && p.s[p.i] == '_' {
+							p.i++
+						}
+					}
+				}
+				// The assoc-type name was pushed as an Identifier before
+				// the constraint type (e.g. s8Copyable8IteratorRpd__:
+				// constraint=Swift.Copyable, then '8Iterator' identifier).
+				// Apple's demangleAssociatedTypeSimple pops from the stack.
+				// Walk subs for the most recent Identifier.
+				assocName := ""
+				for k := p.subs.Len() - 1; k >= 0; k-- {
+					n, ok := p.subs.Get(k)
+					if ok && n != nil && common.NodeKind(n.Kind) == common.KindIdentifier {
+						assocName = n.Text
+						break
+					}
+				}
+				if assocName != "" && cstr != "" {
+					localConstraints = append(localConstraints, "A1."+assocName+": "+cstr)
+				}
+			default:
+				p.i = saveSig
+				p.subs = saveSubsSig
+			}
+			continue
+		}
+		break
+	}
+	// Consume any remaining requirement-count or trailing bytes before 'F'.
+	for !p.eof() && (p.s[p.i] == 'u' || p.s[p.i] == 'r' ||
 		(p.s[p.i] >= '0' && p.s[p.i] <= '9')) {
 		p.i++
 	}
@@ -4047,6 +4337,11 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 	hostQualified := modName + "." + hostName
 	if sameTypeConstraint != "" {
 		hostQualified += "<" + sameTypeConstraint + ">"
+	}
+	// Build local generic sig string from parsed constraints.
+	localSig := ""
+	if len(localConstraints) > 0 {
+		localSig = "<A where " + strings.Join(localConstraints, ", ") + ">"
 	}
 	// Build params string, applying labels when present.
 	var paramsStr string
@@ -4077,7 +4372,7 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 	}
 	wrap := common.NewNode(common.KindTypeMangling)
 	wrap.Text = "(extension in " + modName + "):" + hostQualified + sig +
-		"." + declName + paramsStr + " -> " + retStr
+		"." + declName + localSig + paramsStr + " -> " + retStr
 	return wrap, true, nil
 }
 
@@ -4147,13 +4442,18 @@ func extractConstraintSig(b []byte) string {
 }
 
 // extractConstraintSigFull extends extractConstraintSig to also
-// recognise 'Rs' (same-type requirement) in addition to 'Rj'
-// (inverse/bitwise requirement). Returns (sig, sameTypeConstraint)
-// where sameTypeConstraint is the concrete type string (e.g.
-// "Swift.Double") when an Rs constraint is found, or "" otherwise.
+// recognise 'Rs' (same-type requirement) and 'Ri' (type-param inverse
+// requirement) in addition to 'Rj' (assoc-type inverse requirement).
+// Returns (sig, sameTypeConstraint) where sameTypeConstraint is the
+// concrete type string (e.g. "Swift.Double") when an Rs constraint is
+// found, or "" otherwise.
+//
+// Supports multiple constraints in the same byte slice, producing
+// "< where C1, C2, ... >" output.
 func extractConstraintSigFull(b []byte) (sig, sameTypeConstraint string) {
 	s := string(b)
 	// Same-type requirement: '<S<letter>> Rs z' encodes "A == <stdlib-type>".
+	// Check this first and return early (narrow: only one Rs per constraint).
 	rs := strings.Index(s, "Rs")
 	if rs >= 0 && rs+2 < len(s) {
 		subjectByte := s[rs+2]
@@ -4171,8 +4471,108 @@ func extractConstraintSigFull(b []byte) (sig, sameTypeConstraint string) {
 			}
 		}
 	}
-	// Fall back to Rj-based inverse constraint.
-	return extractConstraintSig(b), ""
+
+	var constraints []string
+
+	// Find 'Ri' (type-param inverse requirement): "A: ~Swift.Copyable".
+	// Pattern: Ri <idx>? _ <subj> where subj 'z' = A.
+	// idx: absent or digits; '_' terminates; 0=Copyable, 1=Escapable.
+	ri := strings.Index(s, "Ri")
+	if ri >= 0 {
+		j := ri + 2
+		// Read optional index digits.
+		start := j
+		for j < len(s) && s[j] >= '0' && s[j] <= '9' {
+			j++
+		}
+		if j < len(s) && s[j] == '_' {
+			idx := 0
+			if j > start {
+				n := 0
+				for k := start; k < j; k++ {
+					n = n*10 + int(s[k]-'0')
+				}
+				idx = n + 1
+			}
+			j++ // consume '_'
+			// Subject byte: 'z' = first generic param = A.
+			if j < len(s) && s[j] == 'z' {
+				proto := "Swift.Copyable"
+				if idx == 1 {
+					proto = "Swift.Escapable"
+				} else if idx > 1 {
+					proto = fmt.Sprintf("Swift.<bit %d>", idx)
+				}
+				constraints = append(constraints, "A: ~"+proto)
+			}
+		}
+	}
+
+	// Find all '<N><name>Rj<idx?>_<subj>' sequences (assoc-type inverse req).
+	// Scan for all 'Rj' occurrences.
+	for pos := 0; pos < len(s); {
+		rj := strings.Index(s[pos:], "Rj")
+		if rj < 0 {
+			break
+		}
+		rj += pos
+		// Find the <N><name> preceding Rj by scanning backwards.
+		nameEnd := rj
+		i := nameEnd - 1
+		// Skip trailing letters (the identifier body).
+		for i >= 0 && ((s[i] >= 'a' && s[i] <= 'z') || (s[i] >= 'A' && s[i] <= 'Z') || s[i] == '_') {
+			i--
+		}
+		digEnd := i + 1
+		digStart := digEnd
+		for digStart > 0 && s[digStart-1] >= '0' && s[digStart-1] <= '9' {
+			digStart--
+		}
+		if digStart == digEnd {
+			pos = rj + 2
+			continue
+		}
+		length := 0
+		for k := digStart; k < digEnd; k++ {
+			length = length*10 + int(s[k]-'0')
+		}
+		if digEnd+length > rj {
+			pos = rj + 2
+			continue
+		}
+		name := s[digEnd : digEnd+length]
+		// Decode idx after Rj.
+		j := rj + 2
+		idxStart := j
+		for j < len(s) && s[j] >= '0' && s[j] <= '9' {
+			j++
+		}
+		if j >= len(s) || s[j] != '_' {
+			pos = rj + 2
+			continue
+		}
+		idx := 0
+		if j > idxStart {
+			n := 0
+			for k := idxStart; k < j; k++ {
+				n = n*10 + int(s[k]-'0')
+			}
+			idx = n + 1
+		}
+		proto := "Swift.Copyable"
+		if idx == 1 {
+			proto = "Swift.Escapable"
+		} else if idx > 1 {
+			proto = fmt.Sprintf("Swift.<bit %d>", idx)
+		}
+		constraints = append(constraints, "A."+name+": ~"+proto)
+		pos = j + 1
+	}
+
+	if len(constraints) == 0 {
+		return "", ""
+	}
+	return "< where " + strings.Join(constraints, ", ") + ">", ""
 }
 
 // tryFunctionEntity attempts to match:
@@ -5343,6 +5743,19 @@ func (p *parser) parseType() (*demangle.Node, error) {
 			// produce the correct type-valued node.
 			if t, ok := p.findTypeForIdent(sub.Text); ok {
 				node = t
+				// In Apple's stack-based model, A<lower...><Upper> returns
+				// an Identifier that a subsequent 'P' (Protocol kind byte)
+				// uses to build a Protocol type from (module + ident). When
+				// we short-circuit via findTypeForIdent the Protocol is
+				// already resolved but 'P' has not been consumed. Consume it
+				// now so the caller (e.g. tryDependentMemberType) sees 'Q'
+				// next instead of 'P'.
+				if !p.eof() && p.s[p.i] == 'P' &&
+					common.NodeKind(node.Kind) == common.KindType &&
+					len(node.Children) > 0 &&
+					common.NodeKind(node.Children[0].Kind) == common.KindProtocol {
+					p.i++ // consume 'P' nominal-kind byte
+				}
 			} else {
 				node = sub
 			}
@@ -6031,6 +6444,17 @@ func (p *parser) tryBoundGeneric(base *demangle.Node) (*demangle.Node, bool, err
 		argSave := p.i
 		argSubs := p.subs
 		arg, err := p.parseType()
+		// A bare KindIdentifier returned by parseType is not a valid
+		// bound-generic type argument — it indicates the multi-sub
+		// back-reference bytes are part of a conformance-ref block,
+		// not a real type param (e.g. 'AjE' resolving to Identifier("G")
+		// inside a conformance suffix like 'AjE1PAAxAeKHD1_AIHO_HCg_').
+		// Roll back and let skipConformanceRef consume the block.
+		if err == nil && common.NodeKind(arg.Kind) == common.KindIdentifier {
+			p.i = argSave
+			p.subs = argSubs
+			err = fmt.Errorf("bare identifier not a type arg")
+		}
 		if err == nil {
 			args = append(args, arg)
 			// Peek ahead for immediately-following conformance-ref
@@ -8385,7 +8809,26 @@ func (p *parser) grammarErr(expected string) error {
 //    from <inner-text> with respect to parameters {<fromParams>}
 //    and results {<fromResults>} to parameters {<toParams>}".
 func (p *parser) tryAutodiffSubsetParametersThunk(inner *demangle.Node) (*demangle.Node, bool) {
-	if p.i+3 >= len(p.s) || p.s[p.i] != 'T' || p.s[p.i+1] != 'J' || p.s[p.i+2] != 'S' {
+	// Speculatively try to parse a leading impl-fn-type ("of type …") that
+	// precedes the TJS suffix.  The attempt is fully speculative: if it
+	// fails, or if TJS is not found immediately after, we restore state and
+	// fall through to the plain TJS check below.
+	implFnText := ""
+	if p.i < len(p.s) && p.s[p.i] != 'T' {
+		preSave := p.i
+		preSubsSave := p.subs
+		if implFnNode, ok := p.tryImplFunctionType(); ok {
+			// Only keep the result if TJS follows immediately.
+			if p.i+3 <= len(p.s) && p.s[p.i] == 'T' && p.s[p.i+1] == 'J' && p.s[p.i+2] == 'S' {
+				implFnText = common.Print(implFnNode, common.DefaultPrintOptions())
+			} else {
+				// TJS not next — discard the impl-fn parse.
+				p.i = preSave
+				p.subs = preSubsSave
+			}
+		}
+	}
+	if p.i+3 > len(p.s) || p.s[p.i] != 'T' || p.s[p.i+1] != 'J' || p.s[p.i+2] != 'S' {
 		return inner, false
 	}
 	save := p.i
@@ -8440,11 +8883,15 @@ func (p *parser) tryAutodiffSubsetParametersThunk(inner *demangle.Node) (*demang
 	}
 	innerText := common.Print(inner, common.DefaultPrintOptions())
 	wrap := common.NewNode(common.KindTypeMangling)
-	wrap.Text = "autodiff subset parameters thunk for " + kindName +
+	text := "autodiff subset parameters thunk for " + kindName +
 		" from " + innerText +
 		" with respect to parameters {" + renderIndexSubset(fromP) + "}" +
 		" and results {" + renderIndexSubset(fromR) + "}" +
 		" to parameters {" + renderIndexSubset(toP) + "}"
+	if implFnText != "" {
+		text += " of type " + implFnText
+	}
+	wrap.Text = text
 	return wrap, true
 }
 
