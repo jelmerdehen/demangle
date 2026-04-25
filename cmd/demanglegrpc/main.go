@@ -61,11 +61,11 @@ func main() {
 	opts := []grpc.ServerOption{
 		grpc.MaxRecvMsgSize(*maxRecvMB * 1024 * 1024),
 		grpc.KeepaliveParams(keepalive.ServerParameters{
-			MaxConnectionIdle:     10 * time.Minute,
+			MaxConnectionIdle:     15 * time.Minute,
 			MaxConnectionAge:      30 * time.Minute,
 			MaxConnectionAgeGrace: 30 * time.Second,
-			Time:                  1 * time.Minute,
-			Timeout:               20 * time.Second,
+			Time:                  5 * time.Minute,
+			Timeout:               1 * time.Minute,
 		}),
 		grpc.KeepaliveEnforcementPolicy(keepalive.EnforcementPolicy{
 			MinTime:             30 * time.Second,

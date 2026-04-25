@@ -5,8 +5,11 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"net"
+	"net/http"
+	"strings"
 	"testing"
 	"time"
 
@@ -300,6 +303,111 @@ func TestGRPCMangle(t *testing.T) {
 	}
 	if r4.GetError() == "" {
 		t.Fatal("Mangle empty scheme: expected Error in response")
+	}
+}
+
+// startServerWithHealth starts an in-process gRPC server plus its HTTP
+// health/metrics server.  It returns the gRPC client, the HTTP base URL
+// (e.g. "http://127.0.0.1:PORT"), and a cleanup function.
+func startServerWithHealth(t *testing.T) (pb.DemangleClient, string, func()) {
+	t.Helper()
+
+	// gRPC listener on a random port.
+	grpcLis, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("grpc listen: %v", err)
+	}
+
+	// HTTP listener on a separate random port.
+	httpLis, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("health listen: %v", err)
+	}
+	httpAddr := httpLis.Addr().String()
+	// Release so startHealthEndpoint can bind by string address.
+	httpLis.Close()
+
+	store := demangle.InMemoryContextStore()
+	svc := newService(demangle.Default, store)
+
+	srv := grpc.NewServer()
+	pb.RegisterDemangleServer(srv, svc)
+
+	healthSrv := startHealthEndpoint(httpAddr, svc.health)
+
+	done := make(chan struct{})
+	go func() {
+		srv.Serve(grpcLis) //nolint:errcheck
+		close(done)
+	}()
+
+	conn, err := grpc.NewClient(grpcLis.Addr().String(), grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		t.Fatalf("dial: %v", err)
+	}
+
+	// Wait until the HTTP server is up (up to 2 s).
+	baseURL := fmt.Sprintf("http://%s", httpAddr)
+	deadline := time.Now().Add(2 * time.Second)
+	for time.Now().Before(deadline) {
+		resp, e := http.Get(baseURL + "/healthz")
+		if e == nil {
+			resp.Body.Close()
+			break
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+
+	cleanup := func() {
+		conn.Close()
+		srv.GracefulStop()
+		healthSrv.Close()
+		<-done
+		store.Close()
+	}
+	return pb.NewDemangleClient(conn), baseURL, cleanup
+}
+
+func TestHealthzEndpoint(t *testing.T) {
+	t.Parallel()
+	_, baseURL, cleanup := startServerWithHealth(t)
+	defer cleanup()
+
+	resp, err := http.Get(baseURL + "/healthz")
+	if err != nil {
+		t.Fatalf("GET /healthz: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("/healthz status = %d, want 200", resp.StatusCode)
+	}
+	body, _ := io.ReadAll(resp.Body)
+	if !strings.HasPrefix(string(body), "ok") {
+		t.Fatalf("/healthz body = %q, want prefix \"ok\"", string(body))
+	}
+}
+
+func TestMetricsEndpoint(t *testing.T) {
+	t.Parallel()
+	_, baseURL, cleanup := startServerWithHealth(t)
+	defer cleanup()
+
+	resp, err := http.Get(baseURL + "/metrics")
+	if err != nil {
+		t.Fatalf("GET /metrics: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("/metrics status = %d, want 200", resp.StatusCode)
+	}
+	body, _ := io.ReadAll(resp.Body)
+	if len(body) == 0 {
+		t.Fatal("/metrics body is empty")
+	}
+	if !strings.Contains(string(body), "demangle_goroutines") {
+		t.Fatalf("/metrics body missing demangle_goroutines; got:\n%s", string(body))
 	}
 }
 
