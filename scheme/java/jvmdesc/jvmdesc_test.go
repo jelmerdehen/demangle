@@ -163,6 +163,70 @@ func TestJVMDescBadInputs(t *testing.T) {
 	}
 }
 
+// TestJVMDescRoundTrip exercises Demangle → Mangle → Demangle for every
+// fixture: the re-mangled string must be byte-equal to the original input
+// and the second demangle must produce identical output to the first.
+func TestJVMDescRoundTrip(t *testing.T) {
+	t.Parallel()
+	cat := newCatalog(t)
+
+	fixtures := []string{
+		// Primitives
+		"V", "Z", "B", "S", "C", "I", "J", "F", "D",
+		// Field descriptors
+		"Lcom/example/Foo;",
+		"[I",
+		"[[[Ljava/lang/String;",
+		// Method descriptors
+		"()V",
+		"(I)V",
+		"(IJ)V",
+		"(Ljava/util/List;I)Ljava/util/Optional;",
+		"([BLjava/lang/Object;)V",
+		// Generic / signature inputs
+		"TT;",
+		"Ljava/util/List<Ljava/lang/String;>;",
+		"Ljava/util/Map<Ljava/lang/String;Ljava/util/List<Ljava/lang/Integer;>;>;",
+		"Ljava/util/List<*>;",
+		"Ljava/util/List<+Ljava/lang/Number;>;",
+		"Ljava/util/List<-Ljava/lang/Number;>;",
+		"[Ljava/util/List<Ljava/lang/String;>;",
+		"<T:Ljava/lang/Object;>Ljava/util/AbstractList<TT;>;",
+		"<T:Ljava/lang/Number;>Ljava/lang/Object;",
+		"<T:Ljava/lang/Object;>(TT;)TT;^Ljava/lang/RuntimeException;",
+		"(I)Ljava/util/Optional<Ljava/lang/Integer;>;",
+		// Inner classes with generics
+		"Lcom/example/Outer<Ljava/lang/String;>.Inner<Ljava/lang/Integer;>;",
+	}
+
+	for _, in := range fixtures {
+		in := in
+		t.Run(in, func(t *testing.T) {
+			t.Parallel()
+			ctx := context.Background()
+
+			r1, err := cat.Demangle(ctx, in, nil)
+			if err != nil {
+				t.Fatalf("demangle 1: %v", err)
+			}
+			m, err := cat.Mangle(ctx, "jvmdesc", r1.Tree, nil)
+			if err != nil {
+				t.Fatalf("mangle: %v", err)
+			}
+			if m.Output != in {
+				t.Fatalf("remangled = %q, want %q", m.Output, in)
+			}
+			r2, err := cat.Demangle(ctx, m.Output, nil)
+			if err != nil {
+				t.Fatalf("demangle 2: %v", err)
+			}
+			if r2.Output != r1.Output {
+				t.Fatalf("round-trip diverged: %q vs %q", r2.Output, r1.Output)
+			}
+		})
+	}
+}
+
 func TestJVMDescFuzzCrashFree(t *testing.T) {
 	t.Parallel()
 	cat := newCatalog(t)

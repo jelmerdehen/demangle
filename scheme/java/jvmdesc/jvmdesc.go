@@ -28,9 +28,8 @@
 // run the signature parser; otherwise run the descriptor parser.
 // Fallback — descriptor parser failure → signature parser.
 //
-// Demangle-only; MangleFidelity None — a live Mangle caller hasn't
-// been identified yet. Round-trip would require re-emitting the
-// '/'-separated class refs + the exact grouping of generic args.
+// Mangle: Node.Text holds the original JVM descriptor verbatim, so
+// re-mangling is a direct Text round-trip. MangleFidelity Exact.
 package jvmdesc
 
 import (
@@ -55,7 +54,7 @@ var info = demangle.Info{
 	Version:        "JVMS §4.3 + §4.7.9",
 	Description:    "JVMS field/method descriptors + generic signatures.",
 	Stability:      demangle.Stable,
-	MangleFidelity: demangle.None,
+	MangleFidelity: demangle.Exact,
 	Negatives: []demangle.Negative{
 		{Kind: demangle.NegContains, Pattern: "_$s", Penalty: 100},
 		{Kind: demangle.NegContains, Pattern: "_Z", Penalty: 100},
@@ -166,6 +165,26 @@ func (Scheme) Demangle(_ context.Context, in string, _ demangle.Options) (*deman
 		Input:  in,
 		Output: display,
 		Tree:   &demangle.Node{Scheme: "jvmdesc", Kind: kind, Text: in},
+	}, nil
+}
+
+func (Scheme) Mangle(_ context.Context, tree *demangle.Node, _ demangle.Options) (*demangle.Result, error) {
+	if tree == nil {
+		return nil, demangle.GrammarViolation("jvmdesc", "", -1, "non-nil Node")
+	}
+	switch tree.Kind {
+	case KindField, KindMethod, KindClassSig, KindMethodSig:
+		// Node.Text is the original JVM descriptor — round-trip directly.
+	default:
+		return nil, demangle.GrammarViolation("jvmdesc", tree.Text, -1, "Field/Method/ClassSig/MethodSig root node")
+	}
+	if tree.Text == "" {
+		return nil, demangle.GrammarViolation("jvmdesc", "", -1, "non-empty Text")
+	}
+	return &demangle.Result{
+		Scheme: "jvmdesc",
+		Output: tree.Text,
+		Tree:   tree,
 	}, nil
 }
 
