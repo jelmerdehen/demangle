@@ -17,9 +17,19 @@ func TestOldDetectButUnsupported(t *testing.T) {
 	cat := demangle.NewCatalog()
 	cat.Register(old.Scheme{})
 
-	_, err := cat.Demangle(context.Background(), "_TtBf32_", nil)
+	// Verify a supported symbol now returns a result (not ErrUnsupported).
+	r, err := cat.Demangle(context.Background(), "_TtBf32_", nil)
+	if err != nil {
+		t.Fatalf("expected success for _TtBf32_, got: %v", err)
+	}
+	if r.Output != "Builtin.FPIEEE32" {
+		t.Fatalf("output = %q, want %q", r.Output, "Builtin.FPIEEE32")
+	}
+
+	// Verify a genuinely unsupported symbol still returns ErrUnsupported.
+	_, err = cat.Demangle(context.Background(), "_Ttu0_rFxq_", nil)
 	if err == nil {
-		t.Fatalf("expected ErrUnsupported")
+		t.Fatalf("expected ErrUnsupported for generic u-type")
 	}
 	var e *demangle.Error
 	if !errors.As(err, &e) || e.Kind != demangle.ErrUnsupported {

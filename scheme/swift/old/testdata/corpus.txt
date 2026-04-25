@@ -1,0 +1,83 @@
+// Swift old (_T) mangling corpus.
+// Format: symbol ---> expected output
+// Lines starting with // are comments. Blank lines are ignored.
+// Oracle: /usr/lib/swift/bin/swift-demangle
+
+// Builtin types (from Apple manglings.txt)
+_TtBf32_ ---> Builtin.FPIEEE32
+_TtBf64_ ---> Builtin.FPIEEE64
+_TtBf80_ ---> Builtin.FPIEEE80
+_TtBi32_ ---> Builtin.Int32
+_TtBw ---> Builtin.Word
+_TtBO ---> Builtin.UnknownObject
+_TtBo ---> Builtin.NativeObject
+_TtBp ---> Builtin.RawPointer
+_TtBt ---> Builtin.SILToken
+_TtBv4Bi8_ ---> Builtin.Vec4xInt8
+_TtBv4Bf16_ ---> Builtin.Vec4xFPIEEE16
+_TtBv4Bp ---> Builtin.Vec4xRawPointer
+
+// Stdlib shorthands
+_TtSa ---> Swift.Array
+_TtSb ---> Swift.Bool
+_TtSc ---> Swift.UnicodeScalar
+_TtSd ---> Swift.Double
+_TtSf ---> Swift.Float
+_TtSi ---> Swift.Int
+_TtSq ---> Swift.Optional
+_TtSS ---> Swift.String
+_TtSu ---> Swift.UInt
+_TtSV ---> Swift.UnsafeRawPointer
+_TtSv ---> Swift.UnsafeMutableRawPointer
+_TtSP ---> Swift.UnsafePointer
+_TtSp ---> Swift.UnsafeMutablePointer
+_TtSR ---> Swift.UnsafeBufferPointer
+_TtSr ---> Swift.UnsafeMutableBufferPointer
+_TtSQ ---> Swift.ImplicitlyUnwrappedOptional
+
+// Nominal types (struct, class, enum)
+_TtCSo8NSObject ---> __C.NSObject
+_TtO6Monads6Either ---> Monads.Either
+_TtVs7CString ---> Swift.CString
+_TtC6Monads6Either ---> Monads.Either
+
+// Bound generic types
+_TtGSPSi_ ---> Swift.UnsafePointer<Swift.Int>
+_TtGSpSi_ ---> Swift.UnsafeMutablePointer<Swift.Int>
+_TtGSaSS_ ---> [Swift.String]
+_TtGSqSS_ ---> Swift.String?
+_TtGVs10DictionarySSSi_ ---> [Swift.String : Swift.Int]
+
+// Protocol types
+_TtP_ ---> Any
+_TtP3foo3bar_ ---> foo.bar
+_TtP3foo3barS_3bas_ ---> foo.bar & foo.bas
+
+// Function types
+_TtbSiSu ---> @convention(block) (Swift.Int) -> Swift.UInt
+_TtcSiSu ---> @convention(c) (Swift.Int) -> Swift.UInt
+_TtFSiSu ---> (Swift.Int) -> Swift.UInt
+_TtKSiSu ---> @autoclosure (Swift.Int) -> Swift.UInt
+_TtFSiFScSu ---> (Swift.Int) -> (Swift.UnicodeScalar) -> Swift.UInt
+_TtbTSiSc_Su ---> @convention(block) (Swift.Int, Swift.UnicodeScalar) -> Swift.UInt
+_TtcTSiSc_Su ---> @convention(c) (Swift.Int, Swift.UnicodeScalar) -> Swift.UInt
+
+// Inout
+_TtRSi ---> inout Swift.Int
+
+// Tuple types
+_TtTSiSu_ ---> (Swift.Int, Swift.UInt)
+_TttSiSu_ ---> (Swift.Int, Swift.UInt...)
+_TtT3fooSi3barSu_ ---> (foo: Swift.Int, bar: Swift.UInt)
+
+// Metatype
+_TtMSi ---> Swift.Int.Type
+
+// Variable entities
+_Tv3foo3barSi ---> foo.bar : Swift.Int
+
+// Function entities with accessors
+_TF3fooau3barSi ---> foo.bar.unsafeMutableAddressor : Swift.Int
+_TF3foolu3barSi ---> foo.bar.unsafeAddressor : Swift.Int
+_TF3foog3barSi ---> foo.bar.getter : Swift.Int
+_TF3foos3barSi ---> foo.bar.setter : Swift.Int
