@@ -197,18 +197,41 @@ func runMangle(args []string) error {
 		return errors.New("mangle: --scheme is required")
 	}
 	if fs.NArg() != 1 {
-		return errors.New("mangle: expected exactly one <tree-json> argument")
+		return errors.New("mangle: expected exactly one <symbol|tree-json> argument")
 	}
 
+	input := fs.Arg(0)
+	ctx := context.Background()
+
+	// Try JSON tree first; if it doesn't parse, treat input as a raw
+	// mangled symbol — demangle it with the named scheme, then remangle.
 	var tree demangle.Node
-	if err := json.Unmarshal([]byte(fs.Arg(0)), &tree); err != nil {
-		return fmt.Errorf("parse tree json: %w", err)
+	if err := json.Unmarshal([]byte(input), &tree); err == nil {
+		r, err := demangle.Default.Mangle(ctx, *scheme, &tree, nil)
+		if err != nil {
+			return err
+		}
+		fmt.Println(r.Output)
+		return nil
 	}
-	r, err := demangle.Default.Mangle(context.Background(), *scheme, &tree, nil)
+
+	// Raw symbol path: demangle with the named scheme, then remangle.
+	s, ok := demangle.Default.Scheme(*scheme)
+	if !ok {
+		return fmt.Errorf("unknown scheme: %q", *scheme)
+	}
+	r1, err := s.Demangle(ctx, input, demangle.Options{ReturnTree: true})
+	if err != nil {
+		return fmt.Errorf("demangle %q: %w", input, err)
+	}
+	if r1.Tree == nil {
+		return fmt.Errorf("scheme %q did not return a tree for %q", *scheme, input)
+	}
+	r2, err := demangle.Default.Mangle(ctx, *scheme, r1.Tree, nil)
 	if err != nil {
 		return err
 	}
-	fmt.Println(r.Output)
+	fmt.Println(r2.Output)
 	return nil
 }
 
