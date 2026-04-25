@@ -828,7 +828,10 @@ func (p *oldParser) parseType(depth int) (string, error) {
 		return "Self." + inner, nil
 	// ErrorType
 	case 'E':
-		if !p.nextIf('R') || !p.nextIf('R') {
+		if !p.nextIf('R') {
+			return "", p.grammarError("'RR' for ErrorType")
+		}
+		if !p.nextIf('R') {
 			return "", p.grammarError("'RR' for ErrorType")
 		}
 		return "<<error type>>", nil
