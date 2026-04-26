@@ -878,15 +878,18 @@ func (p *parser) tryNestedPrivateDecl(inner *demangle.Node) (*demangle.Node, boo
 	}
 	p.i++ // consume '_'
 	// Consume optional nominal-kind byte (V/C/O/P/a).
+	ldKind := ""
 	isTypeAlias := false
 	if !p.eof() {
 		k := p.s[p.i]
 		if k == 'V' || k == 'C' || k == 'O' || k == 'P' {
+			ldKind = string(k)
 			p.i++
 		} else if k == 'a' {
 			// TypeAlias local decl — consume 'a' then skip the trailing
 			// 'y <type>+ G' bound-generic args that Apple emits for the
 			// alias's instantiation (not shown in output).
+			ldKind = "a"
 			p.i++
 			isTypeAlias = true
 		}
@@ -910,6 +913,7 @@ func (p *parser) tryNestedPrivateDecl(inner *demangle.Node) (*demangle.Node, boo
 	common.AddChildren(wrap, inner, nameIdent)
 	wrap.Attrs = map[string]string{
 		"swift.ldIndex": strconv.Itoa(idx + 1),
+		"swift.ldKind":  ldKind,
 	}
 	return wrap, true
 }

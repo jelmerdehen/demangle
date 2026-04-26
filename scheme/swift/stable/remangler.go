@@ -39,6 +39,7 @@ package stable
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/jelmerdehen/demangle"
@@ -1902,26 +1903,250 @@ func (r *remangler) mangleAutoDiffSubsetParametersThunk(n *demangle.Node) error 
 	return nil
 }
 
-// mangleMacroExpansion is a stub; macro-expansion remangling is not yet
-// implemented (R20 follow-up).
+// emitMangleIndex emits Apple's demangleIndex-compatible index byte sequence.
+//
+// Mirrors RemanglerBase::mangleIndex (Remangler.cpp:280):
+//
+//	val == 0  →  '_'
+//	val == N  →  (N-1) digits + '_'
+//
+// Callers translate 1-based display indices stored in Attrs to raw values:
+//
+//	raw = display_index - 1
+//	r.emitMangleIndex(raw)
+func (r *remangler) emitMangleIndex(val int) {
+	if val == 0 {
+		r.buf.WriteByte('_')
+	} else {
+		fmt.Fprintf(&r.buf, "%d_", val-1)
+	}
+}
+
+// mangleMacroExpansion emits the macro-expansion encoding.
+//
+// Node structure (D4 tryMacroExpansion):
+//
+//	KindMacroExpansion
+//	  [0] inner entity (the outer function/module context)
+//	Attrs["swift.macroKind"]     = kind byte letter ("f","u","a","m","e","p","r","b","B")
+//	Attrs["swift.macroIdx"]      = 1-based display index as string
+//	Attrs["swift.macroName"]     = macro name identifier text
+//
+// Encoding produced by the parser: <inner><name>fM<kindByte><idx>
+// where <idx> uses Apple's mangleIndex convention (raw = display - 1).
+//
+// Reference: Remangler.cpp mangleFreestandingMacroExpansion (line 3257) and
+// mangleAttachedMacro (line 3267).
 func (r *remangler) mangleMacroExpansion(n *demangle.Node) error {
-	return r.unsupported(common.KindMacroExpansion)
+	if len(n.Children) == 0 || n.Attrs == nil {
+		return r.unsupported(common.KindMacroExpansion)
+	}
+	kindByte := n.Attrs["swift.macroKind"]
+	macroName := n.Attrs["swift.macroName"]
+	macroIdxStr := n.Attrs["swift.macroIdx"]
+	if kindByte == "" || macroName == "" || macroIdxStr == "" {
+		return r.unsupported(common.KindMacroExpansion)
+	}
+	displayIdx, err := strconv.Atoi(macroIdxStr)
+	if err != nil {
+		return r.unsupported(common.KindMacroExpansion)
+	}
+	// 1. Emit inner entity.
+	if err := r.remangleNode(n.Children[0]); err != nil {
+		return err
+	}
+	// 2. Emit the macro name as a length-prefixed identifier.
+	if err := r.mangleIdentifier(common.NewIdentifier(macroName)); err != nil {
+		return err
+	}
+	// 3. Emit "fM<kindByte>".
+	r.buf.WriteString("fM")
+	r.buf.WriteString(kindByte)
+	// 4. Emit index: Attrs stores 1-based display index; raw = display_index - 1.
+	r.emitMangleIndex(displayIdx - 1)
+	return nil
 }
 
-// mangleKeyPathAccessor is a stub; key-path accessor remangling is not yet
-// implemented (R20 follow-up).
+// mangleKeyPathAccessor emits the key-path accessor encoding.
+//
+// Node structure (D4 tryKeyPathSuffix):
+//
+//	KindKeyPathAccessor
+//	  [0] inner entity
+//	  [1] owner type node
+//	Attrs["swift.kpKind"]       = "getter" or "setter"
+//	Attrs["swift.kpSerialized"] = "" or ", serialized"
+//
+// Encoding: <inner><owner>TK[q]  (getter) or <inner><owner>Tk[q]  (setter)
+// where the optional 'q' is appended when serialized.
+//
+// Reference: Remangler.cpp mangleKeyPathGetterThunkHelper (line 3150) and
+// mangleKeyPathSetterThunkHelper (line 3155).
 func (r *remangler) mangleKeyPathAccessor(n *demangle.Node) error {
-	return r.unsupported(common.KindKeyPathAccessor)
+	if len(n.Children) < 2 || n.Attrs == nil {
+		return r.unsupported(common.KindKeyPathAccessor)
+	}
+	kpKind := n.Attrs["swift.kpKind"]
+	var op string
+	switch kpKind {
+	case "getter":
+		op = "TK"
+	case "setter":
+		op = "Tk"
+	default:
+		return r.unsupported(common.KindKeyPathAccessor)
+	}
+	// 1. Emit inner entity.
+	if err := r.remangleNode(n.Children[0]); err != nil {
+		return err
+	}
+	// 2. Emit owner type.
+	if err := r.remangleNode(n.Children[1]); err != nil {
+		return err
+	}
+	// 3. Emit op bytes ("TK" or "Tk").
+	r.buf.WriteString(op)
+	// 4. Emit 'q' if serialized.
+	if n.Attrs["swift.kpSerialized"] != "" {
+		r.buf.WriteByte('q')
+	}
+	return nil
 }
 
-// mangleLocalDeclName is a stub; local-decl-name remangling is not yet
-// implemented (R20 follow-up).
+// mangleLocalDeclName emits the local/nested-decl-name encoding.
+//
+// Node structure (D4 tryNestedPrivateDecl):
+//
+//	KindLocalDeclName
+//	  [0] inner entity (the outer nominal or function context)
+//	  [1] KindIdentifier (the local name)
+//	Attrs["swift.ldIndex"] = 1-based display index as string
+//	Attrs["swift.ldKind"]  = nominal kind byte ("V","C","O","P","a","") — may be empty
+//
+// Encoding produced by the parser: <inner><name>L<idx>[<kind>]
+// where <idx> uses Apple's mangleIndex convention (raw = display - 1) and
+// [<kind>] is the optional nominal-kind byte (V/C/O/P/a).
+//
+// Reference: Remangler.cpp mangleLocalDeclName (line 2419):
+//
+//	mangleChildNode(node, 1, ...) → identifier (name)
+//	Buffer << 'L'
+//	mangleChildNode(node, 0, ...) → index node
+//
+// Our node maps: child[0]=inner entity, child[1]=name, Attrs["swift.ldIndex"]=index.
+// Emission order: <inner><name>L<idx>[<kind>]
+//
+// Note: TypeAlias kind ('a') is not re-emitted here because the trailing
+// bound-generic args (y...G) that follow it in the original stream were
+// skipped during parsing and cannot be reconstructed.
 func (r *remangler) mangleLocalDeclName(n *demangle.Node) error {
-	return r.unsupported(common.KindLocalDeclName)
+	if len(n.Children) < 2 || n.Attrs == nil {
+		return r.unsupported(common.KindLocalDeclName)
+	}
+	ldIdxStr := n.Attrs["swift.ldIndex"]
+	if ldIdxStr == "" {
+		return r.unsupported(common.KindLocalDeclName)
+	}
+	displayIdx, err := strconv.Atoi(ldIdxStr)
+	if err != nil {
+		return r.unsupported(common.KindLocalDeclName)
+	}
+	ldKind := n.Attrs["swift.ldKind"]
+	// TypeAlias ('a') is un-round-trippable: we skipped the trailing y...G
+	// bound-generic args during parsing and cannot reconstruct them.
+	if ldKind == "a" {
+		return r.unsupported(common.KindLocalDeclName)
+	}
+	// 1. Emit inner entity (context).
+	if err := r.remangleNode(n.Children[0]); err != nil {
+		return err
+	}
+	// 2. Emit name identifier.
+	if err := r.remangleNode(n.Children[1]); err != nil {
+		return err
+	}
+	// 3. Emit 'L'.
+	r.buf.WriteByte('L')
+	// 4. Emit index: Attrs stores 1-based display index; raw = display_index - 1.
+	r.emitMangleIndex(displayIdx - 1)
+	// 5. Emit optional nominal-kind byte (V/C/O/P).
+	if ldKind != "" {
+		r.buf.WriteString(ldKind)
+	}
+	return nil
 }
 
-// mangleGenericSpecialization is a stub; generic-specialization remangling
-// is not yet implemented (R17 follow-up).
+// mangleGenericSpecialization emits the generic-specialization suffix that
+// the parser consumed in trySpecializationSuffix.
+//
+// Node structure (built by trySpecializationSuffix in stable.go):
+//
+//	KindGenericSpecialization
+//	  Attrs["swift.specKind"] = letter ("g", "G", "B", "i", "t")
+//	  Attrs["swift.specPass"] = pass-digit string (may be empty)
+//	  Attrs["swift.specTuple"] = "true" when args are a tuple group
+//	  Children[0] = inner entity (the specialised function/global)
+//	  Children[1] = KindTypeList  (the specialisation type arguments)
+//
+// Encoding produced (mirrors Apple's mangleGenericSpecializationNode):
+//
+//	<inner-mangled>
+//	  <type1>_           ← first arg + Apple list-separator ('_' once after first)
+//	  <type2>            ← subsequent args concatenated
+//	  ...
+//	  ["t" "_"]          ← only when swift.specTuple == "true"
+//	  "T" <kind> <pass>
+//
+// The parser loop in trySpecializationSuffix consumes '_' only when it
+// follows an arg and another arg can be parsed.  Apple's mangler emits '_'
+// exactly once — after the first arg — which is also what our parser
+// expects at re-parse time.
 func (r *remangler) mangleGenericSpecialization(n *demangle.Node) error {
-	return r.unsupported(common.KindGenericSpecialization)
+	if len(n.Children) == 0 {
+		return r.unsupported(common.KindGenericSpecialization)
+	}
+	specKind := ""
+	specPass := ""
+	tupleArgs := false
+	if n.Attrs != nil {
+		specKind = n.Attrs["swift.specKind"]
+		specPass = n.Attrs["swift.specPass"]
+		tupleArgs = n.Attrs["swift.specTuple"] == "true"
+	}
+	if specKind == "" {
+		return r.unsupported(common.KindGenericSpecialization)
+	}
+
+	// 1. Emit the inner entity.
+	if err := r.remangleNode(n.Children[0]); err != nil {
+		return err
+	}
+
+	// 2. Emit specialisation type args.
+	//    Apple emits '_' exactly once — after the first arg — so that the
+	//    parser can distinguish the end of the type list from the 'T' suffix.
+	if len(n.Children) > 1 {
+		typeList := n.Children[1]
+		for i, typeArg := range typeList.Children {
+			if err := r.remangleNode(typeArg); err != nil {
+				return err
+			}
+			if i == 0 {
+				// Apple list-separator: emit '_' once after the first arg.
+				r.buf.WriteByte('_')
+			}
+		}
+	}
+
+	// 3. Tuple-args terminator (rare — 'tu' or 'tN' spec kinds).
+	if tupleArgs {
+		r.buf.WriteByte('t')
+		r.buf.WriteByte('_')
+	}
+
+	// 4. Emit "T<kind><passDigits>".
+	r.buf.WriteByte('T')
+	r.buf.WriteString(specKind)
+	r.buf.WriteString(specPass)
+	return nil
 }
