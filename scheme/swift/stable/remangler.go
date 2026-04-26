@@ -648,6 +648,11 @@ func (r *remangler) mangleSubIndex(idx int) {
 // child.  Corresponds to the demangler's Type node which holds one child.
 // Remangler.cpp does not have a mangleType per se; the Type wrapper is
 // transparent — callers of mangleChildNodes already recurse through it.
+//
+// Special case: when the child is KindProtocol the Type wrapper signals a
+// protocol existential ("any Drawable"), encoded as <module><ident>_p.
+// Without the wrapper (bare KindProtocol) the "P" trailer is correct for
+// protocol definitions embedded in other contexts (e.g. BoundGenericProtocol).
 func (r *remangler) mangleType(n *demangle.Node) error {
 	if len(n.Children) == 0 {
 		return &demangle.Error{
@@ -658,8 +663,15 @@ func (r *remangler) mangleType(n *demangle.Node) error {
 			Got:      "Type node with no children",
 		}
 	}
-	return r.remangleNode(n.Children[0])
+	child := n.Children[0]
+	if common.NodeKind(child.Kind) == common.KindProtocol {
+		return r.mangleNominal(child, "_p")
+	}
+	return r.remangleNode(child)
 }
+
+// mangleProtocolExistential is intentionally not a separate method; the
+// existential path is inlined into mangleType above.
 
 // mangleNominal emits the context chain (all children) then the single-
 // character type-kind trailer, with a fast-path for known stdlib types.
@@ -760,26 +772,6 @@ func containsNonStdlibNominal(n *demangle.Node) bool {
 	return false
 }
 
-// containsProtocol returns true if n or any descendant is a KindProtocol node.
-// When a KindProtocol node appears in a function's args or return type, it
-// represents a protocol existential ("_p" encoding in Swift mangling).  Our
-// remangler emits "P" (the protocol-definition trailer) rather than "_p", so
-// these cases must stay ErrUnsupported until protocol-existential emission is
-// implemented.
-func containsProtocol(n *demangle.Node) bool {
-	if n == nil {
-		return false
-	}
-	if common.NodeKind(n.Kind) == common.KindProtocol {
-		return true
-	}
-	for _, child := range n.Children {
-		if containsProtocol(child) {
-			return true
-		}
-	}
-	return false
-}
 
 // collectStdlibTokens returns the set of compact stdlib substitution tokens
 // (e.g. "Si", "SS", "Sb") referenced in n or any descendant.  Used to detect
@@ -808,6 +800,32 @@ func collectStdlibTokens(n *demangle.Node, out map[string]struct{}) {
 	for _, child := range n.Children {
 		collectStdlibTokens(child, out)
 	}
+}
+
+// directStdlibToken returns the stdlib compact token (e.g. "Si") if n is a
+// DIRECTLY stdlib nominal — i.e. Type→Structure/Class/Enum with module "Swift"
+// found in reverseStdlib.  Returns "" for BoundGeneric wrappers, TypeLists,
+// Optionals, etc.  Used by the same-bare-type guard in mangleFunctionEntity
+// to distinguish (Int)->Int (compact S2i) from ([Int])->Int (no compact form).
+func directStdlibToken(n *demangle.Node) string {
+	inner := n
+	if common.NodeKind(inner.Kind) == common.KindType && len(inner.Children) > 0 {
+		inner = inner.Children[0]
+	}
+	switch common.NodeKind(inner.Kind) {
+	case common.KindStructure, common.KindClass, common.KindEnum:
+		if len(inner.Children) >= 2 {
+			mod := inner.Children[0]
+			ident := inner.Children[1]
+			if common.NodeKind(mod.Kind) == common.KindModule && mod.Text == "Swift" &&
+				common.NodeKind(ident.Kind) == common.KindIdentifier {
+				if tok, ok := reverseStdlib[stdlibKey{mod.Text, ident.Text}]; ok {
+					return tok
+				}
+			}
+		}
+	}
+	return ""
 }
 
 // typeListHasLabels returns true if any direct child of a KindTypeList node
@@ -1122,13 +1140,6 @@ func (r *remangler) mangleFunctionEntity(n *demangle.Node) error {
 		return r.unsupported(common.KindFunctionEntity)
 	}
 
-	// Guard: protocol existential in args or ret.  KindProtocol in a type
-	// context represents an existential ("_p" encoding) but our remangler emits
-	// "P" (the protocol-definition trailer), producing wrong output.
-	if (!argsEmpty && containsProtocol(args)) || (!retEmpty && containsProtocol(ret)) {
-		return r.unsupported(common.KindFunctionEntity)
-	}
-
 	isMethod := common.NodeKind(path.Kind) == common.KindEntityPath && len(path.Children) > 2
 
 	// Guard: non-stdlib nominal in the RETURN type.  For methods, Apple's
@@ -1151,18 +1162,15 @@ func (r *remangler) mangleFunctionEntity(n *demangle.Node) error {
 		return r.unsupported(common.KindFunctionEntity)
 	}
 
-	// Guard: both args and ret reference the same stdlib type.  The Swift compiler
-	// emits a compact "S<N><letter>" repetition form (e.g. "S2i" for Int appearing
-	// twice) that the Remangler does not produce — our Remangler emits "SiSi"
-	// instead.  Detect by collecting stdlib token keys from each side and checking
-	// for overlap, then block rather than produce wrong bytes.
+	// Guard: both args AND ret are the SAME bare stdlib type (single nominal,
+	// not wrapped in BoundGeneric/TypeList etc.).  The Swift compiler emits the
+	// compact "S<N><letter>" form (e.g. "S2i" for two bare Ints) which the
+	// Remangler cannot reproduce.  Only triggers when both sides resolve to a
+	// direct stdlib nominal — e.g. (Int)->Int fires (S2i), but ([Int])->Int or
+	// (Int)->Int? do not (different structural contexts, no compact form used).
 	if !argsEmpty && !retEmpty {
-		retToks := make(map[string]struct{})
-		argsToks := make(map[string]struct{})
-		collectStdlibTokens(ret, retToks)
-		collectStdlibTokens(args, argsToks)
-		for k := range retToks {
-			if _, found := argsToks[k]; found {
+		if retTok := directStdlibToken(ret); retTok != "" {
+			if argsTok := directStdlibToken(args); argsTok == retTok {
 				return r.unsupported(common.KindFunctionEntity)
 			}
 		}
