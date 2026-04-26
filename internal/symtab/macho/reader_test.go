@@ -241,3 +241,113 @@ func TestWalkArch_emptyArch(t *testing.T) {
 		t.Errorf("got %v, want [$s4main3fooyyF]", got)
 	}
 }
+
+// makeFatArch is a test helper that constructs a macho.FatArch value for
+// unit-testing preferredArch without needing a real fat binary on disk.
+func makeFatArch(cpu stdmacho.Cpu, subCpu uint32) stdmacho.FatArch {
+	return stdmacho.FatArch{
+		FatArchHeader: stdmacho.FatArchHeader{
+			Cpu:    cpu,
+			SubCpu: subCpu,
+		},
+	}
+}
+
+// TestPreferredArch_arm64eOverArm64 verifies that arm64e beats arm64 in a fat
+// binary that contains both.
+func TestPreferredArch_arm64eOverArm64(t *testing.T) {
+	arches := []stdmacho.FatArch{
+		makeFatArch(stdmacho.CpuArm64, 0),              // arm64
+		makeFatArch(stdmacho.CpuArm64, cpuSubtypeArm64E), // arm64e
+	}
+	got := preferredArch(arches)
+	if got == nil {
+		t.Fatal("preferredArch returned nil")
+	}
+	if got.SubCpu != cpuSubtypeArm64E {
+		t.Errorf("expected arm64e (SubCpu=%d), got SubCpu=%d", cpuSubtypeArm64E, got.SubCpu)
+	}
+}
+
+// TestPreferredArch_arm64OverX86 verifies that arm64 beats x86_64 in a fat
+// binary that contains both.
+func TestPreferredArch_arm64OverX86(t *testing.T) {
+	arches := []stdmacho.FatArch{
+		makeFatArch(stdmacho.CpuAmd64, 0), // x86_64
+		makeFatArch(stdmacho.CpuArm64, 0), // arm64
+	}
+	got := preferredArch(arches)
+	if got == nil {
+		t.Fatal("preferredArch returned nil")
+	}
+	if got.Cpu != stdmacho.CpuArm64 || got.SubCpu == cpuSubtypeArm64E {
+		t.Errorf("expected arm64 (non-e), got Cpu=%v SubCpu=%d", got.Cpu, got.SubCpu)
+	}
+}
+
+// TestPreferredArch_empty verifies that preferredArch returns nil for an empty slice.
+func TestPreferredArch_empty(t *testing.T) {
+	if got := preferredArch(nil); got != nil {
+		t.Errorf("expected nil, got %+v", got)
+	}
+	if got := preferredArch([]stdmacho.FatArch{}); got != nil {
+		t.Errorf("expected nil for empty slice, got %+v", got)
+	}
+}
+
+// TestArchMatches_arm64e verifies that archMatches correctly distinguishes
+// arm64 and arm64e by subtype.
+func TestArchMatches_arm64e(t *testing.T) {
+	tests := []struct {
+		cpu     stdmacho.Cpu
+		subCpu  uint32
+		arch    string
+		want    bool
+	}{
+		{stdmacho.CpuArm64, cpuSubtypeArm64E, "arm64e", true},
+		{stdmacho.CpuArm64, cpuSubtypeArm64E, "arm64", false},
+		{stdmacho.CpuArm64, 0, "arm64", true},
+		{stdmacho.CpuArm64, 0, "arm64e", false},
+		{stdmacho.CpuAmd64, 0, "x86_64", true},
+		{stdmacho.CpuAmd64, 0, "amd64", true},
+		{stdmacho.Cpu386, 3, "386", true},
+		{stdmacho.CpuArm, 0, "arm", true},
+		{stdmacho.CpuArm64, 0, "unknown", false},
+	}
+	for _, tc := range tests {
+		got := archMatches(tc.cpu, tc.subCpu, tc.arch)
+		if got != tc.want {
+			t.Errorf("archMatches(cpu=%v, subCpu=%d, arch=%q) = %v, want %v",
+				tc.cpu, tc.subCpu, tc.arch, got, tc.want)
+		}
+	}
+}
+
+// TestPreferredArch_rankOrder verifies the full preference chain:
+// arm64e > arm64 > x86_64 > arm > 386.
+func TestPreferredArch_rankOrder(t *testing.T) {
+	// Build a slice in "worst first" order so any rank-comparison bug is obvious.
+	arches := []stdmacho.FatArch{
+		makeFatArch(stdmacho.Cpu386, 0),   // rank 1
+		makeFatArch(stdmacho.CpuArm, 0),   // rank 2
+		makeFatArch(stdmacho.CpuAmd64, 0), // rank 3
+		makeFatArch(stdmacho.CpuArm64, 0), // rank 4
+		makeFatArch(stdmacho.CpuArm64, cpuSubtypeArm64E), // rank 5
+	}
+	got := preferredArch(arches)
+	if got == nil || got.Cpu != stdmacho.CpuArm64 || got.SubCpu != cpuSubtypeArm64E {
+		t.Errorf("expected arm64e, got %+v", got)
+	}
+
+	// Without arm64e, arm64 should win.
+	got = preferredArch(arches[:4])
+	if got == nil || got.Cpu != stdmacho.CpuArm64 || got.SubCpu == cpuSubtypeArm64E {
+		t.Errorf("expected arm64, got %+v", got)
+	}
+
+	// Without arm64, x86_64 should win.
+	got = preferredArch(arches[:3])
+	if got == nil || got.Cpu != stdmacho.CpuAmd64 {
+		t.Errorf("expected x86_64, got %+v", got)
+	}
+}
