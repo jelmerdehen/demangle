@@ -1,0 +1,124 @@
+# SPDX-License-Identifier: Apache-2.0
+# A2: Apple corpus round-trip CI gate
+name: apple-roundtrip
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  checks: write
+  pull-requests: write
+
+jobs:
+  roundtrip:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version: "1.26"
+          cache: true
+
+      - name: Apple corpus round-trip
+        id: rt
+        run: |
+          go test ./scheme/swift/stable/ \
+            -run TestAppleCorpusRoundTrip \
+            -v -timeout 120s 2>&1 | tee /tmp/rt-out.txt
+          TEST_EXIT=${PIPESTATUS[0]}
+
+          # Parse summary line emitted by t.Logf in the test:
+          #   Apple round-trip: 29 pass, 72 rt-unsupported, 350 unsupported, 45 skipped (of 511 total)
+          SUMMARY_LINE=$(grep -oP 'Apple round-trip:.*' /tmp/rt-out.txt | tail -1 || echo '')
+          RT_PASS=$(echo "$SUMMARY_LINE"     | grep -oP '\d+(?= pass)'          | head -1 || echo 0)
+          RT_UNSUPPORTED=$(echo "$SUMMARY_LINE" | grep -oP '\d+(?= rt-unsupported)' | head -1 || echo 0)
+          UNSUPPORTED=$(echo "$SUMMARY_LINE" | grep -oP '\d+(?= unsupported)'   | head -1 || echo 0)
+          RT_SKIPPED=$(echo "$SUMMARY_LINE"  | grep -oP '\d+(?= skipped)'       | head -1 || echo 0)
+          RT_TOTAL=$(echo "$SUMMARY_LINE"    | grep -oP '\d+(?= total)'         | head -1 || echo 0)
+          TEST_RESULT=$(tail -1 /tmp/rt-out.txt)
+
+          {
+            echo "RT_PASS=${RT_PASS}"
+            echo "RT_UNSUPPORTED=${RT_UNSUPPORTED}"
+            echo "UNSUPPORTED=${UNSUPPORTED}"
+            echo "RT_SKIPPED=${RT_SKIPPED}"
+            echo "RT_TOTAL=${RT_TOTAL}"
+            echo "TEST_RESULT=${TEST_RESULT}"
+          } >> "$GITHUB_ENV"
+
+          cat >> "$GITHUB_STEP_SUMMARY" <<EOF
+
+          ## Apple Corpus Round-trip
+          | Field | Value |
+          |-------|-------|
+          | Pass | ${RT_PASS} |
+          | rt-unsupported | ${RT_UNSUPPORTED} |
+          | unsupported | ${UNSUPPORTED} |
+          | skipped (known-divergences) | ${RT_SKIPPED} |
+          | total | ${RT_TOTAL} |
+          | Result | ${TEST_RESULT} |
+          EOF
+
+          exit $TEST_EXIT
+
+      - name: Post PR summary
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        env:
+          RT_PASS: ${{ env.RT_PASS }}
+          RT_UNSUPPORTED: ${{ env.RT_UNSUPPORTED }}
+          UNSUPPORTED: ${{ env.UNSUPPORTED }}
+          RT_SKIPPED: ${{ env.RT_SKIPPED }}
+          RT_TOTAL: ${{ env.RT_TOTAL }}
+          TEST_RESULT: ${{ env.TEST_RESULT }}
+        with:
+          script: |
+            const marker = '<!-- apple-roundtrip-bot -->';
+            const rtPass = process.env.RT_PASS || '?';
+            const rtUnsupported = process.env.RT_UNSUPPORTED || '?';
+            const unsupported = process.env.UNSUPPORTED || '?';
+            const rtSkipped = process.env.RT_SKIPPED || '?';
+            const rtTotal = process.env.RT_TOTAL || '?';
+            const testResult = process.env.TEST_RESULT || '';
+            const passed = testResult.includes('ok') && !testResult.includes('FAIL');
+            const icon = passed ? ':white_check_mark:' : ':x:';
+            const body = [
+              marker,
+              '## Apple Corpus Round-trip',
+              '',
+              '| Field | Value |',
+              '|-------|-------|',
+              `| Pass | ${icon} ${rtPass} |`,
+              `| rt-unsupported | ${rtUnsupported} |`,
+              `| unsupported | ${unsupported} |`,
+              `| skipped (known-divergences) | ${rtSkipped} |`,
+              `| total | ${rtTotal} |`,
+              `| Test result | \`${testResult}\` |`,
+            ].join('\n');
+
+            const {data: comments} = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            const existing = comments.find(c => c.body.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
