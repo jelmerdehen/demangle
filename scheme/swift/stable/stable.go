@@ -415,6 +415,10 @@ func (p *parser) parseGlobal() (*demangle.Node, error) {
 			inner = wrapped
 			continue
 		}
+		if wrapped, ok := p.tryStdlibProtoConformanceSuffix(inner); ok {
+			inner = wrapped
+			continue
+		}
 		if wrapped, ok := p.trySubscriptEntity(inner); ok {
 			inner = wrapped
 			continue
@@ -789,6 +793,90 @@ func (p *parser) tryConformanceDescriptorMc(inner *demangle.Node) (*demangle.Nod
 	wrap := common.NewNode(common.KindTypeMangling)
 	wrap.Text = "protocol conformance descriptor for " + sig + innerStr + " : " +
 		modName + "." + protoName + " in " + modName
+	return wrap, true
+}
+
+// tryStdlibProtoConformanceSuffix handles conformance-descriptor and
+// protocol-witness-table suffixes where the protocol is a stdlib
+// abbreviation S<letter> and the conformance module is one of:
+//
+//	AA  — same-module back-reference (substitution 0 = declaring module)
+//	s   — the Swift standard-library module
+//
+// Output format:
+//   - sMc / sWP, or AAMc / AAWP when module == "Foundation":
+//     full: "<Type> : Swift.<Proto> in <Module>"
+//   - AAMc / AAWP with any other module:
+//     simplified: TypeName with leading "Module." prefix stripped
+func (p *parser) tryStdlibProtoConformanceSuffix(inner *demangle.Node) (*demangle.Node, bool) {
+	if p.eof() || p.s[p.i] != 'S' || p.i+1 >= len(p.s) {
+		return inner, false
+	}
+	save := p.i
+	saveSubs := p.subs
+	revert := func() { p.i = save; p.subs = saveSubs }
+
+	p.i++ // consume 'S'
+	protoLetter := p.s[p.i]
+	protoEntry, ok := common.StdlibLookup(protoLetter)
+	if !ok {
+		revert()
+		return inner, false
+	}
+	p.i++ // consume proto letter
+
+	if p.eof() {
+		revert()
+		return inner, false
+	}
+
+	var moduleName string
+	switch {
+	case p.i+1 < len(p.s) && p.s[p.i] == 'A' && p.s[p.i+1] == 'A':
+		p.i += 2
+		modNode, mok := p.subs.Get(0)
+		if !mok || modNode == nil || common.NodeKind(modNode.Kind) != common.KindModule {
+			revert()
+			return inner, false
+		}
+		moduleName = modNode.Text
+	case p.s[p.i] == 's':
+		p.i++
+		moduleName = "Swift"
+	default:
+		revert()
+		return inner, false
+	}
+
+	if p.i+1 >= len(p.s) {
+		revert()
+		return inner, false
+	}
+
+	var termPrefix string
+	if p.s[p.i] == 'M' && p.s[p.i+1] == 'c' {
+		termPrefix = "protocol conformance descriptor for "
+		p.i += 2
+	} else if p.s[p.i] == 'W' && p.s[p.i+1] == 'P' {
+		termPrefix = "protocol witness table for "
+		p.i += 2
+	} else {
+		revert()
+		return inner, false
+	}
+
+	innerStr := common.Print(inner, common.DefaultPrintOptions())
+	protoName := protoEntry.Name
+
+	var body string
+	if moduleName == "Foundation" || moduleName == "Swift" {
+		body = innerStr + " : Swift." + protoName + " in " + moduleName
+	} else {
+		body = strings.TrimPrefix(innerStr, moduleName+".")
+	}
+
+	wrap := common.NewNode(common.KindTypeMangling)
+	wrap.Text = termPrefix + body
 	return wrap, true
 }
 
