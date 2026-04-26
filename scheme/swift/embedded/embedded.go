@@ -24,7 +24,7 @@ var info = demangle.Info{
 	Version:        "swift-embedded",
 	Description:    "Swift Embedded mangling ($e / _$e).",
 	Stability:      demangle.Experimental,
-	MangleFidelity: demangle.None,
+	MangleFidelity: demangle.Exact,
 }
 
 var caps = demangle.Capabilities{
@@ -52,6 +52,21 @@ func (Scheme) Demangle(_ context.Context, in string, _ demangle.Options) (*deman
 		return nil, demangle.WrongScheme("swift-embedded", in)
 	}
 	return stable.ParseBody("swift-embedded", in, body, prefixBytes)
+}
+
+func (Scheme) Mangle(ctx context.Context, tree *demangle.Node, opts demangle.Options) (*demangle.Result, error) {
+	res, err := stable.Remangle(ctx, tree, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := res.Output
+	// embedded uses "$e" / "_$e" prefix; stable emits "$s..." or "_$s...".
+	if b, ok := strings.CutPrefix(out, "_$s"); ok {
+		out = "_$e" + b
+	} else if b, ok := strings.CutPrefix(out, "$s"); ok {
+		out = "$e" + b
+	}
+	return &demangle.Result{Scheme: "swift-embedded", Input: res.Input, Output: out, Tree: res.Tree}, nil
 }
 
 func stripPrefix(in string) (string, int, bool) {

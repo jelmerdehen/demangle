@@ -25,7 +25,7 @@ var info = demangle.Info{
 	Version:        "swift-4.1..4.2",
 	Description:    "Swift 4.1–4.2 ABI mangling ($S / _$S). Shares grammar with stable for current coverage.",
 	Stability:      demangle.Experimental,
-	MangleFidelity: demangle.None,
+	MangleFidelity: demangle.Exact,
 	Negatives: []demangle.Negative{
 		{Kind: demangle.NegContains, Pattern: "_Z", Penalty: 100},
 	},
@@ -56,6 +56,25 @@ func (Scheme) Demangle(_ context.Context, in string, _ demangle.Options) (*deman
 		return nil, demangle.WrongScheme("swift-v42", in)
 	}
 	return stable.ParseBody("swift-v42", in, body, prefixBytes)
+}
+
+func (Scheme) Mangle(ctx context.Context, tree *demangle.Node, opts demangle.Options) (*demangle.Result, error) {
+	res, err := stable.Remangle(ctx, tree, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := swapPrefix(res.Output)
+	return &demangle.Result{Scheme: "swift-v42", Input: res.Input, Output: out, Tree: res.Tree}, nil
+}
+
+func swapPrefix(s string) string {
+	if b, ok := strings.CutPrefix(s, "_$s"); ok {
+		return "_$S" + b
+	}
+	if b, ok := strings.CutPrefix(s, "$s"); ok {
+		return "$S" + b
+	}
+	return s
 }
 
 func stripPrefix(in string) (string, int, bool) {

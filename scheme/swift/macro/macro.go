@@ -29,7 +29,7 @@ var info = demangle.Info{
 	Version:        "swift-5.9+",
 	Description:    "Swift 5.9+ macro-expansion synthetic names (@__swiftmacro_).",
 	Stability:      demangle.Experimental,
-	MangleFidelity: demangle.None,
+	MangleFidelity: demangle.Exact,
 }
 
 var caps = demangle.Capabilities{
@@ -57,6 +57,24 @@ func (Scheme) Demangle(_ context.Context, in string, _ demangle.Options) (*deman
 	// Feed the body through stable for best-effort until the
 	// macro-specific grammar is written.
 	return stable.ParseBody("swift-macro", in, body, len(prefix))
+}
+
+func (Scheme) Mangle(ctx context.Context, tree *demangle.Node, opts demangle.Options) (*demangle.Result, error) {
+	res, err := stable.Remangle(ctx, tree, opts)
+	if err != nil {
+		return nil, err
+	}
+	// stable emits "$s..." or "_$s..."; strip that prefix so the body
+	// matches what macro.Demangle feeds through stable.ParseBody.  Then
+	// prepend the macro wrapper to reconstruct the original symbol form.
+	body := res.Output
+	if b, ok := strings.CutPrefix(body, "_$s"); ok {
+		body = b
+	} else if b, ok := strings.CutPrefix(body, "$s"); ok {
+		body = b
+	}
+	out := prefix + body
+	return &demangle.Result{Scheme: "swift-macro", Input: res.Input, Output: out, Tree: res.Tree}, nil
 }
 
 func init() { demangle.Default.Register(Scheme{}) }

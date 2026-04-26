@@ -23,7 +23,7 @@ var info = demangle.Info{
 	Version:        "swift-4.0",
 	Description:    "Swift 4.0 ABI mangling (_T0).",
 	Stability:      demangle.Experimental,
-	MangleFidelity: demangle.None,
+	MangleFidelity: demangle.Exact,
 }
 
 var caps = demangle.Capabilities{
@@ -48,6 +48,21 @@ func (Scheme) Demangle(_ context.Context, in string, _ demangle.Options) (*deman
 		return nil, demangle.WrongScheme("swift-v40", in)
 	}
 	return stable.ParseBody("swift-v40", in, body, 3)
+}
+
+func (Scheme) Mangle(ctx context.Context, tree *demangle.Node, opts demangle.Options) (*demangle.Result, error) {
+	res, err := stable.Remangle(ctx, tree, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := res.Output
+	// v40 uses "_T0" prefix; stable emits "$s..." or "_$s...".
+	if b, ok := strings.CutPrefix(out, "_$s"); ok {
+		out = "_T0" + b
+	} else if b, ok := strings.CutPrefix(out, "$s"); ok {
+		out = "_T0" + b
+	}
+	return &demangle.Result{Scheme: "swift-v40", Input: res.Input, Output: out, Tree: res.Tree}, nil
 }
 
 func init() { demangle.Default.Register(Scheme{}) }

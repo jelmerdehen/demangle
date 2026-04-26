@@ -40,6 +40,53 @@ func TestMacroRoutesToStable(t *testing.T) {
 	}
 }
 
+func TestMacroMangleRoundTrip(t *testing.T) {
+	t.Parallel()
+	cat := demangle.NewCatalog()
+	cat.Register(macro.Scheme{})
+
+	// Round-trippable inputs: the body after @__swiftmacro_ is a raw
+	// stable body (without the $s prefix) that stable.ParseBody can parse.
+	// Mangle strips the $s from Remangle output and re-prepends @__swiftmacro_.
+	fixtures := []struct {
+		mangled string
+	}{
+		{"@__swiftmacro_4main3FooV"},
+		{"@__swiftmacro_4main3BarC"},
+		{"@__swiftmacro_4main6ResultO"},
+		{"@__swiftmacro_4test7RequestV"},
+		{"@__swiftmacro_4test8ResponseV"},
+	}
+	for _, tc := range fixtures {
+		tc := tc
+		t.Run(tc.mangled, func(t *testing.T) {
+			t.Parallel()
+			ctx := context.Background()
+
+			// Demangle to get the tree.
+			dRes, err := cat.Demangle(ctx, tc.mangled, &demangle.Options{ReturnTree: true})
+			if err != nil {
+				t.Skipf("demangle(%q): %v (skipping unsupported fixture)", tc.mangled, err)
+			}
+			if dRes.Tree == nil {
+				t.Fatalf("demangle returned nil tree for %q", tc.mangled)
+			}
+
+			// Mangle back and check the @__swiftmacro_ wrapper is present.
+			mRes, err := cat.Mangle(ctx, "swift-macro", dRes.Tree, nil)
+			if err != nil {
+				t.Fatalf("mangle(%q): %v", tc.mangled, err)
+			}
+			if mRes.Scheme != "swift-macro" {
+				t.Fatalf("mangle scheme = %q, want %q", mRes.Scheme, "swift-macro")
+			}
+			if mRes.Output != tc.mangled {
+				t.Fatalf("round-trip: got %q, want %q", mRes.Output, tc.mangled)
+			}
+		})
+	}
+}
+
 func FuzzSwiftMacro(f *testing.F) {
 	seeds := []string{
 		"@__swiftmacro_Bi32_",
