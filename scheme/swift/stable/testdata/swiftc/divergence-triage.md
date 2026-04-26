@@ -1,0 +1,661 @@
+# swiftc-oracle divergence triage
+
+411 symbols in `swiftc-oracle-divergences.txt` are skipped by `TestThreeWayParity`.
+This file categorizes them by root cause and maps each group to the fix milestone.
+
+## Summary by category
+
+| Category | Count | Root Cause | Fix |
+|----------|-------|------------|-----|
+| Stored-property getter `vg` | 144 | Output format mismatch: parser emits `"getter for X : T"`, oracle wants `"X.getter : T"` | R16 |
+| Allocating init `fC` | 41 | Multi-param tuple encoding not decoded; parser handles 0–1 params, fails on 2+ | R16 |
+| Stored-property modify `vM` | 30 | Format mismatch: `"materializeForSet for X : T"` vs `"X.modify : T"` | R16 |
+| Stored-property setter `vs` | 30 | Format mismatch: `"setter for X : T"` vs `"X.setter : T"` | R16 |
+| Generic/free functions `F` (complex) | 42 | Mixed: HOF result types, multi-labeled params, operators, extension methods, @Sendable, variadic | R16/R17 |
+| Generic functions with constraints | 27 | Generic-sig constraints (`lF`/`r_lF` suffix) not decoded into `<A where ...>` form | R17 |
+| Non-allocating init `fc` | 18 | Same as `fC`: multi-param tuple encoding | R16 |
+| Property field initializer `vpfi` | 16 | Private discriminator identifier (`<N>_<HASH>LL`) not parsed | R16 |
+| Destroying deinit `fd` | 15 | Deinit has no result/param types; parser requires them before `fd` | R16 |
+| Deallocating deinit `fD` | 15 | Same as `fd` | R16 |
+| Static method `FZ` | 9 | Complex params or nested nominal path in static context | R16 |
+| Subscript getter `cig` | 7 | Subscript entity path not handled by `tryVariableEntity` | R16 |
+| Unsafe mutable addressor `vau` | 4 | Format mismatch: `"addressor for X"` vs `"X.unsafeMutableAddressor"` | R16 |
+| Static getter `vgZ` | 4 | Format mismatch: `"getter for static X"` vs `"static X.getter"` | R16 |
+| Subscript modify `ciM` | 3 | Same as subscript getter | R16 |
+| Subscript setter `cis` | 3 | Same as subscript getter | R16 |
+| Typed throws `YKF` | 2 | `throws(ErrorType)` encoding not decoded | R17 |
+| Async `YaF` | 1 | Async + `@Sendable` closure combination not decoded | R17 |
+| **Total** | **411** | | |
+
+### Milestone mapping
+
+- **R16** (property/accessor/init/deinit output format + encoding): fixes ~381 symbols (89%)
+- **R17** (generic-sig constraints + typed-throws + async): fixes ~30 symbols (11%)
+
+---
+
+## Detailed breakdown
+
+### Group A: Stored-property accessor format mismatch (212 symbols)
+
+The `tryVariableEntity` parser in `stable.go` correctly parses these symbols but
+emits the wrong output format. The parser uses `prefix = "getter for "` and produces
+`"getter for Module.Type.prop : Type"`, while the oracle and Swift ABI spec produce
+`"Module.Type.prop.getter : Type"` (accessor kind as a dot-suffix on the path).
+
+The same format error applies to `vs` (setter), `vM` (modify), `vau`
+(unsafeMutableAddressor), and `vgZ` (static getter).
+
+**Fix (R16):** In `tryVariableEntity`, change the output format from
+`prefix + path + " : " + type` to `path + "." + kind + " : " + type` for
+`vg`, `vs`, `vM`, `vau`, and `vgZ`. Note `vM` must map to `"modify"` (not
+`"materializeForSet"`), and `vau` must map to `"unsafeMutableAddressor"`.
+
+#### vg — stored-property getter (144 symbols)
+
+Parser currently produces: `getter for Module.Type.prop : Type`
+Oracle expects: `Module.Type.prop.getter : Type`
+
+```
+$s10BasicTypes9DirectionO9hashValueSivg ---> BasicTypes.Direction.hashValue.getter : Swift.Int
+$s10BasicTypesAAV1bSbvg ---> BasicTypes.BasicTypes.b.getter : Swift.Bool
+$s10BasicTypesAAV1dSdvg ---> BasicTypes.BasicTypes.d.getter : Swift.Double
+$s10BasicTypesAAV1fSfvg ---> BasicTypes.BasicTypes.f.getter : Swift.Float
+$s10BasicTypesAAV1iSivg ---> BasicTypes.BasicTypes.i.getter : Swift.Int
+$s10BasicTypesAAV1sSSvg ---> BasicTypes.BasicTypes.s.getter : Swift.String
+$s10BasicTypesAAV3arrSaySSGvg ---> BasicTypes.BasicTypes.arr.getter : [Swift.String]
+$s10BasicTypesAAV3optSiSgvg ---> BasicTypes.BasicTypes.opt.getter : Swift.Int?
+$s10Subscripts14CircularBufferC8capacitySivg ---> Subscripts.CircularBuffer.capacity.getter : Swift.Int
+$s10Subscripts4GridV4colsSivg ---> Subscripts.Grid.cols.getter : Swift.Int
+$s10Subscripts4GridV4rowsSivg ---> Subscripts.Grid.rows.getter : Swift.Int
+$s11NestedTypes4NodeC4metaAC8MetadataVyx_Gvg ---> NestedTypes.Node.meta.getter : NestedTypes.Node<A>.Metadata
+$s11NestedTypes4NodeC5valuexvg ---> NestedTypes.Node.value.getter : A
+$s11NestedTypes4NodeC8childrenSayACyxGGvg ---> NestedTypes.Node.children.getter : [NestedTypes.Node<A>]
+$s11NestedTypes4NodeC8MetadataV2idSivg ---> NestedTypes.Node.Metadata.id.getter : Swift.Int
+$s11NestedTypes4NodeC8MetadataV5labelSSvg ---> NestedTypes.Node.Metadata.label.getter : Swift.String
+$s11NestedTypes6MatrixV3RowV5countSivg ---> NestedTypes.Matrix.Row.count.getter : Swift.Int
+$s11NestedTypes6MatrixV3RowV6valuesSaySdGvg ---> NestedTypes.Matrix.Row.values.getter : [Swift.Double]
+$s11NestedTypes6MatrixV4rowsSayAC3RowVGvg ---> NestedTypes.Matrix.rows.getter : [NestedTypes.Matrix.Row]
+$s11NestedTypes6MatrixV8colCountSivg ---> NestedTypes.Matrix.colCount.getter : Swift.Int
+$s11NestedTypes6MatrixV8rowCountSivg ---> NestedTypes.Matrix.rowCount.getter : Swift.Int
+$s11NestedTypes7NetworkO7RequestV3urlSSvg ---> NestedTypes.Network.Request.url.getter : Swift.String
+$s11NestedTypes7NetworkO7RequestV6methodAE6MethodOvg ---> NestedTypes.Network.Request.method.getter : NestedTypes.Network.Request.Method
+$s11NestedTypes7NetworkO7RequestV6MethodO9hashValueSivg ---> NestedTypes.Network.Request.Method.hashValue.getter : Swift.Int
+$s11NestedTypes7NetworkO8ResponseV10statusCodeSivg ---> NestedTypes.Network.Response.statusCode.getter : Swift.Int
+$s11NestedTypes7NetworkO8ResponseV4bodySSSgvg ---> NestedTypes.Network.Response.body.getter : Swift.String?
+$s11NestedTypes7NetworkO8ResponseV9isSuccessSbvg ---> NestedTypes.Network.Response.isSuccess.getter : Swift.Bool
+$s11OpaqueTypes8Vector2DV1xSdvg ---> OpaqueTypes.Vector2D.x.getter : Swift.Double
+$s11OpaqueTypes8Vector2DV1ySdvg ---> OpaqueTypes.Vector2D.y.getter : Swift.Double
+$s11OpaqueTypes9SimpleSeqV7isEmptySbvg ---> OpaqueTypes.SimpleSeq.isEmpty.getter : Swift.Bool
+$s12Existentials11CircleShapeV6radiusSdvg ---> Existentials.CircleShape.radius.getter : Swift.Double
+$s12Existentials11SquareShapeV4sideSdvg ---> Existentials.SquareShape.side.getter : Swift.Double
+$s12Existentials13TriangleShapeV4baseSdvg ---> Existentials.TriangleShape.base.getter : Swift.Double
+$s12GenericWhere7WrapperV5valuexvg ---> GenericWhere.Wrapper.value.getter : A
+$s12GenericWhere7WrapperVAAs23CustomStringConvertibleRzlE7displaySSvg ---> (extension in GenericWhere):GenericWhere.Wrapper<A where A: Swift.CustomStringConvertible>.display.getter : Swift.String
+$s12InitVariants11PositiveIntV5valueSivg ---> InitVariants.PositiveInt.value.getter : Swift.Int
+$s12InitVariants4BaseC1xSivg ---> InitVariants.Base.x.getter : Swift.Int
+$s12InitVariants5EmailV7addressSSvg ---> InitVariants.Email.address.getter : Swift.String
+$s12InitVariants6Range2V4sizeSivg ---> InitVariants.Range2.size.getter : Swift.Int
+$s12InitVariants6Range2V5lowerSivg ---> InitVariants.Range2.lower.getter : Swift.Int
+$s12InitVariants6Range2V5upperSivg ---> InitVariants.Range2.upper.getter : Swift.Int
+$s12InitVariants7DerivedC1ySivg ---> InitVariants.Derived.y.getter : Swift.Int
+$s13BoundGenerics5Pair2V5firstxvg ---> BoundGenerics.Pair2.first.getter : A
+$s13BoundGenerics5Pair2V6secondq_vg ---> BoundGenerics.Pair2.second.getter : B
+$s13BoundGenerics7Result2V5stateAC5StateOyxq__Gvg ---> BoundGenerics.Result2.state.getter : BoundGenerics.Result2<A, B>.State
+$s13GenericsBasic3BoxV5valuexvg ---> GenericsBasic.Box.value.getter : A
+$s13GenericsBasic4PairV5firstxvg ---> GenericsBasic.Pair.first.getter : A
+$s13GenericsBasic4PairV6secondq_vg ---> GenericsBasic.Pair.second.getter : B
+$s13GenericsBasic5StackV3topxSgvg ---> GenericsBasic.Stack.top.getter : A?
+$s13GenericsBasic5StackV7isEmptySbvg ---> GenericsBasic.Stack.isEmpty.getter : Swift.Bool
+$s13OptionalTypes4UserV4nameSSvg ---> OptionalTypes.User.name.getter : Swift.String
+$s13OptionalTypes4UserV5emailSSSgvg ---> OptionalTypes.User.email.getter : Swift.String?
+$s13OptionalTypes4UserV7addressAA7AddressVSgvg ---> OptionalTypes.User.address.getter : OptionalTypes.Address?
+$s13OptionalTypes7AddressV3zipSSSgvg ---> OptionalTypes.Address.zip.getter : Swift.String?
+$s13OptionalTypes7AddressV4citySSvg ---> OptionalTypes.Address.city.getter : Swift.String
+$s13OptionalTypes7AddressV6streetSSvg ---> OptionalTypes.Address.street.getter : Swift.String
+$s16GenericProtocols14ArrayContainerV5countSivg ---> GenericProtocols.ArrayContainer.count.getter : Swift.Int
+$s16PropertyWrappers10UppercasedV12wrappedValueSSvg ---> PropertyWrappers.Uppercased.wrappedValue.getter : Swift.String
+$s16PropertyWrappers10UppercasedV14projectedValueSivg ---> PropertyWrappers.Uppercased.projectedValue.getter : Swift.Int
+$s16PropertyWrappers6ConfigV4flagSbvg ---> PropertyWrappers.Config.flag.getter : Swift.Bool
+$s16PropertyWrappers6ConfigV5$flagSSvg ---> PropertyWrappers.Config.$flag.getter : Swift.String
+$s16PropertyWrappers6ConfigV5titleSSvg ---> PropertyWrappers.Config.title.getter : Swift.String
+$s16PropertyWrappers6ConfigV6$titleSivg ---> PropertyWrappers.Config.$title.getter : Swift.Int
+$s16PropertyWrappers6ConfigV6volumeSivg ---> PropertyWrappers.Config.volume.getter : Swift.Int
+$s16PropertyWrappers6LoggedV12wrappedValuexvg ---> PropertyWrappers.Logged.wrappedValue.getter : A
+$s16PropertyWrappers6LoggedV14projectedValueSSvg ---> PropertyWrappers.Logged.projectedValue.getter : Swift.String
+$s16PropertyWrappers6LoggedV4nameSSvg ---> PropertyWrappers.Logged.name.getter : Swift.String
+$s16PropertyWrappers7ClampedV12wrappedValuexvg ---> PropertyWrappers.Clamped.wrappedValue.getter : A
+$s19GenericsConstrained9SortedSetV5countSivg ---> GenericsConstrained.SortedSet.count.getter : Swift.Int
+$s5Async11SharedActorC15unownedExecutorScevg ---> Async.SharedActor.unownedExecutor.getter : Swift.UnownedSerialExecutor
+$s5Async9DataStoreC15unownedExecutorScevg ---> Async.DataStore.unownedExecutor.getter : Swift.UnownedSerialExecutor
+$s5Enums10HTTPStatusO8rawValueSSvg ---> Enums.HTTPStatus.rawValue.getter : Swift.String
+$s5Enums4TreeO5countSivg ---> Enums.Tree.count.getter : Swift.Int
+$s5Enums6PlanetO10distanceAUSdvg ---> Enums.Planet.distanceAU.getter : Swift.Double
+$s5Enums6PlanetO8rawValueSivg ---> Enums.Planet.rawValue.getter : Swift.Int
+$s5Enums7WeekdayO9hashValueSivg ---> Enums.Weekday.hashValue.getter : Swift.Int
+$s5Enums7WeekdayO9isWeekendSbvg ---> Enums.Weekday.isWeekend.getter : Swift.Bool
+$s6Actors11BankAccountC15unownedExecutorScevg ---> Actors.BankAccount.unownedExecutor.getter : Swift.UnownedSerialExecutor
+$s6Actors5CacheC15unownedExecutorScevg ---> Actors.Cache.unownedExecutor.getter : Swift.UnownedSerialExecutor
+$s6Actors5CacheC5countSivg ---> Actors.Cache.count.getter : Swift.Int
+$s6Actors7CounterC15unownedExecutorScevg ---> Actors.Counter.unownedExecutor.getter : Swift.UnownedSerialExecutor
+$s6Actors7CounterC5valueSivg ---> Actors.Counter.value.getter : Swift.Int
+$s7Classes3CarC11displayNameSSvg ---> Classes.Car.displayName.getter : Swift.String
+$s7Classes3CarC4makeSSvg ---> Classes.Car.make.getter : Swift.String
+$s7Classes3CarC5modelSSvg ---> Classes.Car.model.getter : Swift.String
+$s7Classes3CatC6indoorSbvg ---> Classes.Cat.indoor.getter : Swift.Bool
+$s7Classes3DogC5breedSSvg ---> Classes.Dog.breed.getter : Swift.String
+$s7Classes6AnimalC3ageSivg ---> Classes.Animal.age.getter : Swift.Int
+$s7Classes6AnimalC4nameSSvg ---> Classes.Animal.name.getter : Swift.String
+$s7Classes7VehicleC5speedSdvg ---> Classes.Vehicle.speed.getter : Swift.Double
+$s7Classes7VehicleC8maxSpeedSdvg ---> Classes.Vehicle.maxSpeed.getter : Swift.Double
+$s7Methods5PointV1xSdvg ---> Methods.Point.x.getter : Swift.Double
+$s7Methods5PointV1ySdvg ---> Methods.Point.y.getter : Swift.Double
+$s7Methods7CounterV5countSivg ---> Methods.Counter.count.getter : Swift.Int
+$s7Structs11TemperatureV10fahrenheitSdvg ---> Structs.Temperature.fahrenheit.getter : Swift.Double
+$s7Structs11TemperatureV10isFreezingSbvg ---> Structs.Temperature.isFreezing.getter : Swift.Bool
+$s7Structs11TemperatureV6kelvinSdvg ---> Structs.Temperature.kelvin.getter : Swift.Double
+$s7Structs11TemperatureV7celsiusSdvg ---> Structs.Temperature.celsius.getter : Swift.Double
+$s7Structs4SizeV11aspectRatioSdvg ---> Structs.Size.aspectRatio.getter : Swift.Double
+$s7Structs4SizeV4areaSdvg ---> Structs.Size.area.getter : Swift.Double
+$s7Structs4SizeV5widthSdvg ---> Structs.Size.width.getter : Swift.Double
+$s7Structs4SizeV6heightSdvg ---> Structs.Size.height.getter : Swift.Double
+$s7Structs4SizeV8isSquareSbvg ---> Structs.Size.isSquare.getter : Swift.Bool
+$s7Structs5ColorV3hexSSvg ---> Structs.Color.hex.getter : Swift.String
+$s7Structs5ColorV3reds5UInt8Vvg ---> Structs.Color.red.getter : Swift.UInt8
+$s7Structs5ColorV4blues5UInt8Vvg ---> Structs.Color.blue.getter : Swift.UInt8
+$s7Structs5ColorV5greens5UInt8Vvg ---> Structs.Color.green.getter : Swift.UInt8
+$s7Structs5ColorV6isDarkSbvg ---> Structs.Color.isDark.getter : Swift.Bool
+$s7Structs5ColorV9luminanceSdvg ---> Structs.Color.luminance.getter : Swift.Double
+$s8Keypaths4TeamV7captainAA6PersonVvg ---> Keypaths.Team.captain.getter : Keypaths.Person
+$s8Keypaths4TeamV7membersSayAA6PersonVGvg ---> Keypaths.Team.members.getter : [Keypaths.Person]
+$s8Keypaths6PersonV3ageSivg ---> Keypaths.Person.age.getter : Swift.Int
+$s8Keypaths6PersonV4nameSSvg ---> Keypaths.Person.name.getter : Swift.String
+$s8Keypaths6PersonV6heightSdvg ---> Keypaths.Person.height.getter : Swift.Double
+$s8Sendable0A7WrapperV5valuexvg ---> Sendable.SendableWrapper.value.getter : A
+$s8Sendable14ImmutablePointV1xSdvg ---> Sendable.ImmutablePoint.x.getter : Swift.Double
+$s8Sendable14ImmutablePointV1ySdvg ---> Sendable.ImmutablePoint.y.getter : Swift.Double
+$s8Sendable14ImmutableRangeV5countSivg ---> Sendable.ImmutableRange.count.getter : Swift.Int
+$s8Sendable14ImmutableRangeV5lowerSivg ---> Sendable.ImmutableRange.lower.getter : Swift.Int
+$s8Sendable14ImmutableRangeV5upperSivg ---> Sendable.ImmutableRange.upper.getter : Swift.Int
+$s9Operators4Vec3V1xSdvg ---> Operators.Vec3.x.getter : Swift.Double
+$s9Operators4Vec3V1ySdvg ---> Operators.Vec3.y.getter : Swift.Double
+$s9Operators4Vec3V1zSdvg ---> Operators.Vec3.z.getter : Swift.Double
+$s9Protocols6CircleV11descriptionSSvg ---> Protocols.Circle.description.getter : Swift.String
+$s9Protocols6CircleV4areaSdvg ---> Protocols.Circle.area.getter : Swift.Double
+$s9Protocols6CircleV6lengthSdvg ---> Protocols.Circle.length.getter : Swift.Double
+$s9Protocols6CircleV6radiusSdvg ---> Protocols.Circle.radius.getter : Swift.Double
+$s9Protocols6CircleV9perimeterSdvg ---> Protocols.Circle.perimeter.getter : Swift.Double
+$s9Protocols9RectangleV11descriptionSSvg ---> Protocols.Rectangle.description.getter : Swift.String
+$s9Protocols9RectangleV4areaSdvg ---> Protocols.Rectangle.area.getter : Swift.Double
+$s9Protocols9RectangleV5widthSdvg ---> Protocols.Rectangle.width.getter : Swift.Double
+$s9Protocols9RectangleV6heightSdvg ---> Protocols.Rectangle.height.getter : Swift.Double
+$s9Protocols9RectangleV6lengthSdvg ---> Protocols.Rectangle.length.getter : Swift.Double
+$s9Protocols9RectangleV9perimeterSdvg ---> Protocols.Rectangle.perimeter.getter : Swift.Double
+$sSa10ExtensionsE6secondxSgvg ---> (extension in Extensions):Swift.Array.second.getter : A?
+$sSa10ExtensionsSLRzlE16sortedDescendingSayxGvg ---> (extension in Extensions):Swift.Array<A where A: Swift.Comparable>.sortedDescending.getter : [A]
+$sSa10ExtensionsSLRzlE8isSortedSbvg ---> (extension in Extensions):Swift.Array<A where A: Swift.Comparable>.isSorted.getter : Swift.Bool
+$sSa12GenericWhereSjRzlE3sumxvg ---> (extension in GenericWhere):Swift.Array<A where A: Swift.Numeric>.sum.getter : A
+$sSi10ExtensionsE5isOddSbvg ---> (extension in Extensions):Swift.Int.isOdd.getter : Swift.Bool
+$sSi10ExtensionsE6isEvenSbvg ---> (extension in Extensions):Swift.Int.isEven.getter : Swift.Bool
+$sSq10ExtensionsE5isNilSbvg ---> (extension in Extensions):Swift.Optional.isNil.getter : Swift.Bool
+$sSS10ExtensionsE12isPalindromeSbvg ---> (extension in Extensions):Swift.String.isPalindrome.getter : Swift.Bool
+$sSS10ExtensionsE5wordsSaySSGvg ---> (extension in Extensions):Swift.String.words.getter : [Swift.String]
+$sSS10ExtensionsE9wordCountSivg ---> (extension in Extensions):Swift.String.wordCount.getter : Swift.Int
+```
+
+#### vs — stored-property setter (30 symbols)
+
+Parser currently produces: `setter for Module.Type.prop : Type`
+Oracle expects: `Module.Type.prop.setter : Type`
+
+```
+$s10BasicTypesAAV1bSbvs ---> BasicTypes.BasicTypes.b.setter : Swift.Bool
+$s10BasicTypesAAV1dSdvs ---> BasicTypes.BasicTypes.d.setter : Swift.Double
+$s10BasicTypesAAV1fSfvs ---> BasicTypes.BasicTypes.f.setter : Swift.Float
+$s10BasicTypesAAV1iSivs ---> BasicTypes.BasicTypes.i.setter : Swift.Int
+$s10BasicTypesAAV1sSSvs ---> BasicTypes.BasicTypes.s.setter : Swift.String
+$s10BasicTypesAAV3arrSaySSGvs ---> BasicTypes.BasicTypes.arr.setter : [Swift.String]
+$s10BasicTypesAAV3optSiSgvs ---> BasicTypes.BasicTypes.opt.setter : Swift.Int?
+$s11NestedTypes4NodeC8childrenSayACyxGGvs ---> NestedTypes.Node.children.setter : [NestedTypes.Node<A>]
+$s13GenericsBasic3BoxV5valuexvs ---> GenericsBasic.Box.value.setter : A
+$s16PropertyWrappers10UppercasedV12wrappedValueSSvs ---> PropertyWrappers.Uppercased.wrappedValue.setter : Swift.String
+$s16PropertyWrappers6ConfigV4flagSbvs ---> PropertyWrappers.Config.flag.setter : Swift.Bool
+$s16PropertyWrappers6ConfigV5titleSSvs ---> PropertyWrappers.Config.title.setter : Swift.String
+$s16PropertyWrappers6ConfigV6volumeSivs ---> PropertyWrappers.Config.volume.setter : Swift.Int
+$s16PropertyWrappers6LoggedV12wrappedValuexvs ---> PropertyWrappers.Logged.wrappedValue.setter : A
+$s16PropertyWrappers7ClampedV12wrappedValuexvs ---> PropertyWrappers.Clamped.wrappedValue.setter : A
+$s7Classes3CatC6indoorSbvs ---> Classes.Cat.indoor.setter : Swift.Bool
+$s7Classes6AnimalC3ageSivs ---> Classes.Animal.age.setter : Swift.Int
+$s7Classes7VehicleC5speedSdvs ---> Classes.Vehicle.speed.setter : Swift.Double
+$s7Classes7VehicleC8maxSpeedSdvs ---> Classes.Vehicle.maxSpeed.setter : Swift.Double
+$s7Methods5PointV1xSdvs ---> Methods.Point.x.setter : Swift.Double
+$s7Methods5PointV1ySdvs ---> Methods.Point.y.setter : Swift.Double
+$s7Methods7CounterV5countSivs ---> Methods.Counter.count.setter : Swift.Int
+$s7Structs11TemperatureV7celsiusSdvs ---> Structs.Temperature.celsius.setter : Swift.Double
+$s7Structs4SizeV5widthSdvs ---> Structs.Size.width.setter : Swift.Double
+$s7Structs4SizeV6heightSdvs ---> Structs.Size.height.setter : Swift.Double
+$s8Keypaths4TeamV7captainAA6PersonVvs ---> Keypaths.Team.captain.setter : Keypaths.Person
+$s8Keypaths4TeamV7membersSayAA6PersonVGvs ---> Keypaths.Team.members.setter : [Keypaths.Person]
+$s8Keypaths6PersonV3ageSivs ---> Keypaths.Person.age.setter : Swift.Int
+$s8Keypaths6PersonV4nameSSvs ---> Keypaths.Person.name.setter : Swift.String
+$s8Keypaths6PersonV6heightSdvs ---> Keypaths.Person.height.setter : Swift.Double
+```
+
+#### vM — stored-property modify accessor (30 symbols)
+
+Parser currently produces: `materializeForSet for Module.Type.prop : Type`
+Oracle expects: `Module.Type.prop.modify : Type`
+
+```
+$s10BasicTypesAAV1bSbvM ---> BasicTypes.BasicTypes.b.modify : Swift.Bool
+$s10BasicTypesAAV1dSdvM ---> BasicTypes.BasicTypes.d.modify : Swift.Double
+$s10BasicTypesAAV1fSfvM ---> BasicTypes.BasicTypes.f.modify : Swift.Float
+$s10BasicTypesAAV1iSivM ---> BasicTypes.BasicTypes.i.modify : Swift.Int
+$s10BasicTypesAAV1sSSvM ---> BasicTypes.BasicTypes.s.modify : Swift.String
+$s10BasicTypesAAV3arrSaySSGvM ---> BasicTypes.BasicTypes.arr.modify : [Swift.String]
+$s10BasicTypesAAV3optSiSgvM ---> BasicTypes.BasicTypes.opt.modify : Swift.Int?
+$s11NestedTypes4NodeC8childrenSayACyxGGvM ---> NestedTypes.Node.children.modify : [NestedTypes.Node<A>]
+$s13GenericsBasic3BoxV5valuexvM ---> GenericsBasic.Box.value.modify : A
+$s16PropertyWrappers10UppercasedV12wrappedValueSSvM ---> PropertyWrappers.Uppercased.wrappedValue.modify : Swift.String
+$s16PropertyWrappers6ConfigV4flagSbvM ---> PropertyWrappers.Config.flag.modify : Swift.Bool
+$s16PropertyWrappers6ConfigV5titleSSvM ---> PropertyWrappers.Config.title.modify : Swift.String
+$s16PropertyWrappers6ConfigV6volumeSivM ---> PropertyWrappers.Config.volume.modify : Swift.Int
+$s16PropertyWrappers6LoggedV12wrappedValuexvM ---> PropertyWrappers.Logged.wrappedValue.modify : A
+$s16PropertyWrappers7ClampedV12wrappedValuexvM ---> PropertyWrappers.Clamped.wrappedValue.modify : A
+$s7Classes3CatC6indoorSbvM ---> Classes.Cat.indoor.modify : Swift.Bool
+$s7Classes6AnimalC3ageSivM ---> Classes.Animal.age.modify : Swift.Int
+$s7Classes7VehicleC5speedSdvM ---> Classes.Vehicle.speed.modify : Swift.Double
+$s7Classes7VehicleC8maxSpeedSdvM ---> Classes.Vehicle.maxSpeed.modify : Swift.Double
+$s7Methods5PointV1xSdvM ---> Methods.Point.x.modify : Swift.Double
+$s7Methods5PointV1ySdvM ---> Methods.Point.y.modify : Swift.Double
+$s7Methods7CounterV5countSivM ---> Methods.Counter.count.modify : Swift.Int
+$s7Structs11TemperatureV7celsiusSdvM ---> Structs.Temperature.celsius.modify : Swift.Double
+$s7Structs4SizeV5widthSdvM ---> Structs.Size.width.modify : Swift.Double
+$s7Structs4SizeV6heightSdvM ---> Structs.Size.height.modify : Swift.Double
+$s8Keypaths4TeamV7captainAA6PersonVvM ---> Keypaths.Team.captain.modify : Keypaths.Person
+$s8Keypaths4TeamV7membersSayAA6PersonVGvM ---> Keypaths.Team.members.modify : [Keypaths.Person]
+$s8Keypaths6PersonV3ageSivM ---> Keypaths.Person.age.modify : Swift.Int
+$s8Keypaths6PersonV4nameSSvM ---> Keypaths.Person.name.modify : Swift.String
+$s8Keypaths6PersonV6heightSdvM ---> Keypaths.Person.height.modify : Swift.Double
+```
+
+#### vau — unsafe mutable addressor (4 symbols)
+
+Parser produces: `addressor for X : T`
+Oracle expects: `X.unsafeMutableAddressor : T`
+
+```
+$s5Async11SharedActorC6sharedACvau ---> Async.SharedActor.shared.unsafeMutableAddressor : Async.SharedActor
+$s7Methods5PointV6originACvau ---> Methods.Point.origin.unsafeMutableAddressor : Methods.Point
+$s7Structs5ColorV5blackACvau ---> Structs.Color.black.unsafeMutableAddressor : Structs.Color
+$s7Structs5ColorV5whiteACvau ---> Structs.Color.white.unsafeMutableAddressor : Structs.Color
+```
+
+#### vgZ — static stored-property getter (4 symbols)
+
+Parser produces: `getter for static X : T`
+Oracle expects: `static X.getter : T`
+
+```
+$s5Async11SharedActorC6sharedACvgZ ---> static Async.SharedActor.shared.getter : Async.SharedActor
+$s7Methods5PointV6originACvgZ ---> static Methods.Point.origin.getter : Methods.Point
+$s7Structs5ColorV5blackACvgZ ---> static Structs.Color.black.getter : Structs.Color
+$s7Structs5ColorV5whiteACvgZ ---> static Structs.Color.white.getter : Structs.Color
+```
+
+---
+
+### Group B: Subscript accessor encoding (13 symbols)
+
+Subscript accessors use a `ci<kind>` suffix (`cig`=getter, `ciM`=modify,
+`cis`=setter) rather than the `v<kind>` suffix used for stored properties.
+The `tryVariableEntity` parser does not recognise the `ci` prefix family; these
+symbols fall through to `ErrUnsupported`. The oracle renders them as
+`Module.Type.subscript.getter : (ParamType) -> ElementType`.
+
+**Fix (R16):** Add `ci<kind>` handling to `tryVariableEntity` (or a new
+`trySubscriptVariableEntity` helper).
+
+#### cig — subscript getter (7 symbols)
+
+```
+$s10Subscripts10PolynomialVySdSicig ---> Subscripts.Polynomial.subscript.getter : (Swift.Int) -> Swift.Double
+$s10Subscripts14CircularBufferCyxSgSicig ---> Subscripts.CircularBuffer.subscript.getter : (Swift.Int) -> A?
+$s10Subscripts15FixedDictionaryV_7defaultq_x_q_tcig ---> Subscripts.FixedDictionary.subscript.getter : (_: A, default: B) -> B
+$s10Subscripts15FixedDictionaryVyq_Sgxcig ---> Subscripts.FixedDictionary.subscript.getter : (A) -> B?
+$s10Subscripts4GridV3rowSayxGSi_tcig ---> Subscripts.Grid.subscript.getter : (row: Swift.Int) -> [A]
+$s10Subscripts4GridVyxSi_Sitcig ---> Subscripts.Grid.subscript.getter : (Swift.Int, Swift.Int) -> A
+$s11NestedTypes6MatrixV3RowVySdSicig ---> NestedTypes.Matrix.Row.subscript.getter : (Swift.Int) -> Swift.Double
+```
+
+#### ciM — subscript modify (3 symbols)
+
+```
+$s10Subscripts10PolynomialVySdSiciM ---> Subscripts.Polynomial.subscript.modify : (Swift.Int) -> Swift.Double
+$s10Subscripts15FixedDictionaryVyq_SgxciM ---> Subscripts.FixedDictionary.subscript.modify : (A) -> B?
+$s10Subscripts4GridVyxSi_SitciM ---> Subscripts.Grid.subscript.modify : (Swift.Int, Swift.Int) -> A
+```
+
+#### cis — subscript setter (3 symbols)
+
+```
+$s10Subscripts10PolynomialVySdSicis ---> Subscripts.Polynomial.subscript.setter : (Swift.Int) -> Swift.Double
+$s10Subscripts15FixedDictionaryVyq_Sgxcis ---> Subscripts.FixedDictionary.subscript.setter : (A) -> B?
+$s10Subscripts4GridVyxSi_Sitcis ---> Subscripts.Grid.subscript.setter : (Swift.Int, Swift.Int) -> A
+```
+
+---
+
+### Group C: Init/deinit encoding gaps (89 symbols)
+
+#### fC — allocating initialiser (41 symbols)
+
+Root cause: `tryInitDeinitEntity` reads label identifiers greedily then calls
+`parseType` once for the result type and once for the params type. For symbols with
+two or more parameters the params are encoded as a multi-element tuple
+`<t0>_<t1>(_<tN>)*t`; the current code reads only the first type element and then
+fails to match `cfC` because `_` is the next byte. Labels (2+) are also silently
+dropped because the label-application branch only handles the `KindTypeList` case,
+which requires the tuple to have been fully parsed.
+
+**Fix (R16):** Extend `tryInitDeinitEntity` to parse the full multi-element tuple
+for params, and apply labels to all tuple children.
+
+```
+$s10BasicTypesAAV1i1s1b1d1fABSi_SSSbSdSftcfC ---> BasicTypes.BasicTypes.init(i: Swift.Int, s: Swift.String, b: Swift.Bool, d: Swift.Double, f: Swift.Float) -> BasicTypes.BasicTypes
+$s10Subscripts10PolynomialVyACSaySdGcfC ---> Subscripts.Polynomial.init([Swift.Double]) -> Subscripts.Polynomial
+$s10Subscripts4GridV4rows4cols7defaultACyxGSi_SixtcfC ---> Subscripts.Grid.init(rows: Swift.Int, cols: Swift.Int, default: A) -> Subscripts.Grid<A>
+$s11NestedTypes4NodeC5value4metaACyxGx_AC8MetadataVyx_GtcfC ---> NestedTypes.Node.__allocating_init(value: A, meta: NestedTypes.Node<A>.Metadata) -> NestedTypes.Node<A>
+$s11NestedTypes4NodeC8MetadataV2id5labelAEyx_GSi_SStcfC ---> NestedTypes.Node.Metadata.init(id: Swift.Int, label: Swift.String) -> NestedTypes.Node<A>.Metadata
+$s11NestedTypes6MatrixV3RowVyAESaySdGcfC ---> NestedTypes.Matrix.Row.init([Swift.Double]) -> NestedTypes.Matrix.Row
+$s11NestedTypes6MatrixVyACSaySaySdGGcfC ---> NestedTypes.Matrix.init([[Swift.Double]]) -> NestedTypes.Matrix
+$s11NestedTypes7NetworkO7RequestV3url6methodAESS_AE6MethodOtcfC ---> NestedTypes.Network.Request.init(url: Swift.String, method: NestedTypes.Network.Request.Method) -> NestedTypes.Network.Request
+$s11NestedTypes7NetworkO8ResponseV10statusCode4bodyAESi_SSSgtcfC ---> NestedTypes.Network.Response.init(statusCode: Swift.Int, body: Swift.String?) -> NestedTypes.Network.Response
+$s11OpaqueTypes8Vector2DV1x1yACSd_SdtcfC ---> OpaqueTypes.Vector2D.init(x: Swift.Double, y: Swift.Double) -> OpaqueTypes.Vector2D
+$s11OpaqueTypes9SimpleSeqVyACyxGSayxGcfC ---> OpaqueTypes.SimpleSeq.init([A]) -> OpaqueTypes.SimpleSeq<A>
+$s12GenericWhere7WrapperVyACyxGxcfC ---> GenericWhere.Wrapper.init(A) -> GenericWhere.Wrapper<A>
+$s12InitVariants11PositiveIntVyACSgSicfC ---> InitVariants.PositiveInt.init(Swift.Int) -> InitVariants.PositiveInt?
+$s12InitVariants5EmailV8throwingACSS_tKcfC ---> InitVariants.Email.init(throwing: Swift.String) throws -> InitVariants.Email
+$s12InitVariants6Range2V5lower5upperACSgSi_SitcfC ---> InitVariants.Range2.init(lower: Swift.Int, upper: Swift.Int) -> InitVariants.Range2?
+$s12InitVariants6Range2V8throwing5upperACSi_SitKcfC ---> InitVariants.Range2.init(throwing: Swift.Int, upper: Swift.Int) throws -> InitVariants.Range2
+$s12InitVariants7DerivedC1x1yACSi_SitcfC ---> InitVariants.Derived.__allocating_init(x: Swift.Int, y: Swift.Int) -> InitVariants.Derived
+$s13BoundGenerics5Pair2VyACyxq_Gx_q_tcfC ---> BoundGenerics.Pair2.init(A, B) -> BoundGenerics.Pair2<A, B>
+$s13BoundGenerics7Result2V3errACyxq_Gq__tcfC ---> BoundGenerics.Result2.init(err: B) -> BoundGenerics.Result2<A, B>
+$s13GenericsBasic3BoxVyACyxGxcfC ---> GenericsBasic.Box.init(A) -> GenericsBasic.Box<A>
+$s13GenericsBasic4PairVyACyxq_Gx_q_tcfC ---> GenericsBasic.Pair.init(A, B) -> GenericsBasic.Pair<A, B>
+$s13OptionalTypes4UserV4name5email7addressACSS_SSSgAA7AddressVSgtcfC ---> OptionalTypes.User.init(name: Swift.String, email: Swift.String?, address: OptionalTypes.Address?) -> OptionalTypes.User
+$s13OptionalTypes7AddressV6street4city3zipACSS_S2SSgtcfC ---> OptionalTypes.Address.init(street: Swift.String, city: Swift.String, zip: Swift.String?) -> OptionalTypes.Address
+$s16PropertyWrappers6LoggedV12wrappedValue4nameACyxGx_SStcfC ---> PropertyWrappers.Logged.init(wrappedValue: A, name: Swift.String) -> PropertyWrappers.Logged<A>
+$s16PropertyWrappers7ClampedV12wrappedValue_ACyxGx_SNyxGtcfC ---> PropertyWrappers.Clamped.init(wrappedValue: A, _: Swift.ClosedRange<A>) -> PropertyWrappers.Clamped<A>
+$s7Classes3CarC4make5model8maxSpeedACSS_SSSdtcfC ---> Classes.Car.__allocating_init(make: Swift.String, model: Swift.String, maxSpeed: Swift.Double) -> Classes.Car
+$s7Classes3CatC4name3age6indoorACSS_SiSbtcfC ---> Classes.Cat.__allocating_init(name: Swift.String, age: Swift.Int, indoor: Swift.Bool) -> Classes.Cat
+$s7Classes3CatC4name3ageACSS_SitcfC ---> Classes.Cat.__allocating_init(name: Swift.String, age: Swift.Int) -> Classes.Cat
+$s7Classes3DogC4name3age5breedACSS_SiSStcfC ---> Classes.Dog.__allocating_init(name: Swift.String, age: Swift.Int, breed: Swift.String) -> Classes.Dog
+$s7Classes3DogC4name3ageACSS_SitcfC ---> Classes.Dog.__allocating_init(name: Swift.String, age: Swift.Int) -> Classes.Dog
+$s7Classes6AnimalC4name3ageACSS_SitcfC ---> Classes.Animal.__allocating_init(name: Swift.String, age: Swift.Int) -> Classes.Animal
+$s7Methods5PointV1x1yACSd_SdtcfC ---> Methods.Point.init(x: Swift.Double, y: Swift.Double) -> Methods.Point
+$s7Structs4SizeV5width6heightACSd_SdtcfC ---> Structs.Size.init(width: Swift.Double, height: Swift.Double) -> Structs.Size
+$s7Structs5ColorV1r1g1bACs5UInt8V_A2HtcfC ---> Structs.Color.init(r: Swift.UInt8, g: Swift.UInt8, b: Swift.UInt8) -> Structs.Color
+$s8Keypaths4TeamV7members7captainACSayAA6PersonVG_AGtcfC ---> Keypaths.Team.init(members: [Keypaths.Person], captain: Keypaths.Person) -> Keypaths.Team
+$s8Keypaths6PersonV4name3age6heightACSS_SiSdtcfC ---> Keypaths.Person.init(name: Swift.String, age: Swift.Int, height: Swift.Double) -> Keypaths.Person
+$s8Sendable0A7WrapperVyACyxGxcfC ---> Sendable.SendableWrapper.init(A) -> Sendable.SendableWrapper<A>
+$s8Sendable14ImmutablePointV1x1yACSd_SdtcfC ---> Sendable.ImmutablePoint.init(x: Swift.Double, y: Swift.Double) -> Sendable.ImmutablePoint
+$s8Sendable14ImmutableRangeV5lower5upperACSi_SitcfC ---> Sendable.ImmutableRange.init(lower: Swift.Int, upper: Swift.Int) -> Sendable.ImmutableRange
+$s9Operators4Vec3VyACSd_S2dtcfC ---> Operators.Vec3.init(Swift.Double, Swift.Double, Swift.Double) -> Operators.Vec3
+$s9Protocols9RectangleV5width6heightACSd_SdtcfC ---> Protocols.Rectangle.init(width: Swift.Double, height: Swift.Double) -> Protocols.Rectangle
+```
+
+#### fc — non-allocating initialiser (18 symbols)
+
+Same root cause as `fC`.
+
+```
+$s10Subscripts14CircularBufferC8capacityACyxGSi_tcfc ---> Subscripts.CircularBuffer.init(capacity: Swift.Int) -> Subscripts.CircularBuffer<A>
+$s11NestedTypes4NodeC5value4metaACyxGx_AC8MetadataVyx_Gtcfc ---> NestedTypes.Node.init(value: A, meta: NestedTypes.Node<A>.Metadata) -> NestedTypes.Node<A>
+$s12InitVariants4BaseC1xACSi_tcfc ---> InitVariants.Base.init(x: Swift.Int) -> InitVariants.Base
+$s12InitVariants7DerivedC1x1yACSi_Sitcfc ---> InitVariants.Derived.init(x: Swift.Int, y: Swift.Int) -> InitVariants.Derived
+$s12InitVariants7DerivedC1xACSi_tcfc ---> InitVariants.Derived.init(x: Swift.Int) -> InitVariants.Derived
+$s5Async9DataStoreCACycfc ---> Async.DataStore.init() -> Async.DataStore
+$s6Actors11BankAccountC7balanceACSd_tcfc ---> Actors.BankAccount.init(balance: Swift.Double) -> Actors.BankAccount
+$s6Actors5CacheCACyxq_Gycfc ---> Actors.Cache.init() -> Actors.Cache<A, B>
+$s6Actors7CounterCACycfc ---> Actors.Counter.init() -> Actors.Counter
+$s7Classes3CarC4make5model8maxSpeedACSS_SSSdtcfc ---> Classes.Car.init(make: Swift.String, model: Swift.String, maxSpeed: Swift.Double) -> Classes.Car
+$s7Classes3CarC8maxSpeedACSd_tcfc ---> Classes.Car.init(maxSpeed: Swift.Double) -> Classes.Car
+$s7Classes3CatC4name3age6indoorACSS_SiSbtcfc ---> Classes.Cat.init(name: Swift.String, age: Swift.Int, indoor: Swift.Bool) -> Classes.Cat
+$s7Classes3CatC4name3ageACSS_Sitcfc ---> Classes.Cat.init(name: Swift.String, age: Swift.Int) -> Classes.Cat
+$s7Classes3DogC4name3age5breedACSS_SiSStcfc ---> Classes.Dog.init(name: Swift.String, age: Swift.Int, breed: Swift.String) -> Classes.Dog
+$s7Classes3DogC4name3ageACSS_Sitcfc ---> Classes.Dog.init(name: Swift.String, age: Swift.Int) -> Classes.Dog
+$s7Classes6AnimalC4name3ageACSS_Sitcfc ---> Classes.Animal.init(name: Swift.String, age: Swift.Int) -> Classes.Animal
+$s7Classes7VehicleC8maxSpeedACSd_tcfc ---> Classes.Vehicle.init(maxSpeed: Swift.Double) -> Classes.Vehicle
+$s8Closures12EventHandlerCACycfc ---> Closures.EventHandler.init() -> Closures.EventHandler
+```
+
+#### fd — destroying deinitialiser (15 symbols)
+
+Root cause: deinit symbols carry no result or parameter type before the `fd`
+suffix. `tryInitDeinitEntity` calls `parseType` unconditionally after the label
+scan; when the next byte is `c` (start of `cfd`), `parseType` fails and the
+parser reverts. Fix: detect the no-type deinit case by peeking for `cfd`/`cfD`
+directly.
+
+```
+$s10Subscripts14CircularBufferCfd ---> Subscripts.CircularBuffer.deinit
+$s11NestedTypes4NodeCfd ---> NestedTypes.Node.deinit
+$s12InitVariants4BaseCfd ---> InitVariants.Base.deinit
+$s12InitVariants7DerivedCfd ---> InitVariants.Derived.deinit
+$s5Async11SharedActorCfd ---> Async.SharedActor.deinit
+$s5Async9DataStoreCfd ---> Async.DataStore.deinit
+$s6Actors11BankAccountCfd ---> Actors.BankAccount.deinit
+$s6Actors5CacheCfd ---> Actors.Cache.deinit
+$s6Actors7CounterCfd ---> Actors.Counter.deinit
+$s7Classes3CarCfd ---> Classes.Car.deinit
+$s7Classes3CatCfd ---> Classes.Cat.deinit
+$s7Classes3DogCfd ---> Classes.Dog.deinit
+$s7Classes6AnimalCfd ---> Classes.Animal.deinit
+$s7Classes7VehicleCfd ---> Classes.Vehicle.deinit
+$s8Closures12EventHandlerCfd ---> Closures.EventHandler.deinit
+```
+
+#### fD — deallocating deinitialiser (15 symbols)
+
+Same root cause as `fd`.
+
+```
+$s10Subscripts14CircularBufferCfD ---> Subscripts.CircularBuffer.__deallocating_deinit
+$s11NestedTypes4NodeCfD ---> NestedTypes.Node.__deallocating_deinit
+$s12InitVariants4BaseCfD ---> InitVariants.Base.__deallocating_deinit
+$s12InitVariants7DerivedCfD ---> InitVariants.Derived.__deallocating_deinit
+$s5Async11SharedActorCfD ---> Async.SharedActor.__deallocating_deinit
+$s5Async9DataStoreCfD ---> Async.DataStore.__deallocating_deinit
+$s6Actors11BankAccountCfD ---> Actors.BankAccount.__deallocating_deinit
+$s6Actors5CacheCfD ---> Actors.Cache.__deallocating_deinit
+$s6Actors7CounterCfD ---> Actors.Counter.__deallocating_deinit
+$s7Classes3CarCfD ---> Classes.Car.__deallocating_deinit
+$s7Classes3CatCfD ---> Classes.Cat.__deallocating_deinit
+$s7Classes3DogCfD ---> Classes.Dog.__deallocating_deinit
+$s7Classes6AnimalCfD ---> Classes.Animal.__deallocating_deinit
+$s7Classes7VehicleCfD ---> Classes.Vehicle.__deallocating_deinit
+$s8Closures12EventHandlerCfD ---> Closures.EventHandler.__deallocating_deinit
+```
+
+---
+
+### Group D: Property field initialiser with private discriminator (16 symbols)
+
+`vpfi` symbols embed a private-discriminator encoded name using the form
+`<N>_<32-hex-hash>LL<name>` (e.g. `33_9C924C265DFB1F54B73A698C5D18081CLLhead`).
+The `LL` (local-local) prefix plus hex discriminator is a grammar extension that the
+current parser does not yet handle; these symbols fall through to `ErrUnsupported`.
+
+Oracle format: `variable initialization expression of Module.Type.(name in _HASH) : Type`
+(or without the `(name in _HASH)` wrapping when no discriminator is present).
+
+**Fix (R16):** Add private-discriminator identifier parsing to `tryVariableEntity`
+to decode `<N>_<hash>LL<name>` sequences.
+
+```
+$s10Subscripts14CircularBufferC4head33_9C924C265DFB1F54B73A698C5D18081CLLSivpfi ---> variable initialization expression of Subscripts.CircularBuffer.(head in _9C924C265DFB1F54B73A698C5D18081C) : Swift.Int
+$s10Subscripts14CircularBufferC5count33_9C924C265DFB1F54B73A698C5D18081CLLSivpfi ---> variable initialization expression of Subscripts.CircularBuffer.(count in _9C924C265DFB1F54B73A698C5D18081C) : Swift.Int
+$s10Subscripts15FixedDictionaryV7storage33_9C924C265DFB1F54B73A698C5D18081CLLSDyxq_Gvpfi ---> variable initialization expression of Subscripts.FixedDictionary.(storage in _9C924C265DFB1F54B73A698C5D18081C) : [A : B]
+$s11NestedTypes4NodeC8childrenSayACyxGGvpfi ---> variable initialization expression of NestedTypes.Node.children : [NestedTypes.Node<A>]
+$s13GenericsBasic5StackV7storage33_AF5DB380E926E614CA3EF2878E93EC6ALLSayxGvpfi ---> variable initialization expression of GenericsBasic.Stack.(storage in _AF5DB380E926E614CA3EF2878E93EC6A) : [A]
+$s16GenericProtocols14ArrayContainerV7storage33_44600EFDF78FF1BB3DB08667B84ED9B4LLSayxGvpfi ---> variable initialization expression of GenericProtocols.ArrayContainer.(storage in _44600EFDF78FF1BB3DB08667B84ED9B4) : [A]
+$s16PropertyWrappers10UppercasedV5value33_14D703468CA0B2036194763059B39E49LLSSvpfi ---> variable initialization expression of PropertyWrappers.Uppercased.(value in _14D703468CA0B2036194763059B39E49) : Swift.String
+$s16PropertyWrappers6ConfigV5_flag33_14D703468CA0B2036194763059B39E49LLAA6LoggedVySbGvpfi ---> variable initialization expression of PropertyWrappers.Config.(_flag in _14D703468CA0B2036194763059B39E49) : PropertyWrappers.Logged<Swift.Bool>
+$s16PropertyWrappers6ConfigV6_title33_14D703468CA0B2036194763059B39E49LLAA10UppercasedVvpfi ---> variable initialization expression of PropertyWrappers.Config.(_title in _14D703468CA0B2036194763059B39E49) : PropertyWrappers.Uppercased
+$s16PropertyWrappers6ConfigV7_volume33_14D703468CA0B2036194763059B39E49LLAA7ClampedVySiGvpfi ---> variable initialization expression of PropertyWrappers.Config.(_volume in _14D703468CA0B2036194763059B39E49) : PropertyWrappers.Clamped<Swift.Int>
+$s19GenericsConstrained9SortedSetV7storage33_3AC64E1197B9707967D10CADF5122D04LLSayxGvpfi ---> variable initialization expression of GenericsConstrained.SortedSet.(storage in _3AC64E1197B9707967D10CADF5122D04) : [A]
+$s5Async9DataStoreC5cache33_4A0E4098F66516F17851B2A4C874F9BELLSDySSSiGvpfi ---> variable initialization expression of Async.DataStore.(cache in _4A0E4098F66516F17851B2A4C874F9BE) : [Swift.String : Swift.Int]
+$s6Actors5CacheC7storage33_614AEFBD2A7A8723E04BCD8C6388CFD2LLSDyxq_Gvpfi ---> variable initialization expression of Actors.Cache.(storage in _614AEFBD2A7A8723E04BCD8C6388CFD2) : [A : B]
+$s6Actors7CounterC5valueSivpfi ---> variable initialization expression of Actors.Counter.value : Swift.Int
+$s7Classes7VehicleC5speedSdvpfi ---> variable initialization expression of Classes.Vehicle.speed : Swift.Double
+$s8Closures12EventHandlerC8handlers019_DF1F83479AAB5F02E5I12C491EED659FELLSayySScGvpfi ---> variable initialization expression of Closures.EventHandler.(handlers in _DF1F83479AAB5F02E5E5C491EED659FE) : [(Swift.String) -> ()]
+```
+
+---
+
+### Group E: Complex function signatures (51 symbols)
+
+#### Regular functions with unsupported encoding features (42 symbols)
+
+These are regular `F`-terminated functions where `tryFunctionEntity` fails to
+decode the full signature. Sub-causes within this group:
+
+- **Higher-order result** (~17): result type is a function type `(A) -> B`
+- **Multi-labeled params** (~16): 2+ labeled parameters
+- **Extension methods** (~9): `(extension in Module):Type.method` format
+- **Operators** (~4): custom operator mangling (`oi`/`op` suffixes)
+- **Throws/Sendable/variadic/inout** (~6): `K` (throws), `Yb` (@Sendable),
+  `d` (variadic), `z` (inout) encoding gaps
+
+```
+$s10BasicTypes04makeA0A2AVyF ---> BasicTypes.makeBasic() -> BasicTypes.BasicTypes
+$s10BasicTypes9DirectionO4hash4intoys6HasherVz_tF ---> BasicTypes.Direction.hash(into: inout Swift.Hasher) -> ()
+$s11NestedTypes7NetworkO7RequestV6MethodO4hash4intoys6HasherVz_tF ---> NestedTypes.Network.Request.Method.hash(into: inout Swift.Hasher) -> ()
+$s12GenericWhere7WrapperVAASjRzlE10multiplied2byxx_tF ---> (extension in GenericWhere):GenericWhere.Wrapper<A where A: Swift.Numeric>.multiplied(by: A) -> A
+$s12GenericWhere7WrapperVAASjRzlE7doubledxyF ---> (extension in GenericWhere):GenericWhere.Wrapper<A where A: Swift.Numeric>.doubled() -> A
+$s12GenericWhere7WrapperVAASQRzlE7isEqual2toSbACyxG_tF ---> (extension in GenericWhere):GenericWhere.Wrapper<A where A: Swift.Equatable>.isEqual(to: GenericWhere.Wrapper<A>) -> Swift.Bool
+$s12GenericWhere7WrapperVAASQRzlE8containsySbxF ---> (extension in GenericWhere):GenericWhere.Wrapper<A where A: Swift.Equatable>.contains(A) -> Swift.Bool
+$s13BoundGenerics12lookupString_3keySSSgSDySiSSG_SitF ---> BoundGenerics.lookupString(_: [Swift.Int : Swift.String], key: Swift.Int) -> Swift.String?
+$s13BoundGenerics14processIntDictySaySiGSDySSACGF ---> BoundGenerics.processIntDict([Swift.String : [Swift.Int]]) -> [Swift.Int]
+$s13BoundGenerics8unwrapOr_7defaultS2iSg_SitF ---> BoundGenerics.unwrapOr(_: Swift.Int?, default: Swift.Int) -> Swift.Int
+$s13BoundGenerics9lookupInt_3keySiSgSDySSSiG_SStF ---> BoundGenerics.lookupInt(_: [Swift.String : Swift.Int], key: Swift.String) -> Swift.Int?
+$s13OptionalTypes17coalesceOptionalsyS2iSg_ACSitF ---> OptionalTypes.coalesceOptionals(Swift.Int?, Swift.Int?, Swift.Int) -> Swift.Int
+$s14ResultBuilders11buildString7contentS2SyXE_tF ---> ResultBuilders.buildString(content: () -> Swift.String) -> Swift.String
+$s14ResultBuilders12makeGreeting4name6formalS2S_SbtF ---> ResultBuilders.makeGreeting(name: Swift.String, formal: Swift.Bool) -> Swift.String
+$s16GenericProtocols14ArrayContainerV7element2atxSgSi_tF ---> GenericProtocols.ArrayContainer.element(at: Swift.Int) -> A?
+$s5Async9DataStoreC3set_5valueySS_SitF ---> Async.DataStore.set(_: Swift.String, value: Swift.Int) -> ()
+$s5Enums7WeekdayO4hash4intoys6HasherVz_tF ---> Enums.Weekday.hash(into: inout Swift.Hasher) -> ()
+$s6Actors5CacheC3set_5valueyx_q_tF ---> Actors.Cache.set(_: A, value: B) -> ()
+$s6Throws12parseInRange_3min3maxSiSS_S2itKF ---> Throws.parseInRange(_: Swift.String, min: Swift.Int, max: Swift.Int) throws -> Swift.Int
+$s6Tuples6divmodySi8quotient_Si9remaindertSi_SitF ---> Tuples.divmod(Swift.Int, Swift.Int) -> (quotient: Swift.Int, remainder: Swift.Int)
+$s6Tuples7makeRGB1r1g1bSd3red_Sd5greenSd4bluetSd_S2dtF ---> Tuples.makeRGB(r: Swift.Double, g: Swift.Double, b: Swift.Double) -> (red: Swift.Double, green: Swift.Double, blue: Swift.Double)
+$s6Tuples8distanceyS2d1x_Sd1yt_SdAC_SdADttF ---> Tuples.distance((x: Swift.Double, y: Swift.Double), (x: Swift.Double, y: Swift.Double)) -> Swift.Double
+$s6Tuples9minAndMaxySi0B0_Si3maxtSgSaySiGF ---> Tuples.minAndMax([Swift.Int]) -> (min: Swift.Int, max: Swift.Int)?
+$s8Closures10applyTwice_2toS3iXE_SitF ---> Closures.applyTwice(_: (Swift.Int) -> Swift.Int, to: Swift.Int) -> Swift.Int
+$s8Closures12EventHandlerC8registeryyySScF ---> Closures.EventHandler.register((Swift.String) -> ()) -> ()
+$s8Closures14makeMultiplieryS2icSiF ---> Closures.makeMultiplier(Swift.Int) -> (Swift.Int) -> Swift.Int
+$s8Closures8evaluate_7messageSSSbyXK_SStF ---> Closures.evaluate(_: @autoclosure () -> Swift.Bool, message: Swift.String) -> Swift.String
+$s8Closures9makeAdderyS2icSiF ---> Closures.makeAdder(Swift.Int) -> (Swift.Int) -> Swift.Int
+$s8Closures9withValue_2doySi_ySiXEtF ---> Closures.withValue(_: Swift.Int, do: (Swift.Int) -> ()) -> ()
+$s8Sendable03runA0yS2iyYbXEF ---> Sendable.runSendable(@Sendable () -> Swift.Int) -> Swift.Int
+$s9Functions10withLabels5first6secondS2i_SitF ---> Functions.withLabels(first: Swift.Int, second: Swift.Int) -> Swift.Int
+$s9Functions8variadicyS2id_tF ---> Functions.variadic(Swift.Int...) -> Swift.Int
+$s9Operators2lgoiyS2S_SStF ---> Operators.<> infix(Swift.String, Swift.String) -> Swift.String
+$s9Operators2mmoiySdAA4Vec3V_ADtF ---> Operators.** infix(Operators.Vec3, Operators.Vec3) -> Swift.Double
+$s9Operators2ttopyAA4Vec3VADF ---> Operators.~~ prefix(Operators.Vec3) -> Operators.Vec3
+$s9Operators3pppoPyySizF ---> Operators.+++ postfix(inout Swift.Int) -> ()
+$s9Operators8scaleVec_2byAA4Vec3VAE_SdtF ---> Operators.scaleVec(_: Operators.Vec3, by: Swift.Double) -> Operators.Vec3
+$sSa10ExtensionsE7chunked4sizeSaySayxGGSi_tF ---> (extension in Extensions):Swift.Array.chunked(size: Swift.Int) -> [[A]]
+$sSa12GenericWhereSHRzlE7uniquedSayxGyF ---> (extension in GenericWhere):Swift.Array<A where A: Swift.Hashable>.uniqued() -> [A]
+$sSi10ExtensionsE5timesyyyyXEF ---> (extension in Extensions):Swift.Int.times(() -> ()) -> ()
+$sSi10ExtensionsE7clamped2toSiSNySiG_tF ---> (extension in Extensions):Swift.Int.clamped(to: Swift.ClosedRange<Swift.Int>) -> Swift.Int
+$sSS10ExtensionsE8repeatedySSSiF ---> (extension in Extensions):Swift.String.repeated(Swift.Int) -> Swift.String
+```
+
+#### Static methods `FZ` (9 symbols)
+
+Static methods encode a trailing `Z` after the function body. Several of these
+also have multi-param or variadic signatures.
+
+```
+$s11NestedTypes7NetworkO7RequestV6MethodO21__derived_enum_equalsySbAG_AGtFZ ---> static NestedTypes.Network.Request.Method.__derived_enum_equals(NestedTypes.Network.Request.Method, NestedTypes.Network.Request.Method) -> Swift.Bool
+$s14ResultBuilders12ArrayBuilderV10buildBlockySayxGAEd_tFZ ---> static ResultBuilders.ArrayBuilder.buildBlock([A]...) -> [A]
+$s14ResultBuilders12ArrayBuilderV11buildEither5firstSayxGAF_tFZ ---> static ResultBuilders.ArrayBuilder.buildEither(first: [A]) -> [A]
+$s14ResultBuilders12ArrayBuilderV11buildEither6secondSayxGAF_tFZ ---> static ResultBuilders.ArrayBuilder.buildEither(second: [A]) -> [A]
+$s14ResultBuilders13StringBuidlerV10buildBlockyS2Sd_tFZ ---> static ResultBuilders.StringBuidler.buildBlock(Swift.String...) -> Swift.String
+$s14ResultBuilders13StringBuidlerV11buildEither5firstS2S_tFZ ---> static ResultBuilders.StringBuidler.buildEither(first: Swift.String) -> Swift.String
+$s14ResultBuilders13StringBuidlerV11buildEither6secondS2S_tFZ ---> static ResultBuilders.StringBuidler.buildEither(second: Swift.String) -> Swift.String
+$s14ResultBuilders13StringBuidlerV13buildOptionalyS2SSgFZ ---> static ResultBuilders.StringBuidler.buildOptional(Swift.String?) -> Swift.String
+$s7Methods7CounterV7combineyA2C_ACtFZ ---> static Methods.Counter.combine(Methods.Counter, Methods.Counter) -> Methods.Counter
+```
+
+---
+
+### Group F: Generic-sig constraint suffix (27 symbols)
+
+Generic functions whose type parameters carry protocol constraints use a
+trailing generic-signature suffix: `<generic-params> r <N> _ l F` (or
+`SHRzlF` / `SLRzlF` / `SQRzlF` shortcut forms for common constraints such as
+`Hashable`, `Comparable`, `Equatable`). The current parser recognises the `lF`
+terminator but does not decode the constraint list into the
+`<A where A: Protocol>` printed form, causing an output mismatch.
+
+**Fix (R17):** Decode the generic-sig suffix and emit constraint text inline.
+
+```
+$s12GenericWhere11equalArraysySbSayxG_ACtSHRzlF ---> GenericWhere.equalArrays<A where A: Swift.Hashable>([A], [A]) -> Swift.Bool
+$s12GenericWhere7zipWith__7combineSayq0_GSayxG_Sayq_Gq0_x_q_tXEts8SendableRzsAGR_r1_lF ---> GenericWhere.zipWith<A, B, C where A: Swift.Sendable, B: Swift.Sendable>(_: [A], _: [B], combine: (A, B) -> C) -> [C]
+$s13FunctionTypes10filterWithySayxGAC_SbxXEtlF ---> FunctionTypes.filterWith<A>([A], (A) -> Swift.Bool) -> [A]
+$s13FunctionTypes14applyTransformyxx_xxXEtlF ---> FunctionTypes.applyTransform<A>(A, (A) -> A) -> A
+$s13FunctionTypes4fold_7initial_q_SayxG_q_q_q__xtXEtr0_lF ---> FunctionTypes.fold<A, B>(_: [A], initial: B, _: (B, A) -> B) -> B
+$s13FunctionTypes5curryyq0_q_cxcq0_x_q_tcr1_lF ---> FunctionTypes.curry<A, B, C>((A, B) -> C) -> (A) -> (B) -> C
+$s13FunctionTypes7partialyq0_q_cq0_x_q_tc_xtr1_lF ---> FunctionTypes.partial<A, B, C>((A, B) -> C, A) -> (B) -> C
+$s13FunctionTypes7uncurryyq0_x_q_tcq0_q_cxcr1_lF ---> FunctionTypes.uncurry<A, B, C>((A) -> (B) -> C) -> (A, B) -> C
+$s13FunctionTypes8applyAll_10transformsxx_SayxxcGtlF ---> FunctionTypes.applyAll<A>(_: A, transforms: [(A) -> A]) -> A
+$s13GenericsBasic3BoxV3mapyACyqd__Gqd__xXElF ---> GenericsBasic.Box.map<A>((A) -> A1) -> GenericsBasic.Box<A1>
+$s13GenericsBasic3map_9transformq_x_q_xXEtr0_lF ---> GenericsBasic.map<A, B>(_: A, transform: (A) -> B) -> B
+$s13GenericsBasic4swapyyxz_xztlF ---> GenericsBasic.swap<A>(inout A, inout A) -> ()
+$s14ResultBuilders10buildArray7contentSayxGADyXE_tlF ---> ResultBuilders.buildArray<A>(content: () -> [A]) -> [A]
+$s16GenericProtocols12transformAll_6inputsSay6OutputQzGx_Say5InputQzGtAA11TransformerRzlF ---> GenericProtocols.transformAll<A where A: GenericProtocols.Transformer>(_: A, inputs: [A.Input]) -> [A.Output]
+$s19GenericsConstrained6minMaxyx0C0_x3maxtSgSayxGSLRzlF ---> GenericsConstrained.minMax<A where A: Swift.Comparable>([A]) -> (min: A, max: A)?
+$s5Enums6ResultO3mapyACyqd__Gqd__xXElF ---> Enums.Result.map<A>((A) -> A1) -> Enums.Result<A1>
+$s6Throws11mapThrowingySayq_GSayxG_q_xKXEtKr0_lF ---> Throws.mapThrowing<A, B>([A], (A) throws -> B) throws -> [B]
+$s6Tuples15destructurePairyx5first_q_6secondtx_q_t_tr0_lF ---> Tuples.destructurePair<A, B>((A, B)) -> (first: A, second: B)
+$s6Tuples4zip3yx_q_q0_tx_q_q0_tr1_lF ---> Tuples.zip3<A, B, C>(A, B, C) -> (A, B, C)
+$s6Tuples5swap3yq0__q_xtx_q_q0_t_tr1_lF ---> Tuples.swap3<A, B, C>((A, B, C)) -> (C, B, A)
+$s6Tuples5unzipySayxG_Sayq_GtSayx_q_tGr0_lF ---> Tuples.unzip<A, B>([(A, B)]) -> ([A], [B])
+$s8Closures6filter_5whereSayxGAD_SbxXEtlF ---> Closures.filter<A>(_: [A], where: (A) -> Swift.Bool) -> [A]
+$s8Keypaths12extractField_4fromSayq_Gs7KeyPathCyxq_G_SayxGtr0_lF ---> Keypaths.extractField<A, B>(_: Swift.KeyPath<A, B>, from: [A]) -> [B]
+$s8Keypaths8setValueyyxz_s15WritableKeyPathCyxq_Gq_tr0_lF ---> Keypaths.setValue<A, B>(inout A, Swift.WritableKeyPath<A, B>, B) -> ()
+$s8Keypaths8sortedBy_5arraySayxGs7KeyPathCyxSiG_ADtlF ---> Keypaths.sortedBy<A>(_: Swift.KeyPath<A, Swift.Int>, array: [A]) -> [A]
+$s8Sendable03mapA0_9transformq_x_q_xYbXEtsAARzsAAR_r0_lF ---> Sendable.mapSendable<A, B where A: Swift.Sendable, B: Swift.Sendable>(_: A, transform: @Sendable (A) -> B) -> B
+$s8Sendable0A7WrapperV3mapyACyqd__Gqd__xYbXEsAARd__lF ---> Sendable.SendableWrapper.map<A where A1: Swift.Sendable>(@Sendable (A) -> A1) -> Sendable.SendableWrapper<A1>
+```
+
+---
+
+### Group G: Typed throws and async (3 symbols)
+
+#### Typed throws `YKF` (2 symbols)
+
+`throws(ErrorType)` is encoded as `<error-type> Y K` before the `F` terminator.
+The parser currently treats `K` as an unknown byte after the result type and fails.
+
+**Fix (R17):** Decode the `YK` typed-throws marker in `tryFunctionEntity`.
+
+```
+$s6Throws11divideTypedyS2i_SitAA10ParseErrorOYKF ---> Throws.divideTyped(Swift.Int, Swift.Int) throws(Throws.ParseError) -> Swift.Int
+$s6Throws13typedParseIntySiSSAA0C5ErrorOYKF ---> Throws.typedParseInt(Swift.String) throws(Throws.ParseError) -> Swift.Int
+```
+
+#### Async `YaF` (1 symbols)
+
+An `async` + `@Sendable` closure combination not yet decoded.
+
+**Fix (R17):** The specific combination of `YaYbXE` (async sendable closure
+convention) needs a complete path through the closure-conv parser.
+
+```
+$s8Sendable03runA5AsyncyS2SyYaYbXEYaF ---> Sendable.runSendableAsync(@Sendable () async -> Swift.String) async -> Swift.String
+```
