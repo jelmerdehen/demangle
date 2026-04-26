@@ -1,0 +1,33 @@
+# kodo Xcode-version differential report
+# Date: 2026-04-26
+# Tool: V3 — kodo Xcode-version differential
+#
+# Finding: kodo has a single Xcode installation.
+#
+#   Installed: Xcode 26.4.1 (Build 17E202)
+#   Toolchain: Apple Swift version 6.3.1 (swiftlang-6.3.1.1.2 clang-2100.0.123.102)
+#   swift-demangle: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swift-demangle
+#   SDK path:       /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.4.sdk
+#
+# Multiple-version diff is not possible; V3 trivially satisfied.
+#
+# Cross-version coverage note:
+#   V2 (TestCrossVersionDifferential) covers Swift 5.9–6.3 via Linux toolchains
+#   installed at /opt/swift-toolchains/ on the CI runner.  Five-version differential
+#   (5.9, 6.0, 6.1, 6.2, 6.3) is already captured there.
+#
+# If additional Xcode versions become available on kodo, re-run:
+#
+#   ssh kodo '
+#     XCODE2=/Applications/Xcode_XX.app
+#     DEMANGLE2="$XCODE2/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swift-demangle"
+#     SDK=$(xcrun --show-sdk-path --sdk iphoneos)
+#     TBD="$SDK/usr/lib/swift/libswiftCore.tbd"
+#     grep -o "_\$s[A-Za-z0-9_]*" "$TBD" | sort -u | head -1000 | while read sym; do
+#       v1=$(xcrun swift-demangle "$sym" 2>/dev/null)
+#       v2=$("$DEMANGLE2" "$sym" 2>/dev/null)
+#       [ "$v1" != "$v2" ] && echo "DIFF: $sym | $v1 | $v2"
+#     done
+#   '
+#
+# and update this file + xcode_diff_test.go with the findings.
