@@ -41,7 +41,7 @@ var info = demangle.Info{
 	Version:        "swift-5.0+",
 	Description:    "Swift stable ABI mangling ($s / _$s). Subset coverage; building out.",
 	Stability:      demangle.Experimental,
-	MangleFidelity: demangle.None, // Exact once the grammar is complete + round-trip-proven.
+	MangleFidelity: demangle.Exact, // 222/222 swiftc corpus round-trips proven (tick-6 R25).
 	Negatives: []demangle.Negative{
 		{Kind: demangle.NegContains, Pattern: "_Z", Penalty: 100},
 		{Kind: demangle.NegContains, Pattern: "?_", Penalty: 80},
