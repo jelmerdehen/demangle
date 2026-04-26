@@ -52,9 +52,10 @@ func printNode(b *strings.Builder, n *demangle.Node, opts PrintOptions) {
 	case KindTypeMangling:
 		if n.Text != "" {
 			b.WriteString(n.Text)
-			// Z-wrapper (swift.static): text is complete; child is for
-			// remangler only — skip printing it.
-			if n.Attrs != nil && n.Attrs["swift.static"] == "true" {
+			// Z-wrapper (swift.static) and extension-entity nodes: text is
+			// complete; children are for the remangler only — skip printing.
+			if n.Attrs != nil && (n.Attrs["swift.static"] == "true" ||
+				n.Attrs["swift.ext.rawPrefix"] != "") {
 				return
 			}
 		}
@@ -99,6 +100,8 @@ func printNode(b *strings.Builder, n *demangle.Node, opts PrintOptions) {
 			}
 			printNode(b, c, opts)
 		}
+	case KindStoredProperty:
+		printVariableAccessorEntity(b, n, opts)
 	case KindEmptyList:
 		// nothing
 	default:
@@ -108,6 +111,25 @@ func printNode(b *strings.Builder, n *demangle.Node, opts PrintOptions) {
 		b.WriteString(NodeKind(n.Kind).Name())
 		b.WriteString(">")
 	}
+}
+
+// printVariableAccessorEntity renders "path : type" for a KindStoredProperty
+// node. Children: [Module, Identifier*..., Identifier(declName), Type].
+func printVariableAccessorEntity(b *strings.Builder, n *demangle.Node, opts PrintOptions) {
+	if len(n.Children) < 2 {
+		return
+	}
+	last := len(n.Children) - 1
+	typeNode := n.Children[last]
+	pathNodes := n.Children[:last]
+	for i, c := range pathNodes {
+		if i > 0 {
+			b.WriteByte('.')
+		}
+		printNode(b, c, opts)
+	}
+	b.WriteString(" : ")
+	printNode(b, typeNode, opts)
 }
 
 // printNominal renders "Module.Name" or just "Name" depending on

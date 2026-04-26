@@ -228,6 +228,9 @@ func (r *remangler) remangleNode(n *demangle.Node) error {
 	// R10: function-type emitter.
 	case common.KindFunctionType:
 		return r.mangleFunctionType(n)
+	// R30: builtin type name — handles dependent-member types like "A.Element".
+	case common.KindBuiltinTypeName:
+		return r.mangleBuiltinTypeName(n)
 	default:
 		return r.unsupported(kind)
 	}
@@ -729,22 +732,13 @@ func (r *remangler) stdlibToken(n *demangle.Node) (string, bool) {
 	return token, ok
 }
 
-
-
-// parseGenericSig parses a swift.generic attr like "<A>", "<A, B>", or
-// "<A, B where A: Swift.Hashable, B: Swift.Equatable>" and returns the
-// mangled generic-signature bytes (e.g. "SHRzSQR_r0_l").
-//
-// Supports:
-//   - Unconstrained: "<A>", "<A, B>", ...
-//   - Constrained with stdlib-only protocol conformances
-//     (Hashable/SH, Comparable/SL, Equatable/SQ)
-//
-// Returns ("", false) for unsupported forms (non-stdlib protocols, complex
-// constraints, malformed input).
-func parseGenericSig(s string) (string, bool) {
+// mangleGenericSig writes the generic signature for the given swift.generic
+// attr string directly to r.buf. Handles unconstrained, stdlib-constrained,
+// and non-stdlib-constrained (module sub-ref + proto ident) forms. Returns
+// false for unsupported forms.
+func (r *remangler) mangleGenericSig(s string) bool {
 	if len(s) < 3 || s[0] != '<' || s[len(s)-1] != '>' {
-		return "", false
+		return false
 	}
 	inner := s[1 : len(s)-1]
 
@@ -760,45 +754,87 @@ func parseGenericSig(s string) (string, bool) {
 	nParam := len(paramList)
 
 	if constraintStr == "" {
-		return genericSigTerminal(nParam), true
+		r.buf.WriteString(genericSigTerminal(nParam))
+		return true
 	}
 
-	// Build param-name → index map: "A"→0, "B"→1, …
 	paramIdx := make(map[string]int, nParam)
 	for i, p := range paramList {
 		paramIdx[strings.TrimSpace(p)] = i
 	}
 
-	// Stdlib conformance shortcodes.
 	stdlibProto := map[string]string{
 		"Swift.Hashable":   "SH",
 		"Swift.Comparable": "SL",
 		"Swift.Equatable":  "SQ",
 	}
 
-	var b strings.Builder
 	for _, c := range strings.Split(constraintStr, ", ") {
 		c = strings.TrimSpace(c)
 		colon := strings.Index(c, ": ")
 		if colon < 0 {
-			return "", false
+			return false
 		}
-		paramName := strings.TrimSpace(c[:colon])
+		pName := strings.TrimSpace(c[:colon])
 		protoName := strings.TrimSpace(c[colon+2:])
-		shortcode, ok := stdlibProto[protoName]
+		pIdx, ok := paramIdx[pName]
 		if !ok {
-			return "", false
+			return false
 		}
-		idx, ok := paramIdx[paramName]
-		if !ok {
-			return "", false
+		// Stdlib shortcode.
+		if shortcode, ok := stdlibProto[protoName]; ok {
+			r.buf.WriteString(shortcode)
+			r.buf.WriteByte('R')
+			r.buf.WriteString(genericTypeRef(pIdx))
+			continue
 		}
-		b.WriteString(shortcode)
-		b.WriteByte('R')
-		b.WriteString(genericTypeRef(idx))
+		// Non-stdlib: "Module.Proto" — emit sub-ref for module + proto ident.
+		dotIdx := strings.LastIndex(protoName, ".")
+		if dotIdx <= 0 || dotIdx == len(protoName)-1 {
+			return false
+		}
+		modName := protoName[:dotIdx]
+		protoIdent := protoName[dotIdx+1:]
+		subIdx, found := r.checkIdentSub(modName)
+		if !found {
+			return false
+		}
+		r.mangleSubIndex(subIdx)
+		if err := r.mangleIdentifier(common.NewIdentifier(protoIdent)); err != nil {
+			return false
+		}
+		r.buf.WriteByte('R')
+		r.buf.WriteString(genericTypeRef(pIdx))
 	}
-	b.WriteString(genericSigTerminal(nParam))
-	return b.String(), true
+
+	r.buf.WriteString(genericSigTerminal(nParam))
+	return true
+}
+
+// mangleBuiltinTypeName handles KindBuiltinTypeName nodes. The primary case is
+// dependent-member types produced by tryDependentMemberType, e.g. "A.Element"
+// which encodes as <word-sub ident for "Element"> + Qz.
+func (r *remangler) mangleBuiltinTypeName(n *demangle.Node) error {
+	text := n.Text
+	// Direct dependent-member form: "<UpperLetter>.<AssocName>" (no nested dot).
+	if len(text) >= 3 && text[0] >= 'A' && text[0] <= 'Z' && text[1] == '.' {
+		assocName := text[2:]
+		if !strings.Contains(assocName, ".") {
+			paramIdx := int(text[0] - 'A')
+			r.mangleIdentifierWithWordSubs(assocName)
+			r.pushIdentSub(assocName)
+			switch {
+			case paramIdx == 0:
+				r.buf.WriteString("Qz")
+			case paramIdx == 1:
+				r.buf.WriteString("Qy_")
+			default:
+				fmt.Fprintf(&r.buf, "Qy%d_", paramIdx-2)
+			}
+			return nil
+		}
+	}
+	return r.unsupported(common.KindBuiltinTypeName)
 }
 
 // genericSigTerminal returns the terminal bytes for an N-param generic sig:
@@ -1201,18 +1237,6 @@ func (r *remangler) mangleFunctionEntity(n *demangle.Node) error {
 		}
 	}
 
-	// Generic sig: encode from swift.generic attr.
-	// Unconstrained (<A>, <A,B>, …) and stdlib-protocol constrained forms
-	// are supported. Non-stdlib or complex constraints fall through to unsupported.
-	genSig := ""
-	if n.Attrs != nil && n.Attrs["swift.generic"] != "" {
-		sig, ok := parseGenericSig(n.Attrs["swift.generic"])
-		if !ok {
-			return r.unsupported(common.KindFunctionEntity)
-		}
-		genSig = sig
-	}
-
 	argsEmpty := common.NodeKind(args.Kind) == common.KindEmptyList
 	retEmpty := common.NodeKind(ret.Kind) == common.KindEmptyList
 	argsTypeList := common.NodeKind(args.Kind) == common.KindTypeList
@@ -1301,9 +1325,11 @@ func (r *remangler) mangleFunctionEntity(n *demangle.Node) error {
 		}
 	}
 
-	// 6. Generic signature (unconstrained: "l" or "r<N-2>_l").
-	if genSig != "" {
-		r.buf.WriteString(genSig)
+	// 6. Generic signature.
+	if n.Attrs != nil && n.Attrs["swift.generic"] != "" {
+		if !r.mangleGenericSig(n.Attrs["swift.generic"]) {
+			return r.unsupported(common.KindFunctionEntity)
+		}
 	}
 
 	// 7. Function entity trailer.
@@ -1373,6 +1399,23 @@ func (r *remangler) mangleEntitySuffix(n *demangle.Node) error {
 		}
 		r.buf.WriteByte('Z')
 		return nil
+	}
+	// Protocol-extension method: raw prefix + funcName + result + params + F.
+	if n.Attrs != nil {
+		if rawPrefix := n.Attrs["swift.ext.rawPrefix"]; rawPrefix != "" && len(n.Children) == 3 {
+			r.buf.WriteString(rawPrefix)
+			if err := r.remangleNode(n.Children[0]); err != nil { // funcName
+				return err
+			}
+			if err := r.remangleNode(n.Children[2]); err != nil { // result
+				return err
+			}
+			if err := r.remangleNode(n.Children[1]); err != nil { // params
+				return err
+			}
+			r.buf.WriteByte('F')
+			return nil
+		}
 	}
 	suffix := ""
 	if n.Attrs != nil {

@@ -2984,6 +2984,14 @@ func (p *parser) tryVariableEntity() (*demangle.Node, bool, error) {
 		p.i++
 		staticPrefix = "static "
 	}
+	// For plain stored-property ('vp') without a static marker, produce a
+	// structured KindStoredProperty node so the remangler can round-trip it.
+	if kindByte == 'p' && staticPrefix == "" {
+		node := common.NewNode(common.KindStoredProperty)
+		common.AddChildren(node, pathSteps...)
+		common.AddChildren(node, typ)
+		return node, true, nil
+	}
 	// Build display: <prefix><static?><path><suffix?> : <type>
 	opts := common.DefaultPrintOptions()
 	path := common.NewNode(common.KindEntityPath)
@@ -4568,6 +4576,12 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 	wrap := common.NewNode(common.KindTypeMangling)
 	wrap.Text = "(extension in " + modName + "):" + hostQualified + sig +
 		"." + declName + localSig + paramsStr + " -> " + retStr
+	// Store raw mangled prefix so the remangler can round-trip without
+	// having to re-derive the length-prefixed identifiers + constraint bytes.
+	rawPrefix := fmt.Sprintf("%d%s%d%s%c%sE", len(modName), modName, len(hostName), hostName, hostKind, constraintBytes)
+	wrap.Attrs = map[string]string{"swift.ext.rawPrefix": rawPrefix}
+	funcIdent := common.NewIdentifier(declName)
+	common.AddChildren(wrap, funcIdent, paramsNode, retNode)
 	return wrap, true, nil
 }
 
