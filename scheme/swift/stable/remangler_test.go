@@ -983,3 +983,83 @@ func TestRemangleDeinit(t *testing.T) {
 		t.Errorf("deinit: got %q, want %q", res.Output, want)
 	}
 }
+
+// ---------------------------------------------------------------------------
+// R9: TestRemangleFunctionVoid
+//
+// Round-trip "$s9Functions7zeroArgSiyF" — a module-level function with void
+// params and Swift.Int return type.  Exercises: EntityPath, FunctionEntity,
+// KindEmptyList → 'y' for args, stdlib shortcut "Si" for ret type.
+//
+// Mangled breakdown:
+//   $s  — global prefix
+//   9Functions  — module (length-prefixed)
+//   7zeroArg    — function name (length-prefixed)
+//   Si          — return type (Swift.Int stdlib shortcut)
+//   y           — empty params (KindEmptyList → 'y')
+//   F           — function entity trailer
+// ---------------------------------------------------------------------------
+
+func TestRemangleFunctionVoid(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	cat := newCatalog(t)
+
+	const sym = "$s9Functions7zeroArgSiyF"
+	dRes, err := cat.Demangle(ctx, sym, &demangle.Options{ReturnTree: true})
+	if err != nil {
+		t.Fatalf("Demangle(%q): %v", sym, err)
+	}
+	if dRes.Tree == nil {
+		t.Fatalf("Demangle(%q): nil Tree", sym)
+	}
+
+	mRes, err := stable.Remangle(ctx, dRes.Tree, demangle.Options{})
+	if err != nil {
+		t.Fatalf("Remangle(%q): %v", sym, err)
+	}
+	if mRes.Output != sym {
+		t.Errorf("round-trip %q: got %q", sym, mRes.Output)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// R9: TestRemangleFunctionArgRet
+//
+// Round-trip "$s9Functions11returnsVoidyySiF" — a module-level function with
+// one Swift.Int argument and void return type.  Exercises: EntityPath,
+// FunctionEntity with non-empty args, empty label-list 'y' emitted before the
+// result slot, KindEmptyList → 'y' for ret, stdlib shortcut "Si" for args.
+//
+// Mangled breakdown:
+//   $s  — global prefix
+//   9Functions  — module (length-prefixed)
+//   11returnsVoid — function name (length-prefixed)
+//   y           — empty label list (args non-void → label-list 'y' is emitted)
+//   y           — return type void (KindEmptyList → 'y')
+//   Si          — params type (Swift.Int stdlib shortcut)
+//   F           — function entity trailer
+// ---------------------------------------------------------------------------
+
+func TestRemangleFunctionArgRet(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	cat := newCatalog(t)
+
+	const sym = "$s9Functions11returnsVoidyySiF"
+	dRes, err := cat.Demangle(ctx, sym, &demangle.Options{ReturnTree: true})
+	if err != nil {
+		t.Fatalf("Demangle(%q): %v", sym, err)
+	}
+	if dRes.Tree == nil {
+		t.Fatalf("Demangle(%q): nil Tree", sym)
+	}
+
+	mRes, err := stable.Remangle(ctx, dRes.Tree, demangle.Options{})
+	if err != nil {
+		t.Fatalf("Remangle(%q): %v", sym, err)
+	}
+	if mRes.Output != sym {
+		t.Errorf("round-trip %q: got %q", sym, mRes.Output)
+	}
+}
