@@ -2123,22 +2123,31 @@ func (r *remangler) mangleGenericSpecialization(n *demangle.Node) error {
 	}
 
 	// 2. Emit specialisation type args.
-	//    Apple emits '_' exactly once — after the first arg — so that the
-	//    parser can distinguish the end of the type list from the 'T' suffix.
+	//    For non-tuple specialisations: Apple emits '_' exactly once — after
+	//    the first arg — which is the "list separator" that allows the parser
+	//    to recognise the start of a type sequence before 'T'.
+	//
+	//    For tuple specialisations (swift.specTuple="true"): the parser loop
+	//    in trySpecializationSuffix consumes '_' after EVERY type arg (to try
+	//    the next arg, fail, and revert). The '_' before the 't' tuple marker
+	//    is also consumed that way. So for tuple specs we emit '_' after every
+	//    arg (including the last) to reproduce those consumed bytes faithfully.
 	if len(n.Children) > 1 {
 		typeList := n.Children[1]
 		for i, typeArg := range typeList.Children {
 			if err := r.remangleNode(typeArg); err != nil {
 				return err
 			}
-			if i == 0 {
-				// Apple list-separator: emit '_' once after the first arg.
+			if i == 0 || tupleArgs {
+				// Non-tuple: emit '_' once after first arg (Apple list-separator).
+				// Tuple: emit '_' after every arg (parser consumed one between
+				// each adjacent type and one before the 't' marker).
 				r.buf.WriteByte('_')
 			}
 		}
 	}
 
-	// 3. Tuple-args terminator (rare — 'tu' or 'tN' spec kinds).
+	// 3. Tuple-args terminator.  The parser consumed 't' and an optional '_'.
 	if tupleArgs {
 		r.buf.WriteByte('t')
 		r.buf.WriteByte('_')

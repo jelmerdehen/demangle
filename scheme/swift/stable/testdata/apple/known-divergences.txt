@@ -50,3 +50,10 @@ $s7Library1BC1iSivxTwd
 $s7Library1BC1iSivxTwdTwc
 $sSiBW
 $sBAIeNghHgIL_BAytIeNghHgILr_TR
+
+// R17: Generic-specialization round-trip: data loss in parser prevents
+// faithful re-emission.
+//   - Ttt1g5: dropped-argument prefix (tt1) discarded by trySpecializationSuffix
+//   - .foo suffix: unmangled suffixes are noted in display text but not in the AST
+$s4test7genFuncyyx_q_tr0_lFSi_SbTtt1g5
+$s4main8MyStructV3fooyyFAA1XV_Tg5.foo
