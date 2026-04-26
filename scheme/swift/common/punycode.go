@@ -36,6 +36,7 @@ var (
 	errPunycodeInvalidCP   = errors.New("punycode: decoded code point is basic (< 0x80)")
 	errPunycodeInvalidUTF8 = errors.New("punycode: input is not valid UTF-8")
 	errPunycodeInvalidScalar = errors.New("punycode: invalid unicode scalar")
+	errPunycodeSurrogate   = errors.New("punycode: surrogate codepoint rejected")
 )
 
 // digitValue maps a digit (0–35) to Apple's custom alphabet character.
@@ -158,6 +159,9 @@ func PunycodeDecode(s string) (string, error) {
 		if n < 0x80 {
 			return "", errPunycodeInvalidCP
 		}
+		if n >= 0xD800 && n <= 0xDFFF {
+			return "", errPunycodeSurrogate
+		}
 		// Insert n at position i.
 		codePoints = append(codePoints, 0)
 		copy(codePoints[i+1:], codePoints[i:])
@@ -203,6 +207,9 @@ func PunycodeEncode(s string) (string, error) {
 	// Decode UTF-8 to []uint32 code points.
 	codePoints := make([]uint32, 0, len(s))
 	for _, r := range s {
+		if r >= 0xD800 && r <= 0xDFFF {
+			return "", errPunycodeSurrogate
+		}
 		cp := uint32(r)
 		if !isValidUnicodeScalar(cp) {
 			return "", errPunycodeInvalidScalar
@@ -224,6 +231,9 @@ func encodePunycode(codePoints []uint32) (string, error) {
 	// Copy all basic (ASCII) code points to output; count them as h and b.
 	h := 0
 	for _, c := range codePoints {
+		if c >= 0xD800 && c <= 0xDFFF {
+			return "", errPunycodeSurrogate
+		}
 		if c < 0x80 {
 			h++
 			out = append(out, byte(c))

@@ -108,6 +108,165 @@ func TestPunycodeDecodeErrors(t *testing.T) {
 	}
 }
 
+// encodePunycodeRaw encodes []uint32 codepoints without any surrogate guard,
+// for use in constructing test inputs that exercise the decoder's surrogate
+// rejection path.
+func encodePunycodeRaw(codePoints []uint32) (string, error) {
+	out := make([]byte, 0, len(codePoints)+8)
+	n := pInitialN
+	delta := 0
+	bias := pInitialBias
+	h := 0
+	for _, c := range codePoints {
+		if c < 0x80 {
+			h++
+			out = append(out, byte(c))
+		}
+	}
+	b := h
+	if b > 0 {
+		out = append(out, pDelimiter)
+	}
+	for h < len(codePoints) {
+		m := uint32(0x10FFFF)
+		for _, cp := range codePoints {
+			if cp >= n && cp < m {
+				m = cp
+			}
+		}
+		mMinusN := int(m - n)
+		if mMinusN > (1<<31-1-delta)/(h+1) {
+			return "", errPunycodeOverflow
+		}
+		delta += mMinusN * (h + 1)
+		n = m
+		for _, c := range codePoints {
+			if c < n {
+				if delta == 1<<31-1 {
+					return "", errPunycodeOverflow
+				}
+				delta++
+			}
+			if c == n {
+				q := delta
+				for k := pBase; ; k += pBase {
+					t := k - bias
+					if t < pTmin {
+						t = pTmin
+					} else if t > pTmax {
+						t = pTmax
+					}
+					if q < t {
+						break
+					}
+					out = append(out, digitValue(t+((q-t)%(pBase-t))))
+					q = (q - t) / (pBase - t)
+				}
+				out = append(out, digitValue(q))
+				bias = adaptBias(delta, h+1, h == b)
+				delta = 0
+				h++
+			}
+		}
+		delta++
+		n++
+	}
+	return string(out), nil
+}
+
+// TestPunycodeSurrogateEncode verifies that surrogate codepoints are rejected
+// by the encoder with errPunycodeSurrogate.
+func TestPunycodeSurrogateEncode(t *testing.T) {
+	t.Parallel()
+	surrogates := []struct {
+		name string
+		cp   uint32
+	}{
+		{"U+D800 (surrogate range start)", 0xD800},
+		{"U+D87F (mid-low surrogate)", 0xD87F},
+		{"U+DBFF (high surrogate end)", 0xDBFF},
+		{"U+DC00 (low surrogate range start)", 0xDC00},
+		{"U+DFFF (surrogate range end)", 0xDFFF},
+	}
+	for _, tc := range surrogates {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			// encodePunycode is the internal encoder; call it directly with a
+			// surrogate codepoint to verify the guard fires.
+			_, err := encodePunycode([]uint32{tc.cp})
+			if err != errPunycodeSurrogate {
+				t.Errorf("encodePunycode([U+%04X]) = %v, want errPunycodeSurrogate", tc.cp, err)
+			}
+		})
+	}
+}
+
+// TestPunycodeSurrogateDecode verifies that surrogate codepoints are rejected
+// by the decoder with errPunycodeSurrogate.
+func TestPunycodeSurrogateDecode(t *testing.T) {
+	t.Parallel()
+	surrogates := []struct {
+		name string
+		cp   uint32
+	}{
+		{"U+D800", 0xD800},
+		{"U+D87F", 0xD87F},
+		{"U+DBFF", 0xDBFF},
+		{"U+DC00", 0xDC00},
+		{"U+DFFF", 0xDFFF},
+	}
+	for _, tc := range surrogates {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			// Produce the encoded form using encodePunycodeRaw (no surrogate
+			// guard) so we can verify the decoder's rejection path.
+			encoded, err := encodePunycodeRaw([]uint32{tc.cp})
+			if err != nil {
+				t.Fatalf("encodePunycodeRaw(U+%04X): %v", tc.cp, err)
+			}
+			_, err = PunycodeDecode(encoded)
+			if err != errPunycodeSurrogate {
+				t.Errorf("PunycodeDecode(encoded U+%04X) = %v, want errPunycodeSurrogate", tc.cp, err)
+			}
+		})
+	}
+}
+
+// TestPunycodeValidUnicode verifies that valid non-ASCII codepoints still
+// encode and decode correctly (regression guard against over-zealous surrogate
+// rejection).
+func TestPunycodeValidUnicode(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name string
+		s    string
+	}{
+		{"CJK U+4E16 世", "世"},
+		{"emoji U+1F600 😀", "\U0001F600"},
+		{"latin U+00E9 é", "é"},
+		{"greek alpha U+03B1", "α"},
+	}
+	for _, tc := range cases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			enc, err := PunycodeEncode(tc.s)
+			if err != nil {
+				t.Fatalf("PunycodeEncode(%q): %v", tc.s, err)
+			}
+			dec, err := PunycodeDecode(enc)
+			if err != nil {
+				t.Fatalf("PunycodeDecode(%q): %v", enc, err)
+			}
+			if dec != tc.s {
+				t.Errorf("round-trip(%q): got %q", tc.s, dec)
+			}
+		})
+	}
+}
+
 // TestPunycodeAdversarial tests round-trip identity for edge-case inputs.
 func TestPunycodeAdversarial(t *testing.T) {
 	t.Parallel()
