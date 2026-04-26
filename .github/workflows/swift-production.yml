@@ -1,0 +1,256 @@
+# SPDX-License-Identifier: Apache-2.0
+# G1+G2: Swift production corpus workflow — parity + round-trip + version-diff
+name: Swift Production Corpus
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'scheme/swift/stable/**'
+      - 'internal/symtab/**'
+      - '.github/workflows/swift-production.yml'
+  pull_request:
+    paths:
+      - 'scheme/swift/stable/**'
+      - 'internal/symtab/**'
+  schedule:
+    - cron: '0 2 * * *'  # nightly at 02:00 UTC
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  checks: write
+  pull-requests: write
+
+jobs:
+  apple-corpus:
+    name: Apple corpus (153/153 gate)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version: "1.26"
+          cache: true
+
+      - name: Apple corpus strict gate
+        run: |
+          go test ./scheme/swift/stable/... \
+            -run TestAppleCorpusStrict \
+            -v -timeout 120s
+
+  production-parity:
+    name: Production parity (${{ matrix.framework }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        framework: [libswiftcore, foundation, uikit, swiftui, dispatch]
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version: "1.26"
+          cache: true
+
+      - name: Parity + round-trip (${{ matrix.framework }})
+        id: parity
+        env:
+          FRAMEWORK: ${{ matrix.framework }}
+        run: |
+          go test -tags production_corpus \
+            ./scheme/swift/stable/testdata/production/... \
+            -run "TestProductionCorpusParity|TestProductionCorpusRoundTrip" \
+            -v -timeout 120s 2>&1 | tee /tmp/parity-out.txt
+          TEST_EXIT=${PIPESTATUS[0]}
+
+          PARITY_LINE=$(grep -oP 'Overall: \d+ symbols.*' /tmp/parity-out.txt | tail -1 || echo '')
+          PARITY_PASS=$(echo "$PARITY_LINE" | grep -oP '\d+(?= pass)'      | head -1 || echo 0)
+          PARITY_TOTAL=$(echo "$PARITY_LINE" | grep -oP '\d+(?= symbols)'  | head -1 || echo 0)
+          TEST_RESULT=$(tail -1 /tmp/parity-out.txt)
+
+          {
+            echo "PARITY_PASS=${PARITY_PASS}"
+            echo "PARITY_TOTAL=${PARITY_TOTAL}"
+            echo "TEST_RESULT=${TEST_RESULT}"
+          } >> "$GITHUB_ENV"
+
+          cat >> "$GITHUB_STEP_SUMMARY" <<EOF
+
+          ## Production Parity — ${FRAMEWORK}
+          | Field | Value |
+          |-------|-------|
+          | Pass | ${PARITY_PASS} / ${PARITY_TOTAL} |
+          | Result | ${TEST_RESULT} |
+          EOF
+
+          # Soft gate: exit 0 until parity >= 99.5% threshold is stable
+          exit 0
+
+      - name: Post PR parity summary
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        env:
+          FRAMEWORK: ${{ matrix.framework }}
+          PARITY_PASS: ${{ env.PARITY_PASS }}
+          PARITY_TOTAL: ${{ env.PARITY_TOTAL }}
+          TEST_RESULT: ${{ env.TEST_RESULT }}
+        with:
+          script: |
+            const marker = `<!-- swift-prod-parity-${process.env.FRAMEWORK}-bot -->`;
+            const framework = process.env.FRAMEWORK || '?';
+            const pass = process.env.PARITY_PASS || '?';
+            const total = process.env.PARITY_TOTAL || '?';
+            const result = process.env.TEST_RESULT || '';
+            const passed = result.includes('ok') && !result.includes('FAIL');
+            const icon = passed ? ':white_check_mark:' : ':construction:';
+            const body = [
+              marker,
+              `## Swift Production Parity — ${framework}`,
+              '',
+              '| Field | Value |',
+              '|-------|-------|',
+              `| Pass | ${icon} ${pass} / ${total} |`,
+              `| Result | \`${result}\` |`,
+            ].join('\n');
+
+            const {data: comments} = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            const existing = comments.find(c => c.body.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
+
+  version-diff:
+    name: Cross-version differential (${{ matrix.swift-version }})
+    runs-on: ubuntu-latest
+    # Only run on schedule + manual dispatch — toolchain install is expensive
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    strategy:
+      fail-fast: false
+      matrix:
+        swift-version: ["5.9", "6.0", "6.1", "6.2", "6.3"]
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version: "1.26"
+          cache: true
+
+      - name: Cache Swift toolchain ${{ matrix.swift-version }}
+        id: cache-toolchain
+        uses: actions/cache@v4
+        with:
+          path: /opt/swift-toolchains/${{ matrix.swift-version }}
+          key: swift-toolchain-${{ matrix.swift-version }}-ubuntu2204-v1
+
+      - name: Install Swift toolchain ${{ matrix.swift-version }}
+        if: steps.cache-toolchain.outputs.cache-hit != 'true'
+        env:
+          SWIFT_MINOR: ${{ matrix.swift-version }}
+        run: |
+          # Map major.minor to a concrete patch release
+          case "$SWIFT_MINOR" in
+            5.9)  FULL="5.9.2"  ;;
+            6.0)  FULL="6.0.3"  ;;
+            6.1)  FULL="6.1.2"  ;;
+            6.2)  FULL="6.2.0"  ;;
+            6.3)  FULL="6.3.0"  ;;
+            *)    echo "Unknown version: $SWIFT_MINOR"; exit 1 ;;
+          esac
+          URL="https://download.swift.org/swift-${FULL}-release/ubuntu2204/swift-${FULL}-RELEASE/swift-${FULL}-RELEASE-ubuntu22.04.tar.gz"
+          echo "Downloading Swift $FULL from $URL ..."
+          mkdir -p /opt/swift-toolchains
+          curl -fsSL "$URL" | tar xz -C /tmp
+          mv "/tmp/swift-${FULL}-RELEASE-ubuntu22.04" "/opt/swift-toolchains/${SWIFT_MINOR}"
+          echo "Installed: /opt/swift-toolchains/${SWIFT_MINOR}/usr/bin/swift-demangle"
+
+      - name: Cross-version differential
+        env:
+          SWIFT_MINOR: ${{ matrix.swift-version }}
+        run: |
+          go test -tags version_diff \
+            ./scheme/swift/stable/testdata/production/... \
+            -run TestCrossVersionDifferential \
+            -v -timeout 600s 2>&1 | tee /tmp/vdiff-out.txt
+          TEST_EXIT=${PIPESTATUS[0]}
+
+          DIVERGE_LINE=$(grep -oP 'Cross-version diff: \d+ divergences.*' /tmp/vdiff-out.txt | tail -1 || echo '')
+          DIVERGENT=$(echo "$DIVERGE_LINE" | grep -oP '\d+(?= divergences)' | head -1 || echo 0)
+          TOTAL=$(echo "$DIVERGE_LINE"     | grep -oP '(?<=out of )\d+'     | head -1 || echo 0)
+
+          cat >> "$GITHUB_STEP_SUMMARY" <<EOF
+
+          ## Cross-version Differential — Swift ${SWIFT_MINOR}
+          | Field | Value |
+          |-------|-------|
+          | Divergences | ${DIVERGENT} / ${TOTAL} symbols |
+          | Detail | ${DIVERGE_LINE} |
+          EOF
+
+          # TestCrossVersionDifferential skips (not fails) when <2 toolchains present
+          exit $TEST_EXIT
+
+  pr-summary:
+    name: PR parity summary
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    needs: [apple-corpus, production-parity]
+    steps:
+      - name: Post overall parity summary
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const marker = '<!-- swift-prod-summary-bot -->';
+            const body = [
+              marker,
+              '## Swift Production Corpus — PR Summary',
+              '',
+              '| Job | Status |',
+              '|-----|--------|',
+              '| Apple corpus (153/153 gate) | see `apple-corpus` job |',
+              '| Production parity (×5 frameworks) | see `production-parity` jobs |',
+              '| Cross-version diff | schedule / workflow_dispatch only |',
+              '',
+              '_Parity gate is soft (continue-on-error) until pass rate reaches 99.5%._',
+            ].join('\n');
+
+            const {data: comments} = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            const existing = comments.find(c => c.body.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
