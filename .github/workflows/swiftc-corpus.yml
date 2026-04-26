@@ -13,6 +13,7 @@ on:
 permissions:
   contents: read
   checks: write
+  pull-requests: write
 
 jobs:
   compile:
@@ -80,6 +81,7 @@ jobs:
         working-directory: scheme/swift/stable/testdata/swiftc
         run: |
           SYMBOL_COUNT=$(grep -c '^\$s' corpus.txt 2>/dev/null || echo 0)
+          echo "SYMBOL_COUNT=$SYMBOL_COUNT" >> "$GITHUB_ENV"
           if [[ "${CORPUS_DRIFT:-0}" == "1" ]]; then
             echo "::error::corpus drift detected ($SYMBOL_COUNT symbols)"
             DRIFT_STATUS="⚠️ drift detected"
@@ -99,15 +101,92 @@ jobs:
       - name: Three-way parity
         run: |
           go test ./scheme/swift/stable/ -run TestThreeWayParity -v -timeout 120s 2>&1 | tee /tmp/parity-out.txt
-          ROUNDTRIP_COUNT=$(grep -c 'PASS\|--- PASS' /tmp/parity-out.txt || echo 0)
+          TEST_RESULT=$(tail -1 /tmp/parity-out.txt)
+          # Parse summary lines emitted by fmt.Printf in the test
+          PARITY_LINE=$(grep '^\s*parity:' /tmp/parity-out.txt | tail -1 || echo '')
+          RT_LINE=$(grep '^\s*roundtrip:' /tmp/parity-out.txt | tail -1 || echo '')
+          PARITY_PASS=$(echo "$PARITY_LINE" | grep -oP '\d+(?=/)' | head -1 || echo 0)
+          PARITY_TOTAL=$(echo "$PARITY_LINE" | grep -oP '(?<=/)\d+' | head -1 || echo 0)
+          RT_PASS=$(echo "$RT_LINE" | grep -oP '\d+(?=/)' | head -1 || echo 0)
+          RT_TOTAL=$(echo "$RT_LINE" | grep -oP '(?<=/)\d+' | head -1 || echo 0)
+          RT_UNSUPPORTED=$(echo "$RT_LINE" | grep -oP '\d+(?= unsupported)' | head -1 || echo 0)
+          {
+            echo "PARITY_PASS=${PARITY_PASS}"
+            echo "PARITY_TOTAL=${PARITY_TOTAL}"
+            echo "RT_PASS=${RT_PASS}"
+            echo "RT_TOTAL=${RT_TOTAL}"
+            echo "RT_UNSUPPORTED=${RT_UNSUPPORTED}"
+            echo "PARITY_RESULT=${TEST_RESULT}"
+          } >> "$GITHUB_ENV"
           cat >> "$GITHUB_STEP_SUMMARY" <<EOF
 
           ## Three-way Parity
           | Field | Value |
           |-------|-------|
-          | Result | $(tail -1 /tmp/parity-out.txt) |
-          | PASS entries | $ROUNDTRIP_COUNT |
+          | Result | $TEST_RESULT |
+          | Parity | $PARITY_PASS/$PARITY_TOTAL pass |
+          | Round-trip | $RT_PASS/$RT_TOTAL pass ($RT_UNSUPPORTED unsupported) |
           EOF
+
+      - name: Post PR corpus summary
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        env:
+          CORPUS_DRIFT: ${{ env.CORPUS_DRIFT }}
+          SYMBOL_COUNT: ${{ env.SYMBOL_COUNT }}
+          PARITY_PASS: ${{ env.PARITY_PASS }}
+          PARITY_TOTAL: ${{ env.PARITY_TOTAL }}
+          RT_PASS: ${{ env.RT_PASS }}
+          RT_TOTAL: ${{ env.RT_TOTAL }}
+          RT_UNSUPPORTED: ${{ env.RT_UNSUPPORTED }}
+          PARITY_RESULT: ${{ env.PARITY_RESULT }}
+        with:
+          script: |
+            const marker = '<!-- swiftc-corpus-bot -->';
+            const drift = process.env.CORPUS_DRIFT === '1' ? ':warning: DRIFT' : ':white_check_mark: CLEAN';
+            const parityPass = process.env.PARITY_PASS || '?';
+            const parityTotal = process.env.PARITY_TOTAL || '?';
+            const rtPass = process.env.RT_PASS || '?';
+            const rtTotal = process.env.RT_TOTAL || '?';
+            const rtUnsupported = process.env.RT_UNSUPPORTED || '0';
+            const symbolCount = process.env.SYMBOL_COUNT || '?';
+            const parityResult = process.env.PARITY_RESULT || '';
+            const parityIcon = parityPass === parityTotal && parityTotal !== '?' ? ':white_check_mark:' : ':x:';
+            const rtIcon = rtPass === rtTotal && rtTotal !== '?' ? ':white_check_mark:' : ':x:';
+            const body = [
+              marker,
+              '## Swift Corpus Summary',
+              '',
+              '| Field | Value |',
+              '|-------|-------|',
+              `| Corpus size | ${symbolCount} symbols |`,
+              `| Corpus drift | ${drift} |`,
+              `| Parity | ${parityIcon} ${parityPass}/${parityTotal} pass |`,
+              `| Round-trip | ${rtIcon} ${rtPass}/${rtTotal} pass (${rtUnsupported} unsupported) |`,
+              `| Test result | \`${parityResult}\` |`,
+            ].join('\n');
+
+            const {data: comments} = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            const existing = comments.find(c => c.body.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
 
   bench:
     runs-on: ubuntu-latest
