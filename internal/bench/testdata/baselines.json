@@ -1,0 +1,25 @@
+{
+  "swift_demangle_1m_full_corpus": {
+    "symbols_per_sec": 85000,
+    "ns_per_symbol": 11800,
+    "note": "full production corpus (29446 symbols, ~29% parse success); gate not applicable to this bench",
+    "measured": "2026-04-26",
+    "cpu": "11th Gen Intel(R) Core(TM) i9-11900K @ 3.50GHz",
+    "corpus_source": "scheme/swift/stable/testdata/production/corpus/*.txt (fallback; libswiftCore.so absent)",
+    "parse_ok": 386956,
+    "parse_fail": 613044,
+    "note_grammar": "Stage 1 mid-build: 8616/29446 corpus symbols parsed (~29%)"
+  },
+  "swift_demangle_1m_parsed": {
+    "symbols_per_sec": 188000,
+    "ns_per_symbol": 5320,
+    "gate_symbols_per_sec": 200000,
+    "gate_pass": false,
+    "note": "1M-entry slice from parsed-only subset of corpus; demangler hot path; near-gate at current Stage 1 grammar coverage",
+    "measured": "2026-04-26",
+    "cpu": "11th Gen Intel(R) Core(TM) i9-11900K @ 3.50GHz",
+    "corpus_source": "scheme/swift/stable/testdata/production/corpus/*.txt (fallback; libswiftCore.so absent)",
+    "parsed_symbols": 8616,
+    "total_symbols": 29446
+  }
+}
