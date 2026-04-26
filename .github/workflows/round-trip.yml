@@ -1,0 +1,249 @@
+# SPDX-License-Identifier: Apache-2.0
+# R1: combined round-trip CI gate — Apple + swiftc + production corpora in series.
+name: round-trip
+
+on:
+  push:
+    branches: [main]
+    paths: ['scheme/swift/stable/**']
+  pull_request:
+    branches: [main]
+    paths: ['scheme/swift/stable/**']
+  schedule:
+    - cron: '0 3 * * *'  # nightly
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  checks: write
+  pull-requests: write
+
+jobs:
+  round-trip:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version: "1.26"
+          cache: true
+
+      # ── Step 1: Apple corpus (153 symbols, must be 100%) ─────────────────
+      - name: Apple corpus round-trip (hard-fail)
+        id: apple
+        run: |
+          go test ./scheme/swift/stable/ \
+            -run TestAppleCorpusRoundTrip \
+            -v -timeout 120s 2>&1 | tee /tmp/apple-rt.txt
+          TEST_EXIT=${PIPESTATUS[0]}
+
+          SUMMARY=$(grep -oP 'Apple round-trip:.*' /tmp/apple-rt.txt | tail -1 || echo '')
+          APPLE_PASS=$(echo "$SUMMARY"     | grep -oP '\d+(?= pass)'          | head -1 || echo 0)
+          APPLE_RT_UNSUP=$(echo "$SUMMARY" | grep -oP '\d+(?= rt-unsupported)' | head -1 || echo 0)
+          APPLE_UNSUP=$(echo "$SUMMARY"    | grep -oP '\d+(?= unsupported)'   | head -1 || echo 0)
+          APPLE_SKIP=$(echo "$SUMMARY"     | grep -oP '\d+(?= skipped)'       | head -1 || echo 0)
+          APPLE_TOTAL=$(echo "$SUMMARY"    | grep -oP '\d+(?= total)'         | head -1 || echo 0)
+          APPLE_RESULT=$(tail -1 /tmp/apple-rt.txt)
+
+          {
+            echo "APPLE_PASS=${APPLE_PASS}"
+            echo "APPLE_RT_UNSUP=${APPLE_RT_UNSUP}"
+            echo "APPLE_UNSUP=${APPLE_UNSUP}"
+            echo "APPLE_SKIP=${APPLE_SKIP}"
+            echo "APPLE_TOTAL=${APPLE_TOTAL}"
+            echo "APPLE_RESULT=${APPLE_RESULT}"
+          } >> "$GITHUB_ENV"
+
+          cat >> "$GITHUB_STEP_SUMMARY" <<EOF
+
+          ## Apple Corpus Round-trip
+          | Field | Value |
+          |-------|-------|
+          | Pass | ${APPLE_PASS} |
+          | rt-unsupported | ${APPLE_RT_UNSUP} |
+          | unsupported | ${APPLE_UNSUP} |
+          | skipped (known-divergences) | ${APPLE_SKIP} |
+          | total | ${APPLE_TOTAL} |
+          | Result | ${APPLE_RESULT} |
+          EOF
+
+          exit $TEST_EXIT
+
+      # ── Step 2: swiftc corpus (222 symbols, must be 100%) ────────────────
+      - name: swiftc corpus round-trip (hard-fail)
+        id: swiftc
+        run: |
+          go test ./scheme/swift/stable/ \
+            -run TestThreeWayParity \
+            -v -timeout 120s 2>&1 | tee /tmp/swiftc-rt.txt
+          TEST_EXIT=${PIPESTATUS[0]}
+
+          RT_LINE=$(grep '^\s*roundtrip:' /tmp/swiftc-rt.txt | tail -1 || echo '')
+          SWIFTC_RT_PASS=$(echo "$RT_LINE"  | grep -oP '\d+(?=/)' | head -1 || echo 0)
+          SWIFTC_RT_TOTAL=$(echo "$RT_LINE" | grep -oP '(?<=/)\d+' | head -1 || echo 0)
+          SWIFTC_RT_UNSUP=$(echo "$RT_LINE" | grep -oP '\d+(?= unsupported)' | head -1 || echo 0)
+          SWIFTC_RESULT=$(tail -1 /tmp/swiftc-rt.txt)
+
+          {
+            echo "SWIFTC_RT_PASS=${SWIFTC_RT_PASS}"
+            echo "SWIFTC_RT_TOTAL=${SWIFTC_RT_TOTAL}"
+            echo "SWIFTC_RT_UNSUP=${SWIFTC_RT_UNSUP}"
+            echo "SWIFTC_RESULT=${SWIFTC_RESULT}"
+          } >> "$GITHUB_ENV"
+
+          cat >> "$GITHUB_STEP_SUMMARY" <<EOF
+
+          ## swiftc Corpus Round-trip
+          | Field | Value |
+          |-------|-------|
+          | Pass | ${SWIFTC_RT_PASS}/${SWIFTC_RT_TOTAL} |
+          | unsupported | ${SWIFTC_RT_UNSUP} |
+          | Result | ${SWIFTC_RESULT} |
+          EOF
+
+          exit $TEST_EXIT
+
+      # ── Step 3: production corpus (threshold 99.5%, continue-on-error until Remangler fixed) ──
+      - name: Production corpus round-trip (threshold 99.5%)
+        id: production
+        continue-on-error: true  # remove once production round-trip >= 99.5%
+        run: |
+          go test -tags production_corpus \
+            ./scheme/swift/stable/testdata/production/... \
+            -run TestProductionCorpusRoundTrip \
+            -v -timeout 300s 2>&1 | tee /tmp/prod-rt.txt
+          TEST_EXIT=${PIPESTATUS[0]}
+
+          SUMMARY=$(grep 'Overall:' /tmp/prod-rt.txt | tail -1 || echo '')
+          PROD_TOTAL=$(echo "$SUMMARY" | grep -oP '\d+(?= round-tripped)' | head -1 || echo 0)
+          PROD_PASS=$(echo "$SUMMARY"  | grep -oP '\d+(?= pass)'          | head -1 || echo 0)
+          PROD_RATE=$(echo "$SUMMARY"  | grep -oP '[\d.]+(?=%\))'         | head -1 || echo 0)
+          PROD_FAIL=$(echo "$SUMMARY"  | grep -oP '\d+(?= fail)'          | head -1 || echo 0)
+          PROD_SKIP=$(echo "$SUMMARY"  | grep -oP '\d+(?= skip)'          | head -1 || echo 0)
+          PROD_RESULT=$(tail -1 /tmp/prod-rt.txt)
+
+          {
+            echo "PROD_TOTAL=${PROD_TOTAL}"
+            echo "PROD_PASS=${PROD_PASS}"
+            echo "PROD_RATE=${PROD_RATE}"
+            echo "PROD_FAIL=${PROD_FAIL}"
+            echo "PROD_SKIP=${PROD_SKIP}"
+            echo "PROD_RESULT=${PROD_RESULT}"
+          } >> "$GITHUB_ENV"
+
+          cat >> "$GITHUB_STEP_SUMMARY" <<EOF
+
+          ## Production Corpus Round-trip
+          > **Note:** continue-on-error until Remangler fixed (B2 work item)
+          | Field | Value |
+          |-------|-------|
+          | Tested | ${PROD_TOTAL} |
+          | Pass | ${PROD_PASS} (${PROD_RATE}%) |
+          | Fail | ${PROD_FAIL} |
+          | Skip (demangle-only) | ${PROD_SKIP} |
+          | Threshold | 99.5% |
+          | Result | ${PROD_RESULT} |
+          EOF
+
+          exit $TEST_EXIT
+
+      # ── PR comment with all three results ─────────────────────────────────
+      - name: Post PR round-trip summary
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        env:
+          APPLE_PASS: ${{ env.APPLE_PASS }}
+          APPLE_RT_UNSUP: ${{ env.APPLE_RT_UNSUP }}
+          APPLE_UNSUP: ${{ env.APPLE_UNSUP }}
+          APPLE_SKIP: ${{ env.APPLE_SKIP }}
+          APPLE_TOTAL: ${{ env.APPLE_TOTAL }}
+          APPLE_RESULT: ${{ env.APPLE_RESULT }}
+          SWIFTC_RT_PASS: ${{ env.SWIFTC_RT_PASS }}
+          SWIFTC_RT_TOTAL: ${{ env.SWIFTC_RT_TOTAL }}
+          SWIFTC_RT_UNSUP: ${{ env.SWIFTC_RT_UNSUP }}
+          SWIFTC_RESULT: ${{ env.SWIFTC_RESULT }}
+          PROD_TOTAL: ${{ env.PROD_TOTAL }}
+          PROD_PASS: ${{ env.PROD_PASS }}
+          PROD_RATE: ${{ env.PROD_RATE }}
+          PROD_FAIL: ${{ env.PROD_FAIL }}
+          PROD_SKIP: ${{ env.PROD_SKIP }}
+          PROD_RESULT: ${{ env.PROD_RESULT }}
+        with:
+          script: |
+            const marker = '<!-- round-trip-bot -->';
+
+            const applePass    = process.env.APPLE_PASS    || '?';
+            const appleTotal   = process.env.APPLE_TOTAL   || '?';
+            const appleResult  = process.env.APPLE_RESULT  || '';
+            const appleRtUnsup = process.env.APPLE_RT_UNSUP || '0';
+            const appleUnsup   = process.env.APPLE_UNSUP   || '0';
+            const appleSkip    = process.env.APPLE_SKIP    || '0';
+            const appleOk      = appleResult.includes('ok') && !appleResult.includes('FAIL');
+            const appleIcon    = appleOk ? ':white_check_mark:' : ':x:';
+
+            const swiftcPass   = process.env.SWIFTC_RT_PASS  || '?';
+            const swiftcTotal  = process.env.SWIFTC_RT_TOTAL || '?';
+            const swiftcUnsup  = process.env.SWIFTC_RT_UNSUP || '0';
+            const swiftcResult = process.env.SWIFTC_RESULT   || '';
+            const swiftcOk     = swiftcResult.includes('ok') && !swiftcResult.includes('FAIL');
+            const swiftcIcon   = swiftcOk ? ':white_check_mark:' : ':x:';
+
+            const prodTotal  = process.env.PROD_TOTAL  || '?';
+            const prodPass   = process.env.PROD_PASS   || '?';
+            const prodRate   = process.env.PROD_RATE   || '0';
+            const prodFail   = process.env.PROD_FAIL   || '?';
+            const prodSkip   = process.env.PROD_SKIP   || '?';
+            const prodResult = process.env.PROD_RESULT || '';
+            const prodOk     = prodResult.includes('ok') && !prodResult.includes('FAIL');
+            const prodIcon   = prodOk ? ':white_check_mark:' : ':construction:';
+
+            const body = [
+              marker,
+              '## Round-trip Summary',
+              '',
+              '| Corpus | Pass | Total | Result |',
+              '|--------|------|-------|--------|',
+              `| Apple  | ${appleIcon} ${applePass} | ${appleTotal} | \`${appleResult}\` |`,
+              `| swiftc | ${swiftcIcon} ${swiftcPass} | ${swiftcTotal} | \`${swiftcResult}\` |`,
+              `| production | ${prodIcon} ${prodPass} (${prodRate}%) | ${prodTotal} | \`${prodResult}\` |`,
+              '',
+              '<details><summary>Apple detail</summary>',
+              '',
+              `rt-unsupported: ${appleRtUnsup} | unsupported: ${appleUnsup} | skipped: ${appleSkip}`,
+              '</details>',
+              '',
+              '<details><summary>swiftc detail</summary>',
+              '',
+              `unsupported: ${swiftcUnsup}`,
+              '</details>',
+              '',
+              '<details><summary>Production detail</summary>',
+              '',
+              `fail: ${prodFail} | skip (demangle-only): ${prodSkip}`,
+              '',
+              '_Production continue-on-error until Remangler (B2) fixed._',
+              '</details>',
+            ].join('\n');
+
+            const {data: comments} = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            const existing = comments.find(c => c.body.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
