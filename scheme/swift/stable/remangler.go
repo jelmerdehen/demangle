@@ -1207,13 +1207,6 @@ func (r *remangler) mangleFunctionEntity(n *demangle.Node) error {
 	// R9b: TypeList args are handled below (step 4) as a tuple encoding:
 	// elem0 '_' elem1 elem2 … 't' — mirrors Apple's mangleTypeList.
 
-	// Guard: labeled TypeList args.  When a TypeList child has "swift.label"
-	// set, the label must be emitted in the label-list slot (step 2) instead of
-	// 'y'.  Label-list emission is not yet implemented, so return ErrUnsupported.
-	if argsTypeList && typeListHasLabels(args) {
-		return r.unsupported(common.KindFunctionEntity)
-	}
-
 	isMethod := common.NodeKind(path.Kind) == common.KindEntityPath && len(path.Children) > 2
 
 	// Guard: non-stdlib nominal in the RETURN type.  For methods, Apple's
@@ -1255,11 +1248,28 @@ func (r *remangler) mangleFunctionEntity(n *demangle.Node) error {
 		return err
 	}
 
-	// 2. Emit empty label list 'y' when params are non-void.
-	//    The parser's tryPath(assumeLabelList=true) branch consumes a leading
-	//    'y' as the empty label-list token before reading result/params slots.
+	// 2. Emit label list.  When params are non-void:
+	//    - labeled TypeList: emit each label as a length-prefixed identifier.
+	//    - all other cases: emit 'y' (empty label list).
+	// Mirrors Remangler.cpp mangleFunctionEntity step 2 (label-list slot).
 	if !argsEmpty {
-		r.buf.WriteByte('y')
+		if argsTypeList && typeListHasLabels(args) {
+			for _, child := range args.Children {
+				lbl := ""
+				if child.Attrs != nil {
+					lbl = child.Attrs["swift.label"]
+				}
+				if lbl == "" {
+					r.buf.WriteByte('0') // zero-length = no external label
+				} else {
+					if err := r.mangleIdentifier(common.NewIdentifier(lbl)); err != nil {
+						return err
+					}
+				}
+			}
+		} else {
+			r.buf.WriteByte('y')
+		}
 	}
 
 	// 3. Emit return type ('y' for void via KindEmptyList dispatch above).
