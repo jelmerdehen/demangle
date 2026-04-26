@@ -1120,20 +1120,33 @@ func (r *remangler) mangleFunctionEntity(n *demangle.Node) error {
 		return r.unsupported(common.KindFunctionEntity)
 	}
 
-	// Guard: non-stdlib nominal types in args or ret.  Apple emits these using
-	// A-substitution references that our remangler cannot reproduce from the
-	// tree — both for methods (EntityPath > 2) and for top-level functions.
+	isMethod := common.NodeKind(path.Kind) == common.KindEntityPath && len(path.Children) > 2
+
+	// Guard: non-stdlib nominal in the RETURN type.  For methods, Apple's
+	// mangleAnyNominalType pushes the surrounding class/struct node to the sub
+	// table during entity-path emission, so a self-type return uses an A-sub
+	// index our entity-path loop cannot reproduce (we only push identifier text).
+	// For top-level functions, the return type might be an identifier like "Vec3"
+	// where "Vec" is already in the word table from the function name ("addVec"),
+	// causing a partial word-ref encoding ("0C1X3") that differs from the
+	// compiler-produced literal ("4Vec3") — also unreproduc­ible byte-exactly.
 	if !retEmpty && containsNonStdlibNominal(ret) {
 		return r.unsupported(common.KindFunctionEntity)
 	}
-	if !argsEmpty && containsNonStdlibNominal(args) {
+	// Guard: non-stdlib nominal in the ARGS for methods.  Top-level functions
+	// (entity path exactly 2 children: module + funcName) are safe because no
+	// nominal is in the entity-path sub-table, so both Apple's Remangler and ours
+	// emit non-stdlib argument types fresh (module-sub-ref + ident-sub-ref + trailer).
+	// Methods (≥3 children) are blocked conservatively as before.
+	if isMethod && !argsEmpty && containsNonStdlibNominal(args) {
 		return r.unsupported(common.KindFunctionEntity)
 	}
 
-	// Guard: both args and ret reference the same stdlib type.  Apple emits a
-	// compact "S<N>X" repetition reference (e.g. "S2i" for a second Int) that
-	// our remangler cannot produce.  Detect by collecting stdlib token keys from
-	// each side and checking for overlap.
+	// Guard: both args and ret reference the same stdlib type.  The Swift compiler
+	// emits a compact "S<N><letter>" repetition form (e.g. "S2i" for Int appearing
+	// twice) that the Remangler does not produce — our Remangler emits "SiSi"
+	// instead.  Detect by collecting stdlib token keys from each side and checking
+	// for overlap, then block rather than produce wrong bytes.
 	if !argsEmpty && !retEmpty {
 		retToks := make(map[string]struct{})
 		argsToks := make(map[string]struct{})
