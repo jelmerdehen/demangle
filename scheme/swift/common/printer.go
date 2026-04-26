@@ -4,6 +4,7 @@
 package common
 
 import (
+	"strconv"
 	"strings"
 
 	"github.com/jelmerdehen/demangle"
@@ -288,6 +289,110 @@ func printNode(b *strings.Builder, n *demangle.Node, opts PrintOptions) {
 			b.WriteString(" in ")
 			b.WriteString(n.Children[0].Text) // discriminator (child[0])
 			b.WriteByte(')')
+		}
+	case KindAutoDiffSubsetParametersThunk:
+		// "autodiff subset parameters thunk for <kind> from <inner>
+		//  with respect to parameters {<fromP>} and results {<fromR>}
+		//  to parameters {<toP>} [of type <implFn>]"
+		adKind := ""
+		fromP := ""
+		fromR := ""
+		toP := ""
+		implFn := ""
+		if n.Attrs != nil {
+			adKind = n.Attrs["swift.adKind"]
+			fromP = n.Attrs["swift.fromP"]
+			fromR = n.Attrs["swift.fromR"]
+			toP = n.Attrs["swift.toP"]
+			implFn = n.Attrs["swift.implFn"]
+		}
+		var kindName string
+		switch adKind {
+		case "d":
+			kindName = "differential"
+		case "p":
+			kindName = "pullback"
+		case "r":
+			kindName = "reverse-mode derivative"
+		case "f":
+			kindName = "forward-mode derivative"
+		default:
+			kindName = adKind
+		}
+		renderSubsetADSP := func(s string) string {
+			var parts []string
+			for i := 0; i < len(s); i++ {
+				if s[i] == 'S' {
+					parts = append(parts, strconv.Itoa(i))
+				}
+			}
+			return strings.Join(parts, ", ")
+		}
+		b.WriteString("autodiff subset parameters thunk for ")
+		b.WriteString(kindName)
+		b.WriteString(" from ")
+		if len(n.Children) > 0 {
+			printNode(b, n.Children[0], opts)
+		}
+		b.WriteString(" with respect to parameters {")
+		b.WriteString(renderSubsetADSP(fromP))
+		b.WriteString("} and results {")
+		b.WriteString(renderSubsetADSP(fromR))
+		b.WriteString("} to parameters {")
+		b.WriteString(renderSubsetADSP(toP))
+		b.WriteByte('}')
+		if implFn != "" {
+			b.WriteString(" of type ")
+			b.WriteString(implFn)
+		}
+	case KindAutoDiffFunction:
+		// "[vtable thunk for ]<variant> of <inner>
+		//  with respect to parameters {<paramSub>} and results {<resultSub>}
+		//  [with <genSig>]"
+		adKind := ""
+		paramSub := ""
+		resultSub := ""
+		vtable := ""
+		genSig := ""
+		if n.Attrs != nil {
+			adKind = n.Attrs["swift.adKind"]
+			paramSub = n.Attrs["swift.paramSub"]
+			resultSub = n.Attrs["swift.resultSub"]
+			vtable = n.Attrs["swift.vtable"]
+			genSig = n.Attrs["swift.genSig"]
+		}
+		renderSubsetADF := func(s string) string {
+			var sb strings.Builder
+			sb.WriteByte('{')
+			first := true
+			for i := 0; i < len(s); i++ {
+				if s[i] != 'S' {
+					continue
+				}
+				if !first {
+					sb.WriteString(", ")
+				}
+				sb.WriteString(strconv.Itoa(i))
+				first = false
+			}
+			sb.WriteByte('}')
+			return sb.String()
+		}
+		if vtable == "true" {
+			b.WriteString("vtable thunk for ")
+		}
+		b.WriteString(adKind)
+		b.WriteString(" of ")
+		if len(n.Children) > 0 {
+			printNode(b, n.Children[0], opts)
+		}
+		b.WriteString(" with respect to parameters ")
+		b.WriteString(renderSubsetADF(paramSub))
+		b.WriteString(" and results ")
+		b.WriteString(renderSubsetADF(resultSub))
+		if genSig != "" {
+			b.WriteString(" with ")
+			b.WriteString(genSig)
 		}
 	default:
 		// For unknown kinds, dump as "<KindName>" to surface gaps

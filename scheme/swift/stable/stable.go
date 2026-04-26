@@ -665,6 +665,16 @@ func (p *parser) tryAutodiffSigBeforeTJ(inner *demangle.Node) (*demangle.Node, b
 		return inner, false
 	}
 	sig := renderGenericSigWithConstraints(genericCount, trailingConstraints)
+	// If tryEntitySuffix produced a KindAutoDiffFunction node, attach the
+	// generic signature directly so the printer can render it structured.
+	if common.NodeKind(wrapped.Kind) == common.KindAutoDiffFunction {
+		if wrapped.Attrs == nil {
+			wrapped.Attrs = map[string]string{}
+		}
+		wrapped.Attrs["swift.genSig"] = sig
+		return wrapped, true
+	}
+	// Fallback for any other node kind (e.g. WJ path that still uses text).
 	wrappedStr := common.Print(wrapped, common.DefaultPrintOptions())
 	w := common.NewNode(common.KindTypeMangling)
 	w.Text = wrappedStr + " with " + sig
@@ -3684,10 +3694,10 @@ func (p *parser) tryEntitySuffix(inner *demangle.Node) (*demangle.Node, bool) {
 			// TJV<variant>... → vtable-thunk prefix; renders as
 			// "vtable thunk for <variant> of ...".
 			kindByte := p.s[p.i+2]
-			vtablePrefix := ""
+			isVtable := false
 			kindOffset := 2
 			if kindByte == 'V' && p.i+3 < len(p.s) {
-				vtablePrefix = "vtable thunk for "
+				isVtable = true
 				kindByte = p.s[p.i+3]
 				kindOffset = 3
 			}
@@ -3719,33 +3729,18 @@ func (p *parser) tryEntitySuffix(inner *demangle.Node) (*demangle.Node, bool) {
 					if pi > rStart && pi < len(p.s) && p.s[pi] == 'r' {
 						resultsSubset := p.s[rStart:pi]
 						pi++ // consume 'r'
-						renderSubset := func(s string) string {
-							var b strings.Builder
-							b.WriteByte('{')
-							first := true
-							for i := 0; i < len(s); i++ {
-								if s[i] != 'S' {
-									continue
-								}
-								if !first {
-									b.WriteString(", ")
-								}
-								b.WriteString(itoa(i))
-								first = false
-							}
-							b.WriteByte('}')
-							return b.String()
-						}
-						prefix = fmt.Sprintf("%s%s of ", vtablePrefix, variant)
-						// Wrap: prefix + <inner> + " with respect to ..."
 						consumed = pi - p.i
-						innerStr := common.Print(inner, common.DefaultPrintOptions())
-						wrapDisplay := prefix + innerStr +
-							" with respect to parameters " + renderSubset(paramsSubset) +
-							" and results " + renderSubset(resultsSubset)
 						p.i += consumed
-						wrap := common.NewNode(common.KindTypeMangling)
-						wrap.Text = wrapDisplay
+						wrap := common.NewNode(common.KindAutoDiffFunction)
+						wrap.Attrs = map[string]string{
+							"swift.adKind":    variant,
+							"swift.paramSub":  paramsSubset,
+							"swift.resultSub": resultsSubset,
+						}
+						if isVtable {
+							wrap.Attrs["swift.vtable"] = "true"
+						}
+						common.AddChildren(wrap, inner)
 						return wrap, true
 					}
 				}
@@ -7077,15 +7072,15 @@ func (p *parser) tryOpaqueContextPostfix(ctx *demangle.Node) (*demangle.Node, bo
 
 // trySpecializationSuffix scans the tail of the body for the
 // specialization pattern "<type> (_<type>)* _ T<letter><digits>?"
-// and returns the prefix to prepend to the rendered output (e.g.
-// "generic specialization <X> of "). Consumes the bytes on match.
-func (p *parser) trySpecializationSuffix() (string, bool) {
+// and returns a KindGenericSpecialization or KindFunctionSignatureSpecialization
+// node wrapping inner. Consumes the bytes on match.
+func (p *parser) trySpecializationSuffix(inner *demangle.Node) (*demangle.Node, bool) {
 	save := p.i
 	saveSubs := p.subs
 	revert := func() { p.i = save; p.subs = saveSubs }
 	// Parse zero-or-more `<type>_` groups.
 	if p.eof() {
-		return "", false
+		return nil, false
 	}
 	// Fast-path for Tf (function-signature specialization) — the Apple
 	// stack-based demangler pushes identifiers and types separately
@@ -7107,8 +7102,8 @@ func (p *parser) trySpecializationSuffix() (string, bool) {
 			}
 		}
 		if tfInHorizon {
-			if result, ok := p.tryTfSpecializationSuffix(save, saveSubs); ok {
-				return result, true
+			if node, ok := p.tryTfSpecializationSuffix(inner, save, saveSubs); ok {
+				return node, true
 			}
 		}
 	}
@@ -8199,10 +8194,9 @@ func (p *parser) parseNominalWithModule(module *demangle.Node) (*demangle.Node, 
 	// contexts ($10016c2d8 etc.).
 	if k == 'y' && p.i+2 < len(p.s) && p.s[p.i+1] == 'X' && p.s[p.i+2] == 'Z' {
 		p.i += 3
-		baseText := common.Print(module, common.DefaultPrintOptions())
-		combined := baseText + "." + fmt.Sprintf("(unknown context at %s)", name)
-		newMod := common.NewModule(combined)
-		return p.parseNominalWithModule(newMod)
+		anonCtx := common.NewNode(common.KindAnonymousContext)
+		common.AddChildren(anonCtx, module, common.NewIdentifier(name))
+		return p.parseNominalWithModule(anonCtx)
 	}
 	// Private-decl-name LL — '<name-ident><disc-ident>LL<kind>'. The
 	// first ident is the name, the second is the private discriminator.
@@ -8232,10 +8226,11 @@ func (p *parser) parseNominalWithModule(module *demangle.Node) (*demangle.Node, 
 			default:
 				return nil, p.grammarErr("nominal kind byte V/C/O/P after LL")
 			}
-			typ := common.NewNode(common.KindType)
+			privDecl := common.NewNode(common.KindPrivateDeclName)
+			common.AddChildren(privDecl, common.NewIdentifier(disc), common.NewIdentifier(name))
 			nom := common.NewNode(dkind)
-			display := fmt.Sprintf("(%s in %s)", name, disc)
-			common.AddChildren(nom, module, common.NewIdentifier(display))
+			common.AddChildren(nom, module, privDecl)
+			typ := common.NewNode(common.KindType)
 			common.AddChildren(typ, nom)
 			return typ, nil
 		}
@@ -8291,10 +8286,13 @@ func (p *parser) parseNominalWithModule(module *demangle.Node) (*demangle.Node, 
 		// types in the __C module (e.g. simd_double3x3a) and for
 		// local typealias declarations. Displayed as a qualified name,
 		// identical to Structure (Apple's printEntity with NoType).
-		// Guard: only accept when the module is "__C" or a user module
-		// (non-Swift-stdlib modules have Text != "Swift"/"s").
+		// Guard: only accept when the module is "__C", a user module
+		// (non-Swift-stdlib modules have Text != "Swift"/"s"), or an
+		// anonymous context (KindAnonymousContext has no Text but is
+		// always a user-defined context, not the Swift stdlib).
 		modText := module.Text
-		if modText == "__C" || (modText != "" && modText != "Swift" && modText != "s") {
+		isAnonCtx := common.NodeKind(module.Kind) == common.KindAnonymousContext
+		if modText == "__C" || isAnonCtx || (modText != "" && modText != "Swift" && modText != "s") {
 			kind = common.KindStructure
 		} else {
 			p.i-- // un-consume 'a'
@@ -9209,31 +9207,23 @@ func (p *parser) tryAutodiffSubsetParametersThunk(inner *demangle.Node) (*demang
 		return inner, false
 	}
 	p.i++
-	var kindName string
+	// Validate kind byte (printer handles the name mapping).
 	switch kindByte {
-	case 'd':
-		kindName = "differential"
-	case 'p':
-		kindName = "pullback"
-	case 'r':
-		kindName = "reverse-mode derivative"
-	case 'f':
-		kindName = "forward-mode derivative"
+	case 'd', 'p', 'r', 'f':
+		// valid
 	default:
 		p.i = save
 		return inner, false
 	}
-	innerText := common.Print(inner, common.DefaultPrintOptions())
-	wrap := common.NewNode(common.KindTypeMangling)
-	text := "autodiff subset parameters thunk for " + kindName +
-		" from " + innerText +
-		" with respect to parameters {" + renderIndexSubset(fromP) + "}" +
-		" and results {" + renderIndexSubset(fromR) + "}" +
-		" to parameters {" + renderIndexSubset(toP) + "}"
-	if implFnText != "" {
-		text += " of type " + implFnText
+	wrap := common.NewNode(common.KindAutoDiffSubsetParametersThunk)
+	wrap.Attrs = map[string]string{
+		"swift.adKind": string(kindByte),
+		"swift.fromP":  fromP,
+		"swift.fromR":  fromR,
+		"swift.toP":    toP,
+		"swift.implFn": implFnText,
 	}
-	wrap.Text = text
+	common.AddChildren(wrap, inner)
 	return wrap, true
 }
 
