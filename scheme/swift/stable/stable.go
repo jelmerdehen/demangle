@@ -287,10 +287,15 @@ func (p *parser) parseGlobal() (*demangle.Node, error) {
 		return g, nil
 	}
 
-	// Try function entity first — it's the most common shape in the
-	// Apple corpus. Roll back on no-match.
+	// Try associated-type-descriptor shape first:
+	//   <N><assocTypeName><M><moduleName><K><protocolName>PTl
+	// Must be tried before tryExtensionEntity because both start with
+	// a digit-led identifier, but the assoc-type form ends with PTl
+	// (not a function/accessor terminal).
 	var inner *demangle.Node
-	if extEntity, ok, err := p.tryExtensionEntity(); err != nil {
+	if atdNode, atdOk := p.tryAssocTypeDescriptor(); atdOk {
+		inner = atdNode
+	} else if extEntity, ok, err := p.tryExtensionEntity(); err != nil {
 		return nil, err
 	} else if ok {
 		inner = extEntity
@@ -4659,12 +4664,27 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 	}
 	// Params-type: may be empty, a single type, or a multi-element
 	// tuple encoded as <type> ('_' <type>)* 't'.
+	// Property accessor terminals (v<kind>, pMV) are handled after the
+	// local-constraints loop — skip type-parse if we see them here.
 	var paramsNode *demangle.Node
 	var paramTypes []*demangle.Node
+	isPropertyTerminal := func() bool {
+		if p.eof() {
+			return false
+		}
+		c := p.s[p.i]
+		if c == 'v' && p.i+1 < len(p.s) {
+			switch p.s[p.i+1] {
+			case 'g', 's', 'M', 'w', 'W', 'p':
+				return true
+			}
+		}
+		return false
+	}
 	if p.paramsSlotIsEmpty() {
 		p.i++
 		paramsNode = common.NewNode(common.KindEmptyList)
-	} else if !p.eof() && p.s[p.i] != 'F' {
+	} else if !p.eof() && p.s[p.i] != 'F' && !isPropertyTerminal() {
 		t, terr := p.parseType()
 		if terr != nil {
 			restore()
@@ -4683,7 +4703,7 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 		// another param — it is the start of the local generic-sig
 		// (type-R-subject requirement pattern). Stop tuple parsing and let
 		// the gen-sig loop below handle it.
-		for !p.eof() && p.s[p.i] != 't' && p.s[p.i] != 'F' {
+		for !p.eof() && p.s[p.i] != 't' && p.s[p.i] != 'F' && !isPropertyTerminal() {
 			// Skip optional '_' separator between tuple elements.
 			if p.s[p.i] == '_' {
 				p.i++
@@ -4939,6 +4959,209 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 		(p.s[p.i] >= '0' && p.s[p.i] <= '9')) {
 		p.i++
 	}
+
+	// crossModule is true when the constraint bytes start with a digit,
+	// indicating an explicit cross-module extension (e.g. "7SwiftUI").
+	// Same-module extensions use substitution refs (e.g. "AA") that start
+	// with 'A'. Cross-module extensions use simplified output format;
+	// same-module uses verbose "(extension in M):" format.
+	crossModule := len(constraintBytes) > 0 &&
+		constraintBytes[0] >= '0' && constraintBytes[0] <= '9'
+
+	// Property accessor terminals: v<kind> or pMV.
+	// retNode holds the property type; paramsNode is empty.
+	if !p.eof() && p.s[p.i] == 'v' && p.i+1 < len(p.s) {
+		var accessor string
+		switch p.s[p.i+1] {
+		case 'g':
+			accessor = ".getter"
+		case 's':
+			accessor = ".setter"
+		case 'M':
+			accessor = ".modify"
+		case 'w':
+			accessor = ".willset"
+		case 'W':
+			accessor = ".didset"
+		}
+		if accessor != "" {
+			p.i += 2
+			opts := common.DefaultPrintOptions()
+			var text string
+			if crossModule {
+				// Simplified: TypeName.propName.getter (no module, no type)
+				text = hostName + "." + declName + accessor
+			} else {
+				sig, sameTypeConstraint := extractConstraintSigFull(constraintBytes)
+				hostQualified := modName + "." + hostName
+				if sameTypeConstraint != "" {
+					hostQualified += "<" + sameTypeConstraint + ">"
+				}
+				localSig := ""
+				if len(localConstraints) > 0 {
+					localSig = "<A where " + strings.Join(localConstraints, ", ") + ">"
+				}
+				propTypeStr := ""
+				if retNode != nil && common.NodeKind(retNode.Kind) != common.KindEmptyList {
+					propTypeStr = " : " + common.Print(retNode, opts)
+				}
+				text = "(extension in " + modName + "):" + hostQualified + sig +
+					"." + declName + localSig + accessor + propTypeStr
+			}
+			wrap := common.NewNode(common.KindTypeMangling)
+			wrap.Text = text
+			rawPrefix := fmt.Sprintf("%d%s%d%s%c%sE", len(modName), modName, len(hostName), hostName, hostKind, constraintBytes)
+			wrap.Attrs = map[string]string{"swift.ext.rawPrefix": rawPrefix}
+			return wrap, true, nil
+		}
+	}
+
+	// Stored property (vp) and property descriptor (vpMV) terminals.
+	// vp  alone → stored property accessor
+	// vpMV      → property descriptor (MV = property-descriptor entity suffix)
+	if !p.eof() && p.s[p.i] == 'v' && p.i+1 < len(p.s) && p.s[p.i+1] == 'p' {
+		isDescriptor := p.i+3 < len(p.s) && p.s[p.i+2] == 'M' && p.s[p.i+3] == 'V'
+		if isDescriptor {
+			p.i += 4 // consume 'vpMV'
+		} else {
+			p.i += 2 // consume 'vp'
+		}
+		opts := common.DefaultPrintOptions()
+		propTypeStr := ""
+		if retNode != nil && common.NodeKind(retNode.Kind) != common.KindEmptyList {
+			propTypeStr = " : " + common.Print(retNode, opts)
+		}
+		var text string
+		if isDescriptor {
+			if crossModule {
+				// Simplified: no type annotation (matches Apple swift-demangle output).
+				text = "property descriptor for " + hostName + "." + declName
+			} else {
+				sig, sameTypeConstraint := extractConstraintSigFull(constraintBytes)
+				hostQualified := modName + "." + hostName
+				if sameTypeConstraint != "" {
+					hostQualified += "<" + sameTypeConstraint + ">"
+				}
+				localSig := ""
+				if len(localConstraints) > 0 {
+					localSig = "<A where " + strings.Join(localConstraints, ", ") + ">"
+				}
+				text = "property descriptor for (extension in " + modName + "):" +
+					hostQualified + sig + "." + declName + localSig + propTypeStr
+			}
+		} else {
+			// Stored property (vp): emit simplified or verbose.
+			if crossModule {
+				text = hostName + "." + declName + propTypeStr
+			} else {
+				sig, sameTypeConstraint := extractConstraintSigFull(constraintBytes)
+				hostQualified := modName + "." + hostName
+				if sameTypeConstraint != "" {
+					hostQualified += "<" + sameTypeConstraint + ">"
+				}
+				localSig := ""
+				if len(localConstraints) > 0 {
+					localSig = "<A where " + strings.Join(localConstraints, ", ") + ">"
+				}
+				text = "(extension in " + modName + "):" + hostQualified + sig +
+					"." + declName + localSig + propTypeStr
+			}
+		}
+		wrap := common.NewNode(common.KindTypeMangling)
+		wrap.Text = text
+		rawPrefix := fmt.Sprintf("%d%s%d%s%c%sE", len(modName), modName, len(hostName), hostName, hostKind, constraintBytes)
+		wrap.Attrs = map[string]string{"swift.ext.rawPrefix": rawPrefix}
+		return wrap, true, nil
+	}
+
+	// Initializer terminals: optional K (throws), then fC (allocating init)
+	// or fc (non-allocating init).
+	{
+		throwsInit := false
+		if !p.eof() && p.s[p.i] == 'K' {
+			throwsInit = true
+			p.i++
+		}
+		if !p.eof() && p.s[p.i] == 'f' && p.i+1 < len(p.s) &&
+			(p.s[p.i+1] == 'C' || p.s[p.i+1] == 'c') {
+			allocating := p.s[p.i+1] == 'C'
+			p.i += 2
+			// Build simplified init output: TypeName.init(labels:)
+			var labelStr string
+			if len(labels) == 0 {
+				labelStr = "()"
+			} else {
+				var parts []string
+				for _, lbl := range labels {
+					if lbl == "_" || lbl == "" {
+						parts = append(parts, "_:")
+					} else {
+						parts = append(parts, lbl+":")
+					}
+				}
+				labelStr = "(" + strings.Join(parts, "") + ")"
+			}
+			_ = throwsInit
+			_ = allocating
+			var text string
+			if crossModule {
+				text = hostName + ".init" + labelStr
+			} else {
+				opts := common.DefaultPrintOptions()
+				sig, sameTypeConstraint := extractConstraintSigFull(constraintBytes)
+				hostQualified := modName + "." + hostName
+				if sameTypeConstraint != "" {
+					hostQualified += "<" + sameTypeConstraint + ">"
+				}
+				localSig := ""
+				if len(localConstraints) > 0 {
+					localSig = "<A where " + strings.Join(localConstraints, ", ") + ">"
+				}
+				retStr := ""
+				if retNode != nil && common.NodeKind(retNode.Kind) != common.KindEmptyList {
+					retStr = " -> " + common.Print(retNode, opts)
+				}
+				// Build verbose params for same-module
+				var paramsStr string
+				switch {
+				case paramsNode == nil || common.NodeKind(paramsNode.Kind) == common.KindEmptyList:
+					paramsStr = "()"
+				case common.NodeKind(paramsNode.Kind) == common.KindTypeList:
+					opts2 := common.DefaultPrintOptions()
+					var parts []string
+					for idx, c := range paramsNode.Children {
+						s := common.Print(c, opts2)
+						if idx < len(labels) && labels[idx] != "" {
+							parts = append(parts, labels[idx]+": "+s)
+						} else {
+							parts = append(parts, s)
+						}
+					}
+					paramsStr = "(" + strings.Join(parts, ", ") + ")"
+				default:
+					opts2 := common.DefaultPrintOptions()
+					s := common.Print(paramsNode, opts2)
+					if len(labels) > 0 && labels[0] != "" {
+						s = labels[0] + ": " + s
+					}
+					paramsStr = "(" + s + ")"
+				}
+				_ = paramsStr
+				text = "(extension in " + modName + "):" + hostQualified + sig +
+					"." + declName + localSig + labelStr + retStr
+			}
+			wrap := common.NewNode(common.KindTypeMangling)
+			wrap.Text = text
+			rawPrefix := fmt.Sprintf("%d%s%d%s%c%sE", len(modName), modName, len(hostName), hostName, hostKind, constraintBytes)
+			wrap.Attrs = map[string]string{"swift.ext.rawPrefix": rawPrefix}
+			return wrap, true, nil
+		}
+		// Not an init terminal — undo the K we may have consumed.
+		if throwsInit {
+			p.i--
+		}
+	}
+
 	// Require 'F'.
 	if p.eof() || p.s[p.i] != 'F' {
 		restore()
@@ -4984,6 +5207,51 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 	if retNode != nil && common.NodeKind(retNode.Kind) != common.KindEmptyList {
 		retStr = common.Print(retNode, opts)
 	}
+	// Emit simplified format for cross-module extensions (digit-start constraints).
+	// Verbose format for same-module extensions (A-start or empty constraints).
+	if crossModule {
+		var labelOnlyStr string
+		switch {
+		case paramsNode == nil || common.NodeKind(paramsNode.Kind) == common.KindEmptyList:
+			labelOnlyStr = "()"
+		case common.NodeKind(paramsNode.Kind) == common.KindTypeList:
+			var parts []string
+			for idx := range paramsNode.Children {
+				lbl := ""
+				if idx < len(labels) {
+					lbl = labels[idx]
+				}
+				if lbl != "" && lbl != "_" {
+					parts = append(parts, lbl+":")
+				} else {
+					parts = append(parts, "_:")
+				}
+			}
+			labelOnlyStr = "(" + strings.Join(parts, "") + ")"
+		default:
+			lbl := ""
+			if len(labels) > 0 {
+				lbl = labels[0]
+			}
+			if lbl != "" && lbl != "_" {
+				labelOnlyStr = "(" + lbl + ":)"
+			} else {
+				labelOnlyStr = "(_:)"
+			}
+		}
+		// Generic type params: include if local constraints exist.
+		genericPart := ""
+		if len(localConstraints) > 0 {
+			genericPart = "<A>"
+		}
+		wrap := common.NewNode(common.KindTypeMangling)
+		wrap.Text = hostName + "." + declName + genericPart + labelOnlyStr
+		rawPrefix := fmt.Sprintf("%d%s%d%s%c%sE", len(modName), modName, len(hostName), hostName, hostKind, constraintBytes)
+		wrap.Attrs = map[string]string{"swift.ext.rawPrefix": rawPrefix}
+		funcIdent := common.NewIdentifier(declName)
+		common.AddChildren(wrap, funcIdent, paramsNode, retNode)
+		return wrap, true, nil
+	}
 	wrap := common.NewNode(common.KindTypeMangling)
 	wrap.Text = "(extension in " + modName + "):" + hostQualified + sig +
 		"." + declName + localSig + paramsStr + " -> " + retStr
@@ -4994,6 +5262,78 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 	funcIdent := common.NewIdentifier(declName)
 	common.AddChildren(wrap, funcIdent, paramsNode, retNode)
 	return wrap, true, nil
+}
+
+// tryAssocTypeDescriptor matches the associated-type-descriptor shape:
+//
+//	<N><assocTypeName> <M><moduleName> <K><protocolName> P Tl
+//
+// where each identifier is length-prefixed (possibly with word-substitution
+// encoding), P is the protocol kind byte, and Tl is the terminal suffix.
+//
+// Renders as: "associated type descriptor for <protocolName>.<assocTypeName>"
+//
+// Examples:
+//
+//	$s10Foreground7SwiftUI18LabelGroupStyle_v0PTl
+//	  → associated type descriptor for LabelGroupStyle_v0.Foreground
+//	$s10UIViewType7SwiftUI0A13RepresentablePTl
+//	  → associated type descriptor for UIViewRepresentable.UIViewType
+func (p *parser) tryAssocTypeDescriptor() (*demangle.Node, bool) {
+	if p.eof() || !(p.s[p.i] >= '0' && p.s[p.i] <= '9') {
+		return nil, false
+	}
+	save := p.i
+	saveSubs := p.subs
+	saveWords := p.words
+	restore := func() { p.i = save; p.subs = saveSubs; p.words = saveWords }
+
+	// Parse associated type name (first length-prefixed identifier).
+	assocTypeName, err := p.parseIdentifier()
+	if err != nil {
+		restore()
+		return nil, false
+	}
+
+	// Parse module name (second length-prefixed identifier).
+	if p.eof() || !(p.s[p.i] >= '0' && p.s[p.i] <= '9') {
+		restore()
+		return nil, false
+	}
+	_, err = p.parseIdentifier()
+	if err != nil {
+		restore()
+		return nil, false
+	}
+
+	// Parse protocol name (third length-prefixed identifier, possibly word-sub encoded).
+	if p.eof() || !(p.s[p.i] >= '0' && p.s[p.i] <= '9' || p.s[p.i] == '0') {
+		restore()
+		return nil, false
+	}
+	protoName, err := p.parseIdentifier()
+	if err != nil {
+		restore()
+		return nil, false
+	}
+
+	// Require P (protocol kind byte).
+	if p.eof() || p.s[p.i] != 'P' {
+		restore()
+		return nil, false
+	}
+	p.i++ // consume 'P'
+
+	// Require Tl (associated type descriptor suffix).
+	if p.i+1 >= len(p.s) || p.s[p.i] != 'T' || p.s[p.i+1] != 'l' {
+		restore()
+		return nil, false
+	}
+	p.i += 2 // consume 'Tl'
+
+	wrap := common.NewNode(common.KindTypeMangling)
+	wrap.Text = "associated type descriptor for " + protoName + "." + assocTypeName
+	return wrap, true
 }
 
 // extractConstraintSig turns a byte slice containing an Apple-style
