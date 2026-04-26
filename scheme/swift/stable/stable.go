@@ -6199,6 +6199,12 @@ afterNestedLoop:
 	// name, identical to the bare Protocol node.
 	if p.i+1 < len(p.s) && p.s[p.i] == '_' && p.s[p.i+1] == 'p' {
 		p.i += 2
+		// Mark the Type node as a protocol existential so the remangler
+		// emits '_p' instead of 'P' (the nominal-descriptor trailer).
+		if node.Attrs == nil {
+			node.Attrs = map[string]string{}
+		}
+		node.Attrs["swift.existential"] = "true"
 		// Optional parameterized-existential trailer: one or more
 		//   <generic-param> <ident> Rts
 		// constraint pairs, terminated by '_XP'. Each entry binds

@@ -382,16 +382,6 @@ func wordEnd(c, prevC byte) bool {
 	return wordIsUpper(c) && wordIsLower(prevC)
 }
 
-// wordExists reports whether w is already in r.words.
-func (r *remangler) wordExists(w string) bool {
-	for _, existing := range r.words {
-		if existing == w {
-			return true
-		}
-	}
-	return false
-}
-
 // wordRepl records a word substitution found in an identifier.
 type wordRepl struct {
 	stringPos int // byte offset in identifier text where the word starts
@@ -664,14 +654,12 @@ func (r *remangler) mangleType(n *demangle.Node) error {
 		}
 	}
 	child := n.Children[0]
-	if common.NodeKind(child.Kind) == common.KindProtocol {
+	if common.NodeKind(child.Kind) == common.KindProtocol &&
+		n.Attrs != nil && n.Attrs["swift.existential"] == "true" {
 		return r.mangleNominal(child, "_p")
 	}
 	return r.remangleNode(child)
 }
-
-// mangleProtocolExistential is intentionally not a separate method; the
-// existential path is inlined into mangleType above.
 
 // mangleNominal emits the context chain (all children) then the single-
 // character type-kind trailer, with a fast-path for known stdlib types.
@@ -729,18 +717,21 @@ func (r *remangler) stdlibToken(n *demangle.Node) (string, bool) {
 	return token, ok
 }
 
-// containsNonStdlibNominal returns true if n or any descendant is a nominal
-// type node (Structure, Class, Enum, Protocol, BoundGeneric*) whose module is
-// NOT the stdlib ("Swift").  Used to detect self-type return values in methods
-// where Apple would emit an A-substitution reference.
-func containsNonStdlibNominal(n *demangle.Node) bool {
+
+
+// containsPlainNonStdlibNominal reports whether n contains a plain nominal
+// (KindStructure/Class/Enum/Protocol) from a non-Swift module at any depth.
+// Unlike containsNonStdlibNominal, it returns false for KindBoundGenericXxx
+// nodes even when their base is non-stdlib — bound-generic returns are safe
+// for top-level functions because the base identifier has no word-table
+// overlap with the function name.
+func containsPlainNonStdlibNominal(n *demangle.Node) bool {
 	if n == nil {
 		return false
 	}
 	kind := common.NodeKind(n.Kind)
 	switch kind {
 	case common.KindStructure, common.KindClass, common.KindEnum, common.KindProtocol:
-		// Check if the first child (module) is "Swift".
 		if len(n.Children) >= 1 {
 			mod := n.Children[0]
 			if common.NodeKind(mod.Kind) == common.KindModule && mod.Text == "Swift" {
@@ -750,56 +741,14 @@ func containsNonStdlibNominal(n *demangle.Node) bool {
 		return true
 	case common.KindBoundGenericStructure, common.KindBoundGenericClass,
 		common.KindBoundGenericEnum, common.KindBoundGenericProtocol:
-		// For bound generics, check whether the base nominal type is stdlib.
-		// If the base is stdlib (e.g. Array, Optional, Dictionary), the bound
-		// generic itself is treated as stdlib (emitted via compact substitution
-		// such as "Sa" + "y" + args + "G").  Only flag as non-stdlib if the
-		// base nominal is non-stdlib OR if any type arg is non-stdlib.
-		if len(n.Children) >= 1 && !containsNonStdlibNominal(n.Children[0]) {
-			// Base is stdlib; check type-argument list (second child).
-			if len(n.Children) >= 2 {
-				return containsNonStdlibNominal(n.Children[1])
-			}
-			return false
-		}
-		return true
+		return false
 	}
 	for _, child := range n.Children {
-		if containsNonStdlibNominal(child) {
+		if containsPlainNonStdlibNominal(child) {
 			return true
 		}
 	}
 	return false
-}
-
-
-// collectStdlibTokens returns the set of compact stdlib substitution tokens
-// (e.g. "Si", "SS", "Sb") referenced in n or any descendant.  Used to detect
-// when args and ret share a stdlib type, which would cause Apple to emit a
-// compact "S<N>X" repetition reference that our remangler cannot reproduce.
-// Uses the reverseStdlib map rather than duplicating the stdlib table.
-func collectStdlibTokens(n *demangle.Node, out map[string]struct{}) {
-	if n == nil {
-		return
-	}
-	kind := common.NodeKind(n.Kind)
-	switch kind {
-	case common.KindStructure, common.KindClass, common.KindEnum:
-		if len(n.Children) >= 2 {
-			mod := n.Children[0]
-			name := n.Children[1]
-			if common.NodeKind(mod.Kind) == common.KindModule && mod.Text == "Swift" &&
-				common.NodeKind(name.Kind) == common.KindIdentifier {
-				tok, ok := reverseStdlib[stdlibKey{mod.Text, name.Text}]
-				if ok {
-					out[tok] = struct{}{}
-				}
-			}
-		}
-	}
-	for _, child := range n.Children {
-		collectStdlibTokens(child, out)
-	}
 }
 
 // directStdlibToken returns the stdlib compact token (e.g. "Si") if n is a
@@ -1209,23 +1158,14 @@ func (r *remangler) mangleFunctionEntity(n *demangle.Node) error {
 
 	isMethod := common.NodeKind(path.Kind) == common.KindEntityPath && len(path.Children) > 2
 
-	// Guard: non-stdlib nominal in the RETURN type.  For methods, Apple's
-	// mangleAnyNominalType pushes the surrounding class/struct node to the sub
-	// table during entity-path emission, so a self-type return uses an A-sub
-	// index our entity-path loop cannot reproduce (we only push identifier text).
-	// For top-level functions, the return type might be an identifier like "Vec3"
-	// where "Vec" is already in the word table from the function name ("addVec"),
-	// causing a partial word-ref encoding ("0C1X3") that differs from the
-	// compiler-produced literal ("4Vec3") — also unreproduc­ible byte-exactly.
-	if !retEmpty && containsNonStdlibNominal(ret) {
-		return r.unsupported(common.KindFunctionEntity)
-	}
-	// Guard: non-stdlib nominal in the ARGS for methods.  Top-level functions
-	// (entity path exactly 2 children: module + funcName) are safe because no
-	// nominal is in the entity-path sub-table, so both Apple's Remangler and ours
-	// emit non-stdlib argument types fresh (module-sub-ref + ident-sub-ref + trailer).
-	// Methods (≥3 children) are blocked conservatively as before.
-	if isMethod && !argsEmpty && containsNonStdlibNominal(args) {
+	// Guard: plain non-stdlib nominal in the RETURN type for top-level functions.
+	// For methods, mangleEntityPath (R18) now pushes each nominal to nodeSub, so
+	// a self-type return encodes via A-sub (safe). BoundGenericXxx returns are also
+	// safe for top-level: the base identifier has no word-table overlap with the
+	// function name. Only plain nominals in top-level functions risk a word-table
+	// collision (e.g. addVec() → Vec3 where "Vec" lands in the word table from
+	// the function name, producing a word-ref encoding we cannot reproduce).
+	if !isMethod && !retEmpty && containsPlainNonStdlibNominal(ret) {
 		return r.unsupported(common.KindFunctionEntity)
 	}
 
@@ -1307,17 +1247,37 @@ func (r *remangler) mangleFunctionEntity(n *demangle.Node) error {
 // For module-level functions the children are [Module, Identifier(funcName)].
 // For method paths, intermediate Identifier nodes carry Attrs["swift.nominalKind"]
 // (e.g. "C" for a class) which is emitted as a trailer byte after the identifier.
+// After each nominal-kind byte, the accumulated nominal is pushed to nodeSub so
+// that self-type return types and method arg types can back-ref via A-sub.
 func (r *remangler) mangleEntityPath(n *demangle.Node) error {
+	var accParent *demangle.Node
 	for _, child := range n.Children {
 		if err := r.remangleNode(child); err != nil {
 			return err
 		}
+		// Track the module node as the starting parent for nominal accumulation.
+		if common.NodeKind(child.Kind) == common.KindModule {
+			accParent = child
+		}
 		// Emit the nominal-kind trailer byte if stored (e.g. "V", "C", "O", "P").
-		// This byte was consumed by the parser when parsing method paths like
-		// "7CounterC5reset" (Counter is a class, kind='C').
 		if child.Attrs != nil {
 			if nk := child.Attrs["swift.nominalKind"]; nk != "" {
 				r.buf.WriteString(nk)
+				var nomKind common.NodeKind
+				switch nk {
+				case "V":
+					nomKind = common.KindStructure
+				case "O":
+					nomKind = common.KindEnum
+				case "P":
+					nomKind = common.KindProtocol
+				default:
+					nomKind = common.KindClass
+				}
+				nom := common.NewNode(nomKind)
+				common.AddChildren(nom, accParent, child)
+				r.pushNodeSub(nom)
+				accParent = nom
 			}
 		}
 	}
