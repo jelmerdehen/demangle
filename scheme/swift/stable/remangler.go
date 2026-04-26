@@ -231,6 +231,52 @@ func (r *remangler) remangleNode(n *demangle.Node) error {
 	// R30: builtin type name — handles dependent-member types like "A.Element".
 	case common.KindBuiltinTypeName:
 		return r.mangleBuiltinTypeName(n)
+	// R23: outlined entity emitter (WO* symbols).
+	case common.KindOutlined:
+		if len(n.Children) > 0 {
+			if err := r.remangleNode(n.Children[0]); err != nil {
+				return err
+			}
+		}
+		variant := ""
+		if n.Attrs != nil {
+			variant = n.Attrs["swift.outline"]
+		}
+		if variant == "" {
+			return r.unsupported(kind)
+		}
+		r.buf.WriteString("WO")
+		r.buf.WriteString(variant)
+		return nil
+	// R24: reabstraction thunk emitter (TR).
+	case common.KindReabstractionThunk:
+		switch len(n.Children) {
+		case 1:
+			if err := r.remangleNode(n.Children[0]); err != nil {
+				return err
+			}
+		case 2:
+			if err := r.remangleNode(n.Children[0]); err != nil {
+				return err
+			}
+			if err := r.remangleNode(n.Children[1]); err != nil {
+				return err
+			}
+		default:
+			return r.unsupported(kind)
+		}
+		r.buf.WriteString("TR")
+		return nil
+	// R24: partial-apply forwarder emitter (TA).
+	case common.KindPartialApplyForwarder:
+		if len(n.Children) == 0 {
+			return r.unsupported(kind)
+		}
+		if err := r.remangleNode(n.Children[0]); err != nil {
+			return err
+		}
+		r.buf.WriteString("TA")
+		return nil
 	default:
 		return r.unsupported(kind)
 	}
