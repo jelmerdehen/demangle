@@ -1063,3 +1063,83 @@ func TestRemangleFunctionArgRet(t *testing.T) {
 		t.Errorf("round-trip %q: got %q", sym, mRes.Output)
 	}
 }
+
+// ---------------------------------------------------------------------------
+// R8: TestRemangleBoundGenericArray
+//
+// Build BoundGenericStructure(Array, [Int]) by hand and verify the output is
+// "SaySiG" — the general bound-generic form.
+//   Sa  = Swift.Array (stdlib shortcut)
+//   y   = bound-generic open
+//   Si  = Swift.Int (stdlib shortcut for the type argument)
+//   G   = bound-generic close
+// ---------------------------------------------------------------------------
+
+func TestRemangleBoundGenericArray(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+
+	// Build BoundGenericStructure(base=Type(Structure(Swift.Array)), typeList=[Type(Structure(Swift.Int))])
+	arrayBase := common.NewNode(common.KindStructure)
+	common.AddChildren(arrayBase, common.NewModule("Swift"), common.NewIdentifier("Array"))
+	baseType := common.NewNode(common.KindType)
+	common.AddChildren(baseType, arrayBase)
+
+	intStruct := common.NewNode(common.KindStructure)
+	common.AddChildren(intStruct, common.NewModule("Swift"), common.NewIdentifier("Int"))
+	intType := common.NewNode(common.KindType)
+	common.AddChildren(intType, intStruct)
+
+	typeList := common.NewNode(common.KindTypeList)
+	common.AddChildren(typeList, intType)
+
+	bound := common.NewNode(common.KindBoundGenericStructure)
+	common.AddChildren(bound, baseType, typeList)
+
+	result, err := stable.Remangle(ctx, bound, demangle.Options{})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.Output != "SaySiG" {
+		t.Errorf("got %q, want %q", result.Output, "SaySiG")
+	}
+}
+
+// ---------------------------------------------------------------------------
+// R8: TestRemangleBoundGenericOptional
+//
+// Build BoundGenericEnum(Optional, [Int]) by hand and verify the output is
+// "SiSg" — the Optional sugar form.
+//   Si  = Swift.Int (the wrapped type argument)
+//   Sg  = Optional postfix sugar
+// ---------------------------------------------------------------------------
+
+func TestRemangleBoundGenericOptional(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+
+	// Build BoundGenericEnum(base=Type(Enum(Swift.Optional)), typeList=[Type(Structure(Swift.Int))])
+	optEnum := common.NewNode(common.KindEnum)
+	common.AddChildren(optEnum, common.NewModule("Swift"), common.NewIdentifier("Optional"))
+	baseType := common.NewNode(common.KindType)
+	common.AddChildren(baseType, optEnum)
+
+	intStruct := common.NewNode(common.KindStructure)
+	common.AddChildren(intStruct, common.NewModule("Swift"), common.NewIdentifier("Int"))
+	intType := common.NewNode(common.KindType)
+	common.AddChildren(intType, intStruct)
+
+	typeList := common.NewNode(common.KindTypeList)
+	common.AddChildren(typeList, intType)
+
+	bound := common.NewNode(common.KindBoundGenericEnum)
+	common.AddChildren(bound, baseType, typeList)
+
+	result, err := stable.Remangle(ctx, bound, demangle.Options{})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.Output != "SiSg" {
+		t.Errorf("got %q, want %q", result.Output, "SiSg")
+	}
+}

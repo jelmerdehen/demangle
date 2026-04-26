@@ -215,6 +215,16 @@ func (r *remangler) remangleNode(n *demangle.Node) error {
 		return r.mangleInitDeinit(n, "cfD")
 	case common.KindDeinit:
 		return r.mangleInitDeinit(n, "cfd")
+	// R8: bound-generic emitters.
+	case common.KindBoundGenericStructure, common.KindBoundGenericClass, common.KindBoundGenericProtocol:
+		return r.mangleBoundGeneric(n)
+	case common.KindBoundGenericEnum:
+		return r.mangleBoundGenericEnum(n)
+	case common.KindTypeList:
+		return r.mangleTypeList(n)
+	// R10: function-type emitter.
+	case common.KindFunctionType:
+		return r.mangleFunctionType(n)
 	default:
 		return r.unsupported(kind)
 	}
@@ -992,4 +1002,166 @@ func (r *remangler) mangleTupleElement(n *demangle.Node) error {
 		return r.unsupported(common.KindTupleElement)
 	}
 	return r.remangleNode(n.Children[0])
+}
+
+// ---------------------------------------------------------------------------
+// R8: BoundGeneric emitters
+// Reference: Remangler.cpp mangleBoundGenericType / mangleAnyGenericType
+// ---------------------------------------------------------------------------
+
+// mangleBoundGeneric handles KindBoundGenericStructure, KindBoundGenericClass,
+// and KindBoundGenericProtocol.  These use the general bound-generic form:
+//
+//	<base> 'y' <arg1> <arg2> ... 'G'
+//
+// e.g. Array<Int> → "SaySiG"
+func (r *remangler) mangleBoundGeneric(n *demangle.Node) error {
+	if idx, ok := r.checkNodeSub(n); ok {
+		r.mangleSubIndex(idx)
+		return nil
+	}
+	return r.mangleBoundGenericImpl(n)
+}
+
+// mangleBoundGenericEnum handles KindBoundGenericEnum, with special sugar for
+// Optional<T> which becomes <T>Sg instead of the general form.
+func (r *remangler) mangleBoundGenericEnum(n *demangle.Node) error {
+	if idx, ok := r.checkNodeSub(n); ok {
+		r.mangleSubIndex(idx)
+		return nil
+	}
+	// Optional sugar: BoundGenericEnum(Optional, [T]) → <T>Sg
+	if len(n.Children) == 2 {
+		base := n.Children[0]
+		typeList := n.Children[1]
+		if r.isOptionalBase(base) && len(typeList.Children) == 1 {
+			if err := r.remangleNode(typeList.Children[0]); err != nil {
+				return err
+			}
+			r.buf.WriteString("Sg")
+			r.pushNodeSub(n)
+			return nil
+		}
+	}
+	return r.mangleBoundGenericImpl(n)
+}
+
+// isOptionalBase returns true when base is the Swift.Optional enum node.
+// It peeks through a KindType wrapper if present.
+func (r *remangler) isOptionalBase(base *demangle.Node) bool {
+	n := base
+	if common.NodeKind(n.Kind) == common.KindType && len(n.Children) > 0 {
+		n = n.Children[0]
+	}
+	tok, ok := r.stdlibToken(n)
+	return ok && tok == "Sq"
+}
+
+// mangleBoundGenericImpl emits the general bound-generic encoding:
+//
+//	<base> 'y' <args...> 'G'
+//
+// Used by mangleBoundGeneric and mangleBoundGenericEnum (non-Optional path).
+func (r *remangler) mangleBoundGenericImpl(n *demangle.Node) error {
+	if len(n.Children) < 2 {
+		return r.unsupported(common.NodeKind(n.Kind))
+	}
+	if err := r.remangleNode(n.Children[0]); err != nil {
+		return err
+	}
+	r.buf.WriteByte('y')
+	typeList := n.Children[1]
+	for _, arg := range typeList.Children {
+		if err := r.remangleNode(arg); err != nil {
+			return err
+		}
+	}
+	r.buf.WriteByte('G')
+	r.pushNodeSub(n)
+	return nil
+}
+
+// mangleTypeList emits each child of a KindTypeList node in order.
+// Types are self-delimiting in Swift mangling so no separator is needed.
+func (r *remangler) mangleTypeList(n *demangle.Node) error {
+	for _, child := range n.Children {
+		if err := r.remangleNode(child); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// ---------------------------------------------------------------------------
+// R10: FunctionType emitter
+// Reference: Remangler.cpp mangleFunctionType
+// ---------------------------------------------------------------------------
+
+// mangleFunctionType emits a KindFunctionType node.
+//
+// Children layout: [0]=result type, [1]=params type.
+// Attrs["swift.conv"]: "" (default/escaping → 'c'), "c" → "XC", "block" → "XB",
+// "thin" → "XT", "method" → "XF", "objc_method" → "XK".
+//
+// Swift mangling form: <result> <params> <convention-trailer>
+// Examples:
+//
+//	() -> ()   = "yyc"   (result=y, params=y, c=escaping)
+//	(Int)->()  = "ySic"  (result=y, params=Si, c)
+//	()->Int    = "Siyc"  (result=Si, params=y, c)
+func (r *remangler) mangleFunctionType(n *demangle.Node) error {
+	if len(n.Children) < 2 {
+		return r.unsupported(common.KindFunctionType)
+	}
+	result := n.Children[0]
+	params := n.Children[1]
+	// Emit result type ('y' for void EmptyList).
+	if err := r.remangleNode(result); err != nil {
+		return err
+	}
+	// Emit params type ('y' for void EmptyList, or tuple form for TypeList).
+	if common.NodeKind(params.Kind) == common.KindTypeList {
+		if err := r.mangleFunctionTypeParams(params); err != nil {
+			return err
+		}
+	} else {
+		if err := r.remangleNode(params); err != nil {
+			return err
+		}
+	}
+	// Emit convention trailer.
+	conv := ""
+	if n.Attrs != nil {
+		conv = n.Attrs["swift.conv"]
+	}
+	switch conv {
+	case "c":
+		r.buf.WriteString("XC")
+	case "block":
+		r.buf.WriteString("XB")
+	case "thin":
+		r.buf.WriteString("XT")
+	case "method":
+		r.buf.WriteString("XF")
+	case "objc_method":
+		r.buf.WriteString("XK")
+	default:
+		r.buf.WriteByte('c')
+	}
+	return nil
+}
+
+// mangleFunctionTypeParams emits multi-param TypeList as a tuple param encoding:
+// each element separated by '_', followed by 't'.
+func (r *remangler) mangleFunctionTypeParams(tl *demangle.Node) error {
+	for i, child := range tl.Children {
+		if i > 0 {
+			r.buf.WriteByte('_')
+		}
+		if err := r.remangleNode(child); err != nil {
+			return err
+		}
+	}
+	r.buf.WriteByte('t')
+	return nil
 }
