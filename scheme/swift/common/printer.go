@@ -52,6 +52,11 @@ func printNode(b *strings.Builder, n *demangle.Node, opts PrintOptions) {
 	case KindTypeMangling:
 		if n.Text != "" {
 			b.WriteString(n.Text)
+			// Z-wrapper (swift.static): text is complete; child is for
+			// remangler only — skip printing it.
+			if n.Attrs != nil && n.Attrs["swift.static"] == "true" {
+				return
+			}
 		}
 		for _, c := range n.Children {
 			printNode(b, c, opts)

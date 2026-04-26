@@ -1301,7 +1301,19 @@ func (r *remangler) mangleEntityPath(n *demangle.Node) error {
 // mangleEntitySuffix remangles an entity-suffix wrapper node.
 // The node has Attrs["swift.suffix"] = the raw suffix bytes (e.g. "Ma", "WP")
 // and one child which is the inner nominal type.
+// R21: When Attrs["swift.static"] == "true", the child is the structural
+// entity (FunctionEntity, AllocatingInit, etc.); remangle it then emit 'Z'.
 func (r *remangler) mangleEntitySuffix(n *demangle.Node) error {
+	if n.Attrs != nil && n.Attrs["swift.static"] == "true" {
+		if len(n.Children) == 0 {
+			return r.unsupported(common.KindTypeMangling)
+		}
+		if err := r.remangleNode(n.Children[0]); err != nil {
+			return err
+		}
+		r.buf.WriteByte('Z')
+		return nil
+	}
 	suffix := ""
 	if n.Attrs != nil {
 		suffix = n.Attrs["swift.suffix"]

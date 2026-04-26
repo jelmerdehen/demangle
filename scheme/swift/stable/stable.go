@@ -367,6 +367,11 @@ func (p *parser) parseGlobal() (*demangle.Node, error) {
 		innerStr := common.Print(inner, common.DefaultPrintOptions())
 		wrap := common.NewNode(common.KindTypeMangling)
 		wrap.Text = "static " + innerStr
+		wrap.Attrs = map[string]string{"swift.static": "true"}
+		// Carry the structural inner node so the remangler can emit 'F'+'Z'
+		// or '<suffix>'+'Z' without text-parsing. For fallback (already-
+		// TypeMangling) inners this child is present but harmless.
+		common.AddChildren(wrap, inner)
 		inner = wrap
 	}
 	// Nested variable sub-entity with LocalDeclName:
