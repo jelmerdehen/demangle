@@ -3339,15 +3339,15 @@ func (p *parser) tryVariableEntity() (*demangle.Node, bool, error) {
 	case 'p':
 		prefix = ""
 	case 'g':
-		prefix = "getter for "
+		pathSuffix = ".getter"
 	case 's':
-		prefix = "setter for "
+		pathSuffix = ".setter"
 	case 'w':
-		prefix = "willSet for "
+		pathSuffix = ".willset"
 	case 'W':
-		prefix = "didSet for "
+		pathSuffix = ".didset"
 	case 'M':
-		prefix = "materializeForSet for "
+		pathSuffix = ".modify"
 	case 'a':
 		prefix = "unsafeAddressor for "
 	case 'm':
@@ -3379,7 +3379,9 @@ func (p *parser) tryVariableEntity() (*demangle.Node, bool, error) {
 		common.AddChildren(node, typ)
 		return node, true, nil
 	}
-	// Build display: <prefix><static?><path><suffix?> : <type>
+	// Build display: <static?><path><suffix?> : <type>
+	// Accessor kinds (g/s/w/W/M/r/y/x/i) use dot-suffix form: path.getter : T.
+	// Legacy addressors (a/m) still use prefix form for now.
 	opts := common.DefaultPrintOptions()
 	path := common.NewNode(common.KindEntityPath)
 	common.AddChildren(path, pathSteps...)
@@ -3726,10 +3728,24 @@ func (p *parser) tryConformanceDescriptor(inner *demangle.Node) (*demangle.Node,
 	return wrap, true
 }
 
-// tryEntitySuffix matches the common 2-letter runtime-record and
-// descriptor markers that appear after a nominal type or function
-// entity. Returns (wrapped, consumed) — unchanged on no-match.
+// tryEntitySuffix matches the common runtime-record and descriptor markers
+// that appear after a nominal type or function entity. Handles both 1-byte
+// (e.g. 'N' = type metadata) and 2-byte (e.g. 'Mn' = nominal type descriptor)
+// suffixes. Returns (wrapped, consumed) — unchanged on no-match.
 func (p *parser) tryEntitySuffix(inner *demangle.Node) (*demangle.Node, bool) {
+	if p.eof() {
+		return inner, false
+	}
+	// Handle 1-byte suffixes first.
+	if p.s[p.i] == 'N' {
+		// N = type metadata for <type>
+		p.i++
+		innerStr := common.Print(inner, common.DefaultPrintOptions())
+		wrap := common.NewNode(common.KindTypeMangling)
+		wrap.Text = "type metadata for " + innerStr
+		wrap.Attrs = map[string]string{"swift.suffix": "N"}
+		return wrap, true
+	}
 	if p.i+1 >= len(p.s) {
 		return inner, false
 	}
@@ -3759,7 +3775,7 @@ func (p *parser) tryEntitySuffix(inner *demangle.Node) (*demangle.Node, bool) {
 		case 'M':
 			prefix = "metadata instantiation function for "
 		case 'V':
-			prefix = "protocol-witness-table instantiation function for "
+			prefix = "property descriptor for "
 		case 'B':
 			prefix = "buffer metadata for "
 		case 'r':
@@ -4128,26 +4144,42 @@ func (p *parser) tryEntitySuffix(inner *demangle.Node) (*demangle.Node, bool) {
 	case 'v':
 		// Variable / property markers. `<type>v<kind>`:
 		//   vp  — property
-		//   vg  — getter
-		//   vs  — setter
-		//   vw  — willSet
-		//   vW  — didSet
-		//   vM  — materializeForSet
+		//   vg  — getter       → "path.getter"
+		//   vs  — setter       → "path.setter"
+		//   vw  — willSet      → "path.willset"
+		//   vW  — didSet       → "path.didset"
+		//   vM  — modify       → "path.modify"
 		//   va  — addressor (unsafe addressor)
 		//   vm  — modifier (mutable addressor)
+		//
+		// Accessor kinds use dot-suffix form consistent with Apple's printer.
+		// For accessors (g/s/w/W/M), compute the display text immediately and
+		// return; legacy addressors (a/m) fall through to prefix form.
+		var accessor string
+		switch p.s[p.i+1] {
+		case 'g':
+			accessor = ".getter"
+		case 's':
+			accessor = ".setter"
+		case 'w':
+			accessor = ".willset"
+		case 'W':
+			accessor = ".didset"
+		case 'M':
+			accessor = ".modify"
+		}
+		if accessor != "" {
+			sfx := string(p.s[p.i : p.i+2])
+			p.i += 2
+			innerStr := common.Print(inner, common.DefaultPrintOptions())
+			wrap := common.NewNode(common.KindTypeMangling)
+			wrap.Text = innerStr + accessor
+			wrap.Attrs = map[string]string{"swift.suffix": sfx}
+			return wrap, true
+		}
 		switch p.s[p.i+1] {
 		case 'p':
 			prefix = "property "
-		case 'g':
-			prefix = "getter for "
-		case 's':
-			prefix = "setter for "
-		case 'w':
-			prefix = "willSet observer of "
-		case 'W':
-			prefix = "didSet observer of "
-		case 'M':
-			prefix = "materializeForSet for "
 		case 'a':
 			prefix = "addressor for "
 		case 'm':

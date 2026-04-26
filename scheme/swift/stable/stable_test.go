@@ -199,9 +199,9 @@ func TestStableFunctionEntities(t *testing.T) {
 		{"$s4main3arrSaySiGSgvp", "main.arr : [Swift.Int]?"},
 		// Nested var: main.Foo.b : String (struct Foo holding a property b)
 		{"$s4main3FooV1bSSvp", "main.Foo.b : Swift.String"},
-		// Nested var getter: class Foo's property n getter
-		{"$s4main3FooC1nSivg", "getter for main.Foo.n : Swift.Int"},
-		{"$s4main3FooC1nSivs", "setter for main.Foo.n : Swift.Int"},
+		// Nested var getter: class Foo's property n getter (Apple dot-suffix format)
+		{"$s4main3FooC1nSivg", "main.Foo.n.getter : Swift.Int"},
+		{"$s4main3FooC1nSivs", "main.Foo.n.setter : Swift.Int"},
 		// Function taking Optional<Int> single arg
 		{"$s4main3fooyySiSgF", "main.foo(Swift.Int?) -> ()"},
 		// Function returning Optional<Int>
@@ -210,9 +210,9 @@ func TestStableFunctionEntities(t *testing.T) {
 		{"$s4main3fooySiSg_SStF", "main.foo(Swift.Int?, Swift.String) -> ()"},
 		// Protocol-context function entity.
 		{"$s4main3FooP3fooyyF", "main.Foo.foo() -> ()"},
-		// Static property + static getter (Z marker).
+		// Static property + static getter (Z marker) — Apple dot-suffix format.
 		{"$s4main3FooV4propSivpZ", "static main.Foo.prop : Swift.Int"},
-		{"$s4main3FooV4propSivgZ", "getter for static main.Foo.prop : Swift.Int"},
+		{"$s4main3FooV4propSivgZ", "static main.Foo.prop.getter : Swift.Int"},
 		// Generic-param tuple: foo(A, B) -> ()
 		{"$s4main3fooyyx_q_tF", "main.foo(A, B) -> ()"},
 		// Mixed: Int + generic-param A as params.
@@ -353,7 +353,11 @@ func TestStableEntitySuffixes(t *testing.T) {
 		{"$s4main3fooyyFTA", "partial apply forwarder for main.foo() -> ()"},
 		{"$s4main3fooyyFTj", "dispatch thunk of main.foo() -> ()"},
 		{"$s4main3FooVvp", "property main.Foo"},
-		{"$s4main3FooVvg", "getter for main.Foo"},
+		{"$s4main3FooVvg", "main.Foo.getter"},
+		// Property descriptor: vp + MV suffix.
+		{"$s4main3FooV4propSivpMV", "property descriptor for main.Foo.prop : Swift.Int"},
+		// Type metadata: nominal type + N suffix.
+		{"$s4main3FooVN", "type metadata for main.Foo"},
 		// Unmangled suffix.
 		{"$s4main3fooyyF.1", "main.foo() -> () with unmangled suffix \".1\""},
 		{"$s4main3fooyyFTA.1", "partial apply forwarder for main.foo() -> () with unmangled suffix \".1\""},
