@@ -57,3 +57,28 @@ $sBAIeNghHgIL_BAytIeNghHgILr_TR
 //   - .foo suffix: unmangled suffixes are noted in display text but not in the AST
 $s4test7genFuncyyx_q_tr0_lFSi_SbTtt1g5
 $s4main8MyStructV3fooyyFAA1XV_Tg5.foo
+
+// Remangler round-trip gaps (pre-existing; tracked for A2 CI gate):
+// Substitution back-reference S2d/_$s ObjC prefix.
+_$sSC3fooyS2d_SdtFTO
+// Protocol suffix Hr vs PHr (remangler emits PHr, oracle wants Hr).
+$ss6SimpleHr
+// Substitution table back-reference mismatch in protocol iterator + keypath.
+$s4Test5ProtoP8IteratorV10collectionAEy_qd__Gqd___tcfc
+$s18keypaths_inlinable13KeypathStructV8computedSSvpACTKq
+// XE noescape closure annotation remangler gap.
+$sSo17OS_dispatch_queueC4sync7executeyyyXE_tFTOTA
+// Double-y (yy) function param annotation remangler gap.
+$s4main1gyySiXCvp
+$s4main1gyySiXBvp
+// Inout z-modifier remangler gap.
+$s4main20receiveInstantiationyySo34__CxxTemplateInst12MagicWrapperIiEVzF
+// S2f Float substitution back-reference (autodiff context).
+$s13test_mangling3fooyS2f_S2ftFTJfUSSpSr
+// Actor isolation Yi / typed-throws YK / caller-isolation YT / unspecified Yu.
+$s1t10globalFuncyyAA7MyActorCYiF
+$s12typed_throws15rethrowConcreteyyAA7MyErrorOYKF
+$s4testAAyAA5KlassC_ACtACnYTF
+$s5test24testyyAA5KlassCnYuF
+$s4testA2A5KlassCyYTF
+$s4null19transferAsyncResultAA16NonSendableKlassCyYaYTF
