@@ -327,26 +327,24 @@ func (r *remangler) mangleIdentifier(n *demangle.Node) error {
 		r.pushIdentSub(text)
 		return nil
 	}
-	// R3: Check if the pure-ASCII identifier can be expressed as word refs.
-	// Full coverage: emit "0<refs>0" form.  (ManglingUtils.h lines 192–242)
-	// Partial coverage: emit "0<refs><len><literal>" form when a prefix
-	// is covered by word refs and the remainder is a literal suffix.
-	if refs, ok := r.matchWordRefs(text); ok {
-		r.emitWordRefs(refs, text)
-		// R4: push to subs even for word-ref form (Apple does so).
-		r.pushIdentSub(text)
-		return nil
-	}
-	if refs, covered, ok := r.matchPartialWordRefs(text); ok {
-		r.emitPartialWordRefs(refs, text, covered)
-		// R4: push to subs.
-		r.pushIdentSub(text)
-		return nil
-	}
-	// Pure ASCII fallback: <length><bytes>.
-	fmt.Fprintf(&r.buf, "%d%s", len(text), text)
-	// R3: Capture words from the literal for future word-substitution.
-	r.captureWords(text)
+	// R3: Word-substitution encoding.
+	// Mirrors ManglingUtils.h::mangleIdentifier (lines 127–243).
+	//
+	// Apple's algorithm:
+	//   1. Scan the identifier for word boundaries (camelCase rules).
+	//   2. For each word at a boundary, check if it appears in the word table.
+	//      If so, record a word-substitution at that position.
+	//   3. If any substitutions were found, emit '0' then interleave literal
+	//      segments and word-ref letters (lowercase = non-final, uppercase =
+	//      final), with a trailing '0' if the last word ref reaches the end.
+	//   4. Add any NEW words (not in table, length ≥ 2) to the word table.
+	//
+	// This handles all three forms:
+	//   • "0<refs>0"                    — fully covered by word refs
+	//   • "0<len><literal><refs>0"      — literal prefix + word-ref suffix
+	//   • "0<refs><len><literal>"       — word-ref prefix + literal suffix
+	//   • mixed (interleaved literal/refs segments)
+	r.mangleIdentifierWithWordSubs(text)
 	// R4: push to subs after emission.
 	r.pushIdentSub(text)
 	return nil
@@ -370,54 +368,18 @@ func wordIsUpper(c byte) bool { return c >= 'A' && c <= 'Z' }
 func wordIsLower(c byte) bool { return c >= 'a' && c <= 'z' }
 
 // wordStart reports whether c begins a word.
-// Mirrors Go parser's captureWords and Apple's isWordStart (ManglingUtils.h:45):
+// Mirrors Apple's isWordStart (ManglingUtils.h:45):
 // any letter or underscore starts a word.
 func wordStart(c byte) bool { return wordIsLetter(c) || c == '_' }
 
 // wordEnd reports whether c (following prevC) ends the current word.
-// Mirrors Go parser's captureWords and Apple's isWordEnd (ManglingUtils.h:51):
+// Mirrors Apple's isWordEnd (ManglingUtils.h:51):
 // end if c is not a letter, or if c is uppercase and prevC is lowercase.
 func wordEnd(c, prevC byte) bool {
 	if !wordIsLetter(c) {
 		return true
 	}
 	return wordIsUpper(c) && wordIsLower(prevC)
-}
-
-// captureWords scans text and appends any found words (length ≥ 2) to
-// r.words, up to the 26-entry cap.  Mirrors Apple's word-capture loop in
-// ManglingUtils.h::mangleIdentifier (lines 147–185) and the Go parser's
-// captureWords closure in parseIdentifier (stable.go:8886).
-func (r *remangler) captureWords(text string) {
-	wordStartPos := -1
-	for i := 0; i <= len(text); i++ {
-		var c byte
-		if i < len(text) {
-			c = text[i]
-		}
-		// Check for word end.
-		if wordStartPos >= 0 {
-			end := (i == len(text)) // natural end
-			if !end && wordEnd(c, text[i-1]) {
-				end = true
-			}
-			if end {
-				wlen := i - wordStartPos
-				if wlen >= 2 && len(r.words) < 26 {
-					word := text[wordStartPos:i]
-					// Only add if not already present.
-					if !r.wordExists(word) {
-						r.words = append(r.words, word)
-					}
-				}
-				wordStartPos = -1
-			}
-		}
-		// Check for word start.
-		if wordStartPos < 0 && i < len(text) && wordStart(c) {
-			wordStartPos = i
-		}
-	}
 }
 
 // wordExists reports whether w is already in r.words.
@@ -430,119 +392,151 @@ func (r *remangler) wordExists(w string) bool {
 	return false
 }
 
-// wordRefList is a slice of (start, wordIdx) pairs covering the full text.
-type wordRefList = []struct{ start, wordIdx int }
-
-// matchWordRefs returns the list of word-ref pairs if text can be fully
-// expressed as a sequence of word refs, or (nil, false) otherwise.
-// (ManglingUtils.h lines 156–184: lookupWord for existing words)
-func (r *remangler) matchWordRefs(text string) (wordRefList, bool) {
-	if len(r.words) == 0 || text == "" {
-		return nil, false
-	}
-	// Greedy cover: at each position, find the longest matching word.
-	var refs wordRefList
-	pos := 0
-	for pos < len(text) {
-		best := -1
-		bestLen := 0
-		for i, w := range r.words {
-			if len(w) > bestLen && strings.HasPrefix(text[pos:], w) {
-				best = i
-				bestLen = len(w)
-			}
-		}
-		if best < 0 {
-			return nil, false
-		}
-		refs = append(refs, struct{ start, wordIdx int }{pos, best})
-		pos += bestLen
-	}
-	return refs, true
+// wordRepl records a word substitution found in an identifier.
+type wordRepl struct {
+	stringPos int // byte offset in identifier text where the word starts
+	wordIdx   int // index in r.words (-1 = sentinel/no-subst)
 }
 
-// emitWordRefs emits the "0<letters>" word-ref form for the given refs.
-// Lowercase a-z for non-final refs; uppercase A-Z for the final ref;
-// trailing "0" if position after final ref equals len(text) (full coverage).
-// (ManglingUtils.h lines 192–242)
-func (r *remangler) emitWordRefs(refs wordRefList, text string) {
-	r.buf.WriteByte('0') // word-sub prefix
-	end := len(refs)
-	pos := 0
-	for i, ref := range refs {
-		idx := ref.wordIdx
-		pos += len(r.words[idx])
-		isLast := (i == end-1)
-		if isLast {
-			// Last ref → uppercase letter.
-			r.buf.WriteByte(byte('A' + idx))
-			// Trailing '0' if full coverage (pos == len(text)).
-			if pos == len(text) {
-				r.buf.WriteByte('0')
-			}
-		} else {
-			// Non-final → lowercase letter.
-			r.buf.WriteByte(byte('a' + idx))
-		}
+// mangleIdentifierWithWordSubs implements Apple's full word-substitution
+// encoding for a pure-ASCII identifier.
+//
+// Reference: ManglingUtils.h::mangleIdentifier (lines 127–243).
+//
+// Algorithm:
+//  1. Scan for word boundaries (camelCase); look up each word in r.words.
+//  2. If any substitutions found, emit '0' then interleave literal segments
+//     and word-ref letters (lowercase = non-final, uppercase = final with
+//     optional trailing '0' for full-coverage).
+//  3. Add new words (len ≥ 2, not already present) to r.words.
+//  4. Fallback: emit plain '<len><text>' if no substitutions.
+func (r *remangler) mangleIdentifierWithWordSubs(text string) {
+	if len(text) == 0 {
+		r.buf.WriteByte('0')
+		return
 	}
-}
 
-// matchPartialWordRefs returns the list of word-ref pairs and the number of
-// bytes covered if text starts with one or more word refs but cannot be fully
-// expressed as word refs (partial prefix coverage).  Returns (nil, 0, false)
-// if no prefix is coverable or full coverage is possible (use matchWordRefs).
-// (ManglingUtils.h partial-word-ref encoding: "0<refs><len><literal>")
-func (r *remangler) matchPartialWordRefs(text string) (wordRefList, int, bool) {
-	if len(r.words) == 0 || text == "" {
-		return nil, 0, false
+	wordsInBufBefore := len(r.words) // word-table size before this identifier
+	var substWords []wordRepl        // substitutions found (position + wordIdx)
+	var newWords []wordRepl          // new words to add after (position + wordIdx=-1, length via r.words)
+
+	// First pass: scan for word boundaries and look up each word.
+	wordStartPos := -1
+	for i := 0; i <= len(text); i++ {
+		var ch byte
+		if i < len(text) {
+			ch = text[i]
+		}
+		// Detect word end.
+		if wordStartPos >= 0 {
+			atEnd := i == len(text)
+			if !atEnd && !wordEnd(ch, text[i-1]) {
+				// Word continues.
+				goto checkWordStart
+			}
+			// Word ended at position i.
+			wLen := i - wordStartPos
+			word := text[wordStartPos:i]
+
+			// Look up in words from the already-mangled buffer (indices 0..wordsInBufBefore-1).
+			foundIdx := -1
+			for idx := 0; idx < wordsInBufBefore; idx++ {
+				if r.words[idx] == word {
+					foundIdx = idx
+					break
+				}
+			}
+			// Also look up in words captured within this identifier (indices wordsInBufBefore..).
+			if foundIdx < 0 {
+				for idx := wordsInBufBefore; idx < len(r.words); idx++ {
+					if r.words[idx] == word {
+						foundIdx = idx
+						break
+					}
+				}
+			}
+			if foundIdx >= 0 {
+				// Word substitution found.
+				substWords = append(substWords, wordRepl{wordStartPos, foundIdx})
+			} else if wLen >= 2 && len(r.words) < 26 {
+				// New word: add to table now so later words in this identifier
+				// can reference it.  Store position relative to identifier start
+				// for now; we'll fix up to buffer position after emission.
+				r.words = append(r.words, word)
+				newWords = append(newWords, wordRepl{wordStartPos, len(r.words) - 1})
+			}
+			wordStartPos = -1
+		}
+	checkWordStart:
+		if wordStartPos < 0 && i < len(text) && wordStart(ch) {
+			wordStartPos = i
+		}
 	}
-	// Greedy cover from the start.
-	var refs wordRefList
+
+	if len(substWords) == 0 {
+		// No word substitutions: plain '<len><text>' form.
+		// New words were already added to r.words during the scan above;
+		// they are stored as word TEXT (not buffer positions), so no fix-up needed.
+		fmt.Fprintf(&r.buf, "%d", len(text))
+		for i := 0; i < len(text); i++ {
+			ch := text[i]
+			if i == 0 && ch >= '0' && ch <= '9' {
+				// Apple emits 'X' before a leading digit in a literal segment.
+				r.buf.WriteByte('X')
+			}
+			r.buf.WriteByte(ch)
+		}
+		_ = newWords // new words already in r.words; nothing to fix up
+		return
+	}
+
+	// Have word substitutions: emit '0' + interleaved literal/word-ref segments.
+	r.buf.WriteByte('0')
+
+	// Add a sentinel at the end.
+	substWords = append(substWords, wordRepl{len(text), -1})
+
 	pos := 0
-	for pos < len(text) {
-		best := -1
-		bestLen := 0
-		for i, w := range r.words {
-			if len(w) > bestLen && strings.HasPrefix(text[pos:], w) {
-				best = i
-				bestLen = len(w)
+	for idx := 0; idx < len(substWords); idx++ {
+		repl := substWords[idx]
+		isLast := (idx == len(substWords)-2) // last real (non-sentinel) substitution
+
+		// Emit literal segment from pos to repl.stringPos.
+		if pos < repl.stringPos {
+			segLen := repl.stringPos - pos
+			fmt.Fprintf(&r.buf, "%d", segLen)
+			for i := pos; i < repl.stringPos; i++ {
+				ch := text[i]
+				if i == pos && (ch >= '0' && ch <= '9') {
+					r.buf.WriteByte('X') // guard digit
+				}
+				r.buf.WriteByte(ch)
+			}
+			pos = repl.stringPos
+		}
+		// Emit word ref (unless sentinel).
+		if repl.wordIdx >= 0 {
+			wLen := len(r.words[repl.wordIdx])
+			pos += wLen
+			// Determine if this is the last real substitution.
+			isRealLast := isLast || (idx < len(substWords)-2 && substWords[idx+1].wordIdx < 0)
+			_ = isRealLast
+			// Apple: non-final = lowercase; last = uppercase + '0' if full coverage.
+			// "Last" here means it's the last word-ref in the sequence before
+			// more literal chars OR end of string.
+			// Simplification matching Apple: uppercase for the LAST subst in list,
+			// lowercase otherwise.
+			if idx == len(substWords)-2 {
+				// Last real substitution.
+				r.buf.WriteByte(byte('A' + repl.wordIdx))
+				if pos == len(text) {
+					r.buf.WriteByte('0') // full coverage
+				}
+			} else {
+				r.buf.WriteByte(byte('a' + repl.wordIdx))
 			}
 		}
-		if best < 0 {
-			break
-		}
-		refs = append(refs, struct{ start, wordIdx int }{pos, best})
-		pos += bestLen
 	}
-	// Only useful if we covered a non-empty prefix but not the whole string.
-	if pos == 0 || pos == len(text) {
-		return nil, 0, false
-	}
-	return refs, pos, true
-}
-
-// emitPartialWordRefs emits the "0<refs><len><literal>" form for partial coverage.
-// refs cover text[0:covered]; text[covered:] is emitted as a literal length+bytes.
-// The last ref letter is uppercase (no trailing '0' since not fully covered).
-func (r *remangler) emitPartialWordRefs(refs wordRefList, text string, covered int) {
-	r.buf.WriteByte('0') // word-sub prefix
-	end := len(refs)
-	for i, ref := range refs {
-		idx := ref.wordIdx
-		isLast := (i == end-1)
-		if isLast {
-			// Uppercase = last ref in this sequence; no trailing '0' (partial).
-			r.buf.WriteByte(byte('A' + idx))
-		} else {
-			// Lowercase = more refs to follow.
-			r.buf.WriteByte(byte('a' + idx))
-		}
-	}
-	// Emit the literal suffix.
-	suffix := text[covered:]
-	fmt.Fprintf(&r.buf, "%d%s", len(suffix), suffix)
-	// Capture words from the literal suffix for future word-substitution.
-	r.captureWords(suffix)
 }
 
 // ---------------------------------------------------------------------------
@@ -744,10 +738,85 @@ func containsNonStdlibNominal(n *demangle.Node) bool {
 		return true
 	case common.KindBoundGenericStructure, common.KindBoundGenericClass,
 		common.KindBoundGenericEnum, common.KindBoundGenericProtocol:
+		// For bound generics, check whether the base nominal type is stdlib.
+		// If the base is stdlib (e.g. Array, Optional, Dictionary), the bound
+		// generic itself is treated as stdlib (emitted via compact substitution
+		// such as "Sa" + "y" + args + "G").  Only flag as non-stdlib if the
+		// base nominal is non-stdlib OR if any type arg is non-stdlib.
+		if len(n.Children) >= 1 && !containsNonStdlibNominal(n.Children[0]) {
+			// Base is stdlib; check type-argument list (second child).
+			if len(n.Children) >= 2 {
+				return containsNonStdlibNominal(n.Children[1])
+			}
+			return false
+		}
 		return true
 	}
 	for _, child := range n.Children {
 		if containsNonStdlibNominal(child) {
+			return true
+		}
+	}
+	return false
+}
+
+// containsProtocol returns true if n or any descendant is a KindProtocol node.
+// When a KindProtocol node appears in a function's args or return type, it
+// represents a protocol existential ("_p" encoding in Swift mangling).  Our
+// remangler emits "P" (the protocol-definition trailer) rather than "_p", so
+// these cases must stay ErrUnsupported until protocol-existential emission is
+// implemented.
+func containsProtocol(n *demangle.Node) bool {
+	if n == nil {
+		return false
+	}
+	if common.NodeKind(n.Kind) == common.KindProtocol {
+		return true
+	}
+	for _, child := range n.Children {
+		if containsProtocol(child) {
+			return true
+		}
+	}
+	return false
+}
+
+// collectStdlibTokens returns the set of compact stdlib substitution tokens
+// (e.g. "Si", "SS", "Sb") referenced in n or any descendant.  Used to detect
+// when args and ret share a stdlib type, which would cause Apple to emit a
+// compact "S<N>X" repetition reference that our remangler cannot reproduce.
+// Uses the reverseStdlib map rather than duplicating the stdlib table.
+func collectStdlibTokens(n *demangle.Node, out map[string]struct{}) {
+	if n == nil {
+		return
+	}
+	kind := common.NodeKind(n.Kind)
+	switch kind {
+	case common.KindStructure, common.KindClass, common.KindEnum:
+		if len(n.Children) >= 2 {
+			mod := n.Children[0]
+			name := n.Children[1]
+			if common.NodeKind(mod.Kind) == common.KindModule && mod.Text == "Swift" &&
+				common.NodeKind(name.Kind) == common.KindIdentifier {
+				tok, ok := reverseStdlib[stdlibKey{mod.Text, name.Text}]
+				if ok {
+					out[tok] = struct{}{}
+				}
+			}
+		}
+	}
+	for _, child := range n.Children {
+		collectStdlibTokens(child, out)
+	}
+}
+
+// typeListHasLabels returns true if any direct child of a KindTypeList node
+// has the "swift.label" attribute set (non-empty).  These labeled parameters
+// require emitting a label-list token before the return type, which our
+// current mangleFunctionEntity step 2 does not support (it only emits 'y').
+func typeListHasLabels(n *demangle.Node) bool {
+	for _, child := range n.Children {
+		if child.Attrs != nil && child.Attrs["swift.label"] != "" {
 			return true
 		}
 	}
@@ -1027,34 +1096,53 @@ func (r *remangler) mangleFunctionEntity(n *demangle.Node) error {
 
 	argsEmpty := common.NodeKind(args.Kind) == common.KindEmptyList
 	retEmpty := common.NodeKind(ret.Kind) == common.KindEmptyList
+	argsTypeList := common.NodeKind(args.Kind) == common.KindTypeList
 
-	// Guard: when both args and ret are non-void the parser may have used the
-	// compact S<N>X encoding (e.g. "S2i" for two Int occurrences) which cannot
-	// be reconstructed from the tree.  Return ErrUnsupported so the three-way
-	// parity test counts this as unsupported (not a round-trip failure).
+	// R9b: both-non-void guard removed — the substitution/word tables are
+	// correctly populated during entity-path emission so both types can encode
+	// correctly in many cases. Specific sub-cases that cannot be reproduced
+	// are guarded individually below.
+
+	// R9b: TypeList args are handled below (step 4) as a tuple encoding:
+	// elem0 '_' elem1 elem2 … 't' — mirrors Apple's mangleTypeList.
+
+	// Guard: labeled TypeList args.  When a TypeList child has "swift.label"
+	// set, the label must be emitted in the label-list slot (step 2) instead of
+	// 'y'.  Label-list emission is not yet implemented, so return ErrUnsupported.
+	if argsTypeList && typeListHasLabels(args) {
+		return r.unsupported(common.KindFunctionEntity)
+	}
+
+	// Guard: protocol existential in args or ret.  KindProtocol in a type
+	// context represents an existential ("_p" encoding) but our remangler emits
+	// "P" (the protocol-definition trailer), producing wrong output.
+	if (!argsEmpty && containsProtocol(args)) || (!retEmpty && containsProtocol(ret)) {
+		return r.unsupported(common.KindFunctionEntity)
+	}
+
+	// Guard: non-stdlib nominal types in args or ret.  Apple emits these using
+	// A-substitution references that our remangler cannot reproduce from the
+	// tree — both for methods (EntityPath > 2) and for top-level functions.
+	if !retEmpty && containsNonStdlibNominal(ret) {
+		return r.unsupported(common.KindFunctionEntity)
+	}
+	if !argsEmpty && containsNonStdlibNominal(args) {
+		return r.unsupported(common.KindFunctionEntity)
+	}
+
+	// Guard: both args and ret reference the same stdlib type.  Apple emits a
+	// compact "S<N>X" repetition reference (e.g. "S2i" for a second Int) that
+	// our remangler cannot produce.  Detect by collecting stdlib token keys from
+	// each side and checking for overlap.
 	if !argsEmpty && !retEmpty {
-		return r.unsupported(common.KindFunctionEntity)
-	}
-
-	// Guard: labeled args use a TypeList (not EmptyList or a plain Type).
-	// The label-list token and labeled-arg encoding cannot currently be
-	// reconstructed from the parsed tree.
-	if common.NodeKind(args.Kind) == common.KindTypeList {
-		return r.unsupported(common.KindFunctionEntity)
-	}
-
-	// Guard: for methods (EntityPath len ≥ 3), the return type or args type
-	// may be the self-type which Apple encodes as an A-substitution reference
-	// (e.g. "AC").  Our substitution table doesn't track the nominal-type
-	// entries added implicitly during entity-path emission, so we cannot
-	// reproduce the substitution index.  Return ErrUnsupported for methods
-	// with non-void non-stdlib types to avoid producing incorrect mangled output.
-	if common.NodeKind(path.Kind) == common.KindEntityPath && len(path.Children) > 2 {
-		if !retEmpty && containsNonStdlibNominal(ret) {
-			return r.unsupported(common.KindFunctionEntity)
-		}
-		if !argsEmpty && containsNonStdlibNominal(args) {
-			return r.unsupported(common.KindFunctionEntity)
+		retToks := make(map[string]struct{})
+		argsToks := make(map[string]struct{})
+		collectStdlibTokens(ret, retToks)
+		collectStdlibTokens(args, argsToks)
+		for k := range retToks {
+			if _, found := argsToks[k]; found {
+				return r.unsupported(common.KindFunctionEntity)
+			}
 		}
 	}
 
@@ -1075,9 +1163,15 @@ func (r *remangler) mangleFunctionEntity(n *demangle.Node) error {
 		return err
 	}
 
-	// 4. Emit params type ('y' for void).
-	if err := r.remangleNode(args); err != nil {
-		return err
+	// 4. Emit params type ('y' for void, tuple form for TypeList).
+	if argsTypeList {
+		if err := r.mangleFunctionTypeParams(args); err != nil {
+			return err
+		}
+	} else {
+		if err := r.remangleNode(args); err != nil {
+			return err
+		}
 	}
 
 	// 5. Emit async ('Ya') and/or throws ('K') markers.
@@ -1141,20 +1235,24 @@ func (r *remangler) mangleEntitySuffix(n *demangle.Node) error {
 }
 
 // mangleTuple emits a KindTuple node.
-// Reference: Remangler.cpp "mangleTupleType":
-//   0 elements → 'y' (empty tuple / void)
-//   N elements → first-elem ('_' elem)* 't'
+// Reference: Remangler.cpp "mangleTuple" → "mangleTypeList":
+//   0 elements → 'y' (mangleEndOfList)
+//   N>0 elements → elem0 '_' elem1 elem2 … elemN-1 't'
+//
+// Apple's mangleListSeparator emits '_' only ONCE — after the first element
+// (isFirstListItem starts true, emits '_' on first call, then stays false).
+// Subsequent elements follow directly with no separator between them.
 func (r *remangler) mangleTuple(n *demangle.Node) error {
 	if len(n.Children) == 0 {
 		r.buf.WriteByte('y')
 		return nil
 	}
 	for i, child := range n.Children {
-		if i > 0 {
-			r.buf.WriteByte('_')
-		}
 		if err := r.remangleNode(child); err != nil {
 			return err
+		}
+		if i == 0 {
+			r.buf.WriteByte('_') // separator emitted after first element only
 		}
 	}
 	r.buf.WriteByte('t')
@@ -1318,15 +1416,21 @@ func (r *remangler) mangleFunctionType(n *demangle.Node) error {
 	return nil
 }
 
-// mangleFunctionTypeParams emits multi-param TypeList as a tuple param encoding:
-// each element separated by '_', followed by 't'.
+// mangleFunctionTypeParams emits a TypeList of function params as a tuple
+// encoding.  Mirrors Apple's mangleTypeList: emit elem0 '_' elem1 elem2 … 't'.
+// The '_' is emitted after the first element only (Apple's mangleListSeparator
+// fires once then stays false).
+//
+// For labeled args (Attrs["swift.label"] set on children), the label identifier
+// must precede the return-type in the label-list slot (step 2 of
+// mangleFunctionEntity); this helper only emits the type bytes.
 func (r *remangler) mangleFunctionTypeParams(tl *demangle.Node) error {
 	for i, child := range tl.Children {
-		if i > 0 {
-			r.buf.WriteByte('_')
-		}
 		if err := r.remangleNode(child); err != nil {
 			return err
+		}
+		if i == 0 {
+			r.buf.WriteByte('_') // separator after first element only
 		}
 	}
 	r.buf.WriteByte('t')
