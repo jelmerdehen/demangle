@@ -122,6 +122,15 @@ func EachStdlibSubstitution2(fn func(letter byte, e StdlibEntry)) {
 	}
 }
 
+// StdlibLookup returns the StdlibEntry for a known S<letter> abbreviation.
+func StdlibLookup(c byte) (StdlibEntry, bool) {
+	s, ok := StdlibSubstitutions[c]
+	if !ok {
+		return StdlibEntry{}, false
+	}
+	return StdlibEntry{Module: s.module, Name: s.name}, true
+}
+
 // BuildStdlibNominal constructs a nominal-type Node (Structure / Enum
 // / Protocol with Module + Identifier children) for a known Swift
 // abbreviation. Returns (node, true) if the byte is mapped.

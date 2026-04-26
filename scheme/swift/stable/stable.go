@@ -5264,21 +5264,25 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 	return wrap, true, nil
 }
 
-// tryAssocTypeDescriptor matches the associated-type-descriptor shape:
+// tryAssocTypeDescriptor matches three associated-type-descriptor shapes:
 //
-//	<N><assocTypeName> <M><moduleName> <K><protocolName> P Tl
+//	A: <N><assocTypeName> <M><moduleName> <K><protocolName> P Tl
+//	   → associated type descriptor for <protocolName>.<assocTypeName>
 //
-// where each identifier is length-prefixed (possibly with word-substitution
-// encoding), P is the protocol kind byte, and Tl is the terminal suffix.
+//	B: <N><assocTypeName> s <K><protocolName> P Tl   (stdlib module)
+//	   → associated type descriptor for Swift.<protocolName>.<assocTypeName>
 //
-// Renders as: "associated type descriptor for <protocolName>.<assocTypeName>"
+//	C: <N><assocTypeName> S<letter> Tl               (stdlib substitution, no P)
+//	   → associated type descriptor for Swift.<ProtoName>.<assocTypeName>
 //
 // Examples:
 //
 //	$s10Foreground7SwiftUI18LabelGroupStyle_v0PTl
 //	  → associated type descriptor for LabelGroupStyle_v0.Foreground
-//	$s10UIViewType7SwiftUI0A13RepresentablePTl
-//	  → associated type descriptor for UIViewRepresentable.UIViewType
+//	$s11MaskStorages4SIMDPTl
+//	  → associated type descriptor for Swift.SIMD.MaskStorage
+//	$s11RawExponentSBTl
+//	  → associated type descriptor for Swift.BinaryFloatingPoint.RawExponent
 func (p *parser) tryAssocTypeDescriptor() (*demangle.Node, bool) {
 	if p.eof() || !(p.s[p.i] >= '0' && p.s[p.i] <= '9') {
 		return nil, false
@@ -5288,43 +5292,76 @@ func (p *parser) tryAssocTypeDescriptor() (*demangle.Node, bool) {
 	saveWords := p.words
 	restore := func() { p.i = save; p.subs = saveSubs; p.words = saveWords }
 
-	// Parse associated type name (first length-prefixed identifier).
 	assocTypeName, err := p.parseIdentifier()
 	if err != nil {
 		restore()
 		return nil, false
 	}
-
-	// Parse module name (second length-prefixed identifier).
-	if p.eof() || !(p.s[p.i] >= '0' && p.s[p.i] <= '9') {
-		restore()
-		return nil, false
-	}
-	_, err = p.parseIdentifier()
-	if err != nil {
+	if p.eof() {
 		restore()
 		return nil, false
 	}
 
-	// Parse protocol name (third length-prefixed identifier, possibly word-sub encoded).
-	if p.eof() || !(p.s[p.i] >= '0' && p.s[p.i] <= '9' || p.s[p.i] == '0') {
-		restore()
-		return nil, false
-	}
-	protoName, err := p.parseIdentifier()
-	if err != nil {
+	var qualifiedProto string
+	switch {
+	case p.s[p.i] == 's':
+		// Pattern B: stdlib module 's' + length-prefixed proto + P + Tl
+		p.i++ // consume 's'
+		if p.eof() || !(p.s[p.i] >= '0' && p.s[p.i] <= '9') {
+			restore()
+			return nil, false
+		}
+		protoName, err := p.parseIdentifier()
+		if err != nil {
+			restore()
+			return nil, false
+		}
+		if p.eof() || p.s[p.i] != 'P' {
+			restore()
+			return nil, false
+		}
+		p.i++ // consume 'P'
+		qualifiedProto = "Swift." + protoName
+
+	case p.s[p.i] == 'S' && p.i+1 < len(p.s):
+		// Pattern C: S<letter> stdlib substitution + Tl (no P byte)
+		entry, ok := common.StdlibLookup(p.s[p.i+1])
+		if !ok {
+			restore()
+			return nil, false
+		}
+		p.i += 2 // consume 'S' + letter
+		qualifiedProto = "Swift." + entry.Name
+
+	case p.s[p.i] >= '0' && p.s[p.i] <= '9':
+		// Pattern A: <M><moduleName> <K><protocolName> P Tl
+		_, err = p.parseIdentifier() // discard module name
+		if err != nil {
+			restore()
+			return nil, false
+		}
+		if p.eof() || !(p.s[p.i] >= '0' && p.s[p.i] <= '9') {
+			restore()
+			return nil, false
+		}
+		protoName, err := p.parseIdentifier()
+		if err != nil {
+			restore()
+			return nil, false
+		}
+		if p.eof() || p.s[p.i] != 'P' {
+			restore()
+			return nil, false
+		}
+		p.i++ // consume 'P'
+		qualifiedProto = protoName
+
+	default:
 		restore()
 		return nil, false
 	}
 
-	// Require P (protocol kind byte).
-	if p.eof() || p.s[p.i] != 'P' {
-		restore()
-		return nil, false
-	}
-	p.i++ // consume 'P'
-
-	// Require Tl (associated type descriptor suffix).
+	// Require Tl terminal suffix.
 	if p.i+1 >= len(p.s) || p.s[p.i] != 'T' || p.s[p.i+1] != 'l' {
 		restore()
 		return nil, false
@@ -5332,7 +5369,7 @@ func (p *parser) tryAssocTypeDescriptor() (*demangle.Node, bool) {
 	p.i += 2 // consume 'Tl'
 
 	wrap := common.NewNode(common.KindTypeMangling)
-	wrap.Text = "associated type descriptor for " + protoName + "." + assocTypeName
+	wrap.Text = "associated type descriptor for " + qualifiedProto + "." + assocTypeName
 	return wrap, true
 }
 
