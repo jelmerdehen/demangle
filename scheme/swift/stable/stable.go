@@ -7840,24 +7840,19 @@ func (p *parser) parseFunctionType() (*demangle.Node, error) {
 		p.subs = saveSubs
 		return nil, p.grammarErr("function-type marker (c or X)")
 	}
-	// Render as "(<params>) -> <result>" with optional @convention prefix.
-	opts := common.DefaultPrintOptions()
-	paramsStr := "()"
-	if common.NodeKind(a.Kind) != common.KindEmptyList {
-		paramsStr = "(" + common.Print(a, opts) + ")"
-	}
-	retStr := "()"
-	if common.NodeKind(r.Kind) != common.KindEmptyList {
-		retStr = common.Print(r, opts)
-	}
-	display := paramsStr + " -> " + retStr
+	// Build a structured KindFunctionType node with result + params as children.
+	// The convention is stored in Attrs["swift.conv"] so the printer and
+	// remangler can use it without re-parsing the display string.
+	ft := common.NewNode(common.KindFunctionType)
+	common.AddChildren(ft, r, a)
 	if conv != "" {
-		display = "@convention(" + conv + ") " + display
+		if ft.Attrs == nil {
+			ft.Attrs = make(map[string]string)
+		}
+		ft.Attrs["swift.conv"] = conv
 	}
 	typ := common.NewNode(common.KindType)
-	inner := common.NewNode(common.KindBuiltinTypeName)
-	inner.Text = display
-	common.AddChildren(typ, inner)
+	common.AddChildren(typ, ft)
 	return typ, nil
 }
 

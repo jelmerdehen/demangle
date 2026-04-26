@@ -80,6 +80,8 @@ func printNode(b *strings.Builder, n *demangle.Node, opts PrintOptions) {
 			}
 			printNode(b, c, opts)
 		}
+	case KindFunctionType:
+		printFunctionType(b, n, opts)
 	case KindFunctionEntity:
 		printFunctionEntity(b, n, opts)
 	case KindEntityPath:
@@ -271,6 +273,49 @@ func printBoundGeneric(b *strings.Builder, n *demangle.Node, opts PrintOptions) 
 	b.WriteByte('<')
 	printNode(b, args, opts)
 	b.WriteByte('>')
+}
+
+// printFunctionType renders a KindFunctionType node as:
+//
+//	[@convention(X) ](params) -> result
+//
+// Children: [0]=result type (KindEmptyList for void), [1]=params type.
+// Attrs["swift.conv"] holds the calling convention ("c", "block", "thin",
+// "method", "objc_method") or "" for the default escaping convention.
+func printFunctionType(b *strings.Builder, n *demangle.Node, opts PrintOptions) {
+	if len(n.Children) < 2 {
+		b.WriteString("<FunctionType:malformed>")
+		return
+	}
+	result := n.Children[0]
+	params := n.Children[1]
+
+	// Emit optional @convention prefix.
+	conv := ""
+	if n.Attrs != nil {
+		conv = n.Attrs["swift.conv"]
+	}
+	if conv != "" {
+		b.WriteString("@convention(")
+		b.WriteString(conv)
+		b.WriteString(") ")
+	}
+
+	// Emit (params).
+	b.WriteByte('(')
+	if NodeKind(params.Kind) != KindEmptyList {
+		printNode(b, params, opts)
+	}
+	b.WriteByte(')')
+
+	b.WriteString(" -> ")
+
+	// Emit result.
+	if NodeKind(result.Kind) == KindEmptyList {
+		b.WriteString("()")
+	} else {
+		printNode(b, result, opts)
+	}
 }
 
 // needsOptionalParens reports whether a type string has a top-level

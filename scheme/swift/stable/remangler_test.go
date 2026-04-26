@@ -1143,3 +1143,274 @@ func TestRemangleBoundGenericOptional(t *testing.T) {
 		t.Errorf("got %q, want %q", result.Output, "SiSg")
 	}
 }
+
+// ---------------------------------------------------------------------------
+// R10: TestRemangleFunctionTypeVoidVoid
+//
+// KindFunctionType { KindEmptyList (result=void), KindEmptyList (params=void) }
+// should emit "yyc": result='y', params='y', convention='c' (escaping).
+//
+// Reference: Remangler.cpp mangleFunctionType.
+// ---------------------------------------------------------------------------
+
+func TestRemangleFunctionTypeVoidVoid(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+
+	ft := common.NewNode(common.KindFunctionType)
+	common.AddChildren(ft,
+		common.NewNode(common.KindEmptyList), // result = void
+		common.NewNode(common.KindEmptyList), // params = void
+	)
+
+	res, err := stable.Remangle(ctx, ft, demangle.Options{})
+	if err != nil {
+		t.Fatalf("Remangle: %v", err)
+	}
+	const want = "yyc"
+	if res.Output != want {
+		t.Errorf("() -> (): got %q, want %q", res.Output, want)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// R10: TestRemangleFunctionTypeIntResult
+//
+// KindFunctionType { Type(Si) (result=Int), KindEmptyList (params=void) }
+// should emit "Siyc": result=Si, params=y, convention='c'.
+//
+// Swift mangling: () -> Swift.Int = Siyc
+// ---------------------------------------------------------------------------
+
+func TestRemangleFunctionTypeIntResult(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+
+	// Build Type(Structure(Swift.Int)) as the result type.
+	intStruct := common.NewNode(common.KindStructure)
+	common.AddChildren(intStruct, common.NewModule("Swift"), common.NewIdentifier("Int"))
+	resultType := common.NewNode(common.KindType)
+	common.AddChildren(resultType, intStruct)
+
+	ft := common.NewNode(common.KindFunctionType)
+	common.AddChildren(ft,
+		resultType,                      // result = Swift.Int
+		common.NewNode(common.KindEmptyList), // params = void
+	)
+
+	res, err := stable.Remangle(ctx, ft, demangle.Options{})
+	if err != nil {
+		t.Fatalf("Remangle: %v", err)
+	}
+	const want = "Siyc"
+	if res.Output != want {
+		t.Errorf("() -> Int: got %q, want %q", res.Output, want)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// R10: TestRemangleFunctionTypeIntParam
+//
+// KindFunctionType { KindEmptyList (result=void), Type(Si) (params=Int) }
+// should emit "ySic": result=y, params=Si, convention='c'.
+//
+// Swift mangling: (Swift.Int) -> () = ySic
+// ---------------------------------------------------------------------------
+
+func TestRemangleFunctionTypeIntParam(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+
+	// Build Type(Structure(Swift.Int)) as the params type.
+	intStruct := common.NewNode(common.KindStructure)
+	common.AddChildren(intStruct, common.NewModule("Swift"), common.NewIdentifier("Int"))
+	paramsType := common.NewNode(common.KindType)
+	common.AddChildren(paramsType, intStruct)
+
+	ft := common.NewNode(common.KindFunctionType)
+	common.AddChildren(ft,
+		common.NewNode(common.KindEmptyList), // result = void
+		paramsType,                      // params = Swift.Int
+	)
+
+	res, err := stable.Remangle(ctx, ft, demangle.Options{})
+	if err != nil {
+		t.Fatalf("Remangle: %v", err)
+	}
+	const want = "ySic"
+	if res.Output != want {
+		t.Errorf("(Int) -> (): got %q, want %q", res.Output, want)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// R10: TestRemangleFunctionTypeConventionC
+//
+// KindFunctionType with Attrs["swift.conv"]="c" should emit "XC" trailer
+// instead of the default "c".
+//
+// Corresponds to: @convention(c) () -> () = yyXC
+// ---------------------------------------------------------------------------
+
+func TestRemangleFunctionTypeConventionC(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+
+	ft := common.NewNode(common.KindFunctionType)
+	ft.Attrs = map[string]string{"swift.conv": "c"}
+	common.AddChildren(ft,
+		common.NewNode(common.KindEmptyList),
+		common.NewNode(common.KindEmptyList),
+	)
+
+	res, err := stable.Remangle(ctx, ft, demangle.Options{})
+	if err != nil {
+		t.Fatalf("Remangle: %v", err)
+	}
+	const want = "yyXC"
+	if res.Output != want {
+		t.Errorf("@convention(c) () -> (): got %q, want %q", res.Output, want)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// R10: TestRemangleFunctionTypeConventionBlock
+//
+// KindFunctionType with Attrs["swift.conv"]="block" should emit "XB" trailer.
+//
+// Corresponds to: @convention(block) () -> () = yyXB
+// ---------------------------------------------------------------------------
+
+func TestRemangleFunctionTypeConventionBlock(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+
+	ft := common.NewNode(common.KindFunctionType)
+	ft.Attrs = map[string]string{"swift.conv": "block"}
+	common.AddChildren(ft,
+		common.NewNode(common.KindEmptyList),
+		common.NewNode(common.KindEmptyList),
+	)
+
+	res, err := stable.Remangle(ctx, ft, demangle.Options{})
+	if err != nil {
+		t.Fatalf("Remangle: %v", err)
+	}
+	const want = "yyXB"
+	if res.Output != want {
+		t.Errorf("@convention(block) () -> (): got %q, want %q", res.Output, want)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// R10: TestRemangleFunctionTypeConventionThin
+//
+// KindFunctionType with Attrs["swift.conv"]="thin" should emit "XT" trailer.
+//
+// Corresponds to: @convention(thin) () -> () = yyXT
+// ---------------------------------------------------------------------------
+
+func TestRemangleFunctionTypeConventionThin(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+
+	ft := common.NewNode(common.KindFunctionType)
+	ft.Attrs = map[string]string{"swift.conv": "thin"}
+	common.AddChildren(ft,
+		common.NewNode(common.KindEmptyList),
+		common.NewNode(common.KindEmptyList),
+	)
+
+	res, err := stable.Remangle(ctx, ft, demangle.Options{})
+	if err != nil {
+		t.Fatalf("Remangle: %v", err)
+	}
+	const want = "yyXT"
+	if res.Output != want {
+		t.Errorf("@convention(thin) () -> (): got %q, want %q", res.Output, want)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// R10: TestRemangleFunctionTypeWrappedInType
+//
+// Build a Type(KindFunctionType) and verify the remangler passes through the
+// Type wrapper correctly: the result should equal the bare KindFunctionType
+// mangling (since Type is transparent).
+//
+// Type { KindFunctionType { EmptyList, EmptyList } } → "yyc"
+// ---------------------------------------------------------------------------
+
+func TestRemangleFunctionTypeWrappedInType(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+
+	ft := common.NewNode(common.KindFunctionType)
+	common.AddChildren(ft,
+		common.NewNode(common.KindEmptyList),
+		common.NewNode(common.KindEmptyList),
+	)
+	typ := common.NewNode(common.KindType)
+	common.AddChildren(typ, ft)
+
+	res, err := stable.Remangle(ctx, typ, demangle.Options{})
+	if err != nil {
+		t.Fatalf("Remangle: %v", err)
+	}
+	const want = "yyc"
+	if res.Output != want {
+		t.Errorf("Type(FunctionType(void,void)): got %q, want %q", res.Output, want)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// R10: TestRemangleFunctionTypePrinterVoid
+//
+// Verify that the printer for KindFunctionType renders "() -> ()" for a
+// void-to-void function type.
+// ---------------------------------------------------------------------------
+
+func TestRemangleFunctionTypePrinterVoid(t *testing.T) {
+	t.Parallel()
+
+	ft := common.NewNode(common.KindFunctionType)
+	common.AddChildren(ft,
+		common.NewNode(common.KindEmptyList),
+		common.NewNode(common.KindEmptyList),
+	)
+	opts := common.DefaultPrintOptions()
+	got := common.Print(ft, opts)
+	const want = "() -> ()"
+	if got != want {
+		t.Errorf("Print(FunctionType(void,void)): got %q, want %q", got, want)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// R10: TestRemangleFunctionTypePrinterConvC
+//
+// Verify the printer renders "@convention(c) (Swift.Int) -> ()" for a
+// C-convention function-type node with Int params and void result.
+// ---------------------------------------------------------------------------
+
+func TestRemangleFunctionTypePrinterConvC(t *testing.T) {
+	t.Parallel()
+
+	intStruct := common.NewNode(common.KindStructure)
+	common.AddChildren(intStruct, common.NewModule("Swift"), common.NewIdentifier("Int"))
+	paramsType := common.NewNode(common.KindType)
+	common.AddChildren(paramsType, intStruct)
+
+	ft := common.NewNode(common.KindFunctionType)
+	ft.Attrs = map[string]string{"swift.conv": "c"}
+	common.AddChildren(ft,
+		common.NewNode(common.KindEmptyList), // result = void
+		paramsType,                           // params = Swift.Int
+	)
+	opts := common.DefaultPrintOptions()
+	got := common.Print(ft, opts)
+	const want = "@convention(c) (Swift.Int) -> ()"
+	if got != want {
+		t.Errorf("Print: got %q, want %q", got, want)
+	}
+}
