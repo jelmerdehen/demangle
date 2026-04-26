@@ -4,6 +4,35 @@ All notable changes to this project will be documented here. Format
 follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). This
 project uses semantic versioning.
 
+## [0.5.0] (in progress — Stage 1.2)
+
+### Added — D-track: Demangler structure preservation (D1-D7)
+
+- **D1-D7** — 7 text-prefix paths refactored to structured Node trees: KindGenericSpecialization, KindFunctionSignatureSpecialization, KindAutoDiffFunction, KindAutoDiffSubsetParametersThunk, KindMacroExpansion, KindKeyPathAccessor, KindLocalDeclName, KindAnonymousContext, KindPrivateDeclName, KindOutlined, KindReabstractionThunk, KindPartialApplyForwarder.
+
+### Added — R-track: Remangler completion (R17-R24, no R21)
+
+- **R17-R24** — Inverse emitters for all D-track node kinds. swiftc corpus 222/222 round-trip proven.
+
+### Added — A-track: Apple corpus CI gate
+
+- **Apple corpus** — 149/153 matched (97.4 %). 4 known divergences remain (complex grammar features).
+- **TestAppleCorpusRoundTrip** — Apple+swiftc combined round-trip test passing. CI gate (`apple-roundtrip.yml`) live.
+
+### Added — V-track: Swift variant Mangler exposure (V1-V5)
+
+- **V1-V5** — All swift variants expose Mangler: v42, v40, embedded, macro delegate to stable Remangler with prefix swap; swift-old uses raw-bytes replay. `MangleFidelity = Exact` on all.
+
+### Added — S-track: Security + identifier enforcement
+
+- **S1-S2** — Punycode surrogate-pair rejection, IsValidSwiftIdentifier enforcement.
+
+### Added — F-track: Fuzz expansion (S3+F1)
+
+- **S3+F1** — Nightly fuzz bumped to 1h for 6 swift + 2 punycode harnesses.
+
+---
+
 ## [0.4.0] - Unreleased
 
 ### Added — Swift two-way Remangler (Stage 1.1)

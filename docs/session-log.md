@@ -27,6 +27,7 @@ package doc.
 | 6 — gRPC service scaffold | ✅ | proto + server + 5 integration tests |
 | 6.5 — deploy artifacts | 🚧 | healthz + metrics + TLS + keepalive + systemd unit ready; lux deploy gated on first real caller |
 | 1.1 — Swift Remangler + swiftc corpus | ✅ | Punycode encode+decode, 30-file swiftc corpus (637 symbols), R1-R30 Remangler, X1 GHA workflow, U1-U3 unicode coverage, D1 divergence triage. 222/222 three-way parity. MangleFidelity Exact. |
+| 1.2 — Full Swift round-trip infrastructure | 🚧 | D-track (D1-D7) demangler structure preservation — text-prefix paths to structured Node trees. R-track (R17-R24, no R21) remangler inverse emitters for all D-track kinds. swiftc corpus 222/222 round-trip proven. Apple corpus 149/153 (97.4%), 4 known divergences remaining. All swift variants Mangler-exposed (V1-V5): v42/v40/embedded/macro delegate to stable Remangler; swift-old raw-bytes replay; MangleFidelity=Exact on all. S1-S2 punycode surrogate-pair rejection + IsValidSwiftIdentifier enforcement. S3+F1 nightly fuzz expanded to 1h for 6 swift + 2 punycode harnesses. CI gate (apple-roundtrip.yml) live. |
 | 7 — JS obfuscated deobfuscation | 🔜 | Deferred per plan; needs Node + webcrack subprocess path |
 
 ## Tallies (current — 2026-04-26, v0.4.0-unreleased)
