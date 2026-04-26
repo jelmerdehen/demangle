@@ -209,11 +209,59 @@ jobs:
           # TestCrossVersionDifferential skips (not fails) when <2 toolchains present
           exit $TEST_EXIT
 
+  coverage-gate:
+    name: Grammar coverage gate (C3)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version: "1.26"
+          cache: true
+
+      - name: Coverage gate — stable package
+        run: |
+          go test -cover -coverprofile=coverage.out \
+            ./scheme/swift/stable/...
+          echo "--- statement coverage ---"
+          go tool cover -func=coverage.out | grep "^total:"
+
+          echo "--- zero-coverage functions in stable.go ---"
+          go tool cover -func=coverage.out \
+            | grep "scheme/swift/stable/stable.go" \
+            | grep " 0.0%" \
+            | tee /tmp/zero_cov.txt
+
+          count=$(wc -l < /tmp/zero_cov.txt)
+          echo "Zero-coverage functions in stable.go: $count"
+
+          # Known dead-code exemptions: these are defined but have no call sites.
+          # They are tracked here (not removed) pending explicit cleanup.
+          #   extractConstraintSig  (stable.go:5003) — superseded by extractConstraintSigFull
+          #   renderIndexSubset     (stable.go:9724) — defined but never called
+          EXEMPT=2
+
+          live_zero=$(( count - EXEMPT < 0 ? 0 : count - EXEMPT ))
+          echo "Non-exempt zero-coverage functions: $live_zero"
+
+          # Gate: soft for now (exit 0).  Flip to 'exit $live_zero' once
+          # C2 remediation is fully complete for all grammar rules.
+          exit 0
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: swift-stable-coverage
+          path: coverage.out
+          retention-days: 14
+
   pr-summary:
     name: PR parity summary
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
-    needs: [apple-corpus, production-parity]
+    needs: [apple-corpus, production-parity, coverage-gate]
     steps:
       - name: Post overall parity summary
         uses: actions/github-script@v7

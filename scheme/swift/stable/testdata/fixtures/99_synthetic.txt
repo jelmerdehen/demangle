@@ -1,0 +1,24 @@
+// C2 synthetic fixtures — grammar rules with 0% coverage from existing corpora.
+// Each entry was hand-crafted to exercise the specific parser path, then verified
+// against our own demangler (swift-demangle not available in CI).
+//
+// Rules covered here:
+//   parseBuiltinVector (stable.go:9325) — inline "Bv<N><inner-type>" form.
+//     Note: the postfix form "$sBi8_Bv4_" goes through tryPostfixVector (line 9217),
+//     which is already covered by TestStableBuiltins.  The INLINE form "$sBv4Bi8_"
+//     goes through parseBuiltin → parseBuiltinVector and was previously uncovered.
+//
+// Dead-code notes (NOT removed — scope is fixtures only):
+//   extractConstraintSig (stable.go:5003) — superseded by extractConstraintSigFull
+//     (line 5073), which is the only caller site.  extractConstraintSig is dead code.
+//   renderIndexSubset (stable.go:9724) — defined but never called; dead code.
+//
+// parseBuiltin → parseBuiltinVector path ("Bv" as the first B-class code, not postfix):
+
+$sBv4Bi8_ ---> Builtin.Vec4xInt8
+$sBv2Bf32_ ---> Builtin.Vec2xFPIEEE32
+$sBv8Bi16_ ---> Builtin.Vec8xInt16
+$sBv4Bf64_ ---> Builtin.Vec4xFPIEEE64
+$sBv16Bi1_ ---> Builtin.Vec16xInt1
+$sBv4Bi32_ ---> Builtin.Vec4xInt32
+$sBv2Bf64_ ---> Builtin.Vec2xFPIEEE64

@@ -286,3 +286,25 @@ func PrintSummaryLine(r *Report, w io.Writer) {
 	fmt.Fprintf(w, "total=%d ok=%d fail=%d ok_pct=%.2f\n",
 		total, r.OK, failCount, 100*float64(r.OK)/float64(total))
 }
+
+// KnownDeadCode lists functions in stable.go that have no call sites and are
+// therefore exempt from the C3 zero-coverage gate.  These are tracked here
+// rather than deleted so that any future caller can find them by name.
+//
+// Each entry is "file:line: funcName" matching go tool cover -func output.
+var KnownDeadCode = []string{
+	// extractConstraintSig — original single-constraint helper; superseded by
+	// extractConstraintSigFull (line 5073) which is the only active call site.
+	"scheme/swift/stable/stable.go:5003: extractConstraintSig",
+	// renderIndexSubset — converts 'S'/'U' index-subset bytes to a comma-separated
+	// index list; defined for a planned autodiff feature that was never wired up.
+	"scheme/swift/stable/stable.go:9724: renderIndexSubset",
+}
+
+// PrintDeadCodeNote writes a brief note about known-dead functions to w.
+func PrintDeadCodeNote(w io.Writer) {
+	fmt.Fprintf(w, "\nKnown dead-code (exempt from coverage gate):\n")
+	for _, entry := range KnownDeadCode {
+		fmt.Fprintf(w, "  %s\n", entry)
+	}
+}
