@@ -277,6 +277,9 @@ func (r *remangler) remangleNode(n *demangle.Node) error {
 		}
 		r.buf.WriteString("TA")
 		return nil
+	// R17: generic-specialization emitter (Tg/TG/TB/Ti/Tt).
+	case common.KindGenericSpecialization:
+		return r.mangleGenericSpecialization(n)
 	// R19: autodiff function emitter (TJ<kind><params>p<results>r or TJV<kind>...).
 	case common.KindAutoDiffFunction:
 		return r.mangleAutoDiffFunction(n)
@@ -289,6 +292,13 @@ func (r *remangler) remangleNode(n *demangle.Node) error {
 	// R22: private-decl-name emitter — children: [0]=discriminator, [1]=name → <name><disc>LL
 	case common.KindPrivateDeclName:
 		return r.manglePrivateDeclName(n)
+	// R20: D4 node kinds.
+	case common.KindMacroExpansion:
+		return r.mangleMacroExpansion(n)
+	case common.KindKeyPathAccessor:
+		return r.mangleKeyPathAccessor(n)
+	case common.KindLocalDeclName:
+		return r.mangleLocalDeclName(n)
 	default:
 		return r.unsupported(kind)
 	}
@@ -1723,22 +1733,22 @@ func (r *remangler) mangleFunctionTypeParams(tl *demangle.Node) error {
 //
 // Encoding (Remangler.cpp mangleAnonymousContext, line 1461):
 //
-//	mangleChildNode(1) → ident
-//	mangleChildNode(0) → parent context
+//	C++ nodes: [0]=name, [1]=parent → C++ emits child[1] (parent) then child[0] (name).
+//	Our nodes: [0]=parent, [1]=ident → emit child[0] (parent) then child[1] (ident).
 //	(no child[2] in our subset) → 'y'
 //	"XZ"
 //
-// Final bytes: <ident-encoding><parent-encoding>yXZ
+// Final bytes: <parent-encoding><ident-encoding>yXZ
 func (r *remangler) mangleAnonymousContext(n *demangle.Node) error {
 	if len(n.Children) < 2 {
 		return r.unsupported(common.KindAnonymousContext)
 	}
-	// child[1] = identifier (emit first per C++ mangleChildNode(node, 1, ...))
-	if err := r.remangleNode(n.Children[1]); err != nil {
+	// child[0] = parent context (emit first — mirrors C++ child[1] which is parent)
+	if err := r.remangleNode(n.Children[0]); err != nil {
 		return err
 	}
-	// child[0] = parent context
-	if err := r.remangleNode(n.Children[0]); err != nil {
+	// child[1] = identifier (emit second — mirrors C++ child[0] which is name)
+	if err := r.remangleNode(n.Children[1]); err != nil {
 		return err
 	}
 	// No child[2] in our subset: emit 'y' as the empty generic-params placeholder.
@@ -1890,4 +1900,28 @@ func (r *remangler) mangleAutoDiffSubsetParametersThunk(n *demangle.Node) error 
 	r.buf.WriteString(toP)
 	r.buf.WriteByte('P')
 	return nil
+}
+
+// mangleMacroExpansion is a stub; macro-expansion remangling is not yet
+// implemented (R20 follow-up).
+func (r *remangler) mangleMacroExpansion(n *demangle.Node) error {
+	return r.unsupported(common.KindMacroExpansion)
+}
+
+// mangleKeyPathAccessor is a stub; key-path accessor remangling is not yet
+// implemented (R20 follow-up).
+func (r *remangler) mangleKeyPathAccessor(n *demangle.Node) error {
+	return r.unsupported(common.KindKeyPathAccessor)
+}
+
+// mangleLocalDeclName is a stub; local-decl-name remangling is not yet
+// implemented (R20 follow-up).
+func (r *remangler) mangleLocalDeclName(n *demangle.Node) error {
+	return r.unsupported(common.KindLocalDeclName)
+}
+
+// mangleGenericSpecialization is a stub; generic-specialization remangling
+// is not yet implemented (R17 follow-up).
+func (r *remangler) mangleGenericSpecialization(n *demangle.Node) error {
+	return r.unsupported(common.KindGenericSpecialization)
 }
