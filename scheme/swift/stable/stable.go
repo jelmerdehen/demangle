@@ -331,6 +331,12 @@ func (p *parser) parseGlobal() (*demangle.Node, error) {
 	if wrapped, ok := p.tryConformanceDescriptor(inner); ok {
 		inner = wrapped
 	}
+	// Concrete-protocol-conformance witness (HC conformance tail).
+	// Handles Swift 5.9+ parameter-pack conformance witnesses where the
+	// symbol ends with a stack-based HC sub-expression.
+	if wrapped, ok := p.tryConcreteProtocolConformanceWitness(inner); ok {
+		inner = wrapped
+	}
 	// Associated conformance descriptor shape:
 	//
 	//   <Protocol-Type> x A<idx> <ident> T(n|N)
@@ -7033,6 +7039,21 @@ func (p *parser) tryBoundGeneric(base *demangle.Node) (*demangle.Node, bool, err
 			p.i++
 			continue
 		}
+		// QP — Swift 5.9+ parameter pack: wrap all currently-accumulated
+		// args in a Pack node (mirrors Apple's popPack). After wrapping,
+		// args becomes a single Pack element and parsing continues (more
+		// args or 'G' may follow).
+		if p.s[p.i] == 'Q' && p.i+1 < len(p.s) && p.s[p.i+1] == 'P' {
+			p.i += 2 // consume 'QP'
+			if len(args) > 0 {
+				pack := common.NewNode(common.KindPack)
+				pack.Children = args
+				packType := common.NewNode(common.KindType)
+				common.AddChildren(packType, pack)
+				args = []*demangle.Node{packType}
+			}
+			continue
+		}
 		// Try parsing a type arg first. On failure, fall back to
 		// skipping a retroactive-conformance-ref metadata block.
 		argSave := p.i
@@ -10009,6 +10030,348 @@ func joinComma(parts []string) string {
 		out += p
 	}
 	return out
+}
+
+// tryConcreteProtocolConformanceWitness handles the HC conformance
+// witness suffix that appears in Swift 5.9+ parameter-pack symbols.
+// The full symbol has the shape:
+//
+//	<type> <HC-tail>
+//
+// where <HC-tail> is a stack-based sub-expression ending in "HC".
+// It implements a mini-stack demangler that mirrors Apple's
+// parseAndPushNodes approach for the tail bytes, then wraps the
+// result in a ConcreteProtocolConformance node.
+//
+// On match: consumes all remaining bytes, returns the wrapped node.
+// On mismatch: leaves p.i unchanged, returns (inner, false).
+func (p *parser) tryConcreteProtocolConformanceWitness(inner *demangle.Node) (*demangle.Node, bool) {
+	// Condition: remaining bytes end with "HC" (at least 2 bytes left).
+	rest := p.s[p.i:]
+	if len(rest) < 2 || !strings.HasSuffix(rest, "HC") {
+		return inner, false
+	}
+	// Only apply when inner is a Type (the conforming type).
+	if common.NodeKind(inner.Kind) != common.KindType {
+		return inner, false
+	}
+
+	save := p.i
+	saveSubs := p.subs
+
+	result, ok := p.runHCMiniStack(inner)
+	if !ok {
+		p.i = save
+		p.subs = saveSubs
+		return inner, false
+	}
+	return result, true
+}
+
+// hcStack is the mini node stack used by the HC mini-stack parser.
+type hcStack struct {
+	nodes []*demangle.Node
+}
+
+func (s *hcStack) push(n *demangle.Node) {
+	s.nodes = append(s.nodes, n)
+}
+
+func (s *hcStack) pop() *demangle.Node {
+	if len(s.nodes) == 0 {
+		return nil
+	}
+	n := s.nodes[len(s.nodes)-1]
+	s.nodes = s.nodes[:len(s.nodes)-1]
+	return n
+}
+
+func (s *hcStack) peek() *demangle.Node {
+	if len(s.nodes) == 0 {
+		return nil
+	}
+	return s.nodes[len(s.nodes)-1]
+}
+
+func (s *hcStack) popKind(k common.NodeKind) *demangle.Node {
+	n := s.peek()
+	if n != nil && common.NodeKind(n.Kind) == k {
+		return s.pop()
+	}
+	return nil
+}
+
+// popAnyConformance pops any conformance node (ConcreteProtocolConformance
+// or PackProtocolConformance) from the stack.
+func (s *hcStack) popAnyConformance() *demangle.Node {
+	n := s.peek()
+	if n == nil {
+		return nil
+	}
+	switch common.NodeKind(n.Kind) {
+	case common.KindConcreteProtocolConformance,
+		common.KindPackProtocolConformance:
+		return s.pop()
+	}
+	return nil
+}
+
+// hcPopAnyProtocolConformanceList pops a list of conformances from the
+// mini-stack, mirroring Apple's popAnyProtocolConformanceList.
+//
+// Apple's algorithm:
+//   if top is EmptyList → pop it, return empty list.
+//   else loop:
+//     firstElem = (top is FirstElementMarker → pop it)
+//     pop anyConformance
+//     add to list
+//     if firstElem: break
+//   reverseChildren.
+//
+// We encode EmptyList as KindEmptyList with no attrs.
+// We encode FirstElementMarker as KindEmptyList with Attrs["hc.fem"]="true".
+func hcPopAnyProtocolConformanceList(stk *hcStack) *demangle.Node {
+	list := common.NewNode(common.KindAnyProtocolConformanceList)
+	// If top is plain EmptyList (not FEM), pop it and return empty list.
+	if top := stk.peek(); top != nil &&
+		common.NodeKind(top.Kind) == common.KindEmptyList &&
+		(top.Attrs == nil || top.Attrs["hc.fem"] != "true") {
+		stk.pop()
+		return list
+	}
+	// Pop conformances until we encounter a FirstElementMarker.
+	var items []*demangle.Node
+	for {
+		// Check if top is FEM.
+		firstElem := false
+		if top := stk.peek(); top != nil &&
+			common.NodeKind(top.Kind) == common.KindEmptyList &&
+			top.Attrs != nil && top.Attrs["hc.fem"] == "true" {
+			stk.pop() // pop FEM
+			firstElem = true
+		}
+		conf := stk.popAnyConformance()
+		if conf == nil {
+			break
+		}
+		items = append(items, conf)
+		if firstElem {
+			break
+		}
+	}
+	// Reverse (Apple calls reverseChildren).
+	for i, j := 0, len(items)-1; i < j; i, j = i+1, j-1 {
+		items[i], items[j] = items[j], items[i]
+	}
+	for _, item := range items {
+		list.Children = append(list.Children, item)
+	}
+	return list
+}
+
+// hcPopProtocol pops a protocol type from the mini-stack.
+// Apple's popProtocol: if top is Type(Protocol), return it. Otherwise pop
+// name (Identifier) and context (Module/etc.) and build Protocol.
+func hcPopProtocol(stk *hcStack) *demangle.Node {
+	top := stk.peek()
+	if top != nil && common.NodeKind(top.Kind) == common.KindType {
+		if len(top.Children) > 0 && common.NodeKind(top.Children[0].Kind) == common.KindProtocol {
+			return stk.pop()
+		}
+	}
+	// Pop name (Identifier) then context (Module).
+	name := stk.pop()
+	if name == nil {
+		return nil
+	}
+	ctx := stk.pop()
+	if ctx == nil {
+		return nil
+	}
+	proto := common.NewNode(common.KindProtocol)
+	common.AddChildren(proto, ctx, name)
+	typ := common.NewNode(common.KindType)
+	common.AddChildren(typ, proto)
+	return typ
+}
+
+// runHCMiniStack runs the mini-stack demangler over the remaining bytes
+// in p.s[p.i:], seeding the stack with typeNode (the conforming type).
+// Returns the resulting ConcreteProtocolConformance node on success.
+func (p *parser) runHCMiniStack(typeNode *demangle.Node) (*demangle.Node, bool) {
+	stk := &hcStack{}
+	// Seed the stack with the conforming type node.
+	stk.push(typeNode)
+
+	for p.i < len(p.s) {
+		c := p.s[p.i]
+		switch {
+		case c >= '1' && c <= '9':
+			// Identifier: read length+chars, push Identifier, add to p.subs.
+			name, err := p.parseIdentifier()
+			if err != nil {
+				return nil, false
+			}
+			ident := common.NewIdentifier(name)
+			p.subs.Push(ident)
+			stk.push(ident)
+
+		case c == 'A':
+			// Multi-substitution reference.
+			p.i++ // consume 'A'
+			repeatCount := -1
+			for {
+				if p.i >= len(p.s) {
+					return nil, false
+				}
+				mc := p.s[p.i]
+				if mc >= 'a' && mc <= 'z' {
+					// Lowercase: push sub[mc-'a'], continue.
+					p.i++
+					idx := int(mc - 'a')
+					n, ok := p.subs.Get(idx)
+					if !ok {
+						return nil, false
+					}
+					if repeatCount > 1 {
+						for k := 0; k < repeatCount-1; k++ {
+							stk.push(n)
+						}
+					}
+					stk.push(n)
+					repeatCount = -1
+				} else if mc >= 'A' && mc <= 'Z' {
+					// Uppercase: last sub.
+					p.i++
+					idx := int(mc - 'A')
+					n, ok := p.subs.Get(idx)
+					if !ok {
+						return nil, false
+					}
+					if repeatCount > 1 {
+						for k := 0; k < repeatCount-1; k++ {
+							stk.push(n)
+						}
+					}
+					stk.push(n)
+					break // done with this multi-sub
+				} else if mc >= '0' && mc <= '9' {
+					// Digit: repeat count or large index.
+					start := p.i
+					for p.i < len(p.s) && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+						p.i++
+					}
+					num := 0
+					for _, d := range p.s[start:p.i] {
+						num = num*10 + int(d-'0')
+					}
+					if p.i < len(p.s) && p.s[p.i] == '_' {
+						// Large substitution index: num + 27.
+						p.i++ // consume '_'
+						idx := num + 27
+						n, ok := p.subs.Get(idx)
+						if !ok {
+							return nil, false
+						}
+						stk.push(n)
+						break
+					}
+					// RepeatCount: upper letter follows.
+					repeatCount = num
+				} else if mc == '_' {
+					// Large substitution: repeatCount+27.
+					p.i++
+					idx := repeatCount + 27
+					if idx < 0 {
+						return nil, false
+					}
+					n, ok := p.subs.Get(idx)
+					if !ok {
+						return nil, false
+					}
+					stk.push(n)
+					break
+				} else {
+					return nil, false
+				}
+			}
+
+		case c == 'H':
+			p.i++ // consume 'H'
+			if p.i >= len(p.s) {
+				return nil, false
+			}
+			hc := p.s[p.i]
+			p.i++ // consume second H-byte
+			switch hc {
+			case 'P':
+				// HP → ProtocolConformanceRefInTypeModule(popProtocol())
+				proto := hcPopProtocol(stk)
+				if proto == nil {
+					return nil, false
+				}
+				ref := common.NewNode(common.KindProtocolConformanceRefInTypeModule)
+				common.AddChildren(ref, proto)
+				stk.push(ref)
+
+			case 'C':
+				// HC → demangleConcreteProtocolConformance
+				condList := hcPopAnyProtocolConformanceList(stk)
+				ref := stk.popKind(common.KindProtocolConformanceRefInTypeModule)
+				if ref == nil {
+					return nil, false
+				}
+				typ := stk.popKind(common.KindType)
+				if typ == nil {
+					return nil, false
+				}
+				cc := common.NewNode(common.KindConcreteProtocolConformance)
+				common.AddChildren(cc, typ, ref, condList)
+				stk.push(cc)
+
+			case 'X':
+				// HX → demanglePackProtocolConformance
+				condList := hcPopAnyProtocolConformanceList(stk)
+				ppc := common.NewNode(common.KindPackProtocolConformance)
+				common.AddChildren(ppc, condList)
+				stk.push(ppc)
+
+			default:
+				return nil, false
+			}
+
+		case c == 'y':
+			// EmptyList (marks start of conformance list or empty params)
+			p.i++
+			el := common.NewNode(common.KindEmptyList)
+			stk.push(el)
+
+		case c == '_':
+			// FirstElementMarker — we encode as EmptyList with attrs["hc.fem"]="true"
+			p.i++
+			fem := common.NewNode(common.KindEmptyList)
+			if fem.Attrs == nil {
+				fem.Attrs = map[string]string{}
+			}
+			fem.Attrs["hc.fem"] = "true"
+			stk.push(fem)
+
+		default:
+			// Unknown byte — cannot parse this HC tail.
+			return nil, false
+		}
+	}
+
+	// After consuming all bytes, the stack should have one result: the outer
+	// ConcreteProtocolConformance.
+	if len(stk.nodes) != 1 {
+		return nil, false
+	}
+	result := stk.pop()
+	if common.NodeKind(result.Kind) != common.KindConcreteProtocolConformance {
+		return nil, false
+	}
+	return result, true
 }
 
 func init() {

@@ -171,6 +171,34 @@ const (
 	// Attrs["swift.genSig"]    = generic sig display text (may be empty).
 	// Text = pre-formatted display string (for fallback/debugging).
 	KindAutoDiffFunction
+
+	// Swift 5.9+ parameter pack types and protocol conformance witnesses (L2).
+
+	// KindPack — QP pack type. Children = repeated Type nodes.
+	// Printed as "Pack{child0, child1, ...}".
+	KindPack
+
+	// KindConcreteProtocolConformance — HC conformance witness.
+	// Children[0] = KindType (the conforming type).
+	// Children[1] = KindProtocolConformanceRefInTypeModule (or other ref).
+	// Children[2] = KindAnyProtocolConformanceList (conditional requirements).
+	// Printed as "concrete protocol conformance <type> to <ref>[ with conditional requirements: <list>]".
+	KindConcreteProtocolConformance
+
+	// KindPackProtocolConformance — HX pack conformance witness.
+	// Children[0] = KindAnyProtocolConformanceList.
+	// Printed as "pack protocol conformance <list>".
+	KindPackProtocolConformance
+
+	// KindAnyProtocolConformanceList — list of protocol conformances.
+	// Children = any number of conformance nodes.
+	// Printed as "(<child0>, <child1>, ...)" when non-empty; nothing when empty.
+	KindAnyProtocolConformanceList
+
+	// KindProtocolConformanceRefInTypeModule — HP conformance ref.
+	// Children[0] = KindType (the protocol type).
+	// Printed as "protocol conformance ref (type's module) <children>".
+	KindProtocolConformanceRefInTypeModule
 )
 
 // Name returns the human-readable label used by the printer + shown
@@ -285,6 +313,16 @@ func (k NodeKind) Name() string {
 		return "AutoDiffSubsetParametersThunk"
 	case KindAutoDiffFunction:
 		return "AutoDiffFunction"
+	case KindPack:
+		return "Pack"
+	case KindConcreteProtocolConformance:
+		return "ConcreteProtocolConformance"
+	case KindPackProtocolConformance:
+		return "PackProtocolConformance"
+	case KindAnyProtocolConformanceList:
+		return "AnyProtocolConformanceList"
+	case KindProtocolConformanceRefInTypeModule:
+		return "ProtocolConformanceRefInTypeModule"
 	}
 	return "Unknown"
 }
@@ -336,6 +374,11 @@ func (k NodeKind) Category() demangle.KindCategory {
 		return demangle.KindCatOther
 	case KindAutoDiffSubsetParametersThunk, KindAutoDiffFunction:
 		return demangle.KindCatFunction
+	case KindPack:
+		return demangle.KindCatType
+	case KindConcreteProtocolConformance, KindPackProtocolConformance,
+		KindAnyProtocolConformanceList, KindProtocolConformanceRefInTypeModule:
+		return demangle.KindCatOther
 	}
 	return demangle.KindCatUnknown
 }
@@ -348,7 +391,7 @@ var (
 )
 
 func init() {
-	for k := KindInvalid; k <= KindAutoDiffFunction; k++ {
+	for k := KindInvalid; k <= KindProtocolConformanceRefInTypeModule; k++ {
 		KindNames[int32(k)] = k.Name()
 		KindCategories[int32(k)] = k.Category()
 	}

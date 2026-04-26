@@ -415,6 +415,54 @@ func printNode(b *strings.Builder, n *demangle.Node, opts PrintOptions) {
 			b.WriteString(" with ")
 			b.WriteString(genSig)
 		}
+	case KindPack:
+		// "Pack{child0, child1, ...}"
+		b.WriteString("Pack{")
+		for i, c := range n.Children {
+			if i > 0 {
+				b.WriteString(", ")
+			}
+			printNode(b, c, opts)
+		}
+		b.WriteByte('}')
+	case KindConcreteProtocolConformance:
+		// "concrete protocol conformance <type> to <ref>[ with conditional requirements: <list>]"
+		b.WriteString("concrete protocol conformance ")
+		if len(n.Children) > 0 {
+			printNode(b, n.Children[0], opts)
+		}
+		b.WriteString(" to ")
+		if len(n.Children) > 1 {
+			printNode(b, n.Children[1], opts)
+		}
+		if len(n.Children) > 2 && len(n.Children[2].Children) > 0 {
+			b.WriteString(" with conditional requirements: ")
+			printNode(b, n.Children[2], opts)
+		}
+	case KindPackProtocolConformance:
+		// "pack protocol conformance <list>"
+		b.WriteString("pack protocol conformance ")
+		for _, c := range n.Children {
+			printNode(b, c, opts)
+		}
+	case KindAnyProtocolConformanceList:
+		// "(<child0>, <child1>, ...)" when non-empty
+		if len(n.Children) > 0 {
+			b.WriteByte('(')
+			for i, c := range n.Children {
+				if i > 0 {
+					b.WriteString(", ")
+				}
+				printNode(b, c, opts)
+			}
+			b.WriteByte(')')
+		}
+	case KindProtocolConformanceRefInTypeModule:
+		// "protocol conformance ref (type's module) <children>"
+		b.WriteString("protocol conformance ref (type's module) ")
+		for _, c := range n.Children {
+			printNode(b, c, opts)
+		}
 	default:
 		// For unknown kinds, dump as "<KindName>" to surface gaps
 		// during incremental grammar build-out.
