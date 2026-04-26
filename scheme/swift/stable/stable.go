@@ -8614,6 +8614,7 @@ func (p *parser) tryPostfixFunctionType(node *demangle.Node) (*demangle.Node, bo
 	// Exception: 'cf<C|c|D|d>' is an init/deinit entity suffix, not
 	// an escaping fn-type marker — leave for tryInitDeinitEntity.
 	var convPrefix string
+	var convAttr string  // "noEscape" | "c" | "block" | "thin" | ""
 	cfAhead := !p.eof() && p.s[p.i] == 'c' && p.i+2 < len(p.s) &&
 		p.s[p.i+1] == 'f' && (p.s[p.i+2] == 'C' || p.s[p.i+2] == 'c' ||
 			p.s[p.i+2] == 'D' || p.s[p.i+2] == 'd')
@@ -8623,6 +8624,7 @@ func (p *parser) tryPostfixFunctionType(node *demangle.Node) (*demangle.Node, bo
 	}
 	if !p.eof() && p.s[p.i] == 'c' {
 		p.i++
+		// Plain escaping 'c' — convAttr stays "".
 	} else {
 		if p.i+1 >= len(p.s) || p.s[p.i] != 'X' {
 			revert()
@@ -8632,17 +8634,54 @@ func (p *parser) tryPostfixFunctionType(node *demangle.Node) (*demangle.Node, bo
 		switch xLetter {
 		case 'E':
 			convPrefix = ""
+			convAttr = "noEscape"
 		case 'C':
 			convPrefix = "@convention(c) "
+			convAttr = "c"
 		case 'B':
 			convPrefix = "@convention(block) "
+			convAttr = "block"
 		case 'T':
 			convPrefix = "@convention(thin) "
+			convAttr = "thin"
 		default:
 			revert()
 			return node, false
 		}
 		p.i += 2
+	}
+	// Produce a structured KindFunctionType when the annotations are simple
+	// enough to represent (no pre-params prefix, no sending-result). This
+	// lets the remangler re-encode the type correctly instead of failing on
+	// an opaque text blob.
+	if len(preAnns) == 0 && !sendingResultFlag {
+		ft := common.NewNode(common.KindFunctionType)
+		common.AddChildren(ft, node, common.NewNode(common.KindEmptyList))
+		attrs := make(map[string]string)
+		for _, ann := range postAnns {
+			switch ann {
+			case "throws":
+				attrs["swift.throws"] = "true"
+			case "async":
+				attrs["swift.async"] = "true"
+			}
+		}
+		switch convAttr {
+		case "noEscape":
+			attrs["swift.noEscape"] = "true"
+		case "c":
+			attrs["swift.conv"] = "c"
+		case "block":
+			attrs["swift.conv"] = "block"
+		case "thin":
+			attrs["swift.conv"] = "thin"
+		}
+		if len(attrs) > 0 {
+			ft.Attrs = attrs
+		}
+		typ := common.NewNode(common.KindType)
+		common.AddChildren(typ, ft)
+		return typ, true
 	}
 	nodeStr := common.Print(node, common.DefaultPrintOptions())
 	preStr := ""

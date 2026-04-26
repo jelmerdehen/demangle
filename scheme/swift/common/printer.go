@@ -316,6 +316,16 @@ func printFunctionType(b *strings.Builder, n *demangle.Node, opts PrintOptions) 
 	}
 	b.WriteByte(')')
 
+	// Post-params annotations: async and/or throws.
+	if n.Attrs != nil {
+		if n.Attrs["swift.async"] == "true" {
+			b.WriteString(" async")
+		}
+		if n.Attrs["swift.throws"] == "true" {
+			b.WriteString(" throws")
+		}
+	}
+
 	b.WriteString(" -> ")
 
 	// Emit result.

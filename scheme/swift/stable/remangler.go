@@ -719,19 +719,96 @@ func (r *remangler) stdlibToken(n *demangle.Node) (string, bool) {
 
 
 
-// parseUnconstrainedGenericSig parses a swift.generic attr like "<A>" or
-// "<A, B, C>" and returns (paramCount, true) when there are no constraints
-// (no "where" clause and no ":" in any param). Returns (0, false) when the
-// generic signature is constrained or malformed.
-func parseUnconstrainedGenericSig(s string) (int, bool) {
+// parseGenericSig parses a swift.generic attr like "<A>", "<A, B>", or
+// "<A, B where A: Swift.Hashable, B: Swift.Equatable>" and returns the
+// mangled generic-signature bytes (e.g. "SHRzSQR_r0_l").
+//
+// Supports:
+//   - Unconstrained: "<A>", "<A, B>", ...
+//   - Constrained with stdlib-only protocol conformances
+//     (Hashable/SH, Comparable/SL, Equatable/SQ)
+//
+// Returns ("", false) for unsupported forms (non-stdlib protocols, complex
+// constraints, malformed input).
+func parseGenericSig(s string) (string, bool) {
 	if len(s) < 3 || s[0] != '<' || s[len(s)-1] != '>' {
-		return 0, false
+		return "", false
 	}
 	inner := s[1 : len(s)-1]
-	if strings.Contains(inner, "where") || strings.Contains(inner, ":") {
-		return 0, false
+
+	var paramStr, constraintStr string
+	if idx := strings.Index(inner, " where "); idx >= 0 {
+		paramStr = strings.TrimSpace(inner[:idx])
+		constraintStr = strings.TrimSpace(inner[idx+7:])
+	} else {
+		paramStr = inner
 	}
-	return len(strings.Split(inner, ",")), true
+
+	paramList := strings.Split(paramStr, ", ")
+	nParam := len(paramList)
+
+	if constraintStr == "" {
+		return genericSigTerminal(nParam), true
+	}
+
+	// Build param-name → index map: "A"→0, "B"→1, …
+	paramIdx := make(map[string]int, nParam)
+	for i, p := range paramList {
+		paramIdx[strings.TrimSpace(p)] = i
+	}
+
+	// Stdlib conformance shortcodes.
+	stdlibProto := map[string]string{
+		"Swift.Hashable":   "SH",
+		"Swift.Comparable": "SL",
+		"Swift.Equatable":  "SQ",
+	}
+
+	var b strings.Builder
+	for _, c := range strings.Split(constraintStr, ", ") {
+		c = strings.TrimSpace(c)
+		colon := strings.Index(c, ": ")
+		if colon < 0 {
+			return "", false
+		}
+		paramName := strings.TrimSpace(c[:colon])
+		protoName := strings.TrimSpace(c[colon+2:])
+		shortcode, ok := stdlibProto[protoName]
+		if !ok {
+			return "", false
+		}
+		idx, ok := paramIdx[paramName]
+		if !ok {
+			return "", false
+		}
+		b.WriteString(shortcode)
+		b.WriteByte('R')
+		b.WriteString(genericTypeRef(idx))
+	}
+	b.WriteString(genericSigTerminal(nParam))
+	return b.String(), true
+}
+
+// genericSigTerminal returns the terminal bytes for an N-param generic sig:
+// N=1→"l", N≥2→"r<N-2>_l".
+func genericSigTerminal(nParam int) string {
+	if nParam == 1 {
+		return "l"
+	}
+	return fmt.Sprintf("r%d_l", nParam-2)
+}
+
+// genericTypeRef returns the mangled type-ref for generic param at index idx.
+// idx=0→"z", idx=1→"_", idx=2→"0_", idx=3→"1_", …
+func genericTypeRef(idx int) string {
+	if idx == 0 {
+		return "z"
+	}
+	k := idx - 1
+	if k == 0 {
+		return "_"
+	}
+	return fmt.Sprintf("%d_", k-1)
 }
 
 // containsPlainNonStdlibNominal reports whether n contains a plain nominal
@@ -1143,21 +1220,16 @@ func (r *remangler) mangleFunctionEntity(n *demangle.Node) error {
 		}
 	}
 
-	// Generic sig: unconstrained generics (<A>, <A,B>, …) encode as
-	// N=1→"l", N≥2→"r<N-2>_l". Constrained generics (where/colon present)
-	// remain unsupported — the constraint bytes cannot be reconstructed from
-	// the display-form attr.
+	// Generic sig: encode from swift.generic attr.
+	// Unconstrained (<A>, <A,B>, …) and stdlib-protocol constrained forms
+	// are supported. Non-stdlib or complex constraints fall through to unsupported.
 	genSig := ""
 	if n.Attrs != nil && n.Attrs["swift.generic"] != "" {
-		nParam, ok := parseUnconstrainedGenericSig(n.Attrs["swift.generic"])
+		sig, ok := parseGenericSig(n.Attrs["swift.generic"])
 		if !ok {
 			return r.unsupported(common.KindFunctionEntity)
 		}
-		if nParam == 1 {
-			genSig = "l"
-		} else {
-			genSig = fmt.Sprintf("r%d_l", nParam-2)
-		}
+		genSig = sig
 	}
 
 	argsEmpty := common.NodeKind(args.Kind) == common.KindEmptyList
@@ -1505,24 +1577,39 @@ func (r *remangler) mangleFunctionType(n *demangle.Node) error {
 			return err
 		}
 	}
+	// Post-params annotations: async (Ya) then throws (K).
+	if n.Attrs != nil {
+		if n.Attrs["swift.async"] == "true" {
+			r.buf.WriteString("Ya")
+		}
+		if n.Attrs["swift.throws"] == "true" {
+			r.buf.WriteByte('K')
+		}
+	}
 	// Emit convention trailer.
 	conv := ""
+	noEscape := false
 	if n.Attrs != nil {
 		conv = n.Attrs["swift.conv"]
+		noEscape = n.Attrs["swift.noEscape"] == "true"
 	}
-	switch conv {
-	case "c":
-		r.buf.WriteString("XC")
-	case "block":
-		r.buf.WriteString("XB")
-	case "thin":
-		r.buf.WriteString("XT")
-	case "method":
-		r.buf.WriteString("XF")
-	case "objc_method":
-		r.buf.WriteString("XK")
-	default:
-		r.buf.WriteByte('c')
+	if noEscape {
+		r.buf.WriteString("XE")
+	} else {
+		switch conv {
+		case "c":
+			r.buf.WriteString("XC")
+		case "block":
+			r.buf.WriteString("XB")
+		case "thin":
+			r.buf.WriteString("XT")
+		case "method":
+			r.buf.WriteString("XF")
+		case "objc_method":
+			r.buf.WriteString("XK")
+		default:
+			r.buf.WriteByte('c')
+		}
 	}
 	return nil
 }
