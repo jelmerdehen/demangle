@@ -27,8 +27,23 @@ package doc.
 | 6 — gRPC service scaffold | ✅ | proto + server + 5 integration tests |
 | 6.5 — deploy artifacts | 🚧 | healthz + metrics + TLS + keepalive + systemd unit ready; lux deploy gated on first real caller |
 | 1.1 — Swift Remangler + swiftc corpus | ✅ | Punycode encode+decode, 30-file swiftc corpus (637 symbols), R1-R30 Remangler, X1 GHA workflow, U1-U3 unicode coverage, D1 divergence triage. 222/222 three-way parity. MangleFidelity Exact. |
-| 1.2 — Full Swift round-trip infrastructure | 🚧 | D-track (D1-D7) demangler structure preservation — text-prefix paths to structured Node trees. R-track (R17-R24, no R21) remangler inverse emitters for all D-track kinds. swiftc corpus 222/222 round-trip proven. Apple corpus 149/153 (97.4%), 4 known divergences remaining. All swift variants Mangler-exposed (V1-V5): v42/v40/embedded/macro delegate to stable Remangler; swift-old raw-bytes replay; MangleFidelity=Exact on all. S1-S2 punycode surrogate-pair rejection + IsValidSwiftIdentifier enforcement. S3+F1 nightly fuzz expanded to 1h for 6 swift + 2 punycode harnesses. CI gate (apple-roundtrip.yml) live. |
+| 1.2 — Full Swift round-trip infrastructure | ✅ | D-track (D1-D7) demangler structure preservation — text-prefix paths to structured Node trees. R-track (R17-R24, no R21) remangler inverse emitters for all D-track kinds. swiftc corpus 222/222 round-trip proven. Apple corpus 149/153 (97.4%), 4 known divergences remaining. All swift variants Mangler-exposed (V1-V5): v42/v40/embedded/macro delegate to stable Remangler; swift-old raw-bytes replay; MangleFidelity=Exact on all. S1-S2 punycode surrogate-pair rejection + IsValidSwiftIdentifier enforcement. S3+F1 nightly fuzz expanded to 1h for 6 swift + 2 punycode harnesses. CI gate (apple-roundtrip.yml) live. |
+| 1.3 — Production-scale verification | 🚧 | 63,757-symbol production corpus (8 kodo frameworks); Mach-O + ELF readers; swiftprod-extract CLI; F1–F8 feature corpora; multi-version toolchains (Swift 5.9–6.3); 97 cross-version divergences pinned; B2 perf (235k syms/sec); DemangleBatch API; swift-production.yml + round-trip.yml GHA. Parity: 11.56% exact / 41.69% parse-clean. |
 | 7 — JS obfuscated deobfuscation | 🔜 | Deferred per plan; needs Node + webcrack subprocess path |
+
+### Stage 1.3 — Production-scale verification (2026-04-26)
+
+Nightshift run across 4+ ticks:
+- Production corpus: 63,757 symbols from 8 kodo frameworks
+- Parser fixes: getter format, property descriptor, type metadata N
+- New infrastructure: Mach-O + ELF readers, swiftprod-extract CLI
+- Feature corpora: F1–F8 (all 8 tracks complete)
+- Multi-version toolchains: Swift 5.9–6.3, 97 cross-version divergences pinned
+- Bench: 235k syms/sec (B2), DemangleBatch API (B3)
+- GHA: swift-production.yml + round-trip.yml
+- Parity: 11.56% exact / 41.69% parse-clean — Remangler + entity-suffix coverage needed for ≥99.5%
+
+---
 
 ## Tallies (current — 2026-04-26, v0.4.0-unreleased)
 

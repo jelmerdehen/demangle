@@ -4,6 +4,40 @@ All notable changes to this project will be documented here. Format
 follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). This
 project uses semantic versioning.
 
+## [0.6.0] — Unreleased
+
+### Production-Scale Swift Verification
+
+- **63,757-symbol production corpus** extracted from kodo (iPhoneOS 26.4 SDK, Xcode 26.x / Swift 6.3.1): libswiftCore (14,447), Foundation (14,999), UIKit (9,625), SwiftUI (19,929), Combine (2,129), CoreData (685), dispatch (748), _Concurrency (1,195).
+- **Parity**: 11.56% exact match vs Apple swift-demangle. Major parser fixes applied tick-3: getter format (`T.prop.getter`), property descriptor label, type metadata `N` suffix. Remaining gap: `tryEntitySuffix` coverage (36,466 symbols hit "grammar feature not yet supported").
+- **Round-trip**: 41.69% parse without error; 0% byte-exact round-trip (Remangler pending).
+- **Cross-version differential**: 5 Swift toolchains (5.9–6.3) at `/opt/swift-toolchains/`. 97 divergences pinned (all Apple-side: Swift 5.9 missing `isolatedAny`/`executorPreference`).
+
+### Symbol-Table Readers
+
+- **Mach-O reader** (`internal/symtab/macho/`) — pure-Go LC_SYMTAB; fat binary support with arm64e>arm64>x86_64 arch preference; `cmd/swiftprod-extract` CLI; 10s fuzz clean.
+- **ELF reader** (`internal/symtab/elf/`) — pure-Go `.dynsym`+`.symtab`; 3.44M symbols/sec on libswiftCore.so (17× target); 15s fuzz clean.
+
+### Newer Language-Feature Corpora
+
+Eight fixture corpora added to `scheme/swift/stable/testdata/fixtures/`:
+- F1 distributed actors (36), F2 parameter packs (22), F3 move-only/ownership (36)
+- F4 inline arrays (17), F5 macros (13)
+- F6 bit-precise integers (29), F7 embedded Swift (12), F8 result builders/property wrappers (75)
+
+### Performance
+
+- Demangler: **235k symbols/sec** (+24.4% from B2 optimization — parseIdentifier fast path, captureWords inlined, pre-allocated substitution slices). Gate ≥200k/sec passed.
+- Batch API: `Catalog.DemangleBatch` concurrent worker pool.
+
+### CI
+
+- GHA workflow `swift-production.yml`: matrix×5 frameworks, PR comment summary, version-diff on schedule.
+- `round-trip.yml`: Apple + swiftc (hard gates) + production (soft gate).
+- Grammar coverage CI gate added.
+
+---
+
 ## [0.5.0] (in progress — Stage 1.2)
 
 ### Added — D-track: Demangler structure preservation (D1-D7)
