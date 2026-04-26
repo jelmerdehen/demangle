@@ -1538,6 +1538,12 @@ func (r *remangler) mangleBoundGenericImpl(n *demangle.Node) error {
 			return err
 		}
 	}
+	// Re-emit retroactive-conformance metadata that was captured during parsing.
+	if n.Attrs != nil {
+		if tail := n.Attrs["swift.conformance_tail"]; tail != "" {
+			r.buf.WriteString(tail)
+		}
+	}
 	r.buf.WriteByte('G')
 	r.pushNodeSub(n)
 	return nil

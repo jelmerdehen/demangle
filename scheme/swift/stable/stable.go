@@ -6652,6 +6652,7 @@ func (p *parser) tryBoundGeneric(base *demangle.Node) (*demangle.Node, bool, err
 	save := p.i
 	p.i++
 	var args []*demangle.Node
+	var conformanceBuf strings.Builder
 	for !p.eof() && p.s[p.i] != 'G' {
 		// Skip '_' separators between args (used when the list mixes
 		// integer literals / generic params with nominals).
@@ -6679,15 +6680,21 @@ func (p *parser) tryBoundGeneric(base *demangle.Node) (*demangle.Node, bool, err
 			args = append(args, arg)
 			// Peek ahead for immediately-following conformance-ref
 			// metadata blocks (each ends with 'g<digits>?_').
+			confBefore := p.i
 			for p.skipConformanceRef() {
+			}
+			if p.i > confBefore {
+				conformanceBuf.WriteString(p.s[confBefore:p.i])
 			}
 			continue
 		}
 		p.i = argSave
 		p.subs = argSubs
+		confBefore2 := p.i
 		if wasConf := p.skipConformanceRef(); wasConf {
 			for p.skipConformanceRef() {
 			}
+			conformanceBuf.WriteString(p.s[confBefore2:p.i])
 			continue
 		}
 		// Roll back — the 'y' we consumed belonged to something else
@@ -6731,6 +6738,12 @@ func (p *parser) tryBoundGeneric(base *demangle.Node) (*demangle.Node, bool, err
 
 	bound := common.NewNode(bKind)
 	common.AddChildren(bound, base, typeList)
+	if conformanceBuf.Len() > 0 {
+		if bound.Attrs == nil {
+			bound.Attrs = map[string]string{}
+		}
+		bound.Attrs["swift.conformance_tail"] = conformanceBuf.String()
+	}
 
 	typ := common.NewNode(common.KindType)
 	common.AddChildren(typ, bound)
