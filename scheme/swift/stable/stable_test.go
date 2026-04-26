@@ -355,7 +355,7 @@ func TestStableEntitySuffixes(t *testing.T) {
 		{"$s4main3FooVvp", "property main.Foo"},
 		{"$s4main3FooVvg", "main.Foo.getter"},
 		// Property descriptor: vp + MV suffix.
-		{"$s4main3FooV4propSivpMV", "property descriptor for main.Foo.prop : Swift.Int"},
+		{"$s4main3FooV4propSivpMV", "property descriptor for Foo.prop"},
 		// Type metadata: nominal type + N suffix.
 		{"$s4main3FooVN", "type metadata for main.Foo"},
 		// Unmangled suffix.

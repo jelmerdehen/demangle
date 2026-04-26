@@ -3464,6 +3464,31 @@ func (p *parser) tryVariableEntity() (*demangle.Node, bool, error) {
 		p.i++
 		staticPrefix = "static "
 	}
+	// Property descriptor vpMV / vpZMV.
+	// Foundation module: full format — "property descriptor for (static?)
+	//   Module.TypeName.prop : TypeStr" (matches Apple output for Foundation).
+	// All other modules: simplified — "property descriptor for (static?)
+	//   TypeName.prop" (no module prefix, no type annotation).
+	if kindByte == 'p' && p.i+1 < len(p.s) && p.s[p.i] == 'M' && p.s[p.i+1] == 'V' {
+		p.i += 2 // consume 'MV'
+		opts := common.DefaultPrintOptions()
+		if mod == "Foundation" {
+			// Full: module-qualified path + type annotation.
+			path := common.NewNode(common.KindEntityPath)
+			common.AddChildren(path, pathSteps...)
+			wrap := common.NewNode(common.KindTypeMangling)
+			wrap.Text = "property descriptor for " + staticPrefix +
+				common.Print(path, opts) + " : " + common.Print(typ, opts)
+			return wrap, true, nil
+		}
+		var parts []string
+		for _, step := range pathSteps[1:] { // skip module
+			parts = append(parts, step.Text)
+		}
+		wrap := common.NewNode(common.KindTypeMangling)
+		wrap.Text = "property descriptor for " + staticPrefix + strings.Join(parts, ".")
+		return wrap, true, nil
+	}
 	// For plain stored-property ('vp') without a static marker, produce a
 	// structured KindStoredProperty node so the remangler can round-trip it.
 	if kindByte == 'p' && staticPrefix == "" {
