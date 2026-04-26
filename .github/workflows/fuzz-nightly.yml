@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-# B3: nightly fuzz workflow — 10m per harness, crashers committed back.
+# B3: nightly fuzz workflow — 10m per harness (1h for swift + punycode), crashers committed back.
 name: fuzz-nightly
 
 on:
@@ -33,19 +33,32 @@ jobs:
             package: ./scheme/js/sourcemap
           - harness: FuzzMinified
             package: ./scheme/js/minified
-          # scheme/swift
+          # scheme/swift/common (punycode — S3)
+          - harness: FuzzPunycodeRoundTrip
+            package: ./scheme/swift/common
+            fuzztime: 1h
+          - harness: FuzzPunycodeDecodeEncode
+            package: ./scheme/swift/common
+            fuzztime: 1h
+          # scheme/swift (F1)
           - harness: FuzzSwiftV40
             package: ./scheme/swift/v40
+            fuzztime: 1h
           - harness: FuzzSwiftV42
             package: ./scheme/swift/v42
+            fuzztime: 1h
           - harness: FuzzSwiftStable
             package: ./scheme/swift/stable
+            fuzztime: 1h
           - harness: FuzzSwiftEmbedded
             package: ./scheme/swift/embedded
+            fuzztime: 1h
           - harness: FuzzSwiftMacro
             package: ./scheme/swift/macro
+            fuzztime: 1h
           - harness: FuzzSwiftOld
             package: ./scheme/swift/old
+            fuzztime: 1h
           # scheme/rust
           - harness: FuzzRust
             package: ./scheme/rust
@@ -87,14 +100,15 @@ jobs:
           go-version: "1.26"
           cache: true
 
-      - name: fuzz ${{ matrix.harness }} (10m)
+      - name: fuzz ${{ matrix.harness }} (${{ matrix.fuzztime || '10m' }})
         env:
           HARNESS: ${{ matrix.harness }}
           PKG: ${{ matrix.package }}
+          FUZZTIME: ${{ matrix.fuzztime || '10m' }}
         run: |
           go test -run='^$' \
             -fuzz="${HARNESS}" \
-            -fuzztime=10m \
+            -fuzztime="${FUZZTIME}" \
             "${PKG}"
 
       - name: commit crashers (if any)
