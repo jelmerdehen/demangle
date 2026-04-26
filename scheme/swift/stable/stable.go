@@ -7456,6 +7456,11 @@ func (p *parser) tryBareModuleIdent() (*demangle.Node, bool) {
 // Returns (*demangle.Node, true) on success; reverts on failure.
 func (p *parser) tryTfSpecializationSuffix(inner *demangle.Node, save int, saveSubs common.SubstitutionTable) (*demangle.Node, bool) {
 	revert := func() { p.i = save; p.subs = saveSubs }
+	// Record the start of the suffix (= p.i at entry) for raw-suffix storage
+	// used by the remangler (R18). The raw bytes from suffixStart to p.i at
+	// exit encode everything after the inner entity up to and including the
+	// trailing 'n', enabling exact round-trip for this path.
+	suffixStart := p.i
 	// Find 'Tf' within bounded horizon.
 	tfPos := -1
 	limit := len(p.s)
@@ -7777,7 +7782,10 @@ func (p *parser) tryTfSpecializationSuffix(inner *demangle.Node, save int, saveS
 		textBuf.WriteString(" of ")
 	}
 	fsNode := common.NewNode(common.KindFunctionSignatureSpecialization)
-	fsNode.Attrs = map[string]string{"swift.specPass": passDigits}
+	fsNode.Attrs = map[string]string{
+		"swift.specPass":    passDigits,
+		"swift.tfRawSuffix": p.s[suffixStart:p.i],
+	}
 	fsNode.Text = textBuf.String()
 	common.AddChildren(fsNode, inner)
 	return fsNode, true

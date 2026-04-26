@@ -278,6 +278,14 @@ func (r *remangler) remangleNode(n *demangle.Node) error {
 		}
 		r.buf.WriteString("TA")
 		return nil
+	// R18: function-signature specialization emitter (Tf<pass><params>_n).
+	// Uses the raw suffix stored during parsing when the inner entity is a
+	// simple identifier (tryBareModuleIdent path). This covers the shape
+	//   $s<module><idents+types>Tf<pass><params>_n
+	// where the full pre-Tf + Tf payload is replayed verbatim after the
+	// inner entity is re-mangled.
+	case common.KindFunctionSignatureSpecialization:
+		return r.mangleFunctionSignatureSpecialization(n)
 	// R17: generic-specialization emitter (Tg/TG/TB/Ti/Tt).
 	case common.KindGenericSpecialization:
 		return r.mangleGenericSpecialization(n)
@@ -2157,5 +2165,50 @@ func (r *remangler) mangleGenericSpecialization(n *demangle.Node) error {
 	r.buf.WriteByte('T')
 	r.buf.WriteString(specKind)
 	r.buf.WriteString(specPass)
+	return nil
+}
+
+// mangleFunctionSignatureSpecialization emits a KindFunctionSignatureSpecialization
+// node.  The node is produced by tryTfSpecializationSuffix (stable.go) which
+// stores the raw bytes that follow the inner entity in the "swift.tfRawSuffix"
+// attribute.  The remangler replays those bytes verbatim so the output is
+// byte-exact with the original symbol.
+//
+// This approach covers the tryBareModuleIdent path (simple module identifier as
+// inner, followed by idents+types+Tf+spec-params+_n).  The substitution-table
+// state in the raw suffix is always self-consistent because the suffix was
+// captured immediately after the inner identifier was consumed, before any
+// further subs were added.
+//
+// For function-signature specialization nodes produced by other parser paths
+// (e.g. the inline 'f' case in trySpecializationSuffix with a full function
+// entity as inner), "swift.tfRawSuffix" is absent and this method returns
+// ErrUnsupported so the round-trip test skips them gracefully.
+//
+// Reference: Remangler.cpp mangleFunctionSignatureSpecialization (line 1514).
+func (r *remangler) mangleFunctionSignatureSpecialization(n *demangle.Node) error {
+	if len(n.Children) == 0 {
+		return r.unsupported(common.KindFunctionSignatureSpecialization)
+	}
+	rawSuffix := ""
+	if n.Attrs != nil {
+		rawSuffix = n.Attrs["swift.tfRawSuffix"]
+	}
+	if rawSuffix == "" {
+		// No raw suffix stored — this node was built by the inline Tf path
+		// which involves a real function entity with substitution references.
+		// We cannot reconstruct the pre-Tf payload and spec-params without
+		// the original bytes.
+		return r.unsupported(common.KindFunctionSignatureSpecialization)
+	}
+	// Emit the inner entity (e.g. the module identifier "foo").
+	if err := r.remangleNode(n.Children[0]); err != nil {
+		return err
+	}
+	// Replay the raw suffix verbatim.  The suffix encodes everything that
+	// appeared after the inner entity in the original symbol: the closure /
+	// arg-type identifiers, the Tf header, the spec-param codes, and the
+	// trailing "_n".
+	r.buf.WriteString(rawSuffix)
 	return nil
 }
