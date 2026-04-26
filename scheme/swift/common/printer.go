@@ -65,6 +65,63 @@ func printNode(b *strings.Builder, n *demangle.Node, opts PrintOptions) {
 	case KindAllocatingInit, KindInitializer, KindDeallocatingDeinit, KindDeinit:
 		// Display text is stored in n.Text by the parser.
 		b.WriteString(n.Text)
+	case KindOutlined:
+		variant := ""
+		if n.Attrs != nil {
+			variant = n.Attrs["swift.outline"]
+		}
+		switch variant {
+		case "e":
+			b.WriteString("outlined consume of ")
+		case "y":
+			b.WriteString("outlined copy of ")
+		case "h":
+			b.WriteString("outlined destroy of ")
+		case "d":
+			b.WriteString("outlined initializeWithTake of ")
+		case "g":
+			b.WriteString("outlined initializeWithCopy of ")
+		case "i":
+			b.WriteString("outlined initializeBufferWithCopyOfBuffer of ")
+		case "r":
+			b.WriteString("outlined release of ")
+		case "p":
+			b.WriteString("outlined retain of ")
+		default:
+			b.WriteString("outlined operation of ")
+		}
+		if len(n.Children) > 0 {
+			printNode(b, n.Children[0], opts)
+		}
+	case KindReabstractionThunk:
+		// Fallback: pre-formatted display text stored by the parser.
+		if disp := n.Attrs["swift.display"]; disp != "" {
+			b.WriteString(disp)
+			return
+		}
+		// 2-children form: reabstraction thunk helper [sig ]from <child[0]> to <child[1]>
+		if len(n.Children) == 2 {
+			b.WriteString("reabstraction thunk helper ")
+			if sig := n.Attrs["swift.genSig"]; sig != "" {
+				b.WriteString(sig)
+				b.WriteByte(' ')
+			}
+			b.WriteString("from ")
+			printNode(b, n.Children[0], opts)
+			b.WriteString(" to ")
+			printNode(b, n.Children[1], opts)
+			return
+		}
+		// 1-child form: reabstraction thunk helper <inner>
+		b.WriteString("reabstraction thunk helper ")
+		if len(n.Children) > 0 {
+			printNode(b, n.Children[0], opts)
+		}
+	case KindPartialApplyForwarder:
+		b.WriteString("partial apply forwarder for ")
+		if len(n.Children) > 0 {
+			printNode(b, n.Children[0], opts)
+		}
 	case KindStructure, KindClass, KindEnum, KindProtocol:
 		printNominal(b, n, opts)
 	case KindBoundGenericStructure, KindBoundGenericClass,

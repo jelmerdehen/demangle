@@ -1291,11 +1291,22 @@ func (p *parser) tryReabstractionThunk(inner *demangle.Node) (*demangle.Node, bo
 		revert()
 		return inner, false
 	}
-	firstStr := common.Print(inner, common.DefaultPrintOptions())
-	secondStr := common.Print(second, common.DefaultPrintOptions())
-	display := prefixStr + firstStr + " to " + secondStr
-	wrap := common.NewNode(common.KindTypeMangling)
-	wrap.Text = display
+	// Build a KindReabstractionThunk node with 2 children [inner, second].
+	// The printer renders: prefixStr + <inner> + " to " + <second>,
+	// but for autodiff self-reordering we use swift.display fallback.
+	if strings.HasPrefix(prefixStr, "autodiff") {
+		firstStr := common.Print(inner, common.DefaultPrintOptions())
+		secondStr := common.Print(second, common.DefaultPrintOptions())
+		display := prefixStr + firstStr + " to " + secondStr
+		wrap := common.NewNode(common.KindTypeMangling)
+		wrap.Text = display
+		return wrap, true
+	}
+	wrap := common.NewNode(common.KindReabstractionThunk)
+	if sigBeforeTR != "" {
+		wrap.Attrs = map[string]string{"swift.genSig": strings.TrimRight(sigBeforeTR, " ")}
+	}
+	common.AddChildren(wrap, inner, second)
 	return wrap, true
 }
 
@@ -3497,13 +3508,14 @@ func (p *parser) tryEntitySuffix(inner *demangle.Node) (*demangle.Node, bool) {
 		case 'O':
 			// WO<letter> = outlined operation.
 			if p.i+2 < len(p.s) {
-				switch p.s[p.i+2] {
-				case 'e':
-					prefix = "outlined consume of "
-					consumed = 3
-				case 'y':
-					prefix = "outlined copy of "
-					consumed = 3
+				variant := p.s[p.i+2]
+				switch variant {
+				case 'e', 'y', 'h', 'd', 'g', 'i', 'r', 'p':
+					n := common.NewNode(common.KindOutlined)
+					n.Attrs = map[string]string{"swift.outline": string(variant)}
+					common.AddChildren(n, inner)
+					p.i += 3
+					return n, true
 				}
 			}
 		}
@@ -3527,7 +3539,10 @@ func (p *parser) tryEntitySuffix(inner *demangle.Node) (*demangle.Node, bool) {
 		} else if p.s[p.i+1] == 'C' {
 			prefix = "coroutine continuation prototype for "
 		} else if p.s[p.i+1] == 'R' {
-			prefix = "reabstraction thunk helper "
+			n := common.NewNode(common.KindReabstractionThunk)
+			common.AddChildren(n, inner)
+			p.i += 2
+			return n, true
 		} else if p.s[p.i+1] == 'O' {
 			prefix = "@nonobjc "
 		} else if p.s[p.i+1] == 'o' {
@@ -3541,7 +3556,10 @@ func (p *parser) tryEntitySuffix(inner *demangle.Node) (*demangle.Node, bool) {
 		} else if p.s[p.i+1] == 'n' {
 			prefix = "associated conformance descriptor for "
 		} else if p.s[p.i+1] == 'A' {
-			prefix = "partial apply forwarder for "
+			n := common.NewNode(common.KindPartialApplyForwarder)
+			common.AddChildren(n, inner)
+			p.i += 2
+			return n, true
 		} else if p.s[p.i+1] == 'a' {
 			prefix = "partial apply obj-c forwarder for "
 		} else if p.s[p.i+1] == 'I' {

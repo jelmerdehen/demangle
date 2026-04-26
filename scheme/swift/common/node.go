@@ -90,6 +90,19 @@ const (
 	KindInitializer      // fc — init / __nonallocating_init
 	KindDeallocatingDeinit // fD — __deallocating_deinit
 	KindDeinit           // fd — __destroying_deinit
+
+	// Outlined operations (D6). WO<variant> — all 8 WO* variants share
+	// this single kind; the variant byte is stored in Attrs["swift.outline"].
+	KindOutlined
+
+	// Reabstraction thunk (D7). Covers the simple TR suffix form (1 child)
+	// and the complex <first-type> <second-type> TR form (2 children).
+	// Attrs["swift.genSig"] holds the optional generic signature string;
+	// Attrs["swift.display"] is a fallback for pre-formatted text.
+	KindReabstractionThunk
+
+	// Partial apply forwarder (D7). TA suffix — 1 child (inner entity).
+	KindPartialApplyForwarder
 )
 
 // Name returns the human-readable label used by the printer + shown
@@ -180,6 +193,12 @@ func (k NodeKind) Name() string {
 		return "DeallocatingDeinit"
 	case KindDeinit:
 		return "Deinit"
+	case KindOutlined:
+		return "Outlined"
+	case KindReabstractionThunk:
+		return "ReabstractionThunk"
+	case KindPartialApplyForwarder:
+		return "PartialApplyForwarder"
 	}
 	return "Unknown"
 }
@@ -221,6 +240,8 @@ func (k NodeKind) Category() demangle.KindCategory {
 	case KindAllocatingInit, KindInitializer,
 		KindDeallocatingDeinit, KindDeinit:
 		return demangle.KindCatFunction
+	case KindOutlined, KindReabstractionThunk, KindPartialApplyForwarder:
+		return demangle.KindCatOther
 	}
 	return demangle.KindCatUnknown
 }
@@ -233,7 +254,7 @@ var (
 )
 
 func init() {
-	for k := KindInvalid; k <= KindDeinit; k++ {
+	for k := KindInvalid; k <= KindPartialApplyForwarder; k++ {
 		KindNames[int32(k)] = k.Name()
 		KindCategories[int32(k)] = k.Category()
 	}
