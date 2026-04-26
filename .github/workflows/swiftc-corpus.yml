@@ -1,0 +1,96 @@
+# SPDX-License-Identifier: Apache-2.0
+# X1: swiftc corpus parity workflow — compile/parity/drift-check
+name: swiftc-corpus
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '0 3 * * *'  # nightly
+
+permissions:
+  contents: read
+
+jobs:
+  compile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: swift-actions/setup-swift@v2
+        with:
+          swift-version: "6.0"
+
+      - name: compile Swift sources
+        working-directory: scheme/swift/stable/testdata/swiftc
+        run: make compile
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: swiftc-so
+          path: scheme/swift/stable/testdata/swiftc/out/*.so
+          retention-days: 7
+
+  parity:
+    runs-on: ubuntu-latest
+    needs: compile
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version: "1.26"
+          cache: true
+
+      - uses: swift-actions/setup-swift@v2
+        with:
+          swift-version: "6.0"
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: swiftc-so
+          path: scheme/swift/stable/testdata/swiftc/out
+
+      - name: extract and oracle (regen corpus into /tmp)
+        working-directory: scheme/swift/stable/testdata/swiftc
+        run: |
+          make extract
+          make oracle CORPUS=/tmp/corpus-regen.txt
+
+      - name: corpus drift check
+        working-directory: scheme/swift/stable/testdata/swiftc
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          if ! diff -q corpus.txt /tmp/corpus-regen.txt > /dev/null 2>&1; then
+            echo "Corpus drift detected"
+            if [[ "$PR_TITLE" != *"[corpus-bump]"* ]]; then
+              diff corpus.txt /tmp/corpus-regen.txt | head -40
+              exit 1
+            fi
+          fi
+
+      - name: Three-way parity
+        run: go test ./scheme/swift/stable/ -run TestThreeWayParity -v -timeout 120s
+
+  bench:
+    runs-on: ubuntu-latest
+    needs: parity
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version: "1.26"
+          cache: true
+
+      - name: bench remangle (if available)
+        run: |
+          if go test ./scheme/swift/stable/ -run '^$' -bench=BenchmarkRemangle -benchtime=1x -count=1 2>&1 \
+              | grep -q 'no tests to run\|testing: warning: no tests to run'; then
+            echo "BenchmarkRemangle not yet implemented — skipping"
+          else
+            go test ./scheme/swift/stable/ -run '^$' -bench=BenchmarkRemangle -benchtime=5s -count=1
+          fi
