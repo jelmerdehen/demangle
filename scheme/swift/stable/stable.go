@@ -2884,6 +2884,7 @@ func (p *parser) tryVariableEntity() (*demangle.Node, bool, error) {
 		if peek == 'V' || peek == 'C' || peek == 'O' || peek == 'P' {
 			p.i++
 			identNode := common.NewIdentifier(ident)
+			identNode.Attrs = map[string]string{"swift.nominalKind": string(peek)}
 			pathSteps = append(pathSteps, identNode)
 			// Push identifier + nominal-Type to subs so later A<idx>
 			// back-refs resolve against the same indices Apple's
@@ -3029,7 +3030,9 @@ func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 		if peek == 'V' || peek == 'C' || peek == 'O' || peek == 'P' {
 			p.i++
 			lastKind = peek
-			pathSteps = append(pathSteps, common.NewIdentifier(ident))
+			identNode := common.NewIdentifier(ident)
+			identNode.Attrs = map[string]string{"swift.nominalKind": string(peek)}
+			pathSteps = append(pathSteps, identNode)
 			continue
 		}
 		// No kind byte — this ident is the label-list start, not a
@@ -3729,11 +3732,13 @@ func (p *parser) tryEntitySuffix(inner *demangle.Node) (*demangle.Node, bool) {
 	if prefix == "" {
 		return inner, false
 	}
+	suffixBytes := string(p.s[p.i : p.i+consumed]) // CAPTURE BEFORE ADVANCE
 	p.i += consumed
 	// Render inner + wrap in a TypeMangling node so the printer
 	// emits "prefix <inner-display>" form.
 	wrap := common.NewNode(common.KindTypeMangling)
 	wrap.Text = prefix
+	wrap.Attrs = map[string]string{"swift.suffix": suffixBytes}
 	common.AddChildren(wrap, inner)
 	return wrap, true
 }
@@ -4830,6 +4835,7 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 			peek := p.s[p.i]
 			if peek == 'V' || peek == 'C' || peek == 'O' || peek == 'P' {
 				p.i++
+				identNode.Attrs = map[string]string{"swift.nominalKind": string(peek)}
 				pathSteps = append(pathSteps, identNode)
 				var kind common.NodeKind
 				switch peek {
@@ -4882,6 +4888,7 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 		peek := p.s[p.i]
 		if peek == 'V' || peek == 'C' || peek == 'O' || peek == 'P' {
 			p.i++ // consume nominal-context kind; keep iterating.
+			identNode.Attrs = map[string]string{"swift.nominalKind": string(peek)}
 			pathSteps = append(pathSteps, identNode)
 			// Build + push the nominal Type for A<idx>_ back-refs.
 			var kind common.NodeKind

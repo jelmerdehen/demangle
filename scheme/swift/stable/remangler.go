@@ -206,6 +206,9 @@ func (r *remangler) remangleNode(n *demangle.Node) error {
 		return r.mangleVariableAccessor(n, "vs")
 	case common.KindStoredProperty:
 		return r.mangleVariableAccessor(n, "vp")
+	// R16: entity-suffix emitter (e.g. Ma, Mn, WP, WV).
+	case common.KindTypeMangling:
+		return r.mangleEntitySuffix(n)
 	// R15: init/deinit entity kinds.
 	case common.KindAllocatingInit:
 		return r.mangleInitDeinit(n, "cfC")
@@ -325,10 +328,18 @@ func (r *remangler) mangleIdentifier(n *demangle.Node) error {
 		return nil
 	}
 	// R3: Check if the pure-ASCII identifier can be expressed as word refs.
-	// If so, emit "0<letters>" form.  (ManglingUtils.h lines 192–242)
+	// Full coverage: emit "0<refs>0" form.  (ManglingUtils.h lines 192–242)
+	// Partial coverage: emit "0<refs><len><literal>" form when a prefix
+	// is covered by word refs and the remainder is a literal suffix.
 	if refs, ok := r.matchWordRefs(text); ok {
 		r.emitWordRefs(refs, text)
 		// R4: push to subs even for word-ref form (Apple does so).
+		r.pushIdentSub(text)
+		return nil
+	}
+	if refs, covered, ok := r.matchPartialWordRefs(text); ok {
+		r.emitPartialWordRefs(refs, text, covered)
+		// R4: push to subs.
 		r.pushIdentSub(text)
 		return nil
 	}
@@ -474,6 +485,64 @@ func (r *remangler) emitWordRefs(refs wordRefList, text string) {
 			r.buf.WriteByte(byte('a' + idx))
 		}
 	}
+}
+
+// matchPartialWordRefs returns the list of word-ref pairs and the number of
+// bytes covered if text starts with one or more word refs but cannot be fully
+// expressed as word refs (partial prefix coverage).  Returns (nil, 0, false)
+// if no prefix is coverable or full coverage is possible (use matchWordRefs).
+// (ManglingUtils.h partial-word-ref encoding: "0<refs><len><literal>")
+func (r *remangler) matchPartialWordRefs(text string) (wordRefList, int, bool) {
+	if len(r.words) == 0 || text == "" {
+		return nil, 0, false
+	}
+	// Greedy cover from the start.
+	var refs wordRefList
+	pos := 0
+	for pos < len(text) {
+		best := -1
+		bestLen := 0
+		for i, w := range r.words {
+			if len(w) > bestLen && strings.HasPrefix(text[pos:], w) {
+				best = i
+				bestLen = len(w)
+			}
+		}
+		if best < 0 {
+			break
+		}
+		refs = append(refs, struct{ start, wordIdx int }{pos, best})
+		pos += bestLen
+	}
+	// Only useful if we covered a non-empty prefix but not the whole string.
+	if pos == 0 || pos == len(text) {
+		return nil, 0, false
+	}
+	return refs, pos, true
+}
+
+// emitPartialWordRefs emits the "0<refs><len><literal>" form for partial coverage.
+// refs cover text[0:covered]; text[covered:] is emitted as a literal length+bytes.
+// The last ref letter is uppercase (no trailing '0' since not fully covered).
+func (r *remangler) emitPartialWordRefs(refs wordRefList, text string, covered int) {
+	r.buf.WriteByte('0') // word-sub prefix
+	end := len(refs)
+	for i, ref := range refs {
+		idx := ref.wordIdx
+		isLast := (i == end-1)
+		if isLast {
+			// Uppercase = last ref in this sequence; no trailing '0' (partial).
+			r.buf.WriteByte(byte('A' + idx))
+		} else {
+			// Lowercase = more refs to follow.
+			r.buf.WriteByte(byte('a' + idx))
+		}
+	}
+	// Emit the literal suffix.
+	suffix := text[covered:]
+	fmt.Fprintf(&r.buf, "%d%s", len(suffix), suffix)
+	// Capture words from the literal suffix for future word-substitution.
+	r.captureWords(suffix)
 }
 
 // ---------------------------------------------------------------------------
@@ -652,6 +721,37 @@ func (r *remangler) stdlibToken(n *demangle.Node) (string, bool) {
 	}
 	token, ok := reverseStdlib[stdlibKey{mod.Text, ident.Text}]
 	return token, ok
+}
+
+// containsNonStdlibNominal returns true if n or any descendant is a nominal
+// type node (Structure, Class, Enum, Protocol, BoundGeneric*) whose module is
+// NOT the stdlib ("Swift").  Used to detect self-type return values in methods
+// where Apple would emit an A-substitution reference.
+func containsNonStdlibNominal(n *demangle.Node) bool {
+	if n == nil {
+		return false
+	}
+	kind := common.NodeKind(n.Kind)
+	switch kind {
+	case common.KindStructure, common.KindClass, common.KindEnum, common.KindProtocol:
+		// Check if the first child (module) is "Swift".
+		if len(n.Children) >= 1 {
+			mod := n.Children[0]
+			if common.NodeKind(mod.Kind) == common.KindModule && mod.Text == "Swift" {
+				return false
+			}
+		}
+		return true
+	case common.KindBoundGenericStructure, common.KindBoundGenericClass,
+		common.KindBoundGenericEnum, common.KindBoundGenericProtocol:
+		return true
+	}
+	for _, child := range n.Children {
+		if containsNonStdlibNominal(child) {
+			return true
+		}
+	}
+	return false
 }
 
 // ---------------------------------------------------------------------------
@@ -900,11 +1000,23 @@ func (r *remangler) mangleFunctionEntity(n *demangle.Node) error {
 	args := n.Children[1]
 	ret := n.Children[2]
 
-	// Guard: module-level functions only (EntityPath = [Module, Identifier]).
-	// Methods have a 3rd Identifier for the nominal context whose kind byte
-	// (V/C/O/P) is not preserved in the parsed tree.
-	if common.NodeKind(path.Kind) == common.KindEntityPath && len(path.Children) != 2 {
-		return r.unsupported(common.KindFunctionEntity)
+	// Guard: check that all intermediate Identifier nodes in the EntityPath
+	// have the nominalKind attr set (populated by the parser when consuming
+	// V/C/O/P kind bytes). Without it, we cannot reconstruct the method path.
+	if common.NodeKind(path.Kind) == common.KindEntityPath {
+		nChildren := len(path.Children)
+		if nChildren < 2 {
+			return r.unsupported(common.KindFunctionEntity)
+		}
+		// children[0] is the Module (always ok)
+		// children[1..n-2] are nominal-type Identifiers (need nominalKind attr)
+		// children[n-1] is the decl-name Identifier (no kind byte)
+		for i := 1; i < nChildren-1; i++ {
+			child := path.Children[i]
+			if child.Attrs == nil || child.Attrs["swift.nominalKind"] == "" {
+				return r.unsupported(common.KindFunctionEntity)
+			}
+		}
 	}
 
 	// Guard: skip generics — the Attrs string is insufficient to reconstruct
@@ -922,6 +1034,28 @@ func (r *remangler) mangleFunctionEntity(n *demangle.Node) error {
 	// parity test counts this as unsupported (not a round-trip failure).
 	if !argsEmpty && !retEmpty {
 		return r.unsupported(common.KindFunctionEntity)
+	}
+
+	// Guard: labeled args use a TypeList (not EmptyList or a plain Type).
+	// The label-list token and labeled-arg encoding cannot currently be
+	// reconstructed from the parsed tree.
+	if common.NodeKind(args.Kind) == common.KindTypeList {
+		return r.unsupported(common.KindFunctionEntity)
+	}
+
+	// Guard: for methods (EntityPath len ≥ 3), the return type or args type
+	// may be the self-type which Apple encodes as an A-substitution reference
+	// (e.g. "AC").  Our substitution table doesn't track the nominal-type
+	// entries added implicitly during entity-path emission, so we cannot
+	// reproduce the substitution index.  Return ErrUnsupported for methods
+	// with non-void non-stdlib types to avoid producing incorrect mangled output.
+	if common.NodeKind(path.Kind) == common.KindEntityPath && len(path.Children) > 2 {
+		if !retEmpty && containsNonStdlibNominal(ret) {
+			return r.unsupported(common.KindFunctionEntity)
+		}
+		if !argsEmpty && containsNonStdlibNominal(args) {
+			return r.unsupported(common.KindFunctionEntity)
+		}
 	}
 
 	// 1. Emit the entity path.
@@ -963,13 +1097,46 @@ func (r *remangler) mangleFunctionEntity(n *demangle.Node) error {
 
 // mangleEntityPath emits each child of a KindEntityPath node in order.
 // For module-level functions the children are [Module, Identifier(funcName)].
-// Methods are guarded in mangleFunctionEntity before reaching here.
+// For method paths, intermediate Identifier nodes carry Attrs["swift.nominalKind"]
+// (e.g. "C" for a class) which is emitted as a trailer byte after the identifier.
 func (r *remangler) mangleEntityPath(n *demangle.Node) error {
 	for _, child := range n.Children {
 		if err := r.remangleNode(child); err != nil {
 			return err
 		}
+		// Emit the nominal-kind trailer byte if stored (e.g. "V", "C", "O", "P").
+		// This byte was consumed by the parser when parsing method paths like
+		// "7CounterC5reset" (Counter is a class, kind='C').
+		if child.Attrs != nil {
+			if nk := child.Attrs["swift.nominalKind"]; nk != "" {
+				r.buf.WriteString(nk)
+			}
+		}
 	}
+	return nil
+}
+
+// ---------------------------------------------------------------------------
+// R16: Entity-suffix emitter
+// Reference: Remangler.cpp — mangleTypeMetadata, mangleNominalTypeDescriptor,
+// mangleProtocolWitnessTable, etc. All follow: emit inner type + emit suffix bytes.
+// ---------------------------------------------------------------------------
+
+// mangleEntitySuffix remangles an entity-suffix wrapper node.
+// The node has Attrs["swift.suffix"] = the raw suffix bytes (e.g. "Ma", "WP")
+// and one child which is the inner nominal type.
+func (r *remangler) mangleEntitySuffix(n *demangle.Node) error {
+	suffix := ""
+	if n.Attrs != nil {
+		suffix = n.Attrs["swift.suffix"]
+	}
+	if suffix == "" || len(n.Children) == 0 {
+		return r.unsupported(common.KindTypeMangling)
+	}
+	if err := r.remangleNode(n.Children[0]); err != nil {
+		return err
+	}
+	r.buf.WriteString(suffix)
 	return nil
 }
 
