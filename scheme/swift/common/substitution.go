@@ -98,6 +98,30 @@ type stdlib struct {
 	kind   NodeKind
 }
 
+// StdlibEntry carries the module and name for a single stdlib
+// substitution entry.  Exported so remanglers can build reverse maps
+// without duplicating the substitution table.
+type StdlibEntry struct {
+	Module string
+	Name   string
+}
+
+// EachStdlibSubstitution calls fn once per entry in StdlibSubstitutions
+// with the letter and the corresponding StdlibEntry.  Used by remanglers
+// to build reverse tables without re-exporting the unexported stdlib type.
+func EachStdlibSubstitution(fn func(letter byte, e StdlibEntry)) {
+	for letter, s := range StdlibSubstitutions {
+		fn(letter, StdlibEntry{Module: s.module, Name: s.name})
+	}
+}
+
+// EachStdlibSubstitution2 is the Sc<X> variant of EachStdlibSubstitution.
+func EachStdlibSubstitution2(fn func(letter byte, e StdlibEntry)) {
+	for letter, s := range StdlibSubstitutions2 {
+		fn(letter, StdlibEntry{Module: s.module, Name: s.name})
+	}
+}
+
 // BuildStdlibNominal constructs a nominal-type Node (Structure / Enum
 // / Protocol with Module + Identifier children) for a known Swift
 // abbreviation. Returns (node, true) if the byte is mapped.
