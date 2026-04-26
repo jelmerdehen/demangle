@@ -103,6 +103,66 @@ const (
 
 	// Partial apply forwarder (D7). TA suffix — 1 child (inner entity).
 	KindPartialApplyForwarder
+
+	// Macro expansion (D4). fM<kind><idx>_ suffix.
+	// Attrs["swift.macroKind"] = kind byte letter.
+	// Attrs["swift.macroKindText"] = display text for the kind.
+	// Attrs["swift.macroIdx"] = 1-based index as string.
+	// Attrs["swift.macroName"] = macro name identifier.
+	KindMacroExpansion
+
+	// Key-path accessor (D4). TK/Tk/TH suffix.
+	// Children[0] = inner entity, Children[1] = owner type node.
+	// Attrs["swift.kpKind"] = accessor kind ("getter", "setter").
+	// Attrs["swift.kpSerialized"] = ", serialized" or "".
+	KindKeyPathAccessor
+
+	// Local/nested private decl (D4). <name>L<idx>_<kind> suffix.
+	// Children[0] = inner entity (outer nominal/function).
+	// Children[1] = KindIdentifier (the local name).
+	// Attrs["swift.ldIndex"] = 1-based display index as string.
+	// Attrs["swift.ldKind"] = nominal kind byte ("V","C","O","P","a","") — may be empty.
+	KindLocalDeclName
+
+	// D1: generic specialization wrapper (Tg/TG/TB/Ti/Tt).
+	// Children[0] = inner entity, Children[1] = KindTypeList of spec args.
+	// Attrs["swift.specKind"] = letter ("g","G","B","i","t").
+	// Attrs["swift.specPass"] = pass-count digits string (may be empty).
+	KindGenericSpecialization
+
+	// D2: function-signature specialization wrapper (Tf).
+	// Children[0] = inner entity.
+	// Text = pre-formatted args portion (e.g. "<Arg[0] = [...]>").
+	// Attrs["swift.specPass"] = pass-count digits string (may be empty).
+	KindFunctionSignatureSpecialization
+
+	// D5: anonymous context (yXZ) — (unknown context at <ident>) wrapper.
+	// Children[0] = parent context (module or enclosing entity).
+	// Children[1] = KindIdentifier (the anonymous-context identifier, e.g. "$10016c2d8").
+	// Printer renders: "<parent>.(unknown context at <ident>)".
+	KindAnonymousContext
+
+	// AutoDiff subset parameters thunk (D3). TJS<kind><subsets> suffix.
+	// Children[0] = inner entity.
+	// Attrs["swift.adKind"]  = kind byte as string ("d", "p", "r", "f").
+	// Attrs["swift.fromP"]   = fromParams subset string (e.g. "SS").
+	// Attrs["swift.fromR"]   = fromResults subset string.
+	// Attrs["swift.toP"]     = toParams subset string.
+	// Attrs["swift.implFn"]  = impl-fn-type display text (may be empty).
+	KindAutoDiffSubsetParametersThunk
+
+	// AutoDiff function / derivative (D3). TJ<kind> suffix and
+	// the analogous WJ / trailing-sig forms.
+	// Children[0] = inner entity.
+	// Attrs["swift.adKind"]    = variant string ("forward-mode derivative",
+	//                            "reverse-mode derivative", "differential",
+	//                            "pullback").
+	// Attrs["swift.paramSub"]  = params subset string.
+	// Attrs["swift.resultSub"] = results subset string.
+	// Attrs["swift.vtable"]    = "true" if vtable-thunk form (TJV).
+	// Attrs["swift.genSig"]    = generic sig display text (may be empty).
+	// Text = pre-formatted display string (for fallback/debugging).
+	KindAutoDiffFunction
 )
 
 // Name returns the human-readable label used by the printer + shown
@@ -199,6 +259,22 @@ func (k NodeKind) Name() string {
 		return "ReabstractionThunk"
 	case KindPartialApplyForwarder:
 		return "PartialApplyForwarder"
+	case KindMacroExpansion:
+		return "MacroExpansion"
+	case KindKeyPathAccessor:
+		return "KeyPathAccessor"
+	case KindLocalDeclName:
+		return "LocalDeclName"
+	case KindGenericSpecialization:
+		return "GenericSpecialization"
+	case KindFunctionSignatureSpecialization:
+		return "FunctionSignatureSpecialization"
+	case KindAnonymousContext:
+		return "AnonymousContext"
+	case KindAutoDiffSubsetParametersThunk:
+		return "AutoDiffSubsetParametersThunk"
+	case KindAutoDiffFunction:
+		return "AutoDiffFunction"
 	}
 	return "Unknown"
 }
@@ -242,6 +318,14 @@ func (k NodeKind) Category() demangle.KindCategory {
 		return demangle.KindCatFunction
 	case KindOutlined, KindReabstractionThunk, KindPartialApplyForwarder:
 		return demangle.KindCatOther
+	case KindMacroExpansion, KindKeyPathAccessor, KindLocalDeclName:
+		return demangle.KindCatOther
+	case KindGenericSpecialization, KindFunctionSignatureSpecialization:
+		return demangle.KindCatOther
+	case KindAnonymousContext:
+		return demangle.KindCatOther
+	case KindAutoDiffSubsetParametersThunk, KindAutoDiffFunction:
+		return demangle.KindCatFunction
 	}
 	return demangle.KindCatUnknown
 }
@@ -254,7 +338,7 @@ var (
 )
 
 func init() {
-	for k := KindInvalid; k <= KindPartialApplyForwarder; k++ {
+	for k := KindInvalid; k <= KindAutoDiffFunction; k++ {
 		KindNames[int32(k)] = k.Name()
 		KindCategories[int32(k)] = k.Category()
 	}

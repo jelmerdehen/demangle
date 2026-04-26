@@ -898,9 +898,12 @@ func (p *parser) tryNestedPrivateDecl(inner *demangle.Node) (*demangle.Node, boo
 			}
 		}
 	}
-	innerStr := common.Print(inner, common.DefaultPrintOptions())
-	wrap := common.NewNode(common.KindTypeMangling)
-	wrap.Text = fmt.Sprintf("%s #%d in %s", name, idx+1, innerStr)
+	wrap := common.NewNode(common.KindLocalDeclName)
+	nameIdent := common.NewIdentifier(name)
+	common.AddChildren(wrap, inner, nameIdent)
+	wrap.Attrs = map[string]string{
+		"swift.ldIndex": strconv.Itoa(idx + 1),
+	}
 	return wrap, true
 }
 
@@ -951,10 +954,12 @@ func (p *parser) tryKeyPathSuffix(inner *demangle.Node) (*demangle.Node, bool) {
 		serialized = ", serialized"
 		p.i++
 	}
-	innerStr := common.Print(inner, common.DefaultPrintOptions())
-	ownerStr := common.Print(owner, common.DefaultPrintOptions())
-	wrap := common.NewNode(common.KindTypeMangling)
-	wrap.Text = "key path " + accessor + " for " + innerStr + " : " + ownerStr + serialized
+	wrap := common.NewNode(common.KindKeyPathAccessor)
+	common.AddChildren(wrap, inner, owner)
+	wrap.Attrs = map[string]string{
+		"swift.kpKind":       accessor,
+		"swift.kpSerialized": serialized,
+	}
 	return wrap, true
 }
 
@@ -1032,10 +1037,14 @@ func (p *parser) tryMacroExpansion(inner *demangle.Node) (*demangle.Node, bool) 
 		idx++ // Apple demangleIndex: N_ → N+1
 	}
 	p.i++ // consume '_'
-	// Apple renders the 1-based counter: #<idx+1>.
-	innerStr := common.Print(inner, common.DefaultPrintOptions())
-	wrap := common.NewNode(common.KindTypeMangling)
-	wrap.Text = fmt.Sprintf("%s #%d of %s in %s", kindText, idx+1, name, innerStr)
+	wrap := common.NewNode(common.KindMacroExpansion)
+	common.AddChildren(wrap, inner)
+	wrap.Attrs = map[string]string{
+		"swift.macroKind":     string([]byte{kindByte}),
+		"swift.macroKindText": kindText,
+		"swift.macroIdx":      strconv.Itoa(idx + 1),
+		"swift.macroName":     name,
+	}
 	return wrap, true
 }
 

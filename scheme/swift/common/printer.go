@@ -122,6 +122,117 @@ func printNode(b *strings.Builder, n *demangle.Node, opts PrintOptions) {
 		if len(n.Children) > 0 {
 			printNode(b, n.Children[0], opts)
 		}
+	case KindMacroExpansion:
+		// "<kindText> #<idx> of <macroName> in <inner>"
+		kindText := ""
+		idx := ""
+		macroName := ""
+		if n.Attrs != nil {
+			kindText = n.Attrs["swift.macroKindText"]
+			idx = n.Attrs["swift.macroIdx"]
+			macroName = n.Attrs["swift.macroName"]
+		}
+		b.WriteString(kindText)
+		b.WriteString(" #")
+		b.WriteString(idx)
+		b.WriteString(" of ")
+		b.WriteString(macroName)
+		b.WriteString(" in ")
+		if len(n.Children) > 0 {
+			printNode(b, n.Children[0], opts)
+		}
+	case KindKeyPathAccessor:
+		// "key path <kind> for <inner> : <owner>[, serialized]"
+		kpKind := ""
+		kpSerialized := ""
+		if n.Attrs != nil {
+			kpKind = n.Attrs["swift.kpKind"]
+			kpSerialized = n.Attrs["swift.kpSerialized"]
+		}
+		b.WriteString("key path ")
+		b.WriteString(kpKind)
+		b.WriteString(" for ")
+		if len(n.Children) > 0 {
+			printNode(b, n.Children[0], opts)
+		}
+		b.WriteString(" : ")
+		if len(n.Children) > 1 {
+			printNode(b, n.Children[1], opts)
+		}
+		b.WriteString(kpSerialized)
+	case KindLocalDeclName:
+		// "<name> #<idx> in <inner>"
+		ldIdx := ""
+		if n.Attrs != nil {
+			ldIdx = n.Attrs["swift.ldIndex"]
+		}
+		// Children[1] is the name identifier, Children[0] is the inner entity.
+		name := ""
+		if len(n.Children) > 1 {
+			name = n.Children[1].Text
+		}
+		b.WriteString(name)
+		b.WriteString(" #")
+		b.WriteString(ldIdx)
+		b.WriteString(" in ")
+		if len(n.Children) > 0 {
+			printNode(b, n.Children[0], opts)
+		}
+	case KindGenericSpecialization:
+		// "<prefix> [<args> ]of <inner>"
+		// For 'i': "inlined generic function [<args> ]of <inner>"
+		// For 't': "merged thunk [<args> ]of <inner>"
+		// For 'G': "generic specialization (preserving fragile) [<args> ]of <inner>"
+		// For 'g'/'B'/other: "generic specialization [<args> ]of <inner>"
+		kind := ""
+		tupleArgs := false
+		if n.Attrs != nil {
+			kind = n.Attrs["swift.specKind"]
+			tupleArgs = n.Attrs["swift.specTuple"] == "true"
+		}
+		switch kind {
+		case "i":
+			b.WriteString("inlined generic function")
+		case "t":
+			b.WriteString("merged thunk")
+		case "G":
+			b.WriteString("generic specialization (preserving fragile)")
+		default: // "g", "B", and anything else
+			b.WriteString("generic specialization")
+		}
+		// Render spec args from Children[1] (KindTypeList).
+		if len(n.Children) > 1 && len(n.Children[1].Children) > 0 {
+			argList := n.Children[1]
+			printOpts := opts
+			var parts []string
+			for _, c := range argList.Children {
+				parts = append(parts, Print(c, printOpts))
+			}
+			if tupleArgs {
+				b.WriteString(" <(")
+				b.WriteString(strings.Join(parts, ", "))
+				b.WriteString(")>")
+			} else {
+				b.WriteString(" <")
+				b.WriteString(strings.Join(parts, ", "))
+				b.WriteByte('>')
+			}
+		}
+		b.WriteString(" of ")
+		if len(n.Children) > 0 {
+			printNode(b, n.Children[0], opts)
+		}
+	case KindFunctionSignatureSpecialization:
+		// "function signature specialization [<args> ]of <inner>"
+		b.WriteString("function signature specialization")
+		if n.Text != "" {
+			b.WriteByte(' ')
+			b.WriteString(n.Text)
+		}
+		b.WriteString(" of ")
+		if len(n.Children) > 0 {
+			printNode(b, n.Children[0], opts)
+		}
 	case KindStructure, KindClass, KindEnum, KindProtocol:
 		printNominal(b, n, opts)
 	case KindBoundGenericStructure, KindBoundGenericClass,
@@ -161,6 +272,23 @@ func printNode(b *strings.Builder, n *demangle.Node, opts PrintOptions) {
 		printVariableAccessorEntity(b, n, opts)
 	case KindEmptyList:
 		// nothing
+	case KindAnonymousContext:
+		// "<parent>.(unknown context at <ident>)"
+		if len(n.Children) >= 2 {
+			printNode(b, n.Children[0], opts) // parent context
+			b.WriteString(".(unknown context at ")
+			b.WriteString(n.Children[1].Text) // ident
+			b.WriteByte(')')
+		}
+	case KindPrivateDeclName:
+		// "(<name> in <discriminator>)"
+		if len(n.Children) >= 2 {
+			b.WriteByte('(')
+			b.WriteString(n.Children[1].Text) // name (child[1])
+			b.WriteString(" in ")
+			b.WriteString(n.Children[0].Text) // discriminator (child[0])
+			b.WriteByte(')')
+		}
 	default:
 		// For unknown kinds, dump as "<KindName>" to surface gaps
 		// during incremental grammar build-out.
@@ -192,16 +320,19 @@ func printVariableAccessorEntity(b *strings.Builder, n *demangle.Node, opts Prin
 // printNominal renders "Module.Name" or just "Name" depending on
 // opts.QualifyEntities. Nested-nominal parents (Structure / Class /
 // Enum / Protocol) render recursively so e.g. Swift.Dictionary.Index
-// displays the full qualified chain.
+// displays the full qualified chain. KindAnonymousContext children are
+// treated as module-like qualifiers and rendered via printNode.
+// KindPrivateDeclName children supply the name and are rendered via printNode.
 func printNominal(b *strings.Builder, n *demangle.Node, opts PrintOptions) {
 	var parent *demangle.Node
-	var mod, name string
+	var modNode *demangle.Node // KindModule or KindAnonymousContext
+	var nameNode *demangle.Node // KindIdentifier or KindPrivateDeclName
 	for _, c := range n.Children {
 		switch NodeKind(c.Kind) {
-		case KindModule:
-			mod = c.Text
-		case KindIdentifier:
-			name = c.Text
+		case KindModule, KindAnonymousContext:
+			modNode = c
+		case KindIdentifier, KindPrivateDeclName:
+			nameNode = c
 		case KindStructure, KindClass, KindEnum, KindProtocol,
 			KindBoundGenericStructure, KindBoundGenericClass,
 			KindBoundGenericEnum, KindBoundGenericProtocol:
@@ -221,11 +352,13 @@ func printNominal(b *strings.Builder, n *demangle.Node, opts PrintOptions) {
 	if parent != nil {
 		printNode(b, parent, opts)
 		b.WriteByte('.')
-	} else if opts.QualifyEntities && mod != "" {
-		b.WriteString(mod)
+	} else if opts.QualifyEntities && modNode != nil {
+		printNode(b, modNode, opts)
 		b.WriteByte('.')
 	}
-	b.WriteString(name)
+	if nameNode != nil {
+		printNode(b, nameNode, opts)
+	}
 }
 
 // printFunctionEntity renders "Module.Path.name(args) [async] [throws] -> ret".
