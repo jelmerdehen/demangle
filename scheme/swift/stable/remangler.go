@@ -846,10 +846,19 @@ func typeListHasLabels(n *demangle.Node) bool {
 // The index-2 / index-1 offsets arise from Apple's demangleIndex convention
 // (bare '_' = 0, 'N_' = N+1).
 func (r *remangler) mangleDependentGenericParamType(n *demangle.Node) error {
+	// R21: opaque return type sentinel.  The parser uses
+	// KindDependentGenericParamType with Text="some" to represent a bare
+	// opaque return type (the 'Qr' mangling produced by `some` return types).
+	// Apple's Remangler::mangleOpaqueReturnType emits "Qr" for this case.
+	// Reference: Remangler.cpp::mangleOpaqueReturnType (line ~3953).
+	if n.Text == "some" {
+		r.buf.WriteString("Qr")
+		return nil
+	}
+
 	depth, index, ok := decodeGenericParamText(n.Text)
 	if !ok {
-		// Unknown text format (e.g. "some" for opaque result types) —
-		// return ErrUnsupported so callers skip gracefully.
+		// Unknown text format — return ErrUnsupported so callers skip gracefully.
 		return r.unsupported(common.KindDependentGenericParamType)
 	}
 	switch {
