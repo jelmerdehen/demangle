@@ -4,6 +4,19 @@ All notable changes to this project will be documented here. Format
 follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). This
 project uses semantic versioning.
 
+## [0.4.0] - Unreleased
+
+### Added — Swift two-way Remangler (Stage 1.1)
+
+- **P1-P3 Punycode** — `scheme/swift/common/punycode.go` (183 LOC): encoder + decoder. Encode: 92 ns/op, Decode: 80 ns/op. `FuzzPunycodeRoundTrip` 206k execs clean.
+- **C1-C4 swiftc corpus** — 30 Swift source files → 637 symbols. `cmd/swiftc-corpus` CLI (469 LOC) with compile/extract/oracle/regenerate Makefile targets. `TestThreeWayParity` gate.
+- **R1-R30 Remangler** — `scheme/swift/stable/remangler.go`: Global, Module (s/So/SC shortcuts), Identifier (word-subs + punycode), nominal types (V/C/O/P), stdlib shortcuts (Si/Sa/SS/etc), BoundGeneric, FunctionType, FunctionEntity (labeled args + generics), variable accessors (vg/vs/vp), init/deinit (cfC/cfc/cfD/cfd), entity-suffix (Ma/Mn/WP/WV/etc), DependentGenericParamType, TypeList, Tuple, dependent-member types. `MangleFidelity` promoted to `Exact`.
+- **X1 GHA workflow** — `.github/workflows/swiftc-corpus.yml` (96 LOC): compile + parity + bench jobs, Swift via `swift-actions/setup-swift`. Corpus-drift check fails non-`[corpus-bump]` PRs.
+- **U1-U3 Unicode + stress coverage** — 61-shape adversarial identifier corpus, deep-nesting stress test, punycode adversarial fixtures. All compile + round-trip clean.
+- **D1 divergence triage** — `divergence-triage.md`: 411 gaps categorized (212 stored-prop format, 89 init/deinit, 51 complex fn-sigs, 27 generic-sig, 16 field init, 13 subscript, 3 typed-throws/async).
+- **B1 benchmark** — `BenchmarkRemangle` ~1564 ns/op. **F1 fuzz** — `FuzzRemangle` 10 seeds clean.
+- **Three-way parity**: 222/222 parity + 222/222 round-trips.
+
 ## [0.3.0] - Unreleased
 
 ### Added — M-track: MSVC full grammar

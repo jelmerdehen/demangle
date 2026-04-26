@@ -26,23 +26,26 @@ package doc.
 | 5 — JS source map V3 | ✅ | VLQ + segment parser + context-backed lookup |
 | 6 — gRPC service scaffold | ✅ | proto + server + 5 integration tests |
 | 6.5 — deploy artifacts | 🚧 | healthz + metrics + TLS + keepalive + systemd unit ready; lux deploy gated on first real caller |
+| 1.1 — Swift Remangler + swiftc corpus | ✅ | Punycode encode+decode, 30-file swiftc corpus (637 symbols), R1-R30 Remangler, X1 GHA workflow, U1-U3 unicode coverage, D1 divergence triage. 222/222 three-way parity. MangleFidelity Exact. |
 | 7 — JS obfuscated deobfuscation | 🔜 | Deferred per plan; needs Node + webcrack subprocess path |
 
-## Tallies (current — 2026-04-26, v0.3.0-unreleased)
+## Tallies (current — 2026-04-26, v0.4.0-unreleased)
 
 - **22 schemes** registered (scala3 added in C1).
-- **14 tags** (v0.1.0 through v0.1.14; v0.2.0 pending human tag; v0.3.0 pending).
+- **14 tags** (v0.1.0 through v0.1.14; v0.2.0 pending human tag; v0.3.0 + v0.4.0 pending).
 - **Fuzz harnesses**: FuzzCrossScheme + per-scheme harnesses; corpus-seeded
-  for swift-old (88), dlang (66), cpp-itanium (43). Nightly CI runs 10 min/harness.
+  for swift-old (88), dlang (66), cpp-itanium (43), swift-stable (punycode + remangler). Nightly CI runs 10 min/harness.
 - Apple corpus: **149/153** Swift direct matches (97.4 %), **0 mismatches**
   (hard-gated — TestAppleCorpusStrict fails on any regression).
   5 identity-expected fixtures covered by identityFallback.
   4 known-divergences in `testdata/apple/known-divergences.txt`
   (3 unsupported grammar features + 1 macro-expansion grammar).
+- Swift stable remangler: **222/222** three-way parity + **222/222** round-trips. `MangleFidelity = Exact`.
+- swiftc corpus: **637 symbols** from 30 Swift source files. `TestThreeWayParity` gate.
 - Swift-old corpus: **57/57** direct matches, 0 mismatches.
 - Dlang corpus: **66 fixtures**, 0 mismatches.
 - Scala 3 corpus: **34 fixtures**, 0 mismatches.
-- Round-trip coverage: jni (7 fixtures), jvmdesc (27 fixtures), dlang (27 fixtures) — all `Exact` fidelity.
+- Round-trip coverage: jni (7 fixtures), jvmdesc (27 fixtures), dlang (27 fixtures), swift-stable (222 fixtures) — all `Exact` fidelity.
 - Core package unit-test coverage: **91.9%** of statements
   (CI gate: ≥ 88%).
 - Batch throughput on reference workstation: **≥ 447k names/sec**.
