@@ -64,6 +64,13 @@ func TestAppleCorpusRoundTrip(t *testing.T) {
 		sym := strings.TrimSpace(line[:i])
 		total++
 
+		// Only test $s / _$s symbols — other prefixes ($S, _Tt, $e, @__swiftmacro_,
+		// etc.) belong to variant schemes not registered in this catalog.
+		if !strings.HasPrefix(sym, "$s") && !strings.HasPrefix(sym, "_$s") {
+			unsupported++
+			continue
+		}
+
 		// Skip symbols listed in the known-divergences file.
 		if _, skip := knownDivergences[sym]; skip {
 			skipped++
