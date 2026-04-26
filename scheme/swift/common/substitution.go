@@ -144,13 +144,34 @@ func BuildStdlibNominal(c byte) (*demangle.Node, bool) {
 
 // BuildStdlibNominal2 is the 'Sc<X>' second-level lookup variant used
 // for concurrency-adjacent stdlib types. Returns (node, true) if X
-// is mapped.
+// is mapped. The returned node carries a "swift.concurrency" attr so
+// callers can distinguish it from first-level S<X> stdlib types.
 func BuildStdlibNominal2(c byte) (*demangle.Node, bool) {
 	s, ok := StdlibSubstitutions2[c]
 	if !ok {
 		return nil, false
 	}
-	return buildFromStdlib(s), true
+	n := buildFromStdlib(s)
+	// Tag the inner nominal with a concurrency marker so M/W descriptor
+	// formatters can apply simplified (no module) output, matching Apple.
+	if len(n.Children) > 0 {
+		n.Children[0].Attrs = map[string]string{"swift.concurrency": "true"}
+	}
+	return n, true
+}
+
+// IsConcurrencyType reports whether n (or its first child) is a Swift
+// concurrency type built from the Sc<X> substitution table. These types
+// use simplified (no module) output in M/W descriptor context.
+func IsConcurrencyType(n *demangle.Node) bool {
+	if n == nil {
+		return false
+	}
+	cur := n
+	if NodeKind(cur.Kind) == KindType && len(cur.Children) > 0 {
+		cur = cur.Children[0]
+	}
+	return cur.Attrs != nil && cur.Attrs["swift.concurrency"] == "true"
 }
 
 func buildFromStdlib(s stdlib) *demangle.Node {

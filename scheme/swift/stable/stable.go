@@ -24,6 +24,7 @@ package stable
 
 import (
 	"context"
+	"bytes"
 	"fmt"
 	"strconv"
 	"strings"
@@ -3497,17 +3498,30 @@ func (p *parser) tryVariableEntity() (*demangle.Node, bool, error) {
 		common.AddChildren(node, typ)
 		return node, true, nil
 	}
-	// Build display: <static?><path><suffix?> : <type>
-	// Accessor kinds (g/s/w/W/M/r/y/x/i) use dot-suffix form: path.getter : T.
-	// Legacy addressors (a/m) still use prefix form for now.
+	// Build display.
+	// Accessor kinds vg/vs/vM/vw/vW strip the module prefix and type annotation,
+	// matching macOS swift-demangle production output:
+	//   "Foo.prop.getter" instead of "Module.Foo.prop.getter : SomeType"
+	// Other accessor/addressor kinds keep the full module-qualified + typed form.
 	opts := common.DefaultPrintOptions()
-	path := common.NewNode(common.KindEntityPath)
-	common.AddChildren(path, pathSteps...)
-	pathStr := common.Print(path, opts)
-	typeStr := common.Print(typ, opts)
-	wrap := common.NewNode(common.KindTypeMangling)
-	wrap.Text = prefix + staticPrefix + pathStr + pathSuffix + " : " + typeStr
-	return wrap, true, nil
+	switch kindByte {
+	case 'g', 's', 'M', 'w', 'W':
+		// Module-stripped, type-annotation-stripped.
+		pathNoMod := common.NewNode(common.KindEntityPath)
+		common.AddChildren(pathNoMod, pathSteps[1:]...)
+		pathStr := common.Print(pathNoMod, opts)
+		wrap := common.NewNode(common.KindTypeMangling)
+		wrap.Text = staticPrefix + pathStr + pathSuffix
+		return wrap, true, nil
+	default:
+		path := common.NewNode(common.KindEntityPath)
+		common.AddChildren(path, pathSteps...)
+		pathStr := common.Print(path, opts)
+		typeStr := common.Print(typ, opts)
+		wrap := common.NewNode(common.KindTypeMangling)
+		wrap.Text = prefix + staticPrefix + pathStr + pathSuffix + " : " + typeStr
+		return wrap, true, nil
+	}
 }
 
 // tryInitDeinitEntity matches:
@@ -3846,6 +3860,23 @@ func (p *parser) tryConformanceDescriptor(inner *demangle.Node) (*demangle.Node,
 	return wrap, true
 }
 
+// descriptorPrintOpts returns the appropriate PrintOptions for rendering a
+// nominal type in a descriptor/metadata context (N, Mn, Ma, Mf, Mp, WP, etc.):
+//   - Foundation module → full qualified ("Foundation.X")
+//   - Swift stdlib types (S<letter> substitution) → full qualified ("Swift.X")
+//   - Swift concurrency types (Sc<letter>) → simplified ("X", no module)
+//   - All other modules → simplified ("X", no module)
+func descriptorPrintOpts(inner *demangle.Node) common.PrintOptions {
+	if common.IsConcurrencyType(inner) {
+		return common.PrintOptions{QualifyEntities: false, SynthesizeSugar: true}
+	}
+	mod := common.ModuleOf(inner)
+	if mod == "Foundation" || mod == "Swift" {
+		return common.DefaultPrintOptions()
+	}
+	return common.PrintOptions{QualifyEntities: false, SynthesizeSugar: true}
+}
+
 // tryEntitySuffix matches the common runtime-record and descriptor markers
 // that appear after a nominal type or function entity. Handles both 1-byte
 // (e.g. 'N' = type metadata) and 2-byte (e.g. 'Mn' = nominal type descriptor)
@@ -3857,8 +3888,10 @@ func (p *parser) tryEntitySuffix(inner *demangle.Node) (*demangle.Node, bool) {
 	// Handle 1-byte suffixes first.
 	if p.s[p.i] == 'N' {
 		// N = type metadata for <type>
+		// Foundation/Swift-stdlib: keep module qualified.
+		// Concurrency (Sc<X>) and all other modules: simplified.
 		p.i++
-		innerStr := common.Print(inner, common.DefaultPrintOptions())
+		innerStr := common.Print(inner, descriptorPrintOpts(inner))
 		wrap := common.NewNode(common.KindTypeMangling)
 		wrap.Text = "type metadata for " + innerStr
 		wrap.Attrs = map[string]string{"swift.suffix": "N"}
@@ -4311,9 +4344,21 @@ func (p *parser) tryEntitySuffix(inner *demangle.Node) (*demangle.Node, bool) {
 	p.i += consumed
 	// Render inner + wrap in a TypeMangling node so the printer
 	// emits "prefix <inner-display>" form.
+	// M* (type metadata/descriptor) and W* (witness table) suffixes pre-render
+	// the inner type without module qualification, matching macOS swift-demangle.
+	// The inner node is still attached as a child for the remangler.
 	wrap := common.NewNode(common.KindTypeMangling)
-	wrap.Text = prefix
-	wrap.Attrs = map[string]string{"swift.suffix": suffixBytes}
+	if len(suffixBytes) >= 1 && (suffixBytes[0] == 'M' || suffixBytes[0] == 'W') {
+		innerStr := common.Print(inner, descriptorPrintOpts(inner))
+		wrap.Text = prefix + innerStr
+		wrap.Attrs = map[string]string{
+			"swift.suffix":      suffixBytes,
+			"swift.prerendered": "true",
+		}
+	} else {
+		wrap.Text = prefix
+		wrap.Attrs = map[string]string{"swift.suffix": suffixBytes}
+	}
 	common.AddChildren(wrap, inner)
 	return wrap, true
 }
@@ -5106,20 +5151,31 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 				text = hostName + "." + declName + accessor
 			} else {
 				sig, sameTypeConstraint := extractConstraintSigFull(constraintBytes)
-				hostQualified := modName + "." + hostName
-				if sameTypeConstraint != "" {
-					hostQualified += "<" + sameTypeConstraint + ">"
+				if sig == "" {
+					// Same-module, no inverse/same-type constraints: strip module+type.
+					extMarker := ""
+					if bytes.Contains(constraintBytes, []byte("Rz")) {
+						extMarker = "<A>"
+					} else if len(constraintBytes) > 2 {
+						extMarker = "<>"
+					}
+					text = hostName + extMarker + "." + declName + accessor
+				} else {
+					hostQualified := modName + "." + hostName
+					if sameTypeConstraint != "" {
+						hostQualified += "<" + sameTypeConstraint + ">"
+					}
+					localSig := ""
+					if len(localConstraints) > 0 {
+						localSig = "<A where " + strings.Join(localConstraints, ", ") + ">"
+					}
+					propTypeStr := ""
+					if retNode != nil && common.NodeKind(retNode.Kind) != common.KindEmptyList {
+						propTypeStr = " : " + common.Print(retNode, opts)
+					}
+					text = "(extension in " + modName + "):" + hostQualified + sig +
+						"." + declName + localSig + accessor + propTypeStr
 				}
-				localSig := ""
-				if len(localConstraints) > 0 {
-					localSig = "<A where " + strings.Join(localConstraints, ", ") + ">"
-				}
-				propTypeStr := ""
-				if retNode != nil && common.NodeKind(retNode.Kind) != common.KindEmptyList {
-					propTypeStr = " : " + common.Print(retNode, opts)
-				}
-				text = "(extension in " + modName + "):" + hostQualified + sig +
-					"." + declName + localSig + accessor + propTypeStr
 			}
 			wrap := common.NewNode(common.KindTypeMangling)
 			wrap.Text = text
@@ -5151,16 +5207,26 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 				text = "property descriptor for " + hostName + "." + declName
 			} else {
 				sig, sameTypeConstraint := extractConstraintSigFull(constraintBytes)
-				hostQualified := modName + "." + hostName
-				if sameTypeConstraint != "" {
-					hostQualified += "<" + sameTypeConstraint + ">"
+				if sig == "" {
+					extMarker := ""
+					if bytes.Contains(constraintBytes, []byte("Rz")) {
+						extMarker = "<A>"
+					} else if len(constraintBytes) > 2 {
+						extMarker = "<>"
+					}
+					text = "property descriptor for " + hostName + extMarker + "." + declName
+				} else {
+					hostQualified := modName + "." + hostName
+					if sameTypeConstraint != "" {
+						hostQualified += "<" + sameTypeConstraint + ">"
+					}
+					localSig := ""
+					if len(localConstraints) > 0 {
+						localSig = "<A where " + strings.Join(localConstraints, ", ") + ">"
+					}
+					text = "property descriptor for (extension in " + modName + "):" +
+						hostQualified + sig + "." + declName + localSig + propTypeStr
 				}
-				localSig := ""
-				if len(localConstraints) > 0 {
-					localSig = "<A where " + strings.Join(localConstraints, ", ") + ">"
-				}
-				text = "property descriptor for (extension in " + modName + "):" +
-					hostQualified + sig + "." + declName + localSig + propTypeStr
 			}
 		} else {
 			// Stored property (vp): emit simplified or verbose.
@@ -5168,16 +5234,26 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 				text = hostName + "." + declName + propTypeStr
 			} else {
 				sig, sameTypeConstraint := extractConstraintSigFull(constraintBytes)
-				hostQualified := modName + "." + hostName
-				if sameTypeConstraint != "" {
-					hostQualified += "<" + sameTypeConstraint + ">"
+				if sig == "" {
+					extMarker := ""
+					if bytes.Contains(constraintBytes, []byte("Rz")) {
+						extMarker = "<A>"
+					} else if len(constraintBytes) > 2 {
+						extMarker = "<>"
+					}
+					text = hostName + extMarker + "." + declName
+				} else {
+					hostQualified := modName + "." + hostName
+					if sameTypeConstraint != "" {
+						hostQualified += "<" + sameTypeConstraint + ">"
+					}
+					localSig := ""
+					if len(localConstraints) > 0 {
+						localSig = "<A where " + strings.Join(localConstraints, ", ") + ">"
+					}
+					text = "(extension in " + modName + "):" + hostQualified + sig +
+						"." + declName + localSig + propTypeStr
 				}
-				localSig := ""
-				if len(localConstraints) > 0 {
-					localSig = "<A where " + strings.Join(localConstraints, ", ") + ">"
-				}
-				text = "(extension in " + modName + "):" + hostQualified + sig +
-					"." + declName + localSig + propTypeStr
 			}
 		}
 		wrap := common.NewNode(common.KindTypeMangling)
@@ -5222,46 +5298,56 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 			} else {
 				opts := common.DefaultPrintOptions()
 				sig, sameTypeConstraint := extractConstraintSigFull(constraintBytes)
-				hostQualified := modName + "." + hostName
-				if sameTypeConstraint != "" {
-					hostQualified += "<" + sameTypeConstraint + ">"
-				}
-				localSig := ""
-				if len(localConstraints) > 0 {
-					localSig = "<A where " + strings.Join(localConstraints, ", ") + ">"
-				}
-				retStr := ""
-				if retNode != nil && common.NodeKind(retNode.Kind) != common.KindEmptyList {
-					retStr = " -> " + common.Print(retNode, opts)
-				}
-				// Build verbose params for same-module
-				var paramsStr string
-				switch {
-				case paramsNode == nil || common.NodeKind(paramsNode.Kind) == common.KindEmptyList:
-					paramsStr = "()"
-				case common.NodeKind(paramsNode.Kind) == common.KindTypeList:
-					opts2 := common.DefaultPrintOptions()
-					var parts []string
-					for idx, c := range paramsNode.Children {
-						s := common.Print(c, opts2)
-						if idx < len(labels) && labels[idx] != "" {
-							parts = append(parts, labels[idx]+": "+s)
-						} else {
-							parts = append(parts, s)
+				if sig == "" {
+					extMarker := ""
+					if bytes.Contains(constraintBytes, []byte("Rz")) {
+						extMarker = "<A>"
+					} else if len(constraintBytes) > 2 {
+						extMarker = "<>"
+					}
+					text = hostName + extMarker + ".init" + labelStr
+				} else {
+					hostQualified := modName + "." + hostName
+					if sameTypeConstraint != "" {
+						hostQualified += "<" + sameTypeConstraint + ">"
+					}
+					localSig := ""
+					if len(localConstraints) > 0 {
+						localSig = "<A where " + strings.Join(localConstraints, ", ") + ">"
+					}
+					retStr := ""
+					if retNode != nil && common.NodeKind(retNode.Kind) != common.KindEmptyList {
+						retStr = " -> " + common.Print(retNode, opts)
+					}
+					// Build verbose params for same-module
+					var paramsStr string
+					switch {
+					case paramsNode == nil || common.NodeKind(paramsNode.Kind) == common.KindEmptyList:
+						paramsStr = "()"
+					case common.NodeKind(paramsNode.Kind) == common.KindTypeList:
+						opts2 := common.DefaultPrintOptions()
+						var parts []string
+						for idx, c := range paramsNode.Children {
+							s := common.Print(c, opts2)
+							if idx < len(labels) && labels[idx] != "" {
+								parts = append(parts, labels[idx]+": "+s)
+							} else {
+								parts = append(parts, s)
+							}
 						}
+						paramsStr = "(" + strings.Join(parts, ", ") + ")"
+					default:
+						opts2 := common.DefaultPrintOptions()
+						s := common.Print(paramsNode, opts2)
+						if len(labels) > 0 && labels[0] != "" {
+							s = labels[0] + ": " + s
+						}
+						paramsStr = "(" + s + ")"
 					}
-					paramsStr = "(" + strings.Join(parts, ", ") + ")"
-				default:
-					opts2 := common.DefaultPrintOptions()
-					s := common.Print(paramsNode, opts2)
-					if len(labels) > 0 && labels[0] != "" {
-						s = labels[0] + ": " + s
-					}
-					paramsStr = "(" + s + ")"
+					_ = paramsStr
+					text = "(extension in " + modName + "):" + hostQualified + sig +
+						"." + declName + localSig + labelStr + retStr
 				}
-				_ = paramsStr
-				text = "(extension in " + modName + "):" + hostQualified + sig +
-					"." + declName + localSig + labelStr + retStr
 			}
 			wrap := common.NewNode(common.KindTypeMangling)
 			wrap.Text = text
@@ -5321,7 +5407,8 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 		retStr = common.Print(retNode, opts)
 	}
 	// Emit simplified format for cross-module extensions (digit-start constraints).
-	// Verbose format for same-module extensions (A-start or empty constraints).
+	// Same-module with no inverse/same-type constraints: simplified (no module, no types).
+	// Same-module with sig != "": verbose "(extension in M):" format.
 	if crossModule {
 		var labelOnlyStr string
 		switch {
@@ -5364,6 +5451,55 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 		funcIdent := common.NewIdentifier(declName)
 		common.AddChildren(wrap, funcIdent, paramsNode, retNode)
 		return wrap, true, nil
+	}
+	// Same-module: simplify when sig == "" (no inverse/same-type constraints).
+	if !crossModule && sig == "" {
+		var labelOnlyStr string
+		switch {
+		case paramsNode == nil || common.NodeKind(paramsNode.Kind) == common.KindEmptyList:
+			labelOnlyStr = "()"
+		case common.NodeKind(paramsNode.Kind) == common.KindTypeList:
+			var parts []string
+			for idx := range paramsNode.Children {
+				lbl := ""
+				if idx < len(labels) {
+					lbl = labels[idx]
+				}
+				if lbl != "" && lbl != "_" {
+					parts = append(parts, lbl+":")
+				} else {
+					parts = append(parts, "_:")
+				}
+			}
+			labelOnlyStr = "(" + strings.Join(parts, "") + ")"
+		default:
+			lbl := ""
+			if len(labels) > 0 {
+				lbl = labels[0]
+			}
+			if lbl != "" && lbl != "_" {
+				labelOnlyStr = "(" + lbl + ":)"
+			} else {
+				labelOnlyStr = "(_:)"
+			}
+		}
+		extMarker := ""
+		if bytes.Contains(constraintBytes, []byte("Rz")) {
+			extMarker = "<A>"
+		} else if len(constraintBytes) > 2 {
+			extMarker = "<>"
+		}
+		genericPart := ""
+		if len(localConstraints) > 0 {
+			genericPart = "<A>"
+		}
+		smWrap := common.NewNode(common.KindTypeMangling)
+		smWrap.Text = hostName + extMarker + "." + declName + genericPart + labelOnlyStr
+		smRawPrefix := fmt.Sprintf("%d%s%d%s%c%sE", len(modName), modName, len(hostName), hostName, hostKind, constraintBytes)
+		smWrap.Attrs = map[string]string{"swift.ext.rawPrefix": smRawPrefix}
+		funcIdent := common.NewIdentifier(declName)
+		common.AddChildren(smWrap, funcIdent, paramsNode, retNode)
+		return smWrap, true, nil
 	}
 	wrap := common.NewNode(common.KindTypeMangling)
 	wrap.Text = "(extension in " + modName + "):" + hostQualified + sig +
@@ -6677,8 +6813,10 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 	if sendingResult {
 		entity.Attrs["swift.sendingResult"] = "true"
 	}
+	genericSigStr := ""
 	if genericSig {
-		entity.Attrs["swift.generic"] = renderGenericSigWithConstraints(genericCount, constraints)
+		genericSigStr = renderGenericSigWithConstraints(genericCount, constraints)
+		entity.Attrs["swift.generic"] = genericSigStr
 	}
 	common.AddChildren(entity, path, args, ret)
 	return entity, true, nil

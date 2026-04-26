@@ -1467,6 +1467,14 @@ func (r *remangler) mangleEntityPath(n *demangle.Node) error {
 // R21: When Attrs["swift.static"] == "true", the child is the structural
 // entity (FunctionEntity, AllocatingInit, etc.); remangle it then emit 'Z'.
 func (r *remangler) mangleEntitySuffix(n *demangle.Node) error {
+	// Pre-rendered wrapper: delegate to the child (function entity, init/deinit,
+	// or other structural node) so the remangler can reconstruct the symbol.
+	if n.Attrs != nil && n.Attrs["swift.prerendered"] == "true" {
+		if len(n.Children) == 0 {
+			return r.unsupported(common.KindTypeMangling)
+		}
+		return r.remangleNode(n.Children[0])
+	}
 	if n.Attrs != nil && n.Attrs["swift.static"] == "true" {
 		if len(n.Children) == 0 {
 			return r.unsupported(common.KindTypeMangling)

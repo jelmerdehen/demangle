@@ -53,10 +53,11 @@ func printNode(b *strings.Builder, n *demangle.Node, opts PrintOptions) {
 	case KindTypeMangling:
 		if n.Text != "" {
 			b.WriteString(n.Text)
-			// Z-wrapper (swift.static) and extension-entity nodes: text is
+			// Z-wrapper, extension-entity, and pre-rendered nodes: text is
 			// complete; children are for the remangler only — skip printing.
 			if n.Attrs != nil && (n.Attrs["swift.static"] == "true" ||
-				n.Attrs["swift.ext.rawPrefix"] != "") {
+				n.Attrs["swift.ext.rawPrefix"] != "" ||
+				n.Attrs["swift.prerendered"] == "true") {
 				return
 			}
 		}

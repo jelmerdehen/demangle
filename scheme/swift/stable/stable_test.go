@@ -199,9 +199,10 @@ func TestStableFunctionEntities(t *testing.T) {
 		{"$s4main3arrSaySiGSgvp", "main.arr : [Swift.Int]?"},
 		// Nested var: main.Foo.b : String (struct Foo holding a property b)
 		{"$s4main3FooV1bSSvp", "main.Foo.b : Swift.String"},
-		// Nested var getter: class Foo's property n getter (Apple dot-suffix format)
-		{"$s4main3FooC1nSivg", "main.Foo.n.getter : Swift.Int"},
-		{"$s4main3FooC1nSivs", "main.Foo.n.setter : Swift.Int"},
+		// Nested var getter: class Foo's property n getter.
+		// Module stripped per macOS swift-demangle; no type annotation.
+		{"$s4main3FooC1nSivg", "Foo.n.getter"},
+		{"$s4main3FooC1nSivs", "Foo.n.setter"},
 		// Function taking Optional<Int> single arg
 		{"$s4main3fooyySiSgF", "main.foo(Swift.Int?) -> ()"},
 		// Function returning Optional<Int>
@@ -212,7 +213,8 @@ func TestStableFunctionEntities(t *testing.T) {
 		{"$s4main3FooP3fooyyF", "main.Foo.foo() -> ()"},
 		// Static property + static getter (Z marker) — Apple dot-suffix format.
 		{"$s4main3FooV4propSivpZ", "static main.Foo.prop : Swift.Int"},
-		{"$s4main3FooV4propSivgZ", "static main.Foo.prop.getter : Swift.Int"},
+		// Static getter: module stripped per macOS swift-demangle; no type annotation.
+		{"$s4main3FooV4propSivgZ", "static Foo.prop.getter"},
 		// Generic-param tuple: foo(A, B) -> ()
 		{"$s4main3fooyyx_q_tF", "main.foo(A, B) -> ()"},
 		// Mixed: Int + generic-param A as params.
@@ -237,10 +239,12 @@ func TestStableFunctionEntities(t *testing.T) {
 	mCases := []struct {
 		in, want string
 	}{
-		{"$sScAMp", "protocol descriptor for Swift.Actor"},
+		// Concurrency (Sc<X>) types: simplified (no module) per Apple swift-demangle.
+		{"$sScAMp", "protocol descriptor for Actor"},
+		{"$sScTMp", "protocol descriptor for Task"},
+		// Stdlib (S<X>) types: qualified with "Swift." per Apple swift-demangle.
 		{"$sSiMn", "nominal type descriptor for Swift.Int"},
 		{"$sSaMa", "type metadata accessor for Swift.Array"},
-		{"$sScTMp", "protocol descriptor for Swift.Task"},
 		{"$sSiMf", "metaclass for Swift.Int"},
 	}
 	for _, c := range mCases {
@@ -259,13 +263,14 @@ func TestStableFunctionEntities(t *testing.T) {
 	wCases := []struct {
 		in, want string
 	}{
-		{"$s4main3FooVWP", "protocol witness table for main.Foo"},
-		{"$s4main3FooVWl", "lazy protocol witness table accessor for main.Foo"},
-		{"$s4main3FooVWa", "protocol witness table accessor for main.Foo"},
-		{"$s4main3FooVWo", "method descriptor for main.Foo"},
-		{"$s4main3FooVMn", "nominal type descriptor for main.Foo"},
-		{"$s4main3FooVMa", "type metadata accessor for main.Foo"},
-		{"$s4main3FooVMp", "protocol descriptor for main.Foo"},
+		// Module stripped — matches macOS swift-demangle (production target).
+		{"$s4main3FooVWP", "protocol witness table for Foo"},
+		{"$s4main3FooVWl", "lazy protocol witness table accessor for Foo"},
+		{"$s4main3FooVWa", "protocol witness table accessor for Foo"},
+		{"$s4main3FooVWo", "method descriptor for Foo"},
+		{"$s4main3FooVMn", "nominal type descriptor for Foo"},
+		{"$s4main3FooVMa", "type metadata accessor for Foo"},
+		{"$s4main3FooVMp", "protocol descriptor for Foo"},
 	}
 	for _, c := range wCases {
 		c := c
@@ -344,8 +349,9 @@ func TestStableEntitySuffixes(t *testing.T) {
 	}{
 		{"$ss5OtherVHn", "nominal type descriptor runtime record for Swift.Other"},
 		{"$ss6SimpleVHr", "protocol descriptor runtime record for Swift.Simple"},
-		{"$s4main3FooVMn", "nominal type descriptor for main.Foo"},
-		{"$s4main3FooVMa", "type metadata accessor for main.Foo"},
+		// Module stripped — matches macOS swift-demangle (production target).
+		{"$s4main3FooVMn", "nominal type descriptor for Foo"},
+		{"$s4main3FooVMa", "type metadata accessor for Foo"},
 		{"$s4main3fooyyFTwb", "back deployment thunk for main.foo() -> ()"},
 		{"$s4main3fooyyFTwB", "back deployment fallback for main.foo() -> ()"},
 		{"$s4main3fooyyFTO", "@nonobjc main.foo() -> ()"},
@@ -357,7 +363,8 @@ func TestStableEntitySuffixes(t *testing.T) {
 		// Property descriptor: vp + MV suffix.
 		{"$s4main3FooV4propSivpMV", "property descriptor for Foo.prop"},
 		// Type metadata: nominal type + N suffix.
-		{"$s4main3FooVN", "type metadata for main.Foo"},
+		// Module stripped — matches macOS swift-demangle (production target).
+		{"$s4main3FooVN", "type metadata for Foo"},
 		// Unmangled suffix.
 		{"$s4main3fooyyF.1", "main.foo() -> () with unmangled suffix \".1\""},
 		{"$s4main3fooyyFTA.1", "partial apply forwarder for main.foo() -> () with unmangled suffix \".1\""},

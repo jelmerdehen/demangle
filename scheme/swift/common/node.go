@@ -428,3 +428,23 @@ func AddChildren(n *demangle.Node, children ...*demangle.Node) *demangle.Node {
 	}
 	return n
 }
+
+// ModuleOf returns the module name from a nominal type node (Structure/Class/Enum/Protocol),
+// unwrapping a leading KindType wrapper if present. Returns "" if not found.
+func ModuleOf(n *demangle.Node) string {
+	cur := n
+	if NodeKind(cur.Kind) == KindType && len(cur.Children) > 0 {
+		cur = cur.Children[0]
+	}
+	switch NodeKind(cur.Kind) {
+	case KindStructure, KindClass, KindEnum, KindProtocol:
+	default:
+		return ""
+	}
+	for _, c := range cur.Children {
+		if NodeKind(c.Kind) == KindModule {
+			return c.Text
+		}
+	}
+	return ""
+}
