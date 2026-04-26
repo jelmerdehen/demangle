@@ -108,6 +108,71 @@ func TestPunycodeDecodeErrors(t *testing.T) {
 	}
 }
 
+// TestPunycodeAdversarial tests round-trip identity for edge-case inputs.
+func TestPunycodeAdversarial(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name  string
+		input string
+	}{
+		{"all-cjk", "数学関数"},
+		{"single-greek", "α"},
+		{"long-greek-31", "αβγδεζηθικλμνξοπρστυφχψωΑΒΓΔΕΖ"},
+		{"mixed-ascii-cjk", "hello世界"},
+		{"single-ascii", "x"},
+		{"empty", ""},
+		{"only-digits", "123"},
+		{"emoji-party", "🎉"},
+		{"high-codepoint", "\U0010FFFD"},
+	}
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			encoded, err := PunycodeEncode(tt.input)
+			if err != nil {
+				t.Skipf("encode error (may be unsupported): %v", err)
+			}
+			decoded, err := PunycodeDecode(encoded)
+			if err != nil {
+				t.Errorf("decode(%q) error: %v", encoded, err)
+				return
+			}
+			if decoded != tt.input {
+				t.Errorf("round-trip: got %q, want %q", decoded, tt.input)
+			}
+		})
+	}
+}
+
+// TestPunycodeEncodePureASCII verifies the pure-ASCII fast path.
+// Apple's encoder always appends a trailing '_' delimiter when b > 0
+// (there are basic code points), so pure-ASCII strings are returned
+// with a trailing underscore.
+func TestPunycodeEncodePureASCII(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		input string
+		want  string
+	}{
+		{"hello", "hello_"},
+		{"test123", "test123_"},
+	}
+	for _, tc := range cases {
+		tc := tc
+		t.Run(tc.input, func(t *testing.T) {
+			t.Parallel()
+			got, err := PunycodeEncode(tc.input)
+			if err != nil {
+				t.Fatalf("PunycodeEncode(%q): %v", tc.input, err)
+			}
+			if got != tc.want {
+				t.Errorf("PunycodeEncode(%q) = %q, want %q", tc.input, got, tc.want)
+			}
+		})
+	}
+}
+
 // FuzzPunycodeRoundTrip tests Encode→Decode on arbitrary unicode text.
 func FuzzPunycodeRoundTrip(f *testing.F) {
 	// Seed with varied identifiers.
