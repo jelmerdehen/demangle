@@ -72,6 +72,24 @@ const (
 	KindEntityPath
 	KindLabelList
 	KindEmptyList
+
+	// Variable accessor entities (R15).
+	// Each carries children: [Module, Identifier*..., Identifier(declName), Type]
+	// where intermediate Identifier nodes may have Attrs["swift.nominalKind"]
+	// set to "V" (struct), "C" (class), "O" (enum), or "P" (protocol) to
+	// indicate that the identifier is a nominal-type path component.
+	KindGetter        // vg accessor — getter for a property
+	KindSetter        // vs accessor — setter for a property
+	KindStoredProperty // vp accessor — stored property
+
+	// Init/deinit entity kinds (R15).
+	// Children: [Module, Identifier*..., resultType, paramsType]
+	// where intermediate Identifier nodes carry Attrs["swift.nominalKind"]
+	// for nominal-type path components.
+	KindAllocatingInit   // fC — __allocating_init
+	KindInitializer      // fc — init / __nonallocating_init
+	KindDeallocatingDeinit // fD — __deallocating_deinit
+	KindDeinit           // fd — __destroying_deinit
 )
 
 // Name returns the human-readable label used by the printer + shown
@@ -148,6 +166,20 @@ func (k NodeKind) Name() string {
 		return "LabelList"
 	case KindEmptyList:
 		return "EmptyList"
+	case KindGetter:
+		return "Getter"
+	case KindSetter:
+		return "Setter"
+	case KindStoredProperty:
+		return "StoredProperty"
+	case KindAllocatingInit:
+		return "AllocatingInit"
+	case KindInitializer:
+		return "Initializer"
+	case KindDeallocatingDeinit:
+		return "DeallocatingDeinit"
+	case KindDeinit:
+		return "Deinit"
 	}
 	return "Unknown"
 }
@@ -184,6 +216,11 @@ func (k NodeKind) Category() demangle.KindCategory {
 		return demangle.KindCatFunction
 	case KindEntityPath, KindLabelList, KindEmptyList:
 		return demangle.KindCatOther
+	case KindGetter, KindSetter, KindStoredProperty:
+		return demangle.KindCatOther
+	case KindAllocatingInit, KindInitializer,
+		KindDeallocatingDeinit, KindDeinit:
+		return demangle.KindCatFunction
 	}
 	return demangle.KindCatUnknown
 }
@@ -196,7 +233,7 @@ var (
 )
 
 func init() {
-	for k := KindInvalid; k <= KindEmptyList; k++ {
+	for k := KindInvalid; k <= KindDeinit; k++ {
 		KindNames[int32(k)] = k.Name()
 		KindCategories[int32(k)] = k.Category()
 	}
