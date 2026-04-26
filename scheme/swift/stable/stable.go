@@ -5821,6 +5821,39 @@ func extractConstraintSigFull(b []byte) (sig, sameTypeConstraint string) {
 	return "< where " + strings.Join(constraints, ", ") + ">", ""
 }
 
+// funcEntityLabels returns the parameter-label portion of a simplified
+// function entity display: "label:" for named params and "_:" for unnamed.
+// args is the parsed args node (KindTypeList or a single type node).
+func funcEntityLabels(args *demangle.Node) string {
+	var b strings.Builder
+	if common.NodeKind(args.Kind) == common.KindTypeList {
+		for _, c := range args.Children {
+			lbl := ""
+			if c.Attrs != nil {
+				lbl = c.Attrs["swift.label"]
+			}
+			if lbl != "" && lbl != "_" {
+				b.WriteString(lbl)
+				b.WriteByte(':')
+			} else {
+				b.WriteString("_:")
+			}
+		}
+		return b.String()
+	}
+	lbl := ""
+	if args.Attrs != nil {
+		lbl = args.Attrs["swift.label"]
+	}
+	if lbl != "" && lbl != "_" {
+		b.WriteString(lbl)
+		b.WriteByte(':')
+	} else {
+		b.WriteString("_:")
+	}
+	return b.String()
+}
+
 // tryFunctionEntity attempts to match:
 //
 //	(digit-led context) (ident) (['V'|'C'|'O'] (ident))* 'y' 'y' 'F'
@@ -6819,7 +6852,32 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 		entity.Attrs["swift.generic"] = genericSigStr
 	}
 	common.AddChildren(entity, path, args, ret)
-	return entity, true, nil
+
+	// Simplified display: "TypeName.method[<G>](labels)" — no module, no types, no return.
+	var sb strings.Builder
+	for i, step := range pathSteps[1:] {
+		if i > 0 {
+			sb.WriteByte('.')
+		}
+		sb.WriteString(step.Text)
+	}
+	if genericSigStr != "" {
+		g2 := genericSigStr
+		if wi := strings.Index(g2, " where "); wi >= 0 {
+			g2 = g2[:wi] + ">"
+		}
+		sb.WriteString(g2)
+	}
+	sb.WriteByte('(')
+	if args != nil && common.NodeKind(args.Kind) != common.KindEmptyList {
+		sb.WriteString(funcEntityLabels(args))
+	}
+	sb.WriteByte(')')
+	wrap := common.NewNode(common.KindTypeMangling)
+	wrap.Text = sb.String()
+	wrap.Attrs = map[string]string{"swift.prerendered": "true"}
+	common.AddChildren(wrap, entity)
+	return wrap, true, nil
 }
 
 // parseType consumes one type. Branches on the first byte:

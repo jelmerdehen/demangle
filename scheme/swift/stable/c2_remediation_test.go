@@ -41,7 +41,7 @@ func TestC2ParseBody(t *testing.T) {
 		// $sBf32_ — origin is full symbol, body is post-prefix, prefixLen=2.
 		{"swift-stable", "$sBf32_", "Bf32_", 2, "Builtin.FPIEEE32"},
 		// Minimal function entity via ParseBody.
-		{"swift-stable", "$s4main3fooyyF", "4main3fooyyF", 2, "main.foo() -> ()"},
+		{"swift-stable", "$s4main3fooyyF", "4main3fooyyF", 2, "foo()"},
 		// v40-style call (prefix "_$s", prefixLen=3).
 		{"swift-v40", "_$sBf64_", "Bf64_", 3, "Builtin.FPIEEE64"},
 	}

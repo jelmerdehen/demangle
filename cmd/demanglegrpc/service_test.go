@@ -131,7 +131,7 @@ func TestGRPCDemangle(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Demangle swift: %v", err)
 	}
-	if r.GetOutput() != "main.foo() -> ()" {
+	if r.GetOutput() != "foo()" {
 		t.Fatalf("swift output = %q", r.GetOutput())
 	}
 
@@ -454,7 +454,7 @@ func TestGRPCDemangleStream(t *testing.T) {
 	if got[0] != "llvm::Value::dump()" {
 		t.Fatalf("0 = %q", got[0])
 	}
-	if got[1] != "main.foo() -> ()" {
+	if got[1] != "foo()" {
 		t.Fatalf("1 = %q", got[1])
 	}
 	if got[2] != "com.example.Foo.bar" {

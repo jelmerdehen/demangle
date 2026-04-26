@@ -140,42 +140,42 @@ func TestStableFunctionEntities(t *testing.T) {
 		// the empty-list shortcut `y` when params are positional.
 		//
 		// Top-level module function — no params, no label-list.
-		{"$s4main3fooyyF", "main.foo() -> ()"},
+		{"$s4main3fooyyF", "foo()"},
 		// Method on a struct — no params → no label-list.
-		{"$s4main3FooV3baryyF", "main.Foo.bar() -> ()"},
-		{"$s4main3FooC3baryyF", "main.Foo.bar() -> ()"},
-		{"$s4main3FooO3baryyF", "main.Foo.bar() -> ()"},
+		{"$s4main3FooV3baryyF", "Foo.bar()"},
+		{"$s4main3FooC3baryyF", "Foo.bar()"},
+		{"$s4main3FooO3baryyF", "Foo.bar()"},
 		// () -> Swift.Int — label-list omitted, result=Si, params=y.
-		{"$s4main3fooSiyF", "main.foo() -> Swift.Int"},
+		{"$s4main3fooSiyF", "foo()"},
 		// () -> [Swift.Int] — result is bound generic Array<Int>, params empty.
-		{"$s4main3fooSaySiGyF", "main.foo() -> [Swift.Int]"},
+		{"$s4main3fooSaySiGyF", "foo()"},
 		// (Swift.Int) -> () — label-list `y`, result `y`, params `Si`.
-		{"$s4main3fooyySiF", "main.foo(Swift.Int) -> ()"},
+		{"$s4main3fooyySiF", "foo(_:)"},
 		// (Swift.String) -> Swift.Int — label-list, result Si, params SS.
-		{"$s4main3fooySiSSF", "main.foo(Swift.String) -> Swift.Int"},
+		{"$s4main3fooySiSSF", "foo(_:)"},
 		// Throwing function: () throws -> ()
-		{"$s4main3fooyyKF", "main.foo() throws -> ()"},
+		{"$s4main3fooyyKF", "foo()"},
 		// Async function: () async -> () — async marker is `Ya`.
-		{"$s4main3fooyyYaF", "main.foo() async -> ()"},
+		{"$s4main3fooyyYaF", "foo()"},
 		// Async throws.
-		{"$s4main3fooyyYaKF", "main.foo() async throws -> ()"},
+		{"$s4main3fooyyYaKF", "foo()"},
 		// Generic-param 'x' as params: (A) -> ()
-		{"$s4main3fooyyxF", "main.foo(A) -> ()"},
+		{"$s4main3fooyyxF", "foo(_:)"},
 		// Generic-param 'q_' as params: (B) -> ()
-		{"$s4main3fooyyq_F", "main.foo(B) -> ()"},
+		{"$s4main3fooyyq_F", "foo(_:)"},
 		// Generic-param as result: () -> A
-		{"$s4main3fooxyF", "main.foo() -> A"},
+		{"$s4main3fooxyF", "foo()"},
 		// Multi-arg tuple: (Swift.Int, Swift.String) -> ()
-		{"$s4main3fooyySi_SStF", "main.foo(Swift.Int, Swift.String) -> ()"},
+		{"$s4main3fooyySi_SStF", "foo(_:_:)"},
 		// Three-arg tuple: (Swift.Int, Swift.Int, Swift.Int) -> Swift.Bool
-		{"$s4main3fooSbSi_Si_SitF", "main.foo(Swift.Int, Swift.Int, Swift.Int) -> Swift.Bool"},
+		{"$s4main3fooSbSi_Si_SitF", "foo(_:_:_:)"},
 		// Single-arg with named label: foo(x: Swift.Int) -> ()
 		// Labels are pushed raw (no terminator). The single 'y'
 		// between labels and params is the EMPTY-RESULT marker —
 		// Apple's mangler emits no separate label-list-end byte.
-		{"$s4main3foo1xySiF", "main.foo(x: Swift.Int) -> ()"},
+		{"$s4main3foo1xySiF", "foo(x:)"},
 		// Two-arg with named labels: foo(x: Int, y: Int) -> ()
-		{"$s4main3foo1x1yySi_SitF", "main.foo(x: Swift.Int, y: Swift.Int) -> ()"},
+		{"$s4main3foo1x1yySi_SitF", "foo(x:y:)"},
 	}
 	// Verify: module-level variable gets the property-entity shape.
 	r, err := cat.Demangle(context.Background(), "$s4main1xSivp", nil)
@@ -204,23 +204,23 @@ func TestStableFunctionEntities(t *testing.T) {
 		{"$s4main3FooC1nSivg", "Foo.n.getter"},
 		{"$s4main3FooC1nSivs", "Foo.n.setter"},
 		// Function taking Optional<Int> single arg
-		{"$s4main3fooyySiSgF", "main.foo(Swift.Int?) -> ()"},
+		{"$s4main3fooyySiSgF", "foo(_:)"},
 		// Function returning Optional<Int>
-		{"$s4main3fooSiSgyF", "main.foo() -> Swift.Int?"},
+		{"$s4main3fooSiSgyF", "foo()"},
 		// Tuple with Optional first, String second
-		{"$s4main3fooySiSg_SStF", "main.foo(Swift.Int?, Swift.String) -> ()"},
+		{"$s4main3fooySiSg_SStF", "foo(_:_:)"},
 		// Protocol-context function entity.
-		{"$s4main3FooP3fooyyF", "main.Foo.foo() -> ()"},
+		{"$s4main3FooP3fooyyF", "Foo.foo()"},
 		// Static property + static getter (Z marker) — Apple dot-suffix format.
 		{"$s4main3FooV4propSivpZ", "static main.Foo.prop : Swift.Int"},
 		// Static getter: module stripped per macOS swift-demangle; no type annotation.
 		{"$s4main3FooV4propSivgZ", "static Foo.prop.getter"},
 		// Generic-param tuple: foo(A, B) -> ()
-		{"$s4main3fooyyx_q_tF", "main.foo(A, B) -> ()"},
+		{"$s4main3fooyyx_q_tF", "foo(_:_:)"},
 		// Mixed: Int + generic-param A as params.
-		{"$s4main3fooyySi_xtF", "main.foo(Swift.Int, A) -> ()"},
+		{"$s4main3fooyySi_xtF", "foo(_:_:)"},
 		// Generic-param as result.
-		{"$s4main3fooxSiF", "main.foo(Swift.Int) -> A"},
+		{"$s4main3fooxSiF", "foo(_:)"},
 	}
 	for _, c := range varGeneric {
 		c := c
@@ -288,12 +288,12 @@ func TestStableFunctionEntities(t *testing.T) {
 	thunkCases := []struct {
 		in, want string
 	}{
-		{"$s4main3fooyyFTO", "@nonobjc main.foo() -> ()"},
-		{"$s4main3fooyyFTo", "@objc main.foo() -> ()"},
-		{"$s4main3fooyyFTD", "dynamic dispatch thunk of main.foo() -> ()"},
-		{"$s4main3fooyyFTE", "distributed thunk main.foo() -> ()"},
-		{"$s4main3fooyyFTj", "dispatch thunk of main.foo() -> ()"},
-		{"$s4main3fooyyFTwb", "back deployment thunk for main.foo() -> ()"},
+		{"$s4main3fooyyFTO", "@nonobjc foo()"},
+		{"$s4main3fooyyFTo", "@objc foo()"},
+		{"$s4main3fooyyFTD", "dynamic dispatch thunk of foo()"},
+		{"$s4main3fooyyFTE", "distributed thunk foo()"},
+		{"$s4main3fooyyFTj", "dispatch thunk of foo()"},
+		{"$s4main3fooyyFTwb", "back deployment thunk for foo()"},
 	}
 	for _, c := range thunkCases {
 		c := c
@@ -312,7 +312,7 @@ func TestStableFunctionEntities(t *testing.T) {
 		in, want string
 	}{
 		{"$s4test3StrCfd", "__destroying_deinit test.Str"},
-		{"$s4main3FooCyyFfD", "__deallocating_deinit main.Foo() -> ()"},
+		{"$s4main3FooCyyFfD", "__deallocating_deinit Foo()"},
 	}
 	for _, c := range initCases {
 		c := c
@@ -352,12 +352,12 @@ func TestStableEntitySuffixes(t *testing.T) {
 		// Module stripped — matches macOS swift-demangle (production target).
 		{"$s4main3FooVMn", "nominal type descriptor for Foo"},
 		{"$s4main3FooVMa", "type metadata accessor for Foo"},
-		{"$s4main3fooyyFTwb", "back deployment thunk for main.foo() -> ()"},
-		{"$s4main3fooyyFTwB", "back deployment fallback for main.foo() -> ()"},
-		{"$s4main3fooyyFTO", "@nonobjc main.foo() -> ()"},
-		{"$s4main3fooyyFTD", "dynamic dispatch thunk of main.foo() -> ()"},
-		{"$s4main3fooyyFTA", "partial apply forwarder for main.foo() -> ()"},
-		{"$s4main3fooyyFTj", "dispatch thunk of main.foo() -> ()"},
+		{"$s4main3fooyyFTwb", "back deployment thunk for foo()"},
+		{"$s4main3fooyyFTwB", "back deployment fallback for foo()"},
+		{"$s4main3fooyyFTO", "@nonobjc foo()"},
+		{"$s4main3fooyyFTD", "dynamic dispatch thunk of foo()"},
+		{"$s4main3fooyyFTA", "partial apply forwarder for foo()"},
+		{"$s4main3fooyyFTj", "dispatch thunk of foo()"},
 		{"$s4main3FooVvp", "property main.Foo"},
 		{"$s4main3FooVvg", "main.Foo.getter"},
 		// Property descriptor: vp + MV suffix.
@@ -366,8 +366,8 @@ func TestStableEntitySuffixes(t *testing.T) {
 		// Module stripped — matches macOS swift-demangle (production target).
 		{"$s4main3FooVN", "type metadata for Foo"},
 		// Unmangled suffix.
-		{"$s4main3fooyyF.1", "main.foo() -> () with unmangled suffix \".1\""},
-		{"$s4main3fooyyFTA.1", "partial apply forwarder for main.foo() -> () with unmangled suffix \".1\""},
+		{"$s4main3fooyyF.1", "foo() with unmangled suffix \".1\""},
+		{"$s4main3fooyyFTA.1", "partial apply forwarder for foo() with unmangled suffix \".1\""},
 	}
 	for _, c := range cases {
 		c := c
