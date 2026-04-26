@@ -1169,20 +1169,6 @@ func (r *remangler) mangleFunctionEntity(n *demangle.Node) error {
 		return r.unsupported(common.KindFunctionEntity)
 	}
 
-	// Guard: both args AND ret are the SAME bare stdlib type (single nominal,
-	// not wrapped in BoundGeneric/TypeList etc.).  The Swift compiler emits the
-	// compact "S<N><letter>" form (e.g. "S2i" for two bare Ints) which the
-	// Remangler cannot reproduce.  Only triggers when both sides resolve to a
-	// direct stdlib nominal — e.g. (Int)->Int fires (S2i), but ([Int])->Int or
-	// (Int)->Int? do not (different structural contexts, no compact form used).
-	if !argsEmpty && !retEmpty {
-		if retTok := directStdlibToken(ret); retTok != "" {
-			if argsTok := directStdlibToken(args); argsTok == retTok {
-				return r.unsupported(common.KindFunctionEntity)
-			}
-		}
-	}
-
 	// 1. Emit the entity path.
 	if err := r.remangleNode(path); err != nil {
 		return err
@@ -1212,19 +1198,37 @@ func (r *remangler) mangleFunctionEntity(n *demangle.Node) error {
 		}
 	}
 
-	// 3. Emit return type ('y' for void via KindEmptyList dispatch above).
-	if err := r.remangleNode(ret); err != nil {
-		return err
+	// 3+4. Emit return type then params type.
+	// R19: When ret and args are the SAME bare stdlib type (single non-TypeList
+	// arg), the Swift compiler uses the compact S<count><letter> form
+	// (e.g. "S2i" for (Int)->Int, "S2S" for (String)->String) instead of
+	// emitting two separate stdlib references.  Mirrors the compact-sub grammar
+	// in the Apple demangler's mangleFunctionEntity fast-path.
+	compactEmitted := false
+	if !argsEmpty && !retEmpty && !argsTypeList {
+		if retTok := directStdlibToken(ret); retTok != "" {
+			if directStdlibToken(args) == retTok {
+				// retTok is e.g. "Si" or "SS"; emit S<2><letter>.
+				r.buf.WriteString(retTok[:len(retTok)-1]) // prefix "S" or "Sc"
+				r.buf.WriteByte('2')
+				r.buf.WriteByte(retTok[len(retTok)-1]) // letter
+				compactEmitted = true
+			}
+		}
 	}
-
-	// 4. Emit params type ('y' for void, tuple form for TypeList).
-	if argsTypeList {
-		if err := r.mangleFunctionTypeParams(args); err != nil {
+	if !compactEmitted {
+		// Normal ret + params emission.
+		if err := r.remangleNode(ret); err != nil {
 			return err
 		}
-	} else {
-		if err := r.remangleNode(args); err != nil {
-			return err
+		if argsTypeList {
+			if err := r.mangleFunctionTypeParams(args); err != nil {
+				return err
+			}
+		} else {
+			if err := r.remangleNode(args); err != nil {
+				return err
+			}
 		}
 	}
 
