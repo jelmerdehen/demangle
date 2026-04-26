@@ -979,20 +979,6 @@ func (r *remangler) mangleInitDeinit(n *demangle.Node, suffix string) error {
 	resultNode := n.Children[last-1]
 	pathNodes := n.Children[:last-1]
 
-	// Guard: non-stdlib BoundGeneric result type (e.g. Stack<A>, Result2<X,Y>).
-	// Stdlib-based generics like Optional<Self> are safe: the inner self-type
-	// resolves via A-sub after the path nominal is pushed to nodeSub.
-	if common.NodeKind(resultNode.Kind) == common.KindType && len(resultNode.Children) > 0 {
-		switch common.NodeKind(resultNode.Children[0].Kind) {
-		case common.KindBoundGenericStructure, common.KindBoundGenericClass,
-			common.KindBoundGenericEnum, common.KindBoundGenericProtocol:
-			bg := resultNode.Children[0]
-			if len(bg.Children) >= 1 && containsPlainNonStdlibNominal(bg.Children[0]) {
-				return r.unsupported(common.NodeKind(n.Kind))
-			}
-		}
-	}
-
 	// Emit path (module + ident+kind), pushing each intermediate nominal node
 	// to nodeSub so the result-type self-ref can resolve via A-sub back-ref.
 	// Mirrors Apple's mangleAnyNominalType which calls addSubstitution after
