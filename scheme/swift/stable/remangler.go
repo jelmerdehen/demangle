@@ -463,8 +463,20 @@ func (r *remangler) mangleIdentifierWithWordSubs(text string) {
 		}
 	}
 
-	if len(substWords) == 0 {
-		// No word substitutions: plain '<len><text>' form.
+	// Apple's mixed word-ref form only handles all-letter identifiers. If the
+	// identifier contains any non-letter byte (digit, underscore, etc.), the
+	// mixed encoding cannot represent the non-letter chars, so fall back to
+	// plain '<len><text>'. Words extracted above are still kept in r.words.
+	hasNonLetter := false
+	for i := 0; i < len(text); i++ {
+		if !wordIsLetter(text[i]) {
+			hasNonLetter = true
+			break
+		}
+	}
+
+	if len(substWords) == 0 || hasNonLetter {
+		// No word substitutions (or non-letter chars): plain '<len><text>' form.
 		// New words were already added to r.words during the scan above;
 		// they are stored as word TEXT (not buffer positions), so no fix-up needed.
 		fmt.Fprintf(&r.buf, "%d", len(text))
@@ -811,37 +823,6 @@ func genericTypeRef(idx int) string {
 	return fmt.Sprintf("%d_", k-1)
 }
 
-// containsPlainNonStdlibNominal reports whether n contains a plain nominal
-// (KindStructure/Class/Enum/Protocol) from a non-Swift module at any depth.
-// Unlike containsNonStdlibNominal, it returns false for KindBoundGenericXxx
-// nodes even when their base is non-stdlib — bound-generic returns are safe
-// for top-level functions because the base identifier has no word-table
-// overlap with the function name.
-func containsPlainNonStdlibNominal(n *demangle.Node) bool {
-	if n == nil {
-		return false
-	}
-	kind := common.NodeKind(n.Kind)
-	switch kind {
-	case common.KindStructure, common.KindClass, common.KindEnum, common.KindProtocol:
-		if len(n.Children) >= 1 {
-			mod := n.Children[0]
-			if common.NodeKind(mod.Kind) == common.KindModule && mod.Text == "Swift" {
-				return false
-			}
-		}
-		return true
-	case common.KindBoundGenericStructure, common.KindBoundGenericClass,
-		common.KindBoundGenericEnum, common.KindBoundGenericProtocol:
-		return false
-	}
-	for _, child := range n.Children {
-		if containsPlainNonStdlibNominal(child) {
-			return true
-		}
-	}
-	return false
-}
 
 // directStdlibToken returns the stdlib compact token (e.g. "Si") if n is a
 // DIRECTLY stdlib nominal — i.e. Type→Structure/Class/Enum with module "Swift"
@@ -1245,17 +1226,7 @@ func (r *remangler) mangleFunctionEntity(n *demangle.Node) error {
 	// elem0 '_' elem1 elem2 … 't' — mirrors Apple's mangleTypeList.
 
 	isMethod := common.NodeKind(path.Kind) == common.KindEntityPath && len(path.Children) > 2
-
-	// Guard: plain non-stdlib nominal in the RETURN type for top-level functions.
-	// For methods, mangleEntityPath (R18) now pushes each nominal to nodeSub, so
-	// a self-type return encodes via A-sub (safe). BoundGenericXxx returns are also
-	// safe for top-level: the base identifier has no word-table overlap with the
-	// function name. Only plain nominals in top-level functions risk a word-table
-	// collision (e.g. addVec() → Vec3 where "Vec" lands in the word table from
-	// the function name, producing a word-ref encoding we cannot reproduce).
-	if !isMethod && !retEmpty && containsPlainNonStdlibNominal(ret) {
-		return r.unsupported(common.KindFunctionEntity)
-	}
+	_ = isMethod
 
 	// 1. Emit the entity path.
 	if err := r.remangleNode(path); err != nil {
