@@ -1495,13 +1495,20 @@ func (p *parser) tryPostfixFunctionTypeWithParams(node *demangle.Node) (*demangl
 		}
 	}
 	p.i++
+	// Build a structured KindFunctionType for the default (non-sending) case
+	// so the remangler can encode it correctly. For the rare sending-result
+	// case, fall back to a text blob (printer/remangler don't yet handle the
+	// sending attr inside an embedded function type).
+	if !sendingResultFlag {
+		ft := common.NewNode(common.KindFunctionType)
+		common.AddChildren(ft, node, params)
+		typ := common.NewNode(common.KindType)
+		common.AddChildren(typ, ft)
+		return typ, true
+	}
 	resultStr := common.Print(node, common.DefaultPrintOptions())
 	paramsStr := common.Print(params, common.DefaultPrintOptions())
-	sendPrefix := ""
-	if sendingResultFlag {
-		sendPrefix = "sending "
-	}
-	display := "(" + paramsStr + ") -> " + sendPrefix + resultStr
+	display := "(" + paramsStr + ") -> sending " + resultStr
 	typ := common.NewNode(common.KindType)
 	inner := common.NewNode(common.KindBuiltinTypeName)
 	inner.Text = display

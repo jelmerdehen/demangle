@@ -719,6 +719,21 @@ func (r *remangler) stdlibToken(n *demangle.Node) (string, bool) {
 
 
 
+// parseUnconstrainedGenericSig parses a swift.generic attr like "<A>" or
+// "<A, B, C>" and returns (paramCount, true) when there are no constraints
+// (no "where" clause and no ":" in any param). Returns (0, false) when the
+// generic signature is constrained or malformed.
+func parseUnconstrainedGenericSig(s string) (int, bool) {
+	if len(s) < 3 || s[0] != '<' || s[len(s)-1] != '>' {
+		return 0, false
+	}
+	inner := s[1 : len(s)-1]
+	if strings.Contains(inner, "where") || strings.Contains(inner, ":") {
+		return 0, false
+	}
+	return len(strings.Split(inner, ",")), true
+}
+
 // containsPlainNonStdlibNominal reports whether n contains a plain nominal
 // (KindStructure/Class/Enum/Protocol) from a non-Swift module at any depth.
 // Unlike containsNonStdlibNominal, it returns false for KindBoundGenericXxx
@@ -1128,10 +1143,21 @@ func (r *remangler) mangleFunctionEntity(n *demangle.Node) error {
 		}
 	}
 
-	// Guard: skip generics — the Attrs string is insufficient to reconstruct
-	// the full mangled generic-signature encoding.
+	// Generic sig: unconstrained generics (<A>, <A,B>, …) encode as
+	// N=1→"l", N≥2→"r<N-2>_l". Constrained generics (where/colon present)
+	// remain unsupported — the constraint bytes cannot be reconstructed from
+	// the display-form attr.
+	genSig := ""
 	if n.Attrs != nil && n.Attrs["swift.generic"] != "" {
-		return r.unsupported(common.KindFunctionEntity)
+		nParam, ok := parseUnconstrainedGenericSig(n.Attrs["swift.generic"])
+		if !ok {
+			return r.unsupported(common.KindFunctionEntity)
+		}
+		if nParam == 1 {
+			genSig = "l"
+		} else {
+			genSig = fmt.Sprintf("r%d_l", nParam-2)
+		}
 	}
 
 	argsEmpty := common.NodeKind(args.Kind) == common.KindEmptyList
@@ -1232,7 +1258,12 @@ func (r *remangler) mangleFunctionEntity(n *demangle.Node) error {
 		}
 	}
 
-	// 6. Function entity trailer.
+	// 6. Generic signature (unconstrained: "l" or "r<N-2>_l").
+	if genSig != "" {
+		r.buf.WriteString(genSig)
+	}
+
+	// 7. Function entity trailer.
 	r.buf.WriteByte('F')
 	return nil
 }
