@@ -2804,6 +2804,7 @@ func (p *parser) tryImplFunctionType() (*demangle.Node, bool) {
 			p.subs = ySubs
 		}
 		subsBeforeParse := p.subs.Len()
+		byteBeforeParse := p.s[p.i]
 		t, err := p.parseType()
 		if err != nil {
 			revert()
@@ -2824,6 +2825,23 @@ func (p *parser) tryImplFunctionType() (*demangle.Node, bool) {
 			// inner type.
 			p.subs = p.subs.TruncateTo(subsBeforeParse)
 			p.subs.Push(t)
+		} else if byteBeforeParse == 'A' && p.subs.Len() == subsBeforeParse+1 {
+			// A<letter> or A<digits>_ back-reference: Apple's demangler never
+			// calls addSubstitution when resolving a back-ref, so the subs
+			// table should not grow. When parseType pushed t and t is already
+			// present in subs[0..subsBeforeParse-1] (pure back-ref, no new type
+			// built), strip the duplicate push to keep our table aligned with
+			// Apple's model.
+			isDup := false
+			for k := 0; k < subsBeforeParse; k++ {
+				if prev, ok := p.subs.Get(k); ok && prev == t {
+					isDup = true
+					break
+				}
+			}
+			if isDup {
+				p.subs = p.subs.TruncateTo(subsBeforeParse)
+			}
 		}
 		types = append(types, t)
 		// Detect outer @substituted impl-fn: when a protocol type is
