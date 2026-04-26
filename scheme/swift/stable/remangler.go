@@ -277,6 +277,18 @@ func (r *remangler) remangleNode(n *demangle.Node) error {
 		}
 		r.buf.WriteString("TA")
 		return nil
+	// R19: autodiff function emitter (TJ<kind><params>p<results>r or TJV<kind>...).
+	case common.KindAutoDiffFunction:
+		return r.mangleAutoDiffFunction(n)
+	// R19: autodiff subset-parameters thunk emitter (TJS<kind><fromP>p<fromR>r<toP>P).
+	case common.KindAutoDiffSubsetParametersThunk:
+		return r.mangleAutoDiffSubsetParametersThunk(n)
+	// R22: anonymous-context emitter — children: [0]=parent, [1]=ident → <ident><parent>yXZ
+	case common.KindAnonymousContext:
+		return r.mangleAnonymousContext(n)
+	// R22: private-decl-name emitter — children: [0]=discriminator, [1]=name → <name><disc>LL
+	case common.KindPrivateDeclName:
+		return r.manglePrivateDeclName(n)
 	default:
 		return r.unsupported(kind)
 	}
@@ -1698,5 +1710,184 @@ func (r *remangler) mangleFunctionTypeParams(tl *demangle.Node) error {
 		}
 	}
 	r.buf.WriteByte('t')
+	return nil
+}
+
+// mangleAnonymousContext emits the anonymous-context encoding.
+//
+// Node structure (from parseNominalWithModule):
+//
+//	KindAnonymousContext
+//	  [0] parent context (KindModule or KindAnonymousContext)
+//	  [1] identifier (the "$10016c2d8"-style ident)
+//
+// Encoding (Remangler.cpp mangleAnonymousContext, line 1461):
+//
+//	mangleChildNode(1) → ident
+//	mangleChildNode(0) → parent context
+//	(no child[2] in our subset) → 'y'
+//	"XZ"
+//
+// Final bytes: <ident-encoding><parent-encoding>yXZ
+func (r *remangler) mangleAnonymousContext(n *demangle.Node) error {
+	if len(n.Children) < 2 {
+		return r.unsupported(common.KindAnonymousContext)
+	}
+	// child[1] = identifier (emit first per C++ mangleChildNode(node, 1, ...))
+	if err := r.remangleNode(n.Children[1]); err != nil {
+		return err
+	}
+	// child[0] = parent context
+	if err := r.remangleNode(n.Children[0]); err != nil {
+		return err
+	}
+	// No child[2] in our subset: emit 'y' as the empty generic-params placeholder.
+	r.buf.WriteByte('y')
+	r.buf.WriteString("XZ")
+	return nil
+}
+
+// manglePrivateDeclName emits the private-decl-name encoding.
+//
+// Node structure (from parseNominalWithModule LL path):
+//
+//	KindPrivateDeclName
+//	  [0] discriminator identifier (the file-scope discriminator string)
+//	  [1] name identifier (the decl name)
+//
+// Encoding (Remangler.cpp manglePrivateDeclName, line 2733):
+//
+//	mangleChildNodesReversed → child[1] (name) then child[0] (discriminator)
+//	"LL"  (two children → "LL"; one child → "Ll", but our parser always produces two)
+//
+// Final bytes: <name-encoding><disc-encoding>LL
+func (r *remangler) manglePrivateDeclName(n *demangle.Node) error {
+	if len(n.Children) < 2 {
+		// Single-child form would use "Ll" but our parser never produces it.
+		if len(n.Children) == 1 {
+			if err := r.remangleNode(n.Children[0]); err != nil {
+				return err
+			}
+			r.buf.WriteString("Ll")
+			return nil
+		}
+		return r.unsupported(common.KindPrivateDeclName)
+	}
+	// Reversed: child[1] (name) first, then child[0] (discriminator).
+	if err := r.remangleNode(n.Children[1]); err != nil {
+		return err
+	}
+	if err := r.remangleNode(n.Children[0]); err != nil {
+		return err
+	}
+	r.buf.WriteString("LL")
+	return nil
+}
+
+// mangleAutoDiffFunction emits TJ<kind><params>p<results>r (or TJV<kind>... for
+// vtable thunks).  Corresponds to Remangler::mangleAutoDiffFunction and
+// mangleAutoDiffFunctionOrSimpleThunk in Remangler.cpp.
+//
+// Node attrs:
+//
+//	swift.adKind    — human-readable kind string ("differential", "pullback",
+//	                  "reverse-mode derivative", "forward-mode derivative")
+//	swift.paramSub  — S/U run for parameter indices
+//	swift.resultSub — S/U run for result indices
+//	swift.vtable    — "true" when vtable-thunk prefix TJV is needed
+func (r *remangler) mangleAutoDiffFunction(n *demangle.Node) error {
+	if len(n.Children) == 0 {
+		return r.unsupported(common.KindAutoDiffFunction)
+	}
+	// Emit the inner entity first.
+	if err := r.remangleNode(n.Children[0]); err != nil {
+		return err
+	}
+	adKind := ""
+	paramSub := ""
+	resultSub := ""
+	vtable := ""
+	if n.Attrs != nil {
+		adKind = n.Attrs["swift.adKind"]
+		paramSub = n.Attrs["swift.paramSub"]
+		resultSub = n.Attrs["swift.resultSub"]
+		vtable = n.Attrs["swift.vtable"]
+	}
+	// Map human-readable kind back to the single-byte encoding.
+	var kindByte byte
+	switch adKind {
+	case "forward-mode derivative":
+		kindByte = 'f'
+	case "reverse-mode derivative":
+		kindByte = 'r'
+	case "differential":
+		kindByte = 'd'
+	case "pullback":
+		kindByte = 'p'
+	default:
+		return r.unsupported(common.KindAutoDiffFunction)
+	}
+	if paramSub == "" || resultSub == "" {
+		return r.unsupported(common.KindAutoDiffFunction)
+	}
+	if vtable == "true" {
+		r.buf.WriteString("TJV")
+	} else {
+		r.buf.WriteString("TJ")
+	}
+	r.buf.WriteByte(kindByte)
+	r.buf.WriteString(paramSub)
+	r.buf.WriteByte('p')
+	r.buf.WriteString(resultSub)
+	r.buf.WriteByte('r')
+	return nil
+}
+
+// mangleAutoDiffSubsetParametersThunk emits TJS<kind><fromP>p<fromR>r<toP>P.
+// Corresponds to Remangler::mangleAutoDiffSubsetParametersThunk in Remangler.cpp.
+//
+// Node attrs:
+//
+//	swift.adKind — raw kind byte as single-char string ("d", "p", "r", "f")
+//	swift.fromP  — S/U run for source parameter indices
+//	swift.fromR  — S/U run for source result indices
+//	swift.toP    — S/U run for target parameter indices
+//	swift.implFn — optional impl-function text (not re-emitted in remangling)
+func (r *remangler) mangleAutoDiffSubsetParametersThunk(n *demangle.Node) error {
+	if len(n.Children) == 0 {
+		return r.unsupported(common.KindAutoDiffSubsetParametersThunk)
+	}
+	// Emit the inner entity first.
+	if err := r.remangleNode(n.Children[0]); err != nil {
+		return err
+	}
+	adKind := ""
+	fromP := ""
+	fromR := ""
+	toP := ""
+	if n.Attrs != nil {
+		adKind = n.Attrs["swift.adKind"]
+		fromP = n.Attrs["swift.fromP"]
+		fromR = n.Attrs["swift.fromR"]
+		toP = n.Attrs["swift.toP"]
+	}
+	// adKind is already a single byte char for this node kind.
+	switch adKind {
+	case "d", "p", "r", "f":
+		// valid
+	default:
+		return r.unsupported(common.KindAutoDiffSubsetParametersThunk)
+	}
+	if fromP == "" || fromR == "" || toP == "" {
+		return r.unsupported(common.KindAutoDiffSubsetParametersThunk)
+	}
+	r.buf.WriteString("TJS")
+	r.buf.WriteString(adKind)
+	r.buf.WriteString(fromP)
+	r.buf.WriteByte('p')
+	r.buf.WriteString(fromR)
+	r.buf.WriteByte('r')
+	r.buf.WriteString(toP)
+	r.buf.WriteByte('P')
 	return nil
 }
