@@ -12,6 +12,7 @@ on:
 
 permissions:
   contents: read
+  checks: write
 
 jobs:
   compile:
@@ -65,15 +66,48 @@ jobs:
           PR_TITLE: ${{ github.event.pull_request.title }}
         run: |
           if ! diff -q corpus.txt /tmp/corpus-regen.txt > /dev/null 2>&1; then
+            echo "CORPUS_DRIFT=1" >> "$GITHUB_ENV"
             echo "Corpus drift detected"
             if [[ "$PR_TITLE" != *"[corpus-bump]"* ]]; then
               diff corpus.txt /tmp/corpus-regen.txt | head -40
               exit 1
             fi
+          else
+            echo "CORPUS_DRIFT=0" >> "$GITHUB_ENV"
           fi
 
+      - name: corpus summary
+        working-directory: scheme/swift/stable/testdata/swiftc
+        run: |
+          SYMBOL_COUNT=$(grep -c '^\$s' corpus.txt 2>/dev/null || echo 0)
+          if [[ "${CORPUS_DRIFT:-0}" == "1" ]]; then
+            echo "::error::corpus drift detected ($SYMBOL_COUNT symbols)"
+            DRIFT_STATUS="⚠️ drift detected"
+          else
+            echo "::notice::corpus ✅ $SYMBOL_COUNT symbols, no drift"
+            DRIFT_STATUS="✅ none"
+          fi
+          cat >> "$GITHUB_STEP_SUMMARY" <<EOF
+          ## Corpus Status
+          | Field | Value |
+          |-------|-------|
+          | Symbols | $SYMBOL_COUNT |
+          | Drift | $DRIFT_STATUS |
+          | Three-way parity | run parity job to see results |
+          EOF
+
       - name: Three-way parity
-        run: go test ./scheme/swift/stable/ -run TestThreeWayParity -v -timeout 120s
+        run: |
+          go test ./scheme/swift/stable/ -run TestThreeWayParity -v -timeout 120s 2>&1 | tee /tmp/parity-out.txt
+          ROUNDTRIP_COUNT=$(grep -c 'PASS\|--- PASS' /tmp/parity-out.txt || echo 0)
+          cat >> "$GITHUB_STEP_SUMMARY" <<EOF
+
+          ## Three-way Parity
+          | Field | Value |
+          |-------|-------|
+          | Result | $(tail -1 /tmp/parity-out.txt) |
+          | PASS entries | $ROUNDTRIP_COUNT |
+          EOF
 
   bench:
     runs-on: ubuntu-latest
