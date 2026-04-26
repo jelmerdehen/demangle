@@ -139,8 +139,8 @@ func TestAppleCorpusStrict(t *testing.T) {
 	t.Logf("  grammar errors       : %d (subset of diverged)", grammarErrors)
 	t.Logf("  non-$s lines skipped : %d", skipped)
 
-	if matched < 149 {
-		t.Fatalf("regression: want ≥149 matched, got %d", matched)
+	if matched < 151 {
+		t.Fatalf("regression: want ≥151 matched, got %d", matched)
 	}
 }
 

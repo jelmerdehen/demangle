@@ -278,6 +278,15 @@ func (p *parser) peek() byte {
 func (p *parser) parseGlobal() (*demangle.Node, error) {
 	g := common.NewNode(common.KindGlobal)
 
+	// MacroExpansionLoc top-level shape:
+	//   <module-ident> <buffer-ident> fMX <line>_ <col>_ <macro-ident> fM<kind><disc>_
+	// Must be tried before tryFunctionEntity because the module+buffer ident
+	// pair looks like a function entity prefix until 'fMX' is seen.
+	if mxNode, ok := p.tryTopLevelMacroExpansionLoc(); ok {
+		common.AddChildren(g, mxNode)
+		return g, nil
+	}
+
 	// Try function entity first — it's the most common shape in the
 	// Apple corpus. Roll back on no-match.
 	var inner *demangle.Node
@@ -970,6 +979,164 @@ func (p *parser) tryKeyPathSuffix(inner *demangle.Node) (*demangle.Node, bool) {
 	wrap.Attrs = map[string]string{
 		"swift.kpKind":       accessor,
 		"swift.kpSerialized": serialized,
+	}
+	return wrap, true
+}
+
+// macroKindText maps a fM<kind> kind byte to its display text.
+// Returns "" for unknown kind bytes.
+func macroKindText(kindByte byte) string {
+	switch kindByte {
+	case 'f':
+		return "freestanding macro expansion"
+	case 'u':
+		return "unique name"
+	case 'a':
+		return "accessor macro expansion"
+	case 'm':
+		return "member macro expansion"
+	case 'e':
+		return "extension macro expansion"
+	case 'p':
+		return "peer macro expansion"
+	case 'r':
+		return "member attribute macro expansion"
+	case 'b':
+		return "body macro expansion"
+	case 'B':
+		return "preamble macro expansion"
+	}
+	return ""
+}
+
+// parseMXIndex reads a MacroExpansionLoc index: <digits>_ → N+1, bare _ → 0.
+// Returns (value, true) on success, (0, false) if the index is malformed.
+func (p *parser) parseMXIndex() (int, bool) {
+	start := p.i
+	for !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+		p.i++
+	}
+	if p.eof() || p.s[p.i] != '_' {
+		return 0, false
+	}
+	val := 0
+	if p.i > start {
+		for k := start; k < p.i; k++ {
+			val = val*10 + int(p.s[k]-'0')
+		}
+		val++ // Apple demangleIndex: N_ → N+1
+	}
+	p.i++ // consume '_'
+	return val, true
+}
+
+// tryTopLevelMacroExpansionLoc handles the top-level MacroExpansionLoc shape:
+//
+//	<module-ident> <buffer-ident> fMX <line>_ <col>_ <macro-ident> fM<kind><disc>_
+//
+// Example: $s9MacroUser 0023macro_expandswift_elFCff MX 436_ 4_ 23bitwidthNumberedStructs fMf_
+// produces: freestanding macro expansion #1 of bitwidthNumberedStructs
+//
+//	in module MacroUser file macro_expand.swift line 437 column 5
+//
+// Must be tried before tryFunctionEntity to avoid misidentifying the
+// buffer ident as a function decl-name.
+func (p *parser) tryTopLevelMacroExpansionLoc() (*demangle.Node, bool) {
+	if p.eof() || !(p.s[p.i] >= '0' && p.s[p.i] <= '9') {
+		return nil, false
+	}
+	save := p.i
+	saveSubs := p.subs
+	saveWords := p.words
+	revert := func() { p.i = save; p.subs = saveSubs; p.words = saveWords }
+
+	// Parse module identifier.
+	modName, err := p.parseIdentifier()
+	if err != nil {
+		revert()
+		return nil, false
+	}
+	// Parse buffer (file) identifier — may be '00'-prefixed punycode.
+	if p.eof() || !(p.s[p.i] >= '0' && p.s[p.i] <= '9') {
+		revert()
+		return nil, false
+	}
+	bufName, err := p.parseIdentifier()
+	if err != nil {
+		revert()
+		return nil, false
+	}
+	// Expect 'fMX'.
+	if p.i+2 >= len(p.s) || p.s[p.i] != 'f' || p.s[p.i+1] != 'M' || p.s[p.i+2] != 'X' {
+		revert()
+		return nil, false
+	}
+	p.i += 3 // consume 'fMX'
+	line, lineOK := p.parseMXIndex()
+	if !lineOK {
+		revert()
+		return nil, false
+	}
+	col, colOK := p.parseMXIndex()
+	if !colOK {
+		revert()
+		return nil, false
+	}
+	// Parse the macro name identifier.
+	if p.eof() || !(p.s[p.i] >= '0' && p.s[p.i] <= '9') {
+		revert()
+		return nil, false
+	}
+	macroName, err := p.parseIdentifier()
+	if err != nil {
+		revert()
+		return nil, false
+	}
+	// Parse fM<kind><disc>_.
+	if p.i+2 >= len(p.s) || p.s[p.i] != 'f' || p.s[p.i+1] != 'M' {
+		revert()
+		return nil, false
+	}
+	outerKind := p.s[p.i+2]
+	outerText := macroKindText(outerKind)
+	if outerText == "" {
+		revert()
+		return nil, false
+	}
+	p.i += 3 // consume 'fM<kind>'
+	discStart := p.i
+	for !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+		p.i++
+	}
+	if p.eof() || p.s[p.i] != '_' {
+		revert()
+		return nil, false
+	}
+	discIdx := 0
+	if p.i > discStart {
+		for k := discStart; k < p.i; k++ {
+			discIdx = discIdx*10 + int(p.s[k]-'0')
+		}
+		discIdx++ // Apple demangleIndex: N_ → N+1
+	}
+	p.i++ // consume '_'
+
+	// Build the AST.
+	modIdent := common.NewIdentifier(modName)
+	bufIdent := common.NewIdentifier(bufName)
+	loc := common.NewNode(common.KindMacroExpansionLoc)
+	common.AddChildren(loc, modIdent, bufIdent)
+	loc.Attrs = map[string]string{
+		"swift.mxLine": strconv.Itoa(line),
+		"swift.mxCol":  strconv.Itoa(col),
+	}
+	wrap := common.NewNode(common.KindMacroExpansion)
+	common.AddChildren(wrap, loc)
+	wrap.Attrs = map[string]string{
+		"swift.macroKind":     string([]byte{outerKind}),
+		"swift.macroKindText": outerText,
+		"swift.macroIdx":      strconv.Itoa(discIdx + 1),
+		"swift.macroName":     macroName,
 	}
 	return wrap, true
 }
@@ -1723,6 +1890,10 @@ func implFnAttrsModeStart(attrs string) int {
 	if idx < len(attrs) && attrs[idx] == 's' {
 		idx++
 	}
+	// 'P' = pseudogeneric marker — skip.
+	if idx < len(attrs) && attrs[idx] == 'P' {
+		idx++
+	}
 	if idx < len(attrs) && attrs[idx] == 'e' {
 		idx++
 	}
@@ -1795,6 +1966,20 @@ func implFnTypesNeeded(attrs string) int {
 		}
 		break
 	}
+	// Yield results: Y<conv-byte> (one type each).
+	for k < len(modeAttrs) && modeAttrs[k] == 'Y' {
+		if k+1 >= len(modeAttrs) {
+			break
+		}
+		switch modeAttrs[k+1] {
+		case 'r', 'o', 'd', 'u', 'a', 'k', 'l', 'i', 'c', 'b', 'n', 'g':
+			k += 2
+			n++
+		default:
+			goto doneImplYields
+		}
+	}
+doneImplYields:
 	// Result modes.
 	for k < len(modeAttrs) {
 		switch modeAttrs[k] {
@@ -1898,11 +2083,13 @@ func wrapImplFnOptional(node *demangle.Node) *demangle.Node {
 // contain exactly the number of type nodes implied by attrs.
 // sigStr and subsStr are non-empty for @substituted impl-fn types:
 //
-//	sigStr  = e.g. "A, B" (generic param list inside angle brackets)
-//	subsStr = e.g. "Swift.Set<T>" (for-clause substitution types)
+//	sigStr      = e.g. "A, B" (generic param list inside angle brackets)
+//	subsStr     = e.g. "Swift.Set<T>" (for-clause substitution types)
+//	pseudoSigStr = e.g. "<A, B where A: AnyObject, B: AnyObject>" for
+//	               pseudogeneric layout-requirement signatures; empty if absent.
 //
 // Returns (nil, false) on any parse failure or type count mismatch.
-func buildImplFnDisplay(attrs string, types []*demangle.Node, sigStr, subsStr string) (*demangle.Node, bool) {
+func buildImplFnDisplay(attrs string, types []*demangle.Node, sigStr, subsStr, pseudoSigStr string) (*demangle.Node, bool) {
 	prefixParts := []string{}
 	escaping := false
 	erasedIsolation := false
@@ -1913,6 +2100,10 @@ func buildImplFnDisplay(attrs string, types []*demangle.Node, sigStr, subsStr st
 	idx := 0
 	// 's' = @substituted — handled via sigStr/subsStr args; skip the byte.
 	if idx < len(attrs) && attrs[idx] == 's' {
+		idx++
+	}
+	// 'P' = pseudogeneric marker — skip.
+	if idx < len(attrs) && attrs[idx] == 'P' {
 		idx++
 	}
 	if idx < len(attrs) && attrs[idx] == 'e' {
@@ -2041,14 +2232,17 @@ func buildImplFnDisplay(attrs string, types []*demangle.Node, sigStr, subsStr st
 		prefixParts = append(prefixParts, "@differentiable"+diffKind)
 	}
 	prefixParts = append(prefixParts, "@"+calleeConv)
-	if sigStr != "" {
-		prefixParts = append(prefixParts, "@substituted <"+sigStr+">")
-	}
 	if funcConv != "" {
 		prefixParts = append(prefixParts, funcConv)
 	}
 	if coroAttr != "" {
 		prefixParts = append(prefixParts, coroAttr)
+	}
+	if pseudoSigStr != "" {
+		prefixParts = append(prefixParts, pseudoSigStr)
+	}
+	if sigStr != "" {
+		prefixParts = append(prefixParts, "@substituted <"+sigStr+">")
 	}
 	if sendable {
 		prefixParts = append(prefixParts, "@Sendable")
@@ -2133,6 +2327,25 @@ func buildImplFnDisplay(attrs string, types []*demangle.Node, sigStr, subsStr st
 			k++
 		}
 		params = append(params, attr+diff+sending+" "+common.Print(types[ti], opts))
+		ti++
+	}
+	// Yield results: Y<conv-byte> (each contributes one type to results).
+	for k < len(modeAttrs) && ti < len(types) && modeAttrs[k] == 'Y' {
+		k++ // consume 'Y'
+		if k >= len(modeAttrs) {
+			break
+		}
+		yConvByte := modeAttrs[k]
+		yAttr, yok := paramMode(yConvByte)
+		if !yok {
+			yAttr, yok = resultMode(yConvByte)
+		}
+		if !yok {
+			k-- // unconsume 'Y', stop
+			break
+		}
+		k++
+		results = append(results, "@yields "+yAttr+" "+common.Print(types[ti], opts))
 		ti++
 	}
 	for k < len(modeAttrs) && ti < len(types) {
@@ -2482,6 +2695,94 @@ func implReqSubjectName(c byte) string {
 	return ""
 }
 
+// tryParsePseudogenericSig parses a DependentPseudogenericSignature:
+//
+//	(Rl<subj><layout-constraint>)+ r<N>_ l
+//
+// where <layout-constraint> is 'C' (class/AnyObject). Returns
+// (sigStr, consumedBareL, true) on success, or ("", false, false)
+// if the pattern doesn't match (p.i is restored on failure).
+//
+// On success, p.i points past the closing 'l' of the r<N>_ terminator.
+// consumedBareL is true if an additional bare 'l' immediately followed
+// (the @substituted 1-param inner-sig marker).
+func (p *parser) tryParsePseudogenericSig() (sigStr string, consumedBareL bool, ok bool) {
+	save := p.i
+	var constraints []string
+	for !p.eof() && p.s[p.i] == 'R' {
+		if p.i+1 >= len(p.s) || p.s[p.i+1] != 'l' {
+			break
+		}
+		p.i += 2 // consume 'R' 'l'
+		if p.eof() {
+			p.i = save
+			return "", false, false
+		}
+		subj := p.s[p.i]
+		p.i++ // consume subject
+		paramName := implReqSubjectName(subj)
+		if paramName == "" {
+			p.i = save
+			return "", false, false
+		}
+		if p.eof() {
+			p.i = save
+			return "", false, false
+		}
+		constraint := p.s[p.i]
+		p.i++ // consume constraint byte
+		var constraintStr string
+		switch constraint {
+		case 'C':
+			constraintStr = "AnyObject"
+		default:
+			p.i = save
+			return "", false, false
+		}
+		constraints = append(constraints, paramName+": "+constraintStr)
+	}
+	if len(constraints) == 0 {
+		p.i = save
+		return "", false, false
+	}
+	// Expect r<N>_ l to close the pseudogeneric sig.
+	if p.eof() || p.s[p.i] != 'r' {
+		p.i = save
+		return "", false, false
+	}
+	j := p.i + 1
+	for j < len(p.s) && p.s[j] >= '0' && p.s[j] <= '9' {
+		j++
+	}
+	if j >= len(p.s) || p.s[j] != '_' {
+		p.i = save
+		return "", false, false
+	}
+	p.i = j + 1
+	// Consume closing 'l' (sig-close).
+	if !p.eof() && p.s[p.i] == 'l' {
+		p.i++
+	}
+	// Build sigStr: unique param names + where clause.
+	seen := map[string]bool{}
+	var paramNames []string
+	for _, c := range constraints {
+		name := strings.SplitN(c, ":", 2)[0]
+		name = strings.TrimSpace(name)
+		if !seen[name] {
+			seen[name] = true
+			paramNames = append(paramNames, name)
+		}
+	}
+	sigStr = "<" + strings.Join(paramNames, ", ") + " where " + strings.Join(constraints, ", ") + ">"
+	// Bare 'l' after the pseudogeneric sig = @substituted 1-param inner sig.
+	if !p.eof() && p.s[p.i] == 'l' {
+		p.i++
+		consumedBareL = true
+	}
+	return sigStr, consumedBareL, true
+}
+
 // tryImplFunctionType matches SIL impl-function-type:
 //
 //	<type>* 'I' <attrs> '_'
@@ -2512,9 +2813,24 @@ func (p *parser) tryImplFunctionType() (*demangle.Node, bool) {
 	// where after '_' a 'y<for-clause-types>' follows instead of 'Sg'.
 	var types []*demangle.Node
 	var implSigStr, implSubsStr string // set for outer @substituted form
+	var implPseudoSigStr string        // set for pseudogeneric layout-requirement sig
 	var innerSubstitutedParamCount int // set by r<N>_l for @substituted inner sig
 	var pendingForClause []string      // for-clause types collected at 'y' EmptyList boundary
 	for !p.eof() {
+		// 'Rl<subj>C' sequence — pseudogeneric layout-requirement sig.
+		// Grammar: (Rl<subj>C)+ r<N>_ l
+		// where subj = 'z' (param 0) | '_' (param 1) | '0'-'9' (params 2+).
+		// constraint = 'C' (class/AnyObject).
+		// Produces implPseudoSigStr = "<A, B where A: AnyObject, B: AnyObject>".
+		if p.s[p.i] == 'R' && p.i+2 < len(p.s) && p.s[p.i+1] == 'l' {
+			if sig, bareL, ok2 := p.tryParsePseudogenericSig(); ok2 {
+				implPseudoSigStr = sig
+				if bareL {
+					innerSubstitutedParamCount = 1
+				}
+				continue
+			}
+		}
 		// 'r<N>_l' — generic-sig opener before a @substituted impl-fn.
 		// Appears between the type list and the inner 'I'; consume and
 		// record the generic param count but don't add to types.
@@ -2629,7 +2945,7 @@ func (p *parser) tryImplFunctionType() (*demangle.Node, bool) {
 					innerSigStr = strings.Join(letters, ", ")
 				}
 				forClauseStr := strings.Join(forClauseTypes, "")
-				innerNode, ok := buildImplFnDisplay(innerAttrs, innerTypes, innerSigStr, forClauseStr)
+				innerNode, ok := buildImplFnDisplay(innerAttrs, innerTypes, innerSigStr, forClauseStr, "")
 				if !ok {
 					p.i = innerSave
 					break
@@ -2663,7 +2979,7 @@ func (p *parser) tryImplFunctionType() (*demangle.Node, bool) {
 				break
 			}
 			innerTypes := types[len(types)-needed:]
-			innerNode, ok := buildImplFnDisplay(innerAttrs, innerTypes, "", "")
+			innerNode, ok := buildImplFnDisplay(innerAttrs, innerTypes, "", "", "")
 			if !ok {
 				p.i = innerSave
 				break
@@ -2872,6 +3188,20 @@ func (p *parser) tryImplFunctionType() (*demangle.Node, bool) {
 			}
 		}
 	}
+	// If the outer impl-fn is @substituted (attrs will start with 's') and we
+	// collected a pseudogeneric sig with innerSubstitutedParamCount, build the
+	// outer sigStr/subsStr now from what we have.
+	if implSigStr == "" && innerSubstitutedParamCount > 0 {
+		letters := make([]string, innerSubstitutedParamCount)
+		for i2 := range letters {
+			letters[i2] = string(rune('A' + i2))
+		}
+		implSigStr = strings.Join(letters, ", ")
+	}
+	if implSubsStr == "" && len(pendingForClause) > 0 {
+		implSubsStr = strings.Join(pendingForClause, ", ")
+		pendingForClause = nil
+	}
 	if p.eof() || p.s[p.i] != 'I' {
 		revert()
 		return nil, false
@@ -2888,7 +3218,7 @@ func (p *parser) tryImplFunctionType() (*demangle.Node, bool) {
 	}
 	attrs := p.s[attrStart:p.i]
 	p.i++ // consume '_'
-	node, ok := buildImplFnDisplay(attrs, types, implSigStr, implSubsStr)
+	node, ok := buildImplFnDisplay(attrs, types, implSigStr, implSubsStr, implPseudoSigStr)
 	if !ok {
 		revert()
 		return nil, false
@@ -9020,25 +9350,23 @@ func (p *parser) parseNominalPath() (*demangle.Node, error) {
 }
 
 // parseIdentifier reads "<digits><chars>" where digits specify byte
-// length and chars are the raw identifier bytes. Does not attempt
-// punycode decoding — $s-mangled identifiers are UTF-8 where needed;
-// punycode only applies to the $e embedded variant.
+// length and chars are the raw identifier bytes. The "00<length><chars>"
+// form is Apple's Punycode marker: the chunk is decoded via
+// common.PunycodeDecode to recover non-symbol ASCII chars (e.g. '.')
+// that were remapped to the U+D800–U+D87F range before encoding.
 func (p *parser) parseIdentifier() (string, error) {
 	if p.eof() {
 		return "", p.grammarErr("identifier length")
 	}
 	hasWordSubsts := false
 	// '0' prefix introduces word-substitution form. '00<length><chars>'
-	// is Apple's punycode marker; for plain-ASCII names this is the
-	// same as a normal length-prefixed ident and decodes identically,
-	// so treat it as such.
+	// is Apple's Punycode marker for identifiers that contain non-symbol
+	// ASCII characters (e.g. '.', '/', '-').  Decode the chunk via
+	// PunycodeDecode to recover the original identifier text.
 	if p.s[p.i] == '0' {
 		if p.i+1 < len(p.s) && p.s[p.i+1] == '0' {
-			// Consume the extra '0' and fall through to length-prefix
-			// read.
-			p.i++
-			// p.i still at '0' of the 2-char prefix; consume again.
-			p.i++
+			// Consume the '00' prefix.
+			p.i += 2
 			// Length digits follow.
 			start := p.i
 			for !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
@@ -9056,6 +9384,12 @@ func (p *parser) parseIdentifier() (string, error) {
 			}
 			chunk := p.s[p.i : p.i+length]
 			p.i += length
+			// Apply Apple's Punycode decode to recover non-symbol ASCII chars.
+			// Falls back to the raw chunk on error (e.g. for purely-symbol
+			// identifiers that have no encoded non-basic chars).
+			if decoded, err := common.PunycodeDecode(chunk); err == nil {
+				return decoded, nil
+			}
 			return chunk, nil
 		}
 		p.i++
