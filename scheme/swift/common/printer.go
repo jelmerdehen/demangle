@@ -142,6 +142,30 @@ func printNode(b *strings.Builder, n *demangle.Node, opts PrintOptions) {
 		if len(n.Children) > 0 {
 			printNode(b, n.Children[0], opts)
 		}
+	case KindMacroExpansionLoc:
+		// "module <module> file <buffer> line <line> column <col>"
+		line := ""
+		col := ""
+		if n.Attrs != nil {
+			line = n.Attrs["swift.mxLine"]
+			col = n.Attrs["swift.mxCol"]
+		}
+		mod := ""
+		buf := ""
+		if len(n.Children) > 0 {
+			mod = n.Children[0].Text
+		}
+		if len(n.Children) > 1 {
+			buf = n.Children[1].Text
+		}
+		b.WriteString("module ")
+		b.WriteString(mod)
+		b.WriteString(" file ")
+		b.WriteString(buf)
+		b.WriteString(" line ")
+		b.WriteString(line)
+		b.WriteString(" column ")
+		b.WriteString(col)
 	case KindKeyPathAccessor:
 		// "key path <kind> for <inner> : <owner>[, serialized]"
 		kpKind := ""

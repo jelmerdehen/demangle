@@ -1,0 +1,2 @@
+go test fuzz v1
+string("$s4A000A5555555000A7A0\xde\xef00\xb1\xde\xef~*\"\xde\xef")

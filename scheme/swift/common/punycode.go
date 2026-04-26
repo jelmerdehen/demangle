@@ -159,7 +159,11 @@ func PunycodeDecode(s string) (string, error) {
 		if n < 0x80 {
 			return "", errPunycodeInvalidCP
 		}
-		if n >= 0xD800 && n <= 0xDFFF {
+		// Apple's non-symbol ASCII remapping maps 0x00–0x7F chars that are
+		// not identifier symbols (letters/digits/_) to U+D800–U+D87F before
+		// encoding, and codePointsToUTF8 maps them back.  Standard surrogates
+		// (U+D880–U+DFFF) are still rejected.
+		if n >= 0xD880 && n <= 0xDFFF {
 			return "", errPunycodeSurrogate
 		}
 		// Insert n at position i.

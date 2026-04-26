@@ -1,0 +1,2 @@
+go test fuzz v1
+string("$s1A1AAAAAAAS2A_S6666666AtXB")

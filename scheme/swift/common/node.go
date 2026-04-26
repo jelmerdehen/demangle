@@ -111,6 +111,14 @@ const (
 	// Attrs["swift.macroName"] = macro name identifier.
 	KindMacroExpansion
 
+	// MacroExpansionLoc (D4). MX<line>_<col>_ infix within a macro expansion.
+	// Children[0] = module identifier.
+	// Children[1] = buffer (file) identifier.
+	// Attrs["swift.mxLine"] = line number as string.
+	// Attrs["swift.mxCol"]  = column number as string.
+	// The parent KindMacroExpansion prints this via its Children[0] slot.
+	KindMacroExpansionLoc
+
 	// Key-path accessor (D4). TK/Tk/TH suffix.
 	// Children[0] = inner entity, Children[1] = owner type node.
 	// Attrs["swift.kpKind"] = accessor kind ("getter", "setter").
@@ -261,6 +269,8 @@ func (k NodeKind) Name() string {
 		return "PartialApplyForwarder"
 	case KindMacroExpansion:
 		return "MacroExpansion"
+	case KindMacroExpansionLoc:
+		return "MacroExpansionLoc"
 	case KindKeyPathAccessor:
 		return "KeyPathAccessor"
 	case KindLocalDeclName:
@@ -318,7 +328,7 @@ func (k NodeKind) Category() demangle.KindCategory {
 		return demangle.KindCatFunction
 	case KindOutlined, KindReabstractionThunk, KindPartialApplyForwarder:
 		return demangle.KindCatOther
-	case KindMacroExpansion, KindKeyPathAccessor, KindLocalDeclName:
+	case KindMacroExpansion, KindMacroExpansionLoc, KindKeyPathAccessor, KindLocalDeclName:
 		return demangle.KindCatOther
 	case KindGenericSpecialization, KindFunctionSignatureSpecialization:
 		return demangle.KindCatOther

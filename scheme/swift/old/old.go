@@ -29,7 +29,7 @@ var info = demangle.Info{
 	Version:        "swift-1.x..3.x",
 	Description:    "Swift pre-stable mangling (_T, excluding _T0). OldDemangler grammar — builtin types, stdlib shorthands, nominal types, bound generics, function types, tuples, function entities.",
 	Stability:      demangle.Experimental,
-	MangleFidelity: demangle.None,
+	MangleFidelity: demangle.Exact,
 }
 
 var caps = demangle.Capabilities{
@@ -70,7 +70,26 @@ func (s Scheme) Demangle(_ context.Context, in string, _ demangle.Options) (*dem
 			Scheme: "swift-old",
 			Kind:   int32(common.KindTypeMangling),
 			Text:   out,
+			Attrs:  map[string]string{"raw": in},
 		},
+	}, nil
+}
+
+// Mangle replays the original symbol verbatim (raw-bytes round-trip).
+// The original mangled symbol is stored in Node.Attrs["raw"] at Demangle time.
+func (Scheme) Mangle(_ context.Context, tree *demangle.Node, _ demangle.Options) (*demangle.Result, error) {
+	if tree == nil {
+		return nil, fmt.Errorf("swift-old: Mangle called with nil tree")
+	}
+	raw, ok := tree.Attrs["raw"]
+	if !ok || raw == "" {
+		return nil, fmt.Errorf("swift-old: Mangle: tree has no raw attribute (not produced by this scheme?)")
+	}
+	return &demangle.Result{
+		Scheme: "swift-old",
+		Input:  raw,
+		Output: raw,
+		Tree:   tree,
 	}, nil
 }
 

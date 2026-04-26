@@ -202,16 +202,17 @@ func TestPunycodeSurrogateEncode(t *testing.T) {
 	}
 }
 
-// TestPunycodeSurrogateDecode verifies that surrogate codepoints are rejected
-// by the decoder with errPunycodeSurrogate.
+// TestPunycodeSurrogateDecode verifies that standard surrogate codepoints
+// (U+D880–U+DFFF) are rejected by the decoder with errPunycodeSurrogate.
+// U+D800–U+D87F are Apple's non-symbol ASCII remapping range and must NOT
+// be rejected — they are mapped back to ASCII by codePointsToUTF8.
 func TestPunycodeSurrogateDecode(t *testing.T) {
 	t.Parallel()
 	surrogates := []struct {
 		name string
 		cp   uint32
 	}{
-		{"U+D800", 0xD800},
-		{"U+D87F", 0xD87F},
+		{"U+D880", 0xD880},
 		{"U+DBFF", 0xDBFF},
 		{"U+DC00", 0xDC00},
 		{"U+DFFF", 0xDFFF},
@@ -231,6 +232,38 @@ func TestPunycodeSurrogateDecode(t *testing.T) {
 				t.Errorf("PunycodeDecode(encoded U+%04X) = %v, want errPunycodeSurrogate", tc.cp, err)
 			}
 		})
+	}
+}
+
+// TestPunycodeNonSymbolRemapDecode verifies that codepoints in Apple's
+// non-symbol ASCII remapping range (U+D800–U+D87F) are accepted by the
+// decoder and mapped back to their ASCII originals by codePointsToUTF8.
+// For example, "macro_expandswift_elFCf" decodes to "macro_expand.swift"
+// because '.' (0x2E) is encoded as U+D82E.
+func TestPunycodeNonSymbolRemapDecode(t *testing.T) {
+	t.Parallel()
+	// U+D82E is Apple's encoding of '.' (0x2E) — a non-symbol ASCII char.
+	// Use encodePunycodeRaw to build the encoded form without surrogate guard.
+	encoded, err := encodePunycodeRaw([]uint32{0xD82E})
+	if err != nil {
+		t.Fatalf("encodePunycodeRaw(U+D82E): %v", err)
+	}
+	decoded, err := PunycodeDecode(encoded)
+	if err != nil {
+		t.Errorf("PunycodeDecode(encoded U+D82E) error: %v (want nil)", err)
+	}
+	if decoded != "." {
+		t.Errorf("PunycodeDecode(encoded U+D82E) = %q, want %q", decoded, ".")
+	}
+	// The full "macro_expand.swift" round-trip via Apple's encoding.
+	const swiftEncoded = "macro_expandswift_elFCf"
+	const swiftDecoded = "macro_expand.swift"
+	got, err := PunycodeDecode(swiftEncoded)
+	if err != nil {
+		t.Errorf("PunycodeDecode(%q): %v", swiftEncoded, err)
+	}
+	if got != swiftDecoded {
+		t.Errorf("PunycodeDecode(%q) = %q, want %q", swiftEncoded, got, swiftDecoded)
 	}
 }
 

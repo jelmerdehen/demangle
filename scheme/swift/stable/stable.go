@@ -2099,7 +2099,9 @@ func buildImplFnDisplay(attrs string, types []*demangle.Node, sigStr, subsStr, p
 	calleeConv := "callee_guaranteed"
 	idx := 0
 	// 's' = @substituted — handled via sigStr/subsStr args; skip the byte.
+	hasSubstituted := false
 	if idx < len(attrs) && attrs[idx] == 's' {
+		hasSubstituted = true
 		idx++
 	}
 	// 'P' = pseudogeneric marker — skip.
@@ -2241,7 +2243,7 @@ func buildImplFnDisplay(attrs string, types []*demangle.Node, sigStr, subsStr, p
 	if pseudoSigStr != "" {
 		prefixParts = append(prefixParts, pseudoSigStr)
 	}
-	if sigStr != "" {
+	if sigStr != "" && hasSubstituted {
 		prefixParts = append(prefixParts, "@substituted <"+sigStr+">")
 	}
 	if sendable {
@@ -8777,6 +8779,10 @@ func (p *parser) tryStdlibCompactFunctionType() (*demangle.Node, bool) {
 			m = 0
 			for _, d := range p.s[ds2:p.i] {
 				m = m*10 + int(d-'0')
+				if m > 512 {
+					revert()
+					return nil, false
+				}
 			}
 			if m < 1 {
 				revert()
