@@ -3054,7 +3054,19 @@ func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 			continue // module already pushed
 		}
 		p.subs.Push(step)
-		nom := common.NewNode(common.KindClass)
+		// Use the actual nominal kind from the parsed kind byte (V/C/O/P).
+		var nomKind common.NodeKind
+		switch step.Attrs["swift.nominalKind"] {
+		case "V":
+			nomKind = common.KindStructure
+		case "O":
+			nomKind = common.KindEnum
+		case "P":
+			nomKind = common.KindProtocol
+		default:
+			nomKind = common.KindClass
+		}
+		nom := common.NewNode(nomKind)
 		var parent *demangle.Node
 		if accType == nil {
 			parent = moduleNode
@@ -3066,13 +3078,6 @@ func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 		common.AddChildren(t, nom)
 		p.subs.Push(t)
 		accType = t
-	}
-	classType := accType
-	if classType == nil {
-		classType = common.NewNode(common.KindType)
-		classNom := common.NewNode(common.KindClass)
-		common.AddChildren(classNom, moduleNode)
-		common.AddChildren(classType, classNom)
 	}
 	// Label-list: run of digit-led idents that don't end in V/C/O/P,
 	// followed by the result-type start byte. Greedy with backtrack.
@@ -3123,6 +3128,11 @@ func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 	// Optional '_t' trailing tuple-terminator (single-labeled-arg form).
 	if p.i+1 < len(p.s) && p.s[p.i] == '_' && p.s[p.i+1] == 't' {
 		p.i += 2
+		// Mark paramsType so the remangler can emit '_t' on round-trip.
+		if paramsType.Attrs == nil {
+			paramsType.Attrs = map[string]string{}
+		}
+		paramsType.Attrs["swift.init_t"] = "1"
 	}
 	// Apply labels to paramsType children (tuple) or the single type.
 	if len(labels) > 0 {
@@ -3190,9 +3200,25 @@ func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 		retStr = common.Print(retType, opts)
 	}
 	display := pathStr + "." + terminal + paramsStr + " -> " + retStr
-	wrap := common.NewNode(common.KindTypeMangling)
-	wrap.Text = display
-	return wrap, true, nil
+	// Build a structural init/deinit node.  Children are the path steps
+	// followed by the result type and params type.  The display text is
+	// stored in Text so the printer can render it without walking children.
+	var nodeKind common.NodeKind
+	switch kindByte {
+	case 'C':
+		nodeKind = common.KindAllocatingInit
+	case 'c':
+		nodeKind = common.KindInitializer
+	case 'D':
+		nodeKind = common.KindDeallocatingDeinit
+	default: // 'd'
+		nodeKind = common.KindDeinit
+	}
+	initNode := common.NewNode(nodeKind)
+	initNode.Text = display
+	common.AddChildren(initNode, pathSteps...)
+	common.AddChildren(initNode, retType, paramsType)
+	return initNode, true, nil
 }
 
 // tryConformanceDescriptor matches "<Type> <Protocol> <SourceModule> Hc"

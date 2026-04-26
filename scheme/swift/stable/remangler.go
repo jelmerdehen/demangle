@@ -1025,30 +1025,104 @@ func (r *remangler) mangleInitDeinit(n *demangle.Node, suffix string) error {
 			Got:      fmt.Sprintf("%d children", len(n.Children)),
 		}
 	}
-	// Last two children are result-type and params-type.
 	last := len(n.Children) - 1
 	paramsNode := n.Children[last]
 	resultNode := n.Children[last-1]
 	pathNodes := n.Children[:last-1]
 
+	// Guard: generic result type (e.g. Optional<Self>, Stack<A>) cannot be
+	// reproduced via A-sub back-ref — the generic type args are unknown here.
+	if common.NodeKind(resultNode.Kind) == common.KindType && len(resultNode.Children) > 0 {
+		switch common.NodeKind(resultNode.Children[0].Kind) {
+		case common.KindBoundGenericStructure, common.KindBoundGenericClass,
+			common.KindBoundGenericEnum, common.KindBoundGenericProtocol:
+			return r.unsupported(common.NodeKind(n.Kind))
+		}
+	}
+
+	// Emit path (module + ident+kind), pushing each intermediate nominal node
+	// to nodeSub so the result-type self-ref can resolve via A-sub back-ref.
+	// Mirrors Apple's mangleAnyNominalType which calls addSubstitution after
+	// each nominal emission.
+	var accParent *demangle.Node
 	for _, child := range pathNodes {
 		if err := r.remangleNode(child); err != nil {
 			return err
 		}
+		nk := ""
 		if child.Attrs != nil {
-			if nk := child.Attrs["swift.nominalKind"]; nk != "" {
-				r.buf.WriteString(nk)
+			nk = child.Attrs["swift.nominalKind"]
+		}
+		if nk != "" {
+			r.buf.WriteString(nk)
+			var nomKind common.NodeKind
+			switch nk {
+			case "V":
+				nomKind = common.KindStructure
+			case "O":
+				nomKind = common.KindEnum
+			case "P":
+				nomKind = common.KindProtocol
+			default:
+				nomKind = common.KindClass
 			}
+			nom := common.NewNode(nomKind)
+			common.AddChildren(nom, accParent, child)
+			r.pushNodeSub(nom)
+			accParent = nom
+		} else if common.NodeKind(child.Kind) == common.KindModule {
+			accParent = child
 		}
 	}
-	// Emit result type; KindEmptyList → 'y' (empty tuple).
+
+	// Emit label list (one identifier per labeled parameter) before result type.
+	var labels []string
+	switch common.NodeKind(paramsNode.Kind) {
+	case common.KindTypeList:
+		for _, child := range paramsNode.Children {
+			if child.Attrs != nil {
+				labels = append(labels, child.Attrs["swift.label"])
+			} else {
+				labels = append(labels, "")
+			}
+		}
+	default:
+		if paramsNode.Attrs != nil {
+			labels = append(labels, paramsNode.Attrs["swift.label"])
+		}
+	}
+	for _, lbl := range labels {
+		if lbl == "" {
+			continue
+		}
+		if err := r.mangleIdentifier(common.NewIdentifier(lbl)); err != nil {
+			return err
+		}
+	}
+
+	// Emit result type.
 	if err := r.mangleInitType(resultNode); err != nil {
 		return err
 	}
-	// Emit params type; KindEmptyList → 'y'.
-	if err := r.mangleInitType(paramsNode); err != nil {
-		return err
+
+	// Emit params type.
+	switch common.NodeKind(paramsNode.Kind) {
+	case common.KindEmptyList:
+		r.buf.WriteByte('y')
+	case common.KindTypeList:
+		if err := r.mangleFunctionTypeParams(paramsNode); err != nil {
+			return err
+		}
+	default:
+		if err := r.remangleNode(paramsNode); err != nil {
+			return err
+		}
+		// _t suffix for single-labeled-arg tuple form.
+		if paramsNode.Attrs != nil && paramsNode.Attrs["swift.init_t"] == "1" {
+			r.buf.WriteString("_t")
+		}
 	}
+
 	r.buf.WriteString(suffix)
 	return nil
 }

@@ -56,6 +56,9 @@ func printNode(b *strings.Builder, n *demangle.Node, opts PrintOptions) {
 		for _, c := range n.Children {
 			printNode(b, c, opts)
 		}
+	case KindAllocatingInit, KindInitializer, KindDeallocatingDeinit, KindDeinit:
+		// Display text is stored in n.Text by the parser.
+		b.WriteString(n.Text)
 	case KindStructure, KindClass, KindEnum, KindProtocol:
 		printNominal(b, n, opts)
 	case KindBoundGenericStructure, KindBoundGenericClass,
