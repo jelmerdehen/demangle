@@ -224,13 +224,10 @@ func printNode(b *strings.Builder, n *demangle.Node, opts PrintOptions) {
 			printNode(b, n.Children[0], opts)
 		}
 	case KindFunctionSignatureSpecialization:
-		// "function signature specialization [<args> ]of <inner>"
+		// n.Text holds " [<args> ]of [<chain> in ]" so the full output is:
+		// "function signature specialization" + n.Text + print(inner)
 		b.WriteString("function signature specialization")
-		if n.Text != "" {
-			b.WriteByte(' ')
-			b.WriteString(n.Text)
-		}
-		b.WriteString(" of ")
+		b.WriteString(n.Text)
 		if len(n.Children) > 0 {
 			printNode(b, n.Children[0], opts)
 		}

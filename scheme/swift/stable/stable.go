@@ -157,15 +157,15 @@ func parseBodyWithOpts(schemeName, origin, body string, prefixBytes int, opts de
 		p.i++
 	}
 	// Specialization trailer: "<spec-args>_T<letter><digits>?" wraps
-	// the main entity with a "generic specialization of" prefix.
-	// Can stack — loop until no more matches.
-	specPrefix := ""
-	for {
-		wrap, ok := p.trySpecializationSuffix()
+	// the main entity with a KindGenericSpecialization or
+	// KindFunctionSignatureSpecialization node. Can stack — loop until
+	// no more matches.
+	for len(tree.Children) > 0 {
+		wrapped, ok := p.trySpecializationSuffix(tree.Children[0])
 		if !ok {
 			break
 		}
-		specPrefix = wrap + specPrefix
+		tree.Children[0] = wrapped
 	}
 	// Unmangled suffix: ".<anything>" after the main parse.
 	unmangledSuffix := ""
@@ -193,9 +193,6 @@ func parseBodyWithOpts(schemeName, origin, body string, prefixBytes int, opts de
 		printOpts = common.DefaultPrintOptions()
 	}
 	display := common.Print(tree, printOpts)
-	if specPrefix != "" {
-		display = specPrefix + display
-	}
 	if unmangledSuffix != "" {
 		display += " with unmangled suffix \"" + unmangledSuffix + "\""
 	}
@@ -7137,7 +7134,7 @@ func (p *parser) trySpecializationSuffix(inner *demangle.Node) (*demangle.Node, 
 	// Expect 'T' + letter + optional digit count.
 	if p.eof() || p.s[p.i] != 'T' || p.i+1 >= len(p.s) {
 		revert()
-		return "", false
+		return nil, false
 	}
 	letter := p.s[p.i+1]
 	// 'Tt<N>' — dropped-arguments prefix. Can repeat (Tt1t2g5 form).
@@ -7155,7 +7152,7 @@ func (p *parser) trySpecializationSuffix(inner *demangle.Node) (*demangle.Node, 
 		}
 		if probe >= len(p.s) {
 			revert()
-			return "", false
+			return nil, false
 		}
 		// After dropped-args chain, expect g/G/B for the actual kind.
 		realKind := p.s[probe]
@@ -7167,21 +7164,12 @@ func (p *parser) trySpecializationSuffix(inner *demangle.Node) (*demangle.Node, 
 			letter = realKind
 		default:
 			revert()
-			return "", false
+			return nil, false
 		}
 	}
-	prefix := ""
 	switch letter {
-	case 'g':
-		prefix = "generic specialization"
-	case 'G':
-		prefix = "generic specialization (preserving fragile)"
-	case 'B':
-		prefix = "generic specialization"
-	case 'i':
-		prefix = "inlined generic function"
-	case 't':
-		prefix = "merged thunk"
+	case 'g', 'G', 'B', 'i', 't':
+		// handled below
 	case 'f':
 		// Function-signature specialization: 'Tf<count>?<spec-params>_n'.
 		// Spec-param codes follow the optional digit count:
@@ -7189,11 +7177,13 @@ func (p *parser) trySpecializationSuffix(inner *demangle.Node) (*demangle.Node, 
 		//   'c'    — ClosurePropagated (uses closure ident + arg types)
 		//   'C<N>' — ClosurePropPreviousArg (references Arg[N])
 		p.i += 2 // consume 'Tf'
+		passStartInline := p.i
 		for !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
 			p.i++
 		}
+		passDigitsInline := p.s[passStartInline:p.i]
 		// Look up the closure name from substitution table.
-		opts := common.DefaultPrintOptions()
+		printOptsInline := common.DefaultPrintOptions()
 		closureName := ""
 		for k := p.subs.Len() - 1; k >= 0; k-- {
 			n, ok := p.subs.Get(k)
@@ -7214,7 +7204,7 @@ func (p *parser) trySpecializationSuffix(inner *demangle.Node) (*demangle.Node, 
 			case 'c':
 				var typeParts []string
 				for _, a := range specArgs {
-					typeParts = append(typeParts, common.Print(a, opts))
+					typeParts = append(typeParts, common.Print(a, printOptsInline))
 				}
 				entry := "[Closure Propagated : " + closureName +
 					", Argument Types : [" + strings.Join(typeParts, ", ") + "]"
@@ -7243,51 +7233,60 @@ func (p *parser) trySpecializationSuffix(inner *demangle.Node) (*demangle.Node, 
 		}
 		if unknownKind {
 			revert()
-			return "", false
+			return nil, false
 		}
 		if !p.eof() && p.s[p.i] == '_' {
 			p.i++
 		} else {
 			revert()
-			return "", false
+			return nil, false
 		}
 		if !p.eof() && p.s[p.i] == 'n' {
 			p.i++
 		} else if !p.eof() {
 			revert()
-			return "", false
+			return nil, false
 		}
-		display := "function signature specialization"
+		// Build " [<args> ]of " text stored in node.Text for the printer.
+		var inlineText strings.Builder
 		if len(argParts) > 0 {
-			display += " <" + strings.Join(argParts, ", ") + ">"
+			inlineText.WriteString(" <")
+			inlineText.WriteString(strings.Join(argParts, ", "))
+			inlineText.WriteByte('>')
 		}
-		display += " of "
-		return display, true
+		inlineText.WriteString(" of ")
+		fsNode := common.NewNode(common.KindFunctionSignatureSpecialization)
+		fsNode.Attrs = map[string]string{"swift.specPass": passDigitsInline}
+		fsNode.Text = inlineText.String()
+		common.AddChildren(fsNode, inner)
+		return fsNode, true
 	default:
 		revert()
-		return "", false
+		return nil, false
 	}
 	p.i += 2
-	// Consume digits.
+	// Consume pass digits.
+	passStart := p.i
 	for !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
 		p.i++
 	}
-	// Render args.
-	display := prefix
-	if len(specArgs) > 0 {
-		opts := common.DefaultPrintOptions()
-		var parts []string
-		for _, a := range specArgs {
-			parts = append(parts, common.Print(a, opts))
-		}
-		if tupleArgs {
-			display += " <(" + strings.Join(parts, ", ") + ")>"
-		} else {
-			display += " <" + strings.Join(parts, ", ") + ">"
-		}
+	passDigits := p.s[passStart:p.i]
+	// Build KindGenericSpecialization node.
+	gsNode := common.NewNode(common.KindGenericSpecialization)
+	gsAttrs := map[string]string{
+		"swift.specKind": string(letter),
+		"swift.specPass": passDigits,
 	}
-	display += " of "
-	return display, true
+	if tupleArgs {
+		gsAttrs["swift.specTuple"] = "true"
+	}
+	gsNode.Attrs = gsAttrs
+	typeList := common.NewNode(common.KindTypeList)
+	for _, a := range specArgs {
+		common.AddChildren(typeList, a)
+	}
+	common.AddChildren(gsNode, inner, typeList)
+	return gsNode, true
 }
 
 // digitRun returns the number of consecutive ASCII digits starting
@@ -7450,8 +7449,8 @@ func (p *parser) tryBareModuleIdent() (*demangle.Node, bool) {
 //	'c'  — ClosurePropagated: uses the last closure ident + accumulated types
 //	'C<N>' — ClosurePropPreviousArg: references Arg[N]
 //
-// Returns (display-prefix, true) on success; reverts on failure.
-func (p *parser) tryTfSpecializationSuffix(save int, saveSubs common.SubstitutionTable) (string, bool) {
+// Returns (*demangle.Node, true) on success; reverts on failure.
+func (p *parser) tryTfSpecializationSuffix(inner *demangle.Node, save int, saveSubs common.SubstitutionTable) (*demangle.Node, bool) {
 	revert := func() { p.i = save; p.subs = saveSubs }
 	// Find 'Tf' within bounded horizon.
 	tfPos := -1
@@ -7466,7 +7465,7 @@ func (p *parser) tryTfSpecializationSuffix(save int, saveSubs common.Substitutio
 		}
 	}
 	if tfPos < 0 {
-		return "", false
+		return nil, false
 	}
 	// Parse identifiers (closure names) and types between current pos and 'Tf'.
 	// When a digit is encountered, try parseType first (handles
@@ -7498,7 +7497,7 @@ func (p *parser) tryTfSpecializationSuffix(save int, saveSubs common.Substitutio
 			if err != nil || p.i > tfPos {
 				p.i = startI
 				revert()
-				return "", false
+				return nil, false
 			}
 			closureIdents = append(closureIdents, ident)
 			continue
@@ -7563,19 +7562,21 @@ func (p *parser) tryTfSpecializationSuffix(save int, saveSubs common.Substitutio
 				continue
 			}
 			revert()
-			return "", false
+			return nil, false
 		}
 		specArgs = append(specArgs, typ)
 	}
 	if p.i != tfPos {
 		revert()
-		return "", false
+		return nil, false
 	}
 	p.i += 2 // consume 'Tf'
 	// Optional pass count (digits after 'Tf').
+	passStart := p.i
 	for !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
 		p.i++
 	}
+	passDigits := p.s[passStart:p.i]
 	// Function name: from the subs table (pushed by tryBareModuleIdent
 	// before tryTfSpecializationSuffix was called). Scan from the start
 	// of the ORIGINAL save state subs to find the first identifier.
@@ -7717,25 +7718,30 @@ func (p *parser) tryTfSpecializationSuffix(save int, saveSubs common.Substitutio
 	}
 	if unknownKind {
 		revert()
-		return "", false
+		return nil, false
 	}
 	// Consume '_'.
 	if !p.eof() && p.s[p.i] == '_' {
 		p.i++
 	} else {
 		revert()
-		return "", false
+		return nil, false
 	}
 	// Consume trailing 'n' (return-not-specialized marker).
 	if !p.eof() && p.s[p.i] == 'n' {
 		p.i++
 	} else if !p.eof() {
 		revert()
-		return "", false
+		return nil, false
 	}
-	display := "function signature specialization"
+	// Build the n.Text for the KindFunctionSignatureSpecialization node.
+	// Format: " [<args> ]of [<chain> in ]" — the printer prepends
+	// "function signature specialization" and appends print(inner).
+	var textBuf strings.Builder
 	if len(argParts) > 0 {
-		display += " <" + strings.Join(argParts, ", ") + ">"
+		textBuf.WriteString(" <")
+		textBuf.WriteString(strings.Join(argParts, ", "))
+		textBuf.WriteByte('>')
 	}
 	// Build closure chain: closureEntries are recorded in preamble order
 	// (lowest number first). The Apple printer emits them in descending
@@ -7760,11 +7766,17 @@ func (p *parser) tryTfSpecializationSuffix(save int, saveSubs common.Substitutio
 			}
 			chain = append(chain, entry)
 		}
-		display += " of " + strings.Join(chain, " in ") + " in "
+		textBuf.WriteString(" of ")
+		textBuf.WriteString(strings.Join(chain, " in "))
+		textBuf.WriteString(" in ")
 	} else {
-		display += " of "
+		textBuf.WriteString(" of ")
 	}
-	return display, true
+	fsNode := common.NewNode(common.KindFunctionSignatureSpecialization)
+	fsNode.Attrs = map[string]string{"swift.specPass": passDigits}
+	fsNode.Text = textBuf.String()
+	common.AddChildren(fsNode, inner)
+	return fsNode, true
 }
 
 // entitySuffixStart reports whether b introduces a 2/3-byte entity
