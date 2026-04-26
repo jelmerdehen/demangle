@@ -1,0 +1,1200 @@
+# Corpus: iphoneos-concurrency
+# Xcode: 26.x (Swift 6.3.1 / iPhoneOS 26.4 SDK)
+# Extracted: 2026-04-26
+# Source: usr/lib/swift/libswift_Concurrency.tbd
+# Format: <symbol> ---> <expected>
+_$s13AsyncIteratorSciTl ---> associated type descriptor for AsyncSequence.AsyncIterator
+_$s7ElementScITl ---> associated type descriptor for AsyncIteratorProtocol.Element
+_$s7ElementSciTl ---> associated type descriptor for AsyncSequence.Element
+_$s7FailureScITl ---> associated type descriptor for AsyncIteratorProtocol.Failure
+_$s7FailureSciTl ---> associated type descriptor for AsyncSequence.Failure
+_$s7Instants5ClockPTl ---> associated type descriptor for Clock.Instant
+_$s8Durations5ClockPTl ---> associated type descriptor for Clock.Duration
+_$s9ActorTypes06GlobalA0PTl ---> associated type descriptor for GlobalActor.ActorType
+_$sS2cEycfC ---> CancellationError.init()
+_$sScA15unownedExecutorScevgTj ---> dispatch thunk of Actor.unownedExecutor.getter
+_$sScA15unownedExecutorScevgTq ---> method descriptor for Actor.unownedExecutor.getter
+_$sScAMp ---> protocol descriptor for Actor
+_$sScATL ---> protocol requirements base descriptor for Actor
+_$sScAsE14assertIsolated_4file4lineySSyXK_s12StaticStringVSutF ---> Actor.assertIsolated(_:file:line:)
+_$sScAsE14assumeIsolated_4file4lineqd__qd__xYiKXE_s12StaticStringVSutKlF ---> Actor.assumeIsolated<A>(_:file:line:)
+_$sScAsE20preconditionIsolated_4file4lineySSyXK_s12StaticStringVSutF ---> Actor.preconditionIsolated(_:file:line:)
+_$sScC12continuation8functionScCyxq_GSccyxq_G_SStcfC ---> CheckedContinuation.init(continuation:function:)
+_$sScC6resume8throwingyq_n_tF ---> CheckedContinuation.resume(throwing:)
+_$sScC6resume9returningyxn_tF ---> CheckedContinuation.resume(returning:)
+_$sScCMa ---> type metadata accessor for CheckedContinuation
+_$sScCMn ---> nominal type descriptor for CheckedContinuation
+_$sScEMa ---> type metadata accessor for CancellationError
+_$sScEMn ---> nominal type descriptor for CancellationError
+_$sScEN ---> type metadata for CancellationError
+_$sScEs5ErrorsMc ---> protocol conformance descriptor for CancellationError
+_$sScF7enqueueyyScJFTj ---> dispatch thunk of Executor.enqueue(_:)
+_$sScF7enqueueyyScJFTq ---> method descriptor for Executor.enqueue(_:)
+_$sScF7enqueueyys11ExecutorJobVnFTj ---> dispatch thunk of Executor.enqueue(_:)
+_$sScF7enqueueyys11ExecutorJobVnFTq ---> method descriptor for Executor.enqueue(_:)
+_$sScF7enqueueyys3JobVnFTj ---> dispatch thunk of Executor.enqueue(_:)
+_$sScF7enqueueyys3JobVnFTq ---> method descriptor for Executor.enqueue(_:)
+_$sScFMp ---> protocol descriptor for Executor
+_$sScFTL ---> protocol requirements base descriptor for Executor
+_$sScFsE18_isComplexEqualitySbvg ---> Executor._isComplexEquality.getter
+_$sScFsE18_isComplexEqualitySbvpMV ---> property descriptor for Executor._isComplexEquality
+_$sScFsE7enqueueyyScJF ---> Executor.enqueue(_:)
+_$sScFsE7enqueueyys11ExecutorJobVnF ---> Executor.enqueue(_:)
+_$sScFsE7enqueueyys3JobVnF ---> Executor.enqueue(_:)
+_$sScFsSQRzrlE18_isComplexEqualitySbvg ---> Executor<>._isComplexEquality.getter
+_$sScFsSQRzrlE18_isComplexEqualitySbvpMV ---> property descriptor for Executor<>._isComplexEquality
+_$sScG11isCancelledSbvg ---> TaskGroup.isCancelled.getter
+_$sScG11isCancelledSbvpMV ---> property descriptor for TaskGroup.isCancelled
+_$sScG17makeAsyncIteratorScG0C0Vyx_GyF ---> TaskGroup.makeAsyncIterator()
+_$sScG22awaitAllRemainingTasks9isolationyScA_pSgYi_tYaF ---> TaskGroup.awaitAllRemainingTasks(isolation:)
+_$sScG22awaitAllRemainingTasks9isolationyScA_pSgYi_tYaFTu ---> async function pointer to TaskGroup.awaitAllRemainingTasks(isolation:)
+_$sScG22awaitAllRemainingTasksyyYaF ---> TaskGroup.awaitAllRemainingTasks()
+_$sScG22awaitAllRemainingTasksyyYaFTu ---> async function pointer to TaskGroup.awaitAllRemainingTasks()
+_$sScG4next9isolationxSgScA_pSgYi_tYaF ---> TaskGroup.next(isolation:)
+_$sScG4next9isolationxSgScA_pSgYi_tYaFTu ---> async function pointer to TaskGroup.next(isolation:)
+_$sScG4nextxSgyYaF ---> TaskGroup.next()
+_$sScG4nextxSgyYaFTu ---> async function pointer to TaskGroup.next()
+_$sScG5groupScGyxGBp_tcfC ---> TaskGroup.init(group:)
+_$sScG6_groupBpvg ---> TaskGroup._group.getter
+_$sScG6_groupBpvpMV ---> property descriptor for TaskGroup._group
+_$sScG7isEmptySbvg ---> TaskGroup.isEmpty.getter
+_$sScG7isEmptySbvpMV ---> property descriptor for TaskGroup.isEmpty
+_$sScG8IteratorV4next9isolationxSgScA_pSgYi_tYaF ---> TaskGroup.Iterator.next(isolation:)
+_$sScG8IteratorV4next9isolationxSgScA_pSgYi_tYaFTu ---> async function pointer to TaskGroup.Iterator.next(isolation:)
+_$sScG8IteratorV4nextxSgyYaF ---> TaskGroup.Iterator.next()
+_$sScG8IteratorV4nextxSgyYaFTu ---> async function pointer to TaskGroup.Iterator.next()
+_$sScG8IteratorV5groupScGyxGvM ---> TaskGroup.Iterator.group.modify
+_$sScG8IteratorV5groupScGyxGvg ---> TaskGroup.Iterator.group.getter
+_$sScG8IteratorV5groupScGyxGvpMV ---> property descriptor for TaskGroup.Iterator.group
+_$sScG8IteratorV5groupScGyxGvs ---> TaskGroup.Iterator.group.setter
+_$sScG8IteratorV6cancelyyF ---> TaskGroup.Iterator.cancel()
+_$sScG8IteratorV8finishedSbvM ---> TaskGroup.Iterator.finished.modify
+_$sScG8IteratorV8finishedSbvg ---> TaskGroup.Iterator.finished.getter
+_$sScG8IteratorV8finishedSbvpMV ---> property descriptor for TaskGroup.Iterator.finished
+_$sScG8IteratorV8finishedSbvs ---> TaskGroup.Iterator.finished.setter
+_$sScG8IteratorVMa ---> type metadata accessor for TaskGroup.Iterator
+_$sScG8IteratorVMn ---> nominal type descriptor for TaskGroup.Iterator
+_$sScG8IteratorVyx_GScIsMc ---> protocol conformance descriptor for TaskGroup<A>.Iterator
+_$sScG9cancelAllyyF ---> TaskGroup.cancelAll()
+_$sScGMa ---> type metadata accessor for TaskGroup
+_$sScGMn ---> nominal type descriptor for TaskGroup
+_$sScGyxGScisMc ---> protocol conformance descriptor for TaskGroup<A>
+_$sScI4next7ElementQzSgyYaKFTj ---> dispatch thunk of AsyncIteratorProtocol.next()
+_$sScI4next7ElementQzSgyYaKFTjTu ---> async function pointer to dispatch thunk of AsyncIteratorProtocol.next()
+_$sScI4next7ElementQzSgyYaKFTq ---> method descriptor for AsyncIteratorProtocol.next()
+_$sScI4next9isolation7ElementQzSgScA_pSgYi_tYa7FailureQzYKFTj ---> dispatch thunk of AsyncIteratorProtocol.next(isolation:)
+_$sScI4next9isolation7ElementQzSgScA_pSgYi_tYa7FailureQzYKFTjTu ---> async function pointer to dispatch thunk of AsyncIteratorProtocol.next(isolation:)
+_$sScI4next9isolation7ElementQzSgScA_pSgYi_tYa7FailureQzYKFTq ---> method descriptor for AsyncIteratorProtocol.next(isolation:)
+_$sScI7FailureScI_s5ErrorTn ---> associated conformance descriptor for AsyncIteratorProtocol.AsyncIteratorProtocol.Failure: Error
+_$sScIMp ---> protocol descriptor for AsyncIteratorProtocol
+_$sScITL ---> protocol requirements base descriptor for AsyncIteratorProtocol
+_$sScIsE4next7ElementQzSgyYa7FailureQzYKF ---> AsyncIteratorProtocol.next()
+_$sScIsE4next7ElementQzSgyYa7FailureQzYKFTu ---> async function pointer to AsyncIteratorProtocol.next()
+_$sScIsE4next9isolation7ElementQzSgScA_pSgYi_tYa7FailureQzYKF ---> AsyncIteratorProtocol.next(isolation:)
+_$sScIsE4next9isolation7ElementQzSgScA_pSgYi_tYa7FailureQzYKFTu ---> async function pointer to AsyncIteratorProtocol.next(isolation:)
+_$sScJ11descriptionSSvg ---> UnownedJob.description.getter
+_$sScJ11descriptionSSvpMV ---> property descriptor for UnownedJob.description
+_$sScJ7contextScJBj_tcfC ---> UnownedJob.init(context:)
+_$sScJ8prioritys11JobPriorityVvg ---> UnownedJob.priority.getter
+_$sScJ8prioritys11JobPriorityVvpMV ---> property descriptor for UnownedJob.priority
+_$sScJMa ---> type metadata accessor for UnownedJob
+_$sScJMn ---> nominal type descriptor for UnownedJob
+_$sScJN ---> type metadata for UnownedJob
+_$sScJs23CustomStringConvertiblesMc ---> protocol conformance descriptor for UnownedJob
+_$sScJyScJs11ExecutorJobVncfC ---> UnownedJob.init(_:)
+_$sScJyScJs3JobVncfC ---> UnownedJob.init(_:)
+_$sScM14assumeIsolated_4file4linexxyKScMYcXE_s12StaticStringVSutKlFZ ---> static MainActor.assumeIsolated<A>(_:file:line:)
+_$sScM15unownedExecutorScevg ---> MainActor.unownedExecutor.getter
+_$sScM15unownedExecutorScevpMV ---> property descriptor for MainActor.unownedExecutor
+_$sScM21sharedUnownedExecutorScevgZ ---> static MainActor.sharedUnownedExecutor.getter
+_$sScM21sharedUnownedExecutorScevpZMV ---> property descriptor for static MainActor.sharedUnownedExecutor
+_$sScM3run10resultType4bodyxxm_xyYbKScMYcXEtYaKlFZ ---> static MainActor.run<A>(resultType:body:)
+_$sScM3run10resultType4bodyxxm_xyYbKScMYcXEtYaKlFZTu ---> async function pointer to static MainActor.run<A>(resultType:body:)
+_$sScM6sharedScMvgZ ---> static MainActor.shared.getter
+_$sScM6sharedScMvpZMV ---> property descriptor for static MainActor.shared
+_$sScM7enqueueyyScJF ---> MainActor.enqueue(_:)
+_$sScM8executors12MainExecutor_pvgZ ---> static MainActor.executor.getter
+_$sScM8executors12MainExecutor_pvpZMV ---> property descriptor for static MainActor.executor
+_$sScMMa ---> type metadata accessor for MainActor
+_$sScMMm ---> metaclass for MainActor
+_$sScMMn ---> nominal type descriptor for MainActor
+_$sScMMo ---> class metadata base offset for MainActor
+_$sScMMu ---> method lookup function for MainActor
+_$sScMN ---> type metadata for MainActor
+_$sScMScAsMc ---> protocol conformance descriptor for MainActor
+_$sScMScAsWP ---> protocol witness table for MainActor
+_$sScMfD ---> MainActor.__deallocating_deinit
+_$sScMfd ---> MainActor.deinit
+_$sScMs11GlobalActorsMc ---> protocol conformance descriptor for MainActor
+_$sScMs11GlobalActorsWP ---> protocol witness table for MainActor
+_$sScP10backgroundScPvgZ ---> static TaskPriority.background.getter
+_$sScP10backgroundScPvpZMV ---> property descriptor for static TaskPriority.background
+_$sScP11descriptionSSvg ---> TaskPriority.description.getter
+_$sScP11descriptionSSvpMV ---> property descriptor for TaskPriority.description
+_$sScP11unspecifiedScPvpZMV ---> property descriptor for static TaskPriority.unspecified
+_$sScP13userInitiatedScPvgZ ---> static TaskPriority.userInitiated.getter
+_$sScP13userInitiatedScPvpZMV ---> property descriptor for static TaskPriority.userInitiated
+_$sScP15userInteractiveScPvpZMV ---> property descriptor for static TaskPriority.userInteractive
+_$sScP1goiySbScP_ScPtFZ ---> static TaskPriority.> infix(_:_:)
+_$sScP1loiySbScP_ScPtFZ ---> static TaskPriority.< infix(_:_:)
+_$sScP2eeoiySbScP_ScPtFZ ---> static TaskPriority.== infix(_:_:)
+_$sScP2geoiySbScP_ScPtFZ ---> static TaskPriority.>= infix(_:_:)
+_$sScP2leoiySbScP_ScPtFZ ---> static TaskPriority.<= infix(_:_:)
+_$sScP2neoiySbScP_ScPtFZ ---> static TaskPriority.!= infix(_:_:)
+_$sScP3lowScPvgZ ---> static TaskPriority.low.getter
+_$sScP3lowScPvpZMV ---> property descriptor for static TaskPriority.low
+_$sScP4highScPvgZ ---> static TaskPriority.high.getter
+_$sScP4highScPvpZMV ---> property descriptor for static TaskPriority.high
+_$sScP6mediumScPvpZMV ---> property descriptor for static TaskPriority.medium
+_$sScP7defaultScPvgZ ---> static TaskPriority.default.getter
+_$sScP7defaultScPvpZMV ---> property descriptor for static TaskPriority.default
+_$sScP7utilityScPvgZ ---> static TaskPriority.utility.getter
+_$sScP7utilityScPvpZMV ---> property descriptor for static TaskPriority.utility
+_$sScP8rawValueScPs5UInt8V_tcfC ---> TaskPriority.init(rawValue:)
+_$sScP8rawValues5UInt8VvM ---> TaskPriority.rawValue.modify
+_$sScP8rawValues5UInt8Vvg ---> TaskPriority.rawValue.getter
+_$sScP8rawValues5UInt8VvpMV ---> property descriptor for TaskPriority.rawValue
+_$sScP8rawValues5UInt8Vvs ---> TaskPriority.rawValue.setter
+_$sScPMa ---> type metadata accessor for TaskPriority
+_$sScPMn ---> nominal type descriptor for TaskPriority
+_$sScPN ---> type metadata for TaskPriority
+_$sScPSEsMc ---> protocol conformance descriptor for TaskPriority
+_$sScPSLsMc ---> protocol conformance descriptor for TaskPriority
+_$sScPSQsMc ---> protocol conformance descriptor for TaskPriority
+_$sScPSYsMc ---> protocol conformance descriptor for TaskPriority
+_$sScPSesMc ---> protocol conformance descriptor for TaskPriority
+_$sScPs23CustomStringConvertiblesMc ---> protocol conformance descriptor for TaskPriority
+_$sScPyScPSgs11JobPriorityVcfC ---> TaskPriority.init(_:)
+_$sScS10makeStream2of15bufferingPolicyScSyxG6stream_ScS12ContinuationVyx_G12continuationtxm_AG09BufferingE0Oyx__GtFZ ---> static AsyncStream.makeStream(of:bufferingPolicy:)
+_$sScS12ContinuationV11TerminationO2eeoiySbADyx__G_AFtFZ ---> static AsyncStream.Continuation.Termination.== infix(_:_:)
+_$sScS12ContinuationV11TerminationO4hash4intoys6HasherVz_tF ---> AsyncStream.Continuation.Termination.hash(into:)
+_$sScS12ContinuationV11TerminationO8finishedyADyx__GAFmlFWC ---> enum case for AsyncStream.Continuation.Termination.finished<A>(_:)
+_$sScS12ContinuationV11TerminationO9cancelledyADyx__GAFmlFWC ---> enum case for AsyncStream.Continuation.Termination.cancelled<A>(_:)
+_$sScS12ContinuationV11TerminationO9hashValueSivg ---> AsyncStream.Continuation.Termination.hashValue.getter
+_$sScS12ContinuationV11TerminationO9hashValueSivpMV ---> property descriptor for AsyncStream.Continuation.Termination.hashValue
+_$sScS12ContinuationV11TerminationOMa ---> type metadata accessor for AsyncStream.Continuation.Termination
+_$sScS12ContinuationV11TerminationOMn ---> nominal type descriptor for AsyncStream.Continuation.Termination
+_$sScS12ContinuationV11TerminationOyx__GSHsMc ---> protocol conformance descriptor for AsyncStream<A>.Continuation.Termination
+_$sScS12ContinuationV11TerminationOyx__GSQsMc ---> protocol conformance descriptor for AsyncStream<A>.Continuation.Termination
+_$sScS12ContinuationV11YieldResultO10terminatedyADyx__GAFmlFWC ---> enum case for AsyncStream.Continuation.YieldResult.terminated<A>(_:)
+_$sScS12ContinuationV11YieldResultO7droppedyADyx__GxcAFmlFWC ---> enum case for AsyncStream.Continuation.YieldResult.dropped<A>(_:)
+_$sScS12ContinuationV11YieldResultO8enqueuedyADyx__GSi_tcAFmlFWC ---> enum case for AsyncStream.Continuation.YieldResult.enqueued<A>(_:)
+_$sScS12ContinuationV11YieldResultOMa ---> type metadata accessor for AsyncStream.Continuation.YieldResult
+_$sScS12ContinuationV11YieldResultOMn ---> nominal type descriptor for AsyncStream.Continuation.YieldResult
+_$sScS12ContinuationV13onTerminationyAB0C0Oyx__GYbcSgvM ---> AsyncStream.Continuation.onTermination.modify
+_$sScS12ContinuationV13onTerminationyAB0C0Oyx__GYbcSgvg ---> AsyncStream.Continuation.onTermination.getter
+_$sScS12ContinuationV13onTerminationyAB0C0Oyx__GYbcSgvpMV ---> property descriptor for AsyncStream.Continuation.onTermination
+_$sScS12ContinuationV13onTerminationyAB0C0Oyx__GYbcSgvs ---> AsyncStream.Continuation.onTermination.setter
+_$sScS12ContinuationV15BufferingPolicyO15bufferingNewestyADyx__GSicAFmlFWC ---> enum case for AsyncStream.Continuation.BufferingPolicy.bufferingNewest<A>(_:)
+_$sScS12ContinuationV15BufferingPolicyO15bufferingOldestyADyx__GSicAFmlFWC ---> enum case for AsyncStream.Continuation.BufferingPolicy.bufferingOldest<A>(_:)
+_$sScS12ContinuationV15BufferingPolicyO9unboundedyADyx__GAFmlFWC ---> enum case for AsyncStream.Continuation.BufferingPolicy.unbounded<A>(_:)
+_$sScS12ContinuationV15BufferingPolicyOMa ---> type metadata accessor for AsyncStream.Continuation.BufferingPolicy
+_$sScS12ContinuationV15BufferingPolicyOMn ---> nominal type descriptor for AsyncStream.Continuation.BufferingPolicy
+_$sScS12ContinuationV2eeoiySbAByx_G_ADtFZ ---> static AsyncStream.Continuation.== infix(_:_:)
+_$sScS12ContinuationV4hash4intoys6HasherVz_tF ---> AsyncStream.Continuation.hash(into:)
+_$sScS12ContinuationV5yield4withAB11YieldResultOyx__Gs0E0Oyxs5NeverOG_tF ---> AsyncStream.Continuation.yield(with:)
+_$sScS12ContinuationV5yieldAB11YieldResultOyyt__GyytRszlF ---> AsyncStream.Continuation.yield<A>()
+_$sScS12ContinuationV5yieldyAB11YieldResultOyx__GxnF ---> AsyncStream.Continuation.yield(_:)
+_$sScS12ContinuationV6finishyyF ---> AsyncStream.Continuation.finish()
+_$sScS12ContinuationV9hashValueSivg ---> AsyncStream.Continuation.hashValue.getter
+_$sScS12ContinuationV9hashValueSivpMV ---> property descriptor for AsyncStream.Continuation.hashValue
+_$sScS12ContinuationVMa ---> type metadata accessor for AsyncStream.Continuation
+_$sScS12ContinuationVMn ---> nominal type descriptor for AsyncStream.Continuation
+_$sScS12ContinuationVyx_GSHsMc ---> protocol conformance descriptor for AsyncStream<A>.Continuation
+_$sScS12ContinuationVyx_GSQsMc ---> protocol conformance descriptor for AsyncStream<A>.Continuation
+_$sScS17makeAsyncIteratorScS0C0Vyx_GyF ---> AsyncStream.makeAsyncIterator()
+_$sScS8IteratorV4next9isolationxSgScA_pSgYi_tYaF ---> AsyncStream.Iterator.next(isolation:)
+_$sScS8IteratorV4next9isolationxSgScA_pSgYi_tYaFTu ---> async function pointer to AsyncStream.Iterator.next(isolation:)
+_$sScS8IteratorV4nextxSgyYaF ---> AsyncStream.Iterator.next()
+_$sScS8IteratorV4nextxSgyYaFTu ---> async function pointer to AsyncStream.Iterator.next()
+_$sScS8IteratorVMa ---> type metadata accessor for AsyncStream.Iterator
+_$sScS8IteratorVMn ---> nominal type descriptor for AsyncStream.Iterator
+_$sScS8IteratorVyx_GScIsMc ---> protocol conformance descriptor for AsyncStream<A>.Iterator
+_$sScS9unfolding8onCancelScSyxGxSgyYac_yyYbcSgtcfC ---> AsyncStream.init(unfolding:onCancel:)
+_$sScSMa ---> type metadata accessor for AsyncStream
+_$sScSMn ---> nominal type descriptor for AsyncStream
+_$sScS_15bufferingPolicy_ScSyxGxm_ScS12ContinuationV09BufferingB0Oyx__GyADyx_GXEtcfC ---> AsyncStream.init(_:bufferingPolicy:_:)
+_$sScSyxGScisMc ---> protocol conformance descriptor for AsyncStream<A>
+_$sScT11isCancelledSbvg ---> Task.isCancelled.getter
+_$sScT11isCancelledSbvpMV ---> property descriptor for Task.isCancelled
+_$sScT16escalatePriority2toyScP_tF ---> Task.escalatePriority(to:)
+_$sScT2eeoiySbScTyxq_G_ABtFZ ---> static Task.== infix(_:_:)
+_$sScT4hash4intoys6HasherVz_tF ---> Task.hash(into:)
+_$sScT5_taskBovg ---> Task._task.getter
+_$sScT5_taskBovpMV ---> property descriptor for Task._task
+_$sScT5valuexvg ---> Task.value.getter
+_$sScT5valuexvgTu ---> async function pointer to Task.value.getter
+_$sScT5valuexvpMV ---> property descriptor for Task.value
+_$sScT6cancelyyF ---> Task.cancel()
+_$sScT6results6ResultOyxq_Gvg ---> Task.result.getter
+_$sScT6results6ResultOyxq_GvgTu ---> async function pointer to Task.result.getter
+_$sScT6results6ResultOyxq_GvpMV ---> property descriptor for Task.result
+_$sScT9hashValueSivg ---> Task.hashValue.getter
+_$sScT9hashValueSivpMV ---> property descriptor for Task.hashValue
+_$sScTMa ---> type metadata accessor for Task
+_$sScTMn ---> nominal type descriptor for Task
+_$sScTss5Error_pRs_rlE16startOnMainActor8priority_ScTyxsAA_pGScPSg_xyYaYbKScMYccntFZ ---> static Task<>.startOnMainActor(priority:_:)
+_$sScTss5NeverORs_rlE16startOnMainActor8priority_ScTyxABGScPSg_xyYaYbScMYccntFZ ---> static Task<>.startOnMainActor(priority:_:)
+_$sScTss5NeverORs_rlE5valuexvg ---> Task<>.value.getter
+_$sScTss5NeverORs_rlE5valuexvgTu ---> async function pointer to Task<>.value.getter
+_$sScTss5NeverORs_rlE5valuexvpMV ---> property descriptor for Task<>.value
+_$sScTss5NeverORszABRs_rlE11isCancelledSbvgZ ---> static Task<>.isCancelled.getter
+_$sScTss5NeverORszABRs_rlE11isCancelledSbvpZMV ---> property descriptor for static Task<>.isCancelled
+_$sScTss5NeverORszABRs_rlE12basePriorityScPSgvgZ ---> static Task<>.basePriority.getter
+_$sScTss5NeverORszABRs_rlE12basePriorityScPSgvpZMV ---> property descriptor for static Task<>.basePriority
+_$sScTss5NeverORszABRs_rlE15currentPriorityScPvgZ ---> static Task<>.currentPriority.getter
+_$sScTss5NeverORszABRs_rlE15currentPriorityScPvpZMV ---> property descriptor for static Task<>.currentPriority
+_$sScTss5NeverORszABRs_rlE15defaultExecutorSch_pvgZ ---> static Task<>.defaultExecutor.getter
+_$sScTss5NeverORszABRs_rlE15defaultExecutorSch_pvpZMV ---> property descriptor for static Task<>.defaultExecutor
+_$sScTss5NeverORszABRs_rlE17checkCancellationyyKFZ ---> static Task<>.checkCancellation()
+_$sScTss5NeverORszABRs_rlE4nameSSSgvgZ ---> static Task<>.name.getter
+_$sScTss5NeverORszABRs_rlE4nameSSSgvpZMV ---> property descriptor for static Task<>.name
+_$sScTss5NeverORszABRs_rlE5sleep11nanosecondsys6UInt64V_tYaKFZ ---> static Task<>.sleep(nanoseconds:)
+_$sScTss5NeverORszABRs_rlE5sleep11nanosecondsys6UInt64V_tYaKFZTu ---> async function pointer to static Task<>.sleep(nanoseconds:)
+_$sScTss5NeverORszABRs_rlE5sleep5until9tolerance5clocky7InstantQyd___8DurationQyd__Sgqd__tYaKs5ClockRd__lFZ ---> static Task<>.sleep<A>(until:tolerance:clock:)
+_$sScTss5NeverORszABRs_rlE5sleep5until9tolerance5clocky7InstantQyd___8DurationQyd__Sgqd__tYaKs5ClockRd__lFZTu ---> async function pointer to static Task<>.sleep<A>(until:tolerance:clock:)
+_$sScTss5NeverORszABRs_rlE5sleepyys6UInt64VYaFZ ---> static Task<>.sleep(_:)
+_$sScTss5NeverORszABRs_rlE5sleepyys6UInt64VYaFZTu ---> async function pointer to static Task<>.sleep(_:)
+_$sScTss5NeverORszABRs_rlE5yieldyyYaFZ ---> static Task<>.yield()
+_$sScTss5NeverORszABRs_rlE5yieldyyYaFZTu ---> async function pointer to static Task<>.yield()
+_$sScTyxq_GSHsMc ---> protocol conformance descriptor for Task<A, B>
+_$sScTyxq_GSQsMc ---> protocol conformance descriptor for Task<A, B>
+_$sScc7contextBcvM ---> UnsafeContinuation.context.modify
+_$sScc7contextBcvg ---> UnsafeContinuation.context.getter
+_$sScc7contextBcvpMV ---> property descriptor for UnsafeContinuation.context
+_$sScc7contextBcvs ---> UnsafeContinuation.context.setter
+_$sSccMa ---> type metadata accessor for UnsafeContinuation
+_$sSccMn ---> nominal type descriptor for UnsafeContinuation
+_$sSce15complexEqualityScexh_tcScfRzlufC ---> UnownedSerialExecutor.init<A>(complexEquality:)
+_$sSce16asSerialExecutorScf_pSgyF ---> UnownedSerialExecutor.asSerialExecutor()
+_$sSce18_isComplexEqualitySbvg ---> UnownedSerialExecutor._isComplexEquality.getter
+_$sSce18_isComplexEqualitySbvpMV ---> property descriptor for UnownedSerialExecutor._isComplexEquality
+_$sSce8executorBevM ---> UnownedSerialExecutor.executor.modify
+_$sSce8executorBevg ---> UnownedSerialExecutor.executor.getter
+_$sSce8executorBevpMV ---> property descriptor for UnownedSerialExecutor.executor
+_$sSce8executorBevs ---> UnownedSerialExecutor.executor.setter
+_$sSce8ordinaryScexh_tcScfRzlufC ---> UnownedSerialExecutor.init<A>(ordinary:)
+_$sSce9_executorBevg ---> UnownedSerialExecutor._executor.getter
+_$sSce9_executorBevpMV ---> property descriptor for UnownedSerialExecutor._executor
+_$sSceMa ---> type metadata accessor for UnownedSerialExecutor
+_$sSceMn ---> nominal type descriptor for UnownedSerialExecutor
+_$sSceN ---> type metadata for UnownedSerialExecutor
+_$sSceySceBecfC ---> UnownedSerialExecutor.init(_:)
+_$sSceyScexhcScfRzlufC ---> UnownedSerialExecutor.init<A>(_:)
+_$sScf13checkIsolatedyyFTj ---> dispatch thunk of SerialExecutor.checkIsolated()
+_$sScf13checkIsolatedyyFTq ---> method descriptor for SerialExecutor.checkIsolated()
+_$sScf23asUnownedSerialExecutorSceyFTj ---> dispatch thunk of SerialExecutor.asUnownedSerialExecutor()
+_$sScf23asUnownedSerialExecutorSceyFTq ---> method descriptor for SerialExecutor.asUnownedSerialExecutor()
+_$sScf25isIsolatingCurrentContextSbSgyFTj ---> dispatch thunk of SerialExecutor.isIsolatingCurrentContext()
+_$sScf25isIsolatingCurrentContextSbSgyFTq ---> method descriptor for SerialExecutor.isIsolatingCurrentContext()
+_$sScf31isSameExclusiveExecutionContext5otherSbx_tFTj ---> dispatch thunk of SerialExecutor.isSameExclusiveExecutionContext(other:)
+_$sScf31isSameExclusiveExecutionContext5otherSbx_tFTq ---> method descriptor for SerialExecutor.isSameExclusiveExecutionContext(other:)
+_$sScf7enqueueyyScJFTj ---> dispatch thunk of SerialExecutor.enqueue(_:)
+_$sScf7enqueueyyScJFTq ---> method descriptor for SerialExecutor.enqueue(_:)
+_$sScf7enqueueyys11ExecutorJobVnFTj ---> dispatch thunk of SerialExecutor.enqueue(_:)
+_$sScf7enqueueyys11ExecutorJobVnFTq ---> method descriptor for SerialExecutor.enqueue(_:)
+_$sScf7enqueueyys3JobVnFTj ---> dispatch thunk of SerialExecutor.enqueue(_:)
+_$sScf7enqueueyys3JobVnFTq ---> method descriptor for SerialExecutor.enqueue(_:)
+_$sScfMp ---> protocol descriptor for SerialExecutor
+_$sScfScFTb ---> base conformance descriptor for SerialExecutor: Executor
+_$sScfTL ---> protocol requirements base descriptor for SerialExecutor
+_$sScfsE13checkIsolatedyyF ---> SerialExecutor.checkIsolated()
+_$sScfsE14assertIsolated_4file4lineySSyXK_s12StaticStringVSutF ---> SerialExecutor.assertIsolated(_:file:line:)
+_$sScfsE14isMainExecutorSbvg ---> SerialExecutor.isMainExecutor.getter
+_$sScfsE14isMainExecutorSbvpMV ---> property descriptor for SerialExecutor.isMainExecutor
+_$sScfsE20preconditionIsolated_4file4lineySSyXK_s12StaticStringVSutF ---> SerialExecutor.preconditionIsolated(_:file:line:)
+_$sScfsE23asUnownedSerialExecutorSceyF ---> SerialExecutor.asUnownedSerialExecutor()
+_$sScfsE25isIsolatingCurrentContextSbSgyF ---> SerialExecutor.isIsolatingCurrentContext()
+_$sScfsE31isSameExclusiveExecutionContext5otherSbx_tF ---> SerialExecutor.isSameExclusiveExecutionContext(other:)
+_$sScfsSQRzrlE31isSameExclusiveExecutionContext5otherSbx_tF ---> SerialExecutor<>.isSameExclusiveExecutionContext(other:)
+_$sScg10nextResults0B0Oyxq_GSgyYaKF ---> ThrowingTaskGroup.nextResult()
+_$sScg10nextResults0B0Oyxq_GSgyYaKFTu ---> async function pointer to ThrowingTaskGroup.nextResult()
+_$sScg11_waitForAllyyYaKF ---> ThrowingTaskGroup._waitForAll()
+_$sScg11_waitForAllyyYaKFTu ---> async function pointer to ThrowingTaskGroup._waitForAll()
+_$sScg11isCancelledSbvg ---> ThrowingTaskGroup.isCancelled.getter
+_$sScg11isCancelledSbvpMV ---> property descriptor for ThrowingTaskGroup.isCancelled
+_$sScg17makeAsyncIteratorScg0C0Vyxq__GyF ---> ThrowingTaskGroup.makeAsyncIterator()
+_$sScg22awaitAllRemainingTasks9isolationyScA_pSgYi_tYaF ---> ThrowingTaskGroup.awaitAllRemainingTasks(isolation:)
+_$sScg22awaitAllRemainingTasks9isolationyScA_pSgYi_tYaFTu ---> async function pointer to ThrowingTaskGroup.awaitAllRemainingTasks(isolation:)
+_$sScg22awaitAllRemainingTasksyyYaF ---> ThrowingTaskGroup.awaitAllRemainingTasks()
+_$sScg22awaitAllRemainingTasksyyYaFTu ---> async function pointer to ThrowingTaskGroup.awaitAllRemainingTasks()
+_$sScg4next9isolationxSgScA_pSgYi_tYaKF ---> ThrowingTaskGroup.next(isolation:)
+_$sScg4next9isolationxSgScA_pSgYi_tYaKFTu ---> async function pointer to ThrowingTaskGroup.next(isolation:)
+_$sScg4nextxSgyYaKF ---> ThrowingTaskGroup.next()
+_$sScg4nextxSgyYaKFTu ---> async function pointer to ThrowingTaskGroup.next()
+_$sScg5groupScgyxq_GBp_tcfC ---> ThrowingTaskGroup.init(group:)
+_$sScg6_groupBpvg ---> ThrowingTaskGroup._group.getter
+_$sScg6_groupBpvpMV ---> property descriptor for ThrowingTaskGroup._group
+_$sScg7isEmptySbvg ---> ThrowingTaskGroup.isEmpty.getter
+_$sScg7isEmptySbvpMV ---> property descriptor for ThrowingTaskGroup.isEmpty
+_$sScg8IteratorV4next9isolationxSgScA_pSgYi_tYaq_YKF ---> ThrowingTaskGroup.Iterator.next(isolation:)
+_$sScg8IteratorV4next9isolationxSgScA_pSgYi_tYaq_YKFTu ---> async function pointer to ThrowingTaskGroup.Iterator.next(isolation:)
+_$sScg8IteratorV4nextxSgyYaKF ---> ThrowingTaskGroup.Iterator.next()
+_$sScg8IteratorV4nextxSgyYaKFTu ---> async function pointer to ThrowingTaskGroup.Iterator.next()
+_$sScg8IteratorV5groupScgyxq_GvM ---> ThrowingTaskGroup.Iterator.group.modify
+_$sScg8IteratorV5groupScgyxq_Gvg ---> ThrowingTaskGroup.Iterator.group.getter
+_$sScg8IteratorV5groupScgyxq_GvpMV ---> property descriptor for ThrowingTaskGroup.Iterator.group
+_$sScg8IteratorV5groupScgyxq_Gvs ---> ThrowingTaskGroup.Iterator.group.setter
+_$sScg8IteratorV6cancelyyF ---> ThrowingTaskGroup.Iterator.cancel()
+_$sScg8IteratorV8finishedSbvM ---> ThrowingTaskGroup.Iterator.finished.modify
+_$sScg8IteratorV8finishedSbvg ---> ThrowingTaskGroup.Iterator.finished.getter
+_$sScg8IteratorV8finishedSbvpMV ---> property descriptor for ThrowingTaskGroup.Iterator.finished
+_$sScg8IteratorV8finishedSbvs ---> ThrowingTaskGroup.Iterator.finished.setter
+_$sScg8IteratorVMa ---> type metadata accessor for ThrowingTaskGroup.Iterator
+_$sScg8IteratorVMn ---> nominal type descriptor for ThrowingTaskGroup.Iterator
+_$sScg8IteratorVyxq__GScIsMc ---> protocol conformance descriptor for ThrowingTaskGroup<A, B>.Iterator
+_$sScg9cancelAllyyF ---> ThrowingTaskGroup.cancelAll()
+_$sScgMa ---> type metadata accessor for ThrowingTaskGroup
+_$sScgMn ---> nominal type descriptor for ThrowingTaskGroup
+_$sScgyxq_GScisMc ---> protocol conformance descriptor for ThrowingTaskGroup<A, B>
+_$sSch21asUnownedTaskExecutors0bcD0VyFTj ---> dispatch thunk of TaskExecutor.asUnownedTaskExecutor()
+_$sSch21asUnownedTaskExecutors0bcD0VyFTq ---> method descriptor for TaskExecutor.asUnownedTaskExecutor()
+_$sSch7enqueueyyScJFTj ---> dispatch thunk of TaskExecutor.enqueue(_:)
+_$sSch7enqueueyyScJFTq ---> method descriptor for TaskExecutor.enqueue(_:)
+_$sSch7enqueueyys11ExecutorJobVnFTj ---> dispatch thunk of TaskExecutor.enqueue(_:)
+_$sSch7enqueueyys11ExecutorJobVnFTq ---> method descriptor for TaskExecutor.enqueue(_:)
+_$sSch7enqueueyys3JobVnFTj ---> dispatch thunk of TaskExecutor.enqueue(_:)
+_$sSch7enqueueyys3JobVnFTq ---> method descriptor for TaskExecutor.enqueue(_:)
+_$sSchMp ---> protocol descriptor for TaskExecutor
+_$sSchScFTb ---> base conformance descriptor for TaskExecutor: Executor
+_$sSchTL ---> protocol requirements base descriptor for TaskExecutor
+_$sSchsE21asUnownedTaskExecutors0bcD0VyF ---> TaskExecutor.asUnownedTaskExecutor()
+_$sSci13AsyncIteratorSci_ScITn ---> associated conformance descriptor for AsyncSequence.AsyncSequence.AsyncIterator: AsyncIteratorProtocol
+_$sSci17makeAsyncIterator0bC0QzyFTj ---> dispatch thunk of AsyncSequence.makeAsyncIterator()
+_$sSci17makeAsyncIterator0bC0QzyFTq ---> method descriptor for AsyncSequence.makeAsyncIterator()
+_$sSciMp ---> protocol descriptor for AsyncSequence
+_$sSciTL ---> protocol requirements base descriptor for AsyncSequence
+_$sScisE10allSatisfyyS2b7ElementQzYaKXEYaKF ---> AsyncSequence.allSatisfy(_:)
+_$sScisE10allSatisfyyS2b7ElementQzYaKXEYaKFTu ---> async function pointer to AsyncSequence.allSatisfy(_:)
+_$sScisE10compactMapys012AsyncCompactB8SequenceVyxqd__Gqd__Sg7ElementQzYaclF ---> AsyncSequence.compactMap<A>(_:)
+_$sScisE10compactMapys020AsyncThrowingCompactB8SequenceVyxqd__Gqd__Sg7ElementQzYaKclF ---> AsyncSequence.compactMap<A>(_:)
+_$sScisE3mapys16AsyncMapSequenceVyxqd__Gqd__7ElementQzYaclF ---> AsyncSequence.map<A>(_:)
+_$sScisE3mapys24AsyncThrowingMapSequenceVyxqd__Gqd__7ElementQzYaKclF ---> AsyncSequence.map<A>(_:)
+_$sScisE3max2by7ElementQzSgSbAD_ADtYaKXE_tYaKF ---> AsyncSequence.max(by:)
+_$sScisE3max2by7ElementQzSgSbAD_ADtYaKXE_tYaKFTu ---> async function pointer to AsyncSequence.max(by:)
+_$sScisE3min2by7ElementQzSgSbAD_ADtYaKXE_tYaKF ---> AsyncSequence.min(by:)
+_$sScisE3min2by7ElementQzSgSbAD_ADtYaKXE_tYaKFTu ---> async function pointer to AsyncSequence.min(by:)
+_$sScisE4drop5whiles22AsyncDropWhileSequenceVyxGSb7ElementQzYac_tF ---> AsyncSequence.drop(while:)
+_$sScisE4drop5whiles30AsyncThrowingDropWhileSequenceVyxGSb7ElementQzYaKc_tF ---> AsyncSequence.drop(while:)
+_$sScisE5first5where7ElementQzSgSbADYaKXE_tYaKF ---> AsyncSequence.first(where:)
+_$sScisE5first5where7ElementQzSgSbADYaKXE_tYaKFTu ---> async function pointer to AsyncSequence.first(where:)
+_$sScisE6filterys19AsyncFilterSequenceVyxGSb7ElementQzYacF ---> AsyncSequence.filter(_:)
+_$sScisE6filterys27AsyncThrowingFilterSequenceVyxGSb7ElementQzYaKcF ---> AsyncSequence.filter(_:)
+_$sScisE6prefix5whiles24AsyncPrefixWhileSequenceVyxGSb7ElementQzYac_tKF ---> AsyncSequence.prefix(while:)
+_$sScisE6prefix5whiles32AsyncThrowingPrefixWhileSequenceVyxGSb7ElementQzYaKc_tKF ---> AsyncSequence.prefix(while:)
+_$sScisE6prefixys19AsyncPrefixSequenceVyxGSiF ---> AsyncSequence.prefix(_:)
+_$sScisE6reduce4into_qd__qd__n_yqd__z_7ElementQztYaKXEtYaKlF ---> AsyncSequence.reduce<A>(into:_:)
+_$sScisE6reduce4into_qd__qd__n_yqd__z_7ElementQztYaKXEtYaKlFTu ---> async function pointer to AsyncSequence.reduce<A>(into:_:)
+_$sScisE6reduceyqd__qd___qd__qd___7ElementQztYaKXEtYaKlF ---> AsyncSequence.reduce<A>(_:_:)
+_$sScisE6reduceyqd__qd___qd__qd___7ElementQztYaKXEtYaKlFTu ---> async function pointer to AsyncSequence.reduce<A>(_:_:)
+_$sScisE7flatMapys017AsyncThrowingFlatB8SequenceVyxqd__Gqd__7ElementQzYaKcSciRd__lF ---> AsyncSequence.flatMap<A>(_:)
+_$sScisE7flatMapys09AsyncFlatB8SequenceVyxqd__Gqd__7ElementQzYacSciRd__lF ---> AsyncSequence.flatMap<A>(_:)
+_$sScisE8contains5whereS2b7ElementQzYaKXE_tYaKF ---> AsyncSequence.contains(where:)
+_$sScisE8contains5whereS2b7ElementQzYaKXE_tYaKFTu ---> async function pointer to AsyncSequence.contains(where:)
+_$sScisE9dropFirstys09AsyncDropB8SequenceVyxGSiF ---> AsyncSequence.dropFirst(_:)
+_$sScisSL7ElementRpzrlE3maxABSgyYaKF ---> AsyncSequence<>.max()
+_$sScisSL7ElementRpzrlE3maxABSgyYaKFTu ---> async function pointer to AsyncSequence<>.max()
+_$sScisSL7ElementRpzrlE3minABSgyYaKF ---> AsyncSequence<>.min()
+_$sScisSL7ElementRpzrlE3minABSgyYaKFTu ---> async function pointer to AsyncSequence<>.min()
+_$sScisSQ7ElementRpzrlE8containsySbABYaKF ---> AsyncSequence<>.contains(_:)
+_$sScisSQ7ElementRpzrlE8containsySbABYaKFTu ---> async function pointer to AsyncSequence<>.contains(_:)
+_$sScs10makeStream2of8throwing15bufferingPolicyScsyxs5Error_pG6stream_Scs12ContinuationVyxsAE_p_G12continuationtxm_sAE_pmAI09BufferingF0OyxsAE_p__GtsAE_pRs_rlFZ ---> static AsyncThrowingStream.makeStream<>(of:throwing:bufferingPolicy:)
+_$sScs12ContinuationV11TerminationO8finishedyADyxq___Gq_SgcAFms5ErrorR_r0_lFWC ---> enum case for AsyncThrowingStream.Continuation.Termination.finished<A, B>(_:)
+_$sScs12ContinuationV11TerminationO9cancelledyADyxq___GAFms5ErrorR_r0_lFWC ---> enum case for AsyncThrowingStream.Continuation.Termination.cancelled<A, B>(_:)
+_$sScs12ContinuationV11TerminationOMa ---> type metadata accessor for AsyncThrowingStream.Continuation.Termination
+_$sScs12ContinuationV11TerminationOMn ---> nominal type descriptor for AsyncThrowingStream.Continuation.Termination
+_$sScs12ContinuationV11YieldResultO10terminatedyADyxq___GAFms5ErrorR_r0_lFWC ---> enum case for AsyncThrowingStream.Continuation.YieldResult.terminated<A, B>(_:)
+_$sScs12ContinuationV11YieldResultO7droppedyADyxq___GxcAFms5ErrorR_r0_lFWC ---> enum case for AsyncThrowingStream.Continuation.YieldResult.dropped<A, B>(_:)
+_$sScs12ContinuationV11YieldResultO8enqueuedyADyxq___GSi_tcAFms5ErrorR_r0_lFWC ---> enum case for AsyncThrowingStream.Continuation.YieldResult.enqueued<A, B>(_:)
+_$sScs12ContinuationV11YieldResultOMa ---> type metadata accessor for AsyncThrowingStream.Continuation.YieldResult
+_$sScs12ContinuationV11YieldResultOMn ---> nominal type descriptor for AsyncThrowingStream.Continuation.YieldResult
+_$sScs12ContinuationV13onTerminationyAB0C0Oyxq___GYbcSgvM ---> AsyncThrowingStream.Continuation.onTermination.modify
+_$sScs12ContinuationV13onTerminationyAB0C0Oyxq___GYbcSgvg ---> AsyncThrowingStream.Continuation.onTermination.getter
+_$sScs12ContinuationV13onTerminationyAB0C0Oyxq___GYbcSgvpMV ---> property descriptor for AsyncThrowingStream.Continuation.onTermination
+_$sScs12ContinuationV13onTerminationyAB0C0Oyxq___GYbcSgvs ---> AsyncThrowingStream.Continuation.onTermination.setter
+_$sScs12ContinuationV15BufferingPolicyO15bufferingNewestyADyxq___GSicAFms5ErrorR_r0_lFWC ---> enum case for AsyncThrowingStream.Continuation.BufferingPolicy.bufferingNewest<A, B>(_:)
+_$sScs12ContinuationV15BufferingPolicyO15bufferingOldestyADyxq___GSicAFms5ErrorR_r0_lFWC ---> enum case for AsyncThrowingStream.Continuation.BufferingPolicy.bufferingOldest<A, B>(_:)
+_$sScs12ContinuationV15BufferingPolicyO9unboundedyADyxq___GAFms5ErrorR_r0_lFWC ---> enum case for AsyncThrowingStream.Continuation.BufferingPolicy.unbounded<A, B>(_:)
+_$sScs12ContinuationV15BufferingPolicyOMa ---> type metadata accessor for AsyncThrowingStream.Continuation.BufferingPolicy
+_$sScs12ContinuationV15BufferingPolicyOMn ---> nominal type descriptor for AsyncThrowingStream.Continuation.BufferingPolicy
+_$sScs12ContinuationV2eeoiySbAByxq__G_ADtFZ ---> static AsyncThrowingStream.Continuation.== infix(_:_:)
+_$sScs12ContinuationV4hash4intoys6HasherVz_tF ---> AsyncThrowingStream.Continuation.hash(into:)
+_$sScs12ContinuationV5yield4withAB11YieldResultOyxs5Error_p__Gs0E0OyxsAG_pG_tsAG_pRs_rlF ---> AsyncThrowingStream.Continuation.yield<>(with:)
+_$sScs12ContinuationV5yieldAB11YieldResultOyytq___GyytRszrlF ---> AsyncThrowingStream.Continuation.yield<>()
+_$sScs12ContinuationV5yieldyAB11YieldResultOyxq___GxnF ---> AsyncThrowingStream.Continuation.yield(_:)
+_$sScs12ContinuationV6finish8throwingyq_Sgn_tF ---> AsyncThrowingStream.Continuation.finish(throwing:)
+_$sScs12ContinuationV9hashValueSivg ---> AsyncThrowingStream.Continuation.hashValue.getter
+_$sScs12ContinuationV9hashValueSivpMV ---> property descriptor for AsyncThrowingStream.Continuation.hashValue
+_$sScs12ContinuationVMa ---> type metadata accessor for AsyncThrowingStream.Continuation
+_$sScs12ContinuationVMn ---> nominal type descriptor for AsyncThrowingStream.Continuation
+_$sScs12ContinuationVyxq__GSHsMc ---> protocol conformance descriptor for AsyncThrowingStream<A, B>.Continuation
+_$sScs12ContinuationVyxq__GSQsMc ---> protocol conformance descriptor for AsyncThrowingStream<A, B>.Continuation
+_$sScs17makeAsyncIteratorScs0C0Vyxq__GyF ---> AsyncThrowingStream.makeAsyncIterator()
+_$sScs8IteratorV4next9isolationxSgScA_pSgYi_tYaq_YKF ---> AsyncThrowingStream.Iterator.next(isolation:)
+_$sScs8IteratorV4next9isolationxSgScA_pSgYi_tYaq_YKFTu ---> async function pointer to AsyncThrowingStream.Iterator.next(isolation:)
+_$sScs8IteratorV4nextxSgyYaKF ---> AsyncThrowingStream.Iterator.next()
+_$sScs8IteratorV4nextxSgyYaKFTu ---> async function pointer to AsyncThrowingStream.Iterator.next()
+_$sScs8IteratorVMa ---> type metadata accessor for AsyncThrowingStream.Iterator
+_$sScs8IteratorVMn ---> nominal type descriptor for AsyncThrowingStream.Iterator
+_$sScs8IteratorVyxq__GScIsMc ---> protocol conformance descriptor for AsyncThrowingStream<A, B>.Iterator
+_$sScs9unfoldingScsyxs5Error_pGxSgyYaKc_tcsAB_pRs_rlufC ---> AsyncThrowingStream.init<>(unfolding:)
+_$sScsMa ---> type metadata accessor for AsyncThrowingStream
+_$sScsMn ---> nominal type descriptor for AsyncThrowingStream
+_$sScs_15bufferingPolicy_Scsyxs5Error_pGxm_Scs12ContinuationV09BufferingB0OyxsAB_p__GyAEyxsAB_p_GXEtcsAB_pRs_rlufC ---> AsyncThrowingStream.init<>(_:bufferingPolicy:_:)
+_$sScsyxq_GScisMc ---> protocol conformance descriptor for AsyncThrowingStream<A, B>
+_$sSct11isCancelledSbvg ---> UnsafeCurrentTask.isCancelled.getter
+_$sSct11isCancelledSbvpMV ---> property descriptor for UnsafeCurrentTask.isCancelled
+_$sSct12basePriorityScPvg ---> UnsafeCurrentTask.basePriority.getter
+_$sSct12basePriorityScPvpMV ---> property descriptor for UnsafeCurrentTask.basePriority
+_$sSct16escalatePriority2toyScP_tF ---> UnsafeCurrentTask.escalatePriority(to:)
+_$sSct19unownedTaskExecutors07UnownedbC0VSgvg ---> UnsafeCurrentTask.unownedTaskExecutor.getter
+_$sSct19unownedTaskExecutors07UnownedbC0VSgvpMV ---> property descriptor for UnsafeCurrentTask.unownedTaskExecutor
+_$sSct2eeoiySbSct_ScttFZ ---> static UnsafeCurrentTask.== infix(_:_:)
+_$sSct4hash4intoys6HasherVz_tF ---> UnsafeCurrentTask.hash(into:)
+_$sSct6cancelyyF ---> UnsafeCurrentTask.cancel()
+_$sSct8priorityScPvg ---> UnsafeCurrentTask.priority.getter
+_$sSct8priorityScPvpMV ---> property descriptor for UnsafeCurrentTask.priority
+_$sSct9hashValueSivg ---> UnsafeCurrentTask.hashValue.getter
+_$sSct9hashValueSivpMV ---> property descriptor for UnsafeCurrentTask.hashValue
+_$sSctMa ---> type metadata accessor for UnsafeCurrentTask
+_$sSctMn ---> nominal type descriptor for UnsafeCurrentTask
+_$sSctN ---> type metadata for UnsafeCurrentTask
+_$sSctSHsMc ---> protocol conformance descriptor for UnsafeCurrentTask
+_$sSctSQsMc ---> protocol conformance descriptor for UnsafeCurrentTask
+_$ss039_checkIllegalTaskLocalBindingWithinWithC5Group4file4lineySS_SutF ---> _checkIllegalTaskLocalBindingWithinWithTaskGroup(file:line:)
+_$ss11ExecutorJobV010withUnsafeA11PrivateData4bodyxxSwq_YKXE_tq_YKs5ErrorR_r0_lF ---> ExecutorJob.withUnsafeExecutorPrivateData<A, B>(body:)
+_$ss11ExecutorJobV11descriptionSSvg ---> ExecutorJob.description.getter
+_$ss11ExecutorJobV14LocalAllocatorV10deallocateyySpyxGlF ---> ExecutorJob.LocalAllocator.deallocate<A>(_:)
+_$ss11ExecutorJobV14LocalAllocatorV10deallocateyySryxGlF ---> ExecutorJob.LocalAllocator.deallocate<A>(_:)
+_$ss11ExecutorJobV14LocalAllocatorV10deallocateyySwF ---> ExecutorJob.LocalAllocator.deallocate(_:)
+_$ss11ExecutorJobV14LocalAllocatorV8allocate2asSpyxGxm_tlF ---> ExecutorJob.LocalAllocator.allocate<A>(as:)
+_$ss11ExecutorJobV14LocalAllocatorV8allocate8capacity2asSryxGSi_xmtlF ---> ExecutorJob.LocalAllocator.allocate<A>(capacity:as:)
+_$ss11ExecutorJobV14LocalAllocatorV8allocate8capacitySwSi_tF ---> ExecutorJob.LocalAllocator.allocate(capacity:)
+_$ss11ExecutorJobV14LocalAllocatorVMa ---> type metadata accessor for ExecutorJob.LocalAllocator
+_$ss11ExecutorJobV14LocalAllocatorVMn ---> nominal type descriptor for ExecutorJob.LocalAllocator
+_$ss11ExecutorJobV14LocalAllocatorVN ---> type metadata for ExecutorJob.LocalAllocator
+_$ss11ExecutorJobV16createTrampoline2toABx_tScFRzlF ---> ExecutorJob.createTrampoline<A>(to:)
+_$ss11ExecutorJobV4KindV13firstReservedADvgZ ---> static ExecutorJob.Kind.firstReserved.getter
+_$ss11ExecutorJobV4KindV13firstReservedADvpZMV ---> property descriptor for static ExecutorJob.Kind.firstReserved
+_$ss11ExecutorJobV4KindV4taskADvgZ ---> static ExecutorJob.Kind.task.getter
+_$ss11ExecutorJobV4KindV4taskADvpZMV ---> property descriptor for static ExecutorJob.Kind.task
+_$ss11ExecutorJobV4KindV8rawValueADSgs5UInt8V_tcfC ---> ExecutorJob.Kind.init(rawValue:)
+_$ss11ExecutorJobV4KindV8rawValues5UInt8VvM ---> ExecutorJob.Kind.rawValue.modify
+_$ss11ExecutorJobV4KindV8rawValues5UInt8Vvg ---> ExecutorJob.Kind.rawValue.getter
+_$ss11ExecutorJobV4KindV8rawValues5UInt8VvpMV ---> property descriptor for ExecutorJob.Kind.rawValue
+_$ss11ExecutorJobV4KindV8rawValues5UInt8Vvs ---> ExecutorJob.Kind.rawValue.setter
+_$ss11ExecutorJobV4KindVMa ---> type metadata accessor for ExecutorJob.Kind
+_$ss11ExecutorJobV4KindVMn ---> nominal type descriptor for ExecutorJob.Kind
+_$ss11ExecutorJobV4KindVN ---> type metadata for ExecutorJob.Kind
+_$ss11ExecutorJobV4KindVSYsMc ---> protocol conformance descriptor for ExecutorJob.Kind
+_$ss11ExecutorJobV4kindAB4KindVvg ---> ExecutorJob.kind.getter
+_$ss11ExecutorJobV7contextABBjn_tcfC ---> ExecutorJob.init(context:)
+_$ss11ExecutorJobV8prioritys0B8PriorityVvg ---> ExecutorJob.priority.getter
+_$ss11ExecutorJobV9allocatorAB14LocalAllocatorVSgvg ---> ExecutorJob.allocator.getter
+_$ss11ExecutorJobVMa ---> type metadata accessor for ExecutorJob
+_$ss11ExecutorJobVMn ---> nominal type descriptor for ExecutorJob
+_$ss11ExecutorJobVN ---> type metadata for ExecutorJob
+_$ss11ExecutorJobVyABScJcfC ---> ExecutorJob.init(_:)
+_$ss11ExecutorJobVyABs0B0VncfC ---> ExecutorJob.init(_:)
+_$ss11GlobalActorMp ---> protocol descriptor for GlobalActor
+_$ss11GlobalActorP0B4TypeAB_ScATn ---> associated conformance descriptor for GlobalActor.GlobalActor.ActorType: Actor
+_$ss11GlobalActorP21sharedUnownedExecutorScevgZTj ---> dispatch thunk of static GlobalActor.sharedUnownedExecutor.getter
+_$ss11GlobalActorP21sharedUnownedExecutorScevgZTq ---> method descriptor for static GlobalActor.sharedUnownedExecutor.getter
+_$ss11GlobalActorP6shared0B4TypeQzvgZTj ---> dispatch thunk of static GlobalActor.shared.getter
+_$ss11GlobalActorP6shared0B4TypeQzvgZTq ---> method descriptor for static GlobalActor.shared.getter
+_$ss11GlobalActorPsE14assertIsolated_4file4lineySSyXK_s12StaticStringVSutFZ ---> static GlobalActor.assertIsolated(_:file:line:)
+_$ss11GlobalActorPsE20preconditionIsolated_4file4lineySSyXK_s12StaticStringVSutFZ ---> static GlobalActor.preconditionIsolated(_:file:line:)
+_$ss11GlobalActorPsE21sharedUnownedExecutorScevgZ ---> static GlobalActor.sharedUnownedExecutor.getter
+_$ss11GlobalActorPsE21sharedUnownedExecutorScevpZMV ---> property descriptor for static GlobalActor.sharedUnownedExecutor
+_$ss11GlobalActorTL ---> protocol requirements base descriptor for GlobalActor
+_$ss11JobPriorityV1goiySbAB_ABtFZ ---> static JobPriority.> infix(_:_:)
+_$ss11JobPriorityV1loiySbAB_ABtFZ ---> static JobPriority.< infix(_:_:)
+_$ss11JobPriorityV2eeoiySbAB_ABtFZ ---> static JobPriority.== infix(_:_:)
+_$ss11JobPriorityV2geoiySbAB_ABtFZ ---> static JobPriority.>= infix(_:_:)
+_$ss11JobPriorityV2leoiySbAB_ABtFZ ---> static JobPriority.<= infix(_:_:)
+_$ss11JobPriorityV2neoiySbAB_ABtFZ ---> static JobPriority.!= infix(_:_:)
+_$ss11JobPriorityV8rawValueABs5UInt8V_tcfC ---> JobPriority.init(rawValue:)
+_$ss11JobPriorityV8rawValues5UInt8VvM ---> JobPriority.rawValue.modify
+_$ss11JobPriorityV8rawValues5UInt8Vvg ---> JobPriority.rawValue.getter
+_$ss11JobPriorityV8rawValues5UInt8VvpMV ---> property descriptor for JobPriority.rawValue
+_$ss11JobPriorityV8rawValues5UInt8Vvs ---> JobPriority.rawValue.setter
+_$ss11JobPriorityVMa ---> type metadata accessor for JobPriority
+_$ss11JobPriorityVMn ---> nominal type descriptor for JobPriority
+_$ss11JobPriorityVN ---> type metadata for JobPriority
+_$ss11JobPriorityVSLsMc ---> protocol conformance descriptor for JobPriority
+_$ss11JobPriorityVSQsMc ---> protocol conformance descriptor for JobPriority
+_$ss11JobPriorityVyABScPcfC ---> JobPriority.init(_:)
+_$ss12MainExecutorMp ---> protocol descriptor for MainExecutor
+_$ss12MainExecutorPScfTb ---> base conformance descriptor for MainExecutor: SerialExecutor
+_$ss12MainExecutorPs07RunLoopB0Tb ---> base conformance descriptor for MainExecutor: RunLoopExecutor
+_$ss12MainExecutorTL ---> protocol requirements base descriptor for MainExecutor
+_$ss13_runAsyncMainyyyyYaKcF ---> _runAsyncMain(_:)
+_$ss13withTaskGroup2of9returning4bodyq_xm_q_mq_ScGyxGzYaXEtYar0_lF ---> withTaskGroup<A, B>(of:returning:body:)
+_$ss13withTaskGroup2of9returning4bodyq_xm_q_mq_ScGyxGzYaXEtYar0_lFTu ---> async function pointer to withTaskGroup<A, B>(of:returning:body:)
+_$ss13withTaskGroup2of9returning9isolation4bodyq_xm_q_mScA_pSgYiq_ScGyxGzYaXEtYas8SendableRzr0_lF ---> withTaskGroup<A, B>(of:returning:isolation:body:)
+_$ss13withTaskGroup2of9returning9isolation4bodyq_xm_q_mScA_pSgYiq_ScGyxGzYaXEtYas8SendableRzr0_lFTu ---> async function pointer to withTaskGroup<A, B>(of:returning:isolation:body:)
+_$ss15ContinuousClockV11systemEpochAB7InstantVvpMV ---> property descriptor for ContinuousClock.systemEpoch
+_$ss15ContinuousClockV17minimumResolutions8DurationVvg ---> ContinuousClock.minimumResolution.getter
+_$ss15ContinuousClockV17minimumResolutions8DurationVvpMV ---> property descriptor for ContinuousClock.minimumResolution
+_$ss15ContinuousClockV3nowAB7InstantVvg ---> ContinuousClock.now.getter
+_$ss15ContinuousClockV3nowAB7InstantVvgZ ---> static ContinuousClock.now.getter
+_$ss15ContinuousClockV3nowAB7InstantVvpMV ---> property descriptor for ContinuousClock.now
+_$ss15ContinuousClockV3nowAB7InstantVvpZMV ---> property descriptor for static ContinuousClock.now
+_$ss15ContinuousClockV5sleep5until9toleranceyAB7InstantV_s8DurationVSgtYaKF ---> ContinuousClock.sleep(until:tolerance:)
+_$ss15ContinuousClockV5sleep5until9toleranceyAB7InstantV_s8DurationVSgtYaKFTu ---> async function pointer to ContinuousClock.sleep(until:tolerance:)
+_$ss15ContinuousClockV7InstantV1loiySbAD_ADtFZ ---> static ContinuousClock.Instant.< infix(_:_:)
+_$ss15ContinuousClockV7InstantV2eeoiySbAD_ADtFZ ---> static ContinuousClock.Instant.== infix(_:_:)
+_$ss15ContinuousClockV7InstantV3nowADvgZ ---> static ContinuousClock.Instant.now.getter
+_$ss15ContinuousClockV7InstantV3nowADvpZMV ---> property descriptor for static ContinuousClock.Instant.now
+_$ss15ContinuousClockV7InstantV4fromADs7Decoder_p_tKcfC ---> ContinuousClock.Instant.init(from:)
+_$ss15ContinuousClockV7InstantV4hash4intoys6HasherVz_tF ---> ContinuousClock.Instant.hash(into:)
+_$ss15ContinuousClockV7InstantV6encode2toys7Encoder_p_tKF ---> ContinuousClock.Instant.encode(to:)
+_$ss15ContinuousClockV7InstantV8advanced2byADs8DurationV_tF ---> ContinuousClock.Instant.advanced(by:)
+_$ss15ContinuousClockV7InstantV8duration2tos8DurationVAD_tF ---> ContinuousClock.Instant.duration(to:)
+_$ss15ContinuousClockV7InstantV9hashValueSivg ---> ContinuousClock.Instant.hashValue.getter
+_$ss15ContinuousClockV7InstantV9hashValueSivpMV ---> property descriptor for ContinuousClock.Instant.hashValue
+_$ss15ContinuousClockV7InstantVMa ---> type metadata accessor for ContinuousClock.Instant
+_$ss15ContinuousClockV7InstantVMn ---> nominal type descriptor for ContinuousClock.Instant
+_$ss15ContinuousClockV7InstantVN ---> type metadata for ContinuousClock.Instant
+_$ss15ContinuousClockV7InstantVSEsMc ---> protocol conformance descriptor for ContinuousClock.Instant
+_$ss15ContinuousClockV7InstantVSHsMc ---> protocol conformance descriptor for ContinuousClock.Instant
+_$ss15ContinuousClockV7InstantVSLsMc ---> protocol conformance descriptor for ContinuousClock.Instant
+_$ss15ContinuousClockV7InstantVSQsMc ---> protocol conformance descriptor for ContinuousClock.Instant
+_$ss15ContinuousClockV7InstantVSesMc ---> protocol conformance descriptor for ContinuousClock.Instant
+_$ss15ContinuousClockV7InstantVs0C8ProtocolsMc ---> protocol conformance descriptor for ContinuousClock.Instant
+_$ss15ContinuousClockVABycfC ---> ContinuousClock.init()
+_$ss15ContinuousClockVMa ---> type metadata accessor for ContinuousClock
+_$ss15ContinuousClockVMn ---> nominal type descriptor for ContinuousClock
+_$ss15ContinuousClockVN ---> type metadata for ContinuousClock
+_$ss15ContinuousClockVs0B0sMc ---> protocol conformance descriptor for ContinuousClock
+_$ss15ContinuousClockVs0B0sWP ---> protocol witness table for ContinuousClock
+_$ss15ExecutorFactoryMp ---> protocol descriptor for ExecutorFactory
+_$ss15ExecutorFactoryP04mainA0s04MainA0_pvgZTj ---> dispatch thunk of static ExecutorFactory.mainExecutor.getter
+_$ss15ExecutorFactoryP04mainA0s04MainA0_pvgZTq ---> method descriptor for static ExecutorFactory.mainExecutor.getter
+_$ss15ExecutorFactoryP07defaultA0Sch_pvgZTj ---> dispatch thunk of static ExecutorFactory.defaultExecutor.getter
+_$ss15ExecutorFactoryP07defaultA0Sch_pvgZTq ---> method descriptor for static ExecutorFactory.defaultExecutor.getter
+_$ss15ExecutorFactoryTL ---> protocol requirements base descriptor for ExecutorFactory
+_$ss15RunLoopExecutorMp ---> protocol descriptor for RunLoopExecutor
+_$ss15RunLoopExecutorP3runyyKFTj ---> dispatch thunk of RunLoopExecutor.run()
+_$ss15RunLoopExecutorP3runyyKFTq ---> method descriptor for RunLoopExecutor.run()
+_$ss15RunLoopExecutorP4stopyyFTj ---> dispatch thunk of RunLoopExecutor.stop()
+_$ss15RunLoopExecutorP4stopyyFTq ---> method descriptor for RunLoopExecutor.stop()
+_$ss15RunLoopExecutorP8runUntilyySbyXEKFTj ---> dispatch thunk of RunLoopExecutor.runUntil(_:)
+_$ss15RunLoopExecutorP8runUntilyySbyXEKFTq ---> method descriptor for RunLoopExecutor.runUntil(_:)
+_$ss15RunLoopExecutorPScFTb ---> base conformance descriptor for RunLoopExecutor: Executor
+_$ss15RunLoopExecutorPsE8runUntilyySbyXEKF ---> RunLoopExecutor.runUntil(_:)
+_$ss15RunLoopExecutorTL ---> protocol requirements base descriptor for RunLoopExecutor
+_$ss15SuspendingClockV11systemEpochAB7InstantVvpMV ---> property descriptor for SuspendingClock.systemEpoch
+_$ss15SuspendingClockV17minimumResolutions8DurationVvg ---> SuspendingClock.minimumResolution.getter
+_$ss15SuspendingClockV17minimumResolutions8DurationVvpMV ---> property descriptor for SuspendingClock.minimumResolution
+_$ss15SuspendingClockV3nowAB7InstantVvg ---> SuspendingClock.now.getter
+_$ss15SuspendingClockV3nowAB7InstantVvgZ ---> static SuspendingClock.now.getter
+_$ss15SuspendingClockV3nowAB7InstantVvpMV ---> property descriptor for SuspendingClock.now
+_$ss15SuspendingClockV3nowAB7InstantVvpZMV ---> property descriptor for static SuspendingClock.now
+_$ss15SuspendingClockV5sleep5until9toleranceyAB7InstantV_s8DurationVSgtYaKF ---> SuspendingClock.sleep(until:tolerance:)
+_$ss15SuspendingClockV5sleep5until9toleranceyAB7InstantV_s8DurationVSgtYaKFTu ---> async function pointer to SuspendingClock.sleep(until:tolerance:)
+_$ss15SuspendingClockV7InstantV1loiySbAD_ADtFZ ---> static SuspendingClock.Instant.< infix(_:_:)
+_$ss15SuspendingClockV7InstantV1poiyA2D_s8DurationVtFZ ---> static SuspendingClock.Instant.+ infix(_:_:)
+_$ss15SuspendingClockV7InstantV1soiyA2D_s8DurationVtFZ ---> static SuspendingClock.Instant.- infix(_:_:)
+_$ss15SuspendingClockV7InstantV1soiys8DurationVAD_ADtFZ ---> static SuspendingClock.Instant.- infix(_:_:)
+_$ss15SuspendingClockV7InstantV2eeoiySbAD_ADtFZ ---> static SuspendingClock.Instant.== infix(_:_:)
+_$ss15SuspendingClockV7InstantV2peoiyyADz_s8DurationVtFZ ---> static SuspendingClock.Instant.+= infix(_:_:)
+_$ss15SuspendingClockV7InstantV2seoiyyADz_s8DurationVtFZ ---> static SuspendingClock.Instant.-= infix(_:_:)
+_$ss15SuspendingClockV7InstantV3nowADvgZ ---> static SuspendingClock.Instant.now.getter
+_$ss15SuspendingClockV7InstantV3nowADvpZMV ---> property descriptor for static SuspendingClock.Instant.now
+_$ss15SuspendingClockV7InstantV4fromADs7Decoder_p_tKcfC ---> SuspendingClock.Instant.init(from:)
+_$ss15SuspendingClockV7InstantV4hash4intoys6HasherVz_tF ---> SuspendingClock.Instant.hash(into:)
+_$ss15SuspendingClockV7InstantV6encode2toys7Encoder_p_tKF ---> SuspendingClock.Instant.encode(to:)
+_$ss15SuspendingClockV7InstantV8advanced2byADs8DurationV_tF ---> SuspendingClock.Instant.advanced(by:)
+_$ss15SuspendingClockV7InstantV8duration2tos8DurationVAD_tF ---> SuspendingClock.Instant.duration(to:)
+_$ss15SuspendingClockV7InstantV9hashValueSivg ---> SuspendingClock.Instant.hashValue.getter
+_$ss15SuspendingClockV7InstantV9hashValueSivpMV ---> property descriptor for SuspendingClock.Instant.hashValue
+_$ss15SuspendingClockV7InstantVMa ---> type metadata accessor for SuspendingClock.Instant
+_$ss15SuspendingClockV7InstantVMn ---> nominal type descriptor for SuspendingClock.Instant
+_$ss15SuspendingClockV7InstantVN ---> type metadata for SuspendingClock.Instant
+_$ss15SuspendingClockV7InstantVSEsMc ---> protocol conformance descriptor for SuspendingClock.Instant
+_$ss15SuspendingClockV7InstantVSHsMc ---> protocol conformance descriptor for SuspendingClock.Instant
+_$ss15SuspendingClockV7InstantVSLsMc ---> protocol conformance descriptor for SuspendingClock.Instant
+_$ss15SuspendingClockV7InstantVSQsMc ---> protocol conformance descriptor for SuspendingClock.Instant
+_$ss15SuspendingClockV7InstantVSesMc ---> protocol conformance descriptor for SuspendingClock.Instant
+_$ss15SuspendingClockV7InstantVs0C8ProtocolsMc ---> protocol conformance descriptor for SuspendingClock.Instant
+_$ss15SuspendingClockVABycfC ---> SuspendingClock.init()
+_$ss15SuspendingClockVMa ---> type metadata accessor for SuspendingClock
+_$ss15SuspendingClockVMn ---> nominal type descriptor for SuspendingClock
+_$ss15SuspendingClockVN ---> type metadata for SuspendingClock
+_$ss15SuspendingClockVs0B0sMc ---> protocol conformance descriptor for SuspendingClock
+_$ss15SuspendingClockVs0B0sWP ---> protocol witness table for SuspendingClock
+_$ss16AsyncMapSequenceV04makeA8IteratorAB0E0Vyxq__GyF ---> AsyncMapSequence.makeAsyncIterator()
+_$ss16AsyncMapSequenceV4basexvg ---> AsyncMapSequence.base.getter
+_$ss16AsyncMapSequenceV4basexvpMV ---> property descriptor for AsyncMapSequence.base
+_$ss16AsyncMapSequenceV8IteratorV04baseD00aD0QzvM ---> AsyncMapSequence.Iterator.baseIterator.modify
+_$ss16AsyncMapSequenceV8IteratorV04baseD00aD0Qzvg ---> AsyncMapSequence.Iterator.baseIterator.getter
+_$ss16AsyncMapSequenceV8IteratorV04baseD00aD0QzvpMV ---> property descriptor for AsyncMapSequence.Iterator.baseIterator
+_$ss16AsyncMapSequenceV8IteratorV04baseD00aD0Qzvs ---> AsyncMapSequence.Iterator.baseIterator.setter
+_$ss16AsyncMapSequenceV8IteratorV4next9isolationq_SgScA_pSgYi_tYa7FailureQzYKF ---> AsyncMapSequence.Iterator.next(isolation:)
+_$ss16AsyncMapSequenceV8IteratorV4next9isolationq_SgScA_pSgYi_tYa7FailureQzYKFTu ---> async function pointer to AsyncMapSequence.Iterator.next(isolation:)
+_$ss16AsyncMapSequenceV8IteratorV4nextq_SgyYaKF ---> AsyncMapSequence.Iterator.next()
+_$ss16AsyncMapSequenceV8IteratorV4nextq_SgyYaKFTu ---> async function pointer to AsyncMapSequence.Iterator.next()
+_$ss16AsyncMapSequenceV8IteratorV9transformyq_7ElementQzYacvg ---> AsyncMapSequence.Iterator.transform.getter
+_$ss16AsyncMapSequenceV8IteratorV9transformyq_7ElementQzYacvpMV ---> property descriptor for AsyncMapSequence.Iterator.transform
+_$ss16AsyncMapSequenceV8IteratorVMa ---> type metadata accessor for AsyncMapSequence.Iterator
+_$ss16AsyncMapSequenceV8IteratorVMn ---> nominal type descriptor for AsyncMapSequence.Iterator
+_$ss16AsyncMapSequenceV8IteratorV_9transformADyxq__G0aD0Qz_q_7ElementQzYactcfC ---> AsyncMapSequence.Iterator.init(_:transform:)
+_$ss16AsyncMapSequenceV8IteratorVyxq__GScIsMc ---> protocol conformance descriptor for AsyncMapSequence<A, B>.Iterator
+_$ss16AsyncMapSequenceV9transformyq_7ElementQzYacvg ---> AsyncMapSequence.transform.getter
+_$ss16AsyncMapSequenceV9transformyq_7ElementQzYacvpMV ---> property descriptor for AsyncMapSequence.transform
+_$ss16AsyncMapSequenceVMa ---> type metadata accessor for AsyncMapSequence
+_$ss16AsyncMapSequenceVMn ---> nominal type descriptor for AsyncMapSequence
+_$ss16AsyncMapSequenceV_9transformAByxq_Gx_q_7ElementQzYactcfC ---> AsyncMapSequence.init(_:transform:)
+_$ss16AsyncMapSequenceVyxq_GScisMc ---> protocol conformance descriptor for AsyncMapSequence<A, B>
+_$ss18SchedulingExecutorMp ---> protocol descriptor for SchedulingExecutor
+_$ss18SchedulingExecutorP7enqueue_2at9tolerance5clockys0B3JobVn_7InstantQyd__8DurationQyd__Sgqd__ts5ClockRd__lFTj ---> dispatch thunk of SchedulingExecutor.enqueue<A>(_:at:tolerance:clock:)
+_$ss18SchedulingExecutorP7enqueue_2at9tolerance5clockys0B3JobVn_7InstantQyd__8DurationQyd__Sgqd__ts5ClockRd__lFTq ---> method descriptor for SchedulingExecutor.enqueue<A>(_:at:tolerance:clock:)
+_$ss18SchedulingExecutorP7enqueue_5after9tolerance5clockys0B3JobVn_8DurationQyd__AJSgqd__ts5ClockRd__lFTj ---> dispatch thunk of SchedulingExecutor.enqueue<A>(_:after:tolerance:clock:)
+_$ss18SchedulingExecutorP7enqueue_5after9tolerance5clockys0B3JobVn_8DurationQyd__AJSgqd__ts5ClockRd__lFTq ---> method descriptor for SchedulingExecutor.enqueue<A>(_:after:tolerance:clock:)
+_$ss18SchedulingExecutorPScFTb ---> base conformance descriptor for SchedulingExecutor: Executor
+_$ss18SchedulingExecutorPsE7enqueue_2at9tolerance5clockys0B3JobVn_7InstantQyd__8DurationQyd__Sgqd__ts5ClockRd__lF ---> SchedulingExecutor.enqueue<A>(_:at:tolerance:clock:)
+_$ss18SchedulingExecutorPsE7enqueue_5after9tolerance5clockys0B3JobVn_8DurationQyd__AJSgqd__ts5ClockRd__lF ---> SchedulingExecutor.enqueue<A>(_:after:tolerance:clock:)
+_$ss18SchedulingExecutorTL ---> protocol requirements base descriptor for SchedulingExecutor
+_$ss19AsyncFilterSequenceV04makeA8IteratorAB0E0Vyx_GyF ---> AsyncFilterSequence.makeAsyncIterator()
+_$ss19AsyncFilterSequenceV10isIncludedySb7ElementQzYacvg ---> AsyncFilterSequence.isIncluded.getter
+_$ss19AsyncFilterSequenceV10isIncludedySb7ElementQzYacvpMV ---> property descriptor for AsyncFilterSequence.isIncluded
+_$ss19AsyncFilterSequenceV4basexvg ---> AsyncFilterSequence.base.getter
+_$ss19AsyncFilterSequenceV4basexvpMV ---> property descriptor for AsyncFilterSequence.base
+_$ss19AsyncFilterSequenceV8IteratorV04baseD00aD0QzvM ---> AsyncFilterSequence.Iterator.baseIterator.modify
+_$ss19AsyncFilterSequenceV8IteratorV04baseD00aD0Qzvg ---> AsyncFilterSequence.Iterator.baseIterator.getter
+_$ss19AsyncFilterSequenceV8IteratorV04baseD00aD0QzvpMV ---> property descriptor for AsyncFilterSequence.Iterator.baseIterator
+_$ss19AsyncFilterSequenceV8IteratorV04baseD00aD0Qzvs ---> AsyncFilterSequence.Iterator.baseIterator.setter
+_$ss19AsyncFilterSequenceV8IteratorV10isIncludedySb7ElementQzYacvg ---> AsyncFilterSequence.Iterator.isIncluded.getter
+_$ss19AsyncFilterSequenceV8IteratorV10isIncludedySb7ElementQzYacvpMV ---> property descriptor for AsyncFilterSequence.Iterator.isIncluded
+_$ss19AsyncFilterSequenceV8IteratorV4next7ElementQzSgyYaKF ---> AsyncFilterSequence.Iterator.next()
+_$ss19AsyncFilterSequenceV8IteratorV4next7ElementQzSgyYaKFTu ---> async function pointer to AsyncFilterSequence.Iterator.next()
+_$ss19AsyncFilterSequenceV8IteratorV4next9isolation7ElementQzSgScA_pSgYi_tYa7FailureQzYKF ---> AsyncFilterSequence.Iterator.next(isolation:)
+_$ss19AsyncFilterSequenceV8IteratorV4next9isolation7ElementQzSgScA_pSgYi_tYa7FailureQzYKFTu ---> async function pointer to AsyncFilterSequence.Iterator.next(isolation:)
+_$ss19AsyncFilterSequenceV8IteratorVMa ---> type metadata accessor for AsyncFilterSequence.Iterator
+_$ss19AsyncFilterSequenceV8IteratorVMn ---> nominal type descriptor for AsyncFilterSequence.Iterator
+_$ss19AsyncFilterSequenceV8IteratorV_10isIncludedADyx_G0aD0Qz_Sb7ElementQzYactcfC ---> AsyncFilterSequence.Iterator.init(_:isIncluded:)
+_$ss19AsyncFilterSequenceV8IteratorVyx_GScIsMc ---> protocol conformance descriptor for AsyncFilterSequence<A>.Iterator
+_$ss19AsyncFilterSequenceVMa ---> type metadata accessor for AsyncFilterSequence
+_$ss19AsyncFilterSequenceVMn ---> nominal type descriptor for AsyncFilterSequence
+_$ss19AsyncFilterSequenceV_10isIncludedAByxGx_Sb7ElementQzYactcfC ---> AsyncFilterSequence.init(_:isIncluded:)
+_$ss19AsyncFilterSequenceVyxGScisMc ---> protocol conformance descriptor for AsyncFilterSequence<A>
+_$ss19AsyncPrefixSequenceV04makeA8IteratorAB0E0Vyx_GyF ---> AsyncPrefixSequence.makeAsyncIterator()
+_$ss19AsyncPrefixSequenceV4basexvg ---> AsyncPrefixSequence.base.getter
+_$ss19AsyncPrefixSequenceV4basexvpMV ---> property descriptor for AsyncPrefixSequence.base
+_$ss19AsyncPrefixSequenceV5countSivg ---> AsyncPrefixSequence.count.getter
+_$ss19AsyncPrefixSequenceV5countSivpMV ---> property descriptor for AsyncPrefixSequence.count
+_$ss19AsyncPrefixSequenceV8IteratorV04baseD00aD0QzvM ---> AsyncPrefixSequence.Iterator.baseIterator.modify
+_$ss19AsyncPrefixSequenceV8IteratorV04baseD00aD0Qzvg ---> AsyncPrefixSequence.Iterator.baseIterator.getter
+_$ss19AsyncPrefixSequenceV8IteratorV04baseD00aD0QzvpMV ---> property descriptor for AsyncPrefixSequence.Iterator.baseIterator
+_$ss19AsyncPrefixSequenceV8IteratorV04baseD00aD0Qzvs ---> AsyncPrefixSequence.Iterator.baseIterator.setter
+_$ss19AsyncPrefixSequenceV8IteratorV4next7ElementQzSgyYaKF ---> AsyncPrefixSequence.Iterator.next()
+_$ss19AsyncPrefixSequenceV8IteratorV4next7ElementQzSgyYaKFTu ---> async function pointer to AsyncPrefixSequence.Iterator.next()
+_$ss19AsyncPrefixSequenceV8IteratorV4next9isolation7ElementQzSgScA_pSgYi_tYa7FailureQzYKF ---> AsyncPrefixSequence.Iterator.next(isolation:)
+_$ss19AsyncPrefixSequenceV8IteratorV4next9isolation7ElementQzSgScA_pSgYi_tYa7FailureQzYKFTu ---> async function pointer to AsyncPrefixSequence.Iterator.next(isolation:)
+_$ss19AsyncPrefixSequenceV8IteratorV9remainingSivM ---> AsyncPrefixSequence.Iterator.remaining.modify
+_$ss19AsyncPrefixSequenceV8IteratorV9remainingSivg ---> AsyncPrefixSequence.Iterator.remaining.getter
+_$ss19AsyncPrefixSequenceV8IteratorV9remainingSivpMV ---> property descriptor for AsyncPrefixSequence.Iterator.remaining
+_$ss19AsyncPrefixSequenceV8IteratorV9remainingSivs ---> AsyncPrefixSequence.Iterator.remaining.setter
+_$ss19AsyncPrefixSequenceV8IteratorVMa ---> type metadata accessor for AsyncPrefixSequence.Iterator
+_$ss19AsyncPrefixSequenceV8IteratorVMn ---> nominal type descriptor for AsyncPrefixSequence.Iterator
+_$ss19AsyncPrefixSequenceV8IteratorV_5countADyx_G0aD0Qz_SitcfC ---> AsyncPrefixSequence.Iterator.init(_:count:)
+_$ss19AsyncPrefixSequenceV8IteratorVyx_GScIsMc ---> protocol conformance descriptor for AsyncPrefixSequence<A>.Iterator
+_$ss19AsyncPrefixSequenceVMa ---> type metadata accessor for AsyncPrefixSequence
+_$ss19AsyncPrefixSequenceVMn ---> nominal type descriptor for AsyncPrefixSequence
+_$ss19AsyncPrefixSequenceV_5countAByxGx_SitcfC ---> AsyncPrefixSequence.init(_:count:)
+_$ss19AsyncPrefixSequenceVyxGScisMc ---> protocol conformance descriptor for AsyncPrefixSequence<A>
+_$ss19DiscardingTaskGroupV11isCancelledSbvg ---> DiscardingTaskGroup.isCancelled.getter
+_$ss19DiscardingTaskGroupV11isCancelledSbvpMV ---> property descriptor for DiscardingTaskGroup.isCancelled
+_$ss19DiscardingTaskGroupV22awaitAllRemainingTasksyyYaKF ---> DiscardingTaskGroup.awaitAllRemainingTasks()
+_$ss19DiscardingTaskGroupV22awaitAllRemainingTasksyyYaKFTu ---> async function pointer to DiscardingTaskGroup.awaitAllRemainingTasks()
+_$ss19DiscardingTaskGroupV5groupABBp_tcfC ---> DiscardingTaskGroup.init(group:)
+_$ss19DiscardingTaskGroupV6_groupBpvg ---> DiscardingTaskGroup._group.getter
+_$ss19DiscardingTaskGroupV6_groupBpvpMV ---> property descriptor for DiscardingTaskGroup._group
+_$ss19DiscardingTaskGroupV7isEmptySbvg ---> DiscardingTaskGroup.isEmpty.getter
+_$ss19DiscardingTaskGroupV7isEmptySbvpMV ---> property descriptor for DiscardingTaskGroup.isEmpty
+_$ss19DiscardingTaskGroupV9cancelAllyyF ---> DiscardingTaskGroup.cancelAll()
+_$ss19DiscardingTaskGroupVMa ---> type metadata accessor for DiscardingTaskGroup
+_$ss19DiscardingTaskGroupVMn ---> nominal type descriptor for DiscardingTaskGroup
+_$ss19DiscardingTaskGroupVN ---> type metadata for DiscardingTaskGroup
+_$ss19UnownedTaskExecutorV02asbC0Sch_pSgyF ---> UnownedTaskExecutor.asTaskExecutor()
+_$ss19UnownedTaskExecutorV2eeoiySbAB_ABtFZ ---> static UnownedTaskExecutor.== infix(_:_:)
+_$ss19UnownedTaskExecutorV8executorBevM ---> UnownedTaskExecutor.executor.modify
+_$ss19UnownedTaskExecutorV8executorBevg ---> UnownedTaskExecutor.executor.getter
+_$ss19UnownedTaskExecutorV8executorBevpMV ---> property descriptor for UnownedTaskExecutor.executor
+_$ss19UnownedTaskExecutorV8executorBevs ---> UnownedTaskExecutor.executor.setter
+_$ss19UnownedTaskExecutorV8ordinaryABxh_tcSchRzlufC ---> UnownedTaskExecutor.init<A>(ordinary:)
+_$ss19UnownedTaskExecutorV9_executorBevg ---> UnownedTaskExecutor._executor.getter
+_$ss19UnownedTaskExecutorV9_executorBevpMV ---> property descriptor for UnownedTaskExecutor._executor
+_$ss19UnownedTaskExecutorVMa ---> type metadata accessor for UnownedTaskExecutor
+_$ss19UnownedTaskExecutorVMn ---> nominal type descriptor for UnownedTaskExecutor
+_$ss19UnownedTaskExecutorVN ---> type metadata for UnownedTaskExecutor
+_$ss19UnownedTaskExecutorVSQsMc ---> protocol conformance descriptor for UnownedTaskExecutor
+_$ss19UnownedTaskExecutorVyABBecfC ---> UnownedTaskExecutor.init(_:)
+_$ss19UnownedTaskExecutorVyABxhcSchRzlufC ---> UnownedTaskExecutor.init<A>(_:)
+_$ss20AsyncFlatMapSequenceV04makeA8IteratorAB0F0Vyxq__GyF ---> AsyncFlatMapSequence.makeAsyncIterator()
+_$ss20AsyncFlatMapSequenceV4basexvg ---> AsyncFlatMapSequence.base.getter
+_$ss20AsyncFlatMapSequenceV4basexvpMV ---> property descriptor for AsyncFlatMapSequence.base
+_$ss20AsyncFlatMapSequenceV8IteratorV04baseE00aE0QzvM ---> AsyncFlatMapSequence.Iterator.baseIterator.modify
+_$ss20AsyncFlatMapSequenceV8IteratorV04baseE00aE0Qzvg ---> AsyncFlatMapSequence.Iterator.baseIterator.getter
+_$ss20AsyncFlatMapSequenceV8IteratorV04baseE00aE0QzvpMV ---> property descriptor for AsyncFlatMapSequence.Iterator.baseIterator
+_$ss20AsyncFlatMapSequenceV8IteratorV04baseE00aE0Qzvs ---> AsyncFlatMapSequence.Iterator.baseIterator.setter
+_$ss20AsyncFlatMapSequenceV8IteratorV07currentE00aE0Qy_SgvM ---> AsyncFlatMapSequence.Iterator.currentIterator.modify
+_$ss20AsyncFlatMapSequenceV8IteratorV07currentE00aE0Qy_Sgvg ---> AsyncFlatMapSequence.Iterator.currentIterator.getter
+_$ss20AsyncFlatMapSequenceV8IteratorV07currentE00aE0Qy_SgvpMV ---> property descriptor for AsyncFlatMapSequence.Iterator.currentIterator
+_$ss20AsyncFlatMapSequenceV8IteratorV07currentE00aE0Qy_Sgvs ---> AsyncFlatMapSequence.Iterator.currentIterator.setter
+_$ss20AsyncFlatMapSequenceV8IteratorV4next7ElementQy_SgyYaKF ---> AsyncFlatMapSequence.Iterator.next()
+_$ss20AsyncFlatMapSequenceV8IteratorV4next7ElementQy_SgyYaKFTu ---> async function pointer to AsyncFlatMapSequence.Iterator.next()
+_$ss20AsyncFlatMapSequenceV8IteratorV4next9isolation7ElementQy_SgScA_pSgYi_tYa7FailureQzYKF ---> AsyncFlatMapSequence.Iterator.next(isolation:)
+_$ss20AsyncFlatMapSequenceV8IteratorV4next9isolation7ElementQy_SgScA_pSgYi_tYa7FailureQzYKFTu ---> async function pointer to AsyncFlatMapSequence.Iterator.next(isolation:)
+_$ss20AsyncFlatMapSequenceV8IteratorV8finishedSbvM ---> AsyncFlatMapSequence.Iterator.finished.modify
+_$ss20AsyncFlatMapSequenceV8IteratorV8finishedSbvg ---> AsyncFlatMapSequence.Iterator.finished.getter
+_$ss20AsyncFlatMapSequenceV8IteratorV8finishedSbvpMV ---> property descriptor for AsyncFlatMapSequence.Iterator.finished
+_$ss20AsyncFlatMapSequenceV8IteratorV8finishedSbvs ---> AsyncFlatMapSequence.Iterator.finished.setter
+_$ss20AsyncFlatMapSequenceV8IteratorV9transformyq_7ElementQzYacvg ---> AsyncFlatMapSequence.Iterator.transform.getter
+_$ss20AsyncFlatMapSequenceV8IteratorV9transformyq_7ElementQzYacvpMV ---> property descriptor for AsyncFlatMapSequence.Iterator.transform
+_$ss20AsyncFlatMapSequenceV8IteratorVMa ---> type metadata accessor for AsyncFlatMapSequence.Iterator
+_$ss20AsyncFlatMapSequenceV8IteratorVMn ---> nominal type descriptor for AsyncFlatMapSequence.Iterator
+_$ss20AsyncFlatMapSequenceV8IteratorV_9transformADyxq__G0aE0Qz_q_7ElementQzYactcfC ---> AsyncFlatMapSequence.Iterator.init(_:transform:)
+_$ss20AsyncFlatMapSequenceV8IteratorVyxq__GScIsMc ---> protocol conformance descriptor for AsyncFlatMapSequence<A, B>.Iterator
+_$ss20AsyncFlatMapSequenceV9transformyq_7ElementQzYacvg ---> AsyncFlatMapSequence.transform.getter
+_$ss20AsyncFlatMapSequenceV9transformyq_7ElementQzYacvpMV ---> property descriptor for AsyncFlatMapSequence.transform
+_$ss20AsyncFlatMapSequenceVMa ---> type metadata accessor for AsyncFlatMapSequence
+_$ss20AsyncFlatMapSequenceVMn ---> nominal type descriptor for AsyncFlatMapSequence
+_$ss20AsyncFlatMapSequenceV_9transformAByxq_Gx_q_7ElementQzYactcfC ---> AsyncFlatMapSequence.init(_:transform:)
+_$ss20AsyncFlatMapSequenceVyxq_GScisMc ---> protocol conformance descriptor for AsyncFlatMapSequence<A, B>
+_$ss21withThrowingTaskGroup2of9returning4bodyq_xm_q_mq_Scgyxs5Error_pGzYaKXEtYaKr0_lF ---> withThrowingTaskGroup<A, B>(of:returning:body:)
+_$ss21withThrowingTaskGroup2of9returning4bodyq_xm_q_mq_Scgyxs5Error_pGzYaKXEtYaKr0_lFTu ---> async function pointer to withThrowingTaskGroup<A, B>(of:returning:body:)
+_$ss21withThrowingTaskGroup2of9returning9isolation4bodyq_xm_q_mScA_pSgYiq_Scgyxs5Error_pGzYaKXEtYaKs8SendableRzr0_lF ---> withThrowingTaskGroup<A, B>(of:returning:isolation:body:)
+_$ss21withThrowingTaskGroup2of9returning9isolation4bodyq_xm_q_mScA_pSgYiq_Scgyxs5Error_pGzYaKXEtYaKs8SendableRzr0_lFTu ---> async function pointer to withThrowingTaskGroup<A, B>(of:returning:isolation:body:)
+_$ss21withUnsafeCurrentTask4bodyxxSctSgKXE_tKlF ---> withUnsafeCurrentTask<A>(body:)
+_$ss21withUnsafeCurrentTask4bodyxxSctSgYaKXE_tYaKlF ---> withUnsafeCurrentTask<A>(body:)
+_$ss21withUnsafeCurrentTask4bodyxxSctSgYaKXE_tYaKlFTu ---> async function pointer to withUnsafeCurrentTask<A>(body:)
+_$ss22AsyncDropFirstSequenceV04dropC0yAByxGSiF ---> AsyncDropFirstSequence.dropFirst(_:)
+_$ss22AsyncDropFirstSequenceV04makeA8IteratorAB0F0Vyx_GyF ---> AsyncDropFirstSequence.makeAsyncIterator()
+_$ss22AsyncDropFirstSequenceV4basexvg ---> AsyncDropFirstSequence.base.getter
+_$ss22AsyncDropFirstSequenceV4basexvpMV ---> property descriptor for AsyncDropFirstSequence.base
+_$ss22AsyncDropFirstSequenceV5countSivg ---> AsyncDropFirstSequence.count.getter
+_$ss22AsyncDropFirstSequenceV5countSivpMV ---> property descriptor for AsyncDropFirstSequence.count
+_$ss22AsyncDropFirstSequenceV8IteratorV04baseE00aE0QzvM ---> AsyncDropFirstSequence.Iterator.baseIterator.modify
+_$ss22AsyncDropFirstSequenceV8IteratorV04baseE00aE0Qzvg ---> AsyncDropFirstSequence.Iterator.baseIterator.getter
+_$ss22AsyncDropFirstSequenceV8IteratorV04baseE00aE0QzvpMV ---> property descriptor for AsyncDropFirstSequence.Iterator.baseIterator
+_$ss22AsyncDropFirstSequenceV8IteratorV04baseE00aE0Qzvs ---> AsyncDropFirstSequence.Iterator.baseIterator.setter
+_$ss22AsyncDropFirstSequenceV8IteratorV4next7ElementQzSgyYaKF ---> AsyncDropFirstSequence.Iterator.next()
+_$ss22AsyncDropFirstSequenceV8IteratorV4next7ElementQzSgyYaKFTu ---> async function pointer to AsyncDropFirstSequence.Iterator.next()
+_$ss22AsyncDropFirstSequenceV8IteratorV4next9isolation7ElementQzSgScA_pSgYi_tYa7FailureQzYKF ---> AsyncDropFirstSequence.Iterator.next(isolation:)
+_$ss22AsyncDropFirstSequenceV8IteratorV4next9isolation7ElementQzSgScA_pSgYi_tYa7FailureQzYKFTu ---> async function pointer to AsyncDropFirstSequence.Iterator.next(isolation:)
+_$ss22AsyncDropFirstSequenceV8IteratorV5countSivM ---> AsyncDropFirstSequence.Iterator.count.modify
+_$ss22AsyncDropFirstSequenceV8IteratorV5countSivg ---> AsyncDropFirstSequence.Iterator.count.getter
+_$ss22AsyncDropFirstSequenceV8IteratorV5countSivpMV ---> property descriptor for AsyncDropFirstSequence.Iterator.count
+_$ss22AsyncDropFirstSequenceV8IteratorV5countSivs ---> AsyncDropFirstSequence.Iterator.count.setter
+_$ss22AsyncDropFirstSequenceV8IteratorVMa ---> type metadata accessor for AsyncDropFirstSequence.Iterator
+_$ss22AsyncDropFirstSequenceV8IteratorVMn ---> nominal type descriptor for AsyncDropFirstSequence.Iterator
+_$ss22AsyncDropFirstSequenceV8IteratorV_5countADyx_G0aE0Qz_SitcfC ---> AsyncDropFirstSequence.Iterator.init(_:count:)
+_$ss22AsyncDropFirstSequenceV8IteratorVyx_GScIsMc ---> protocol conformance descriptor for AsyncDropFirstSequence<A>.Iterator
+_$ss22AsyncDropFirstSequenceVMa ---> type metadata accessor for AsyncDropFirstSequence
+_$ss22AsyncDropFirstSequenceVMn ---> nominal type descriptor for AsyncDropFirstSequence
+_$ss22AsyncDropFirstSequenceV_8droppingAByxGx_SitcfC ---> AsyncDropFirstSequence.init(_:dropping:)
+_$ss22AsyncDropFirstSequenceVyxGScisMc ---> protocol conformance descriptor for AsyncDropFirstSequence<A>
+_$ss22AsyncDropWhileSequenceV04makeA8IteratorAB0F0Vyx_GyF ---> AsyncDropWhileSequence.makeAsyncIterator()
+_$ss22AsyncDropWhileSequenceV4basexvg ---> AsyncDropWhileSequence.base.getter
+_$ss22AsyncDropWhileSequenceV4basexvpMV ---> property descriptor for AsyncDropWhileSequence.base
+_$ss22AsyncDropWhileSequenceV8IteratorV04baseE00aE0QzvM ---> AsyncDropWhileSequence.Iterator.baseIterator.modify
+_$ss22AsyncDropWhileSequenceV8IteratorV04baseE00aE0Qzvg ---> AsyncDropWhileSequence.Iterator.baseIterator.getter
+_$ss22AsyncDropWhileSequenceV8IteratorV04baseE00aE0QzvpMV ---> property descriptor for AsyncDropWhileSequence.Iterator.baseIterator
+_$ss22AsyncDropWhileSequenceV8IteratorV04baseE00aE0Qzvs ---> AsyncDropWhileSequence.Iterator.baseIterator.setter
+_$ss22AsyncDropWhileSequenceV8IteratorV4next7ElementQzSgyYaKF ---> AsyncDropWhileSequence.Iterator.next()
+_$ss22AsyncDropWhileSequenceV8IteratorV4next7ElementQzSgyYaKFTu ---> async function pointer to AsyncDropWhileSequence.Iterator.next()
+_$ss22AsyncDropWhileSequenceV8IteratorV4next9isolation7ElementQzSgScA_pSgYi_tYa7FailureQzYKF ---> AsyncDropWhileSequence.Iterator.next(isolation:)
+_$ss22AsyncDropWhileSequenceV8IteratorV4next9isolation7ElementQzSgScA_pSgYi_tYa7FailureQzYKFTu ---> async function pointer to AsyncDropWhileSequence.Iterator.next(isolation:)
+_$ss22AsyncDropWhileSequenceV8IteratorV9predicateSb7ElementQzYacSgvM ---> AsyncDropWhileSequence.Iterator.predicate.modify
+_$ss22AsyncDropWhileSequenceV8IteratorV9predicateSb7ElementQzYacSgvg ---> AsyncDropWhileSequence.Iterator.predicate.getter
+_$ss22AsyncDropWhileSequenceV8IteratorV9predicateSb7ElementQzYacSgvpMV ---> property descriptor for AsyncDropWhileSequence.Iterator.predicate
+_$ss22AsyncDropWhileSequenceV8IteratorV9predicateSb7ElementQzYacSgvs ---> AsyncDropWhileSequence.Iterator.predicate.setter
+_$ss22AsyncDropWhileSequenceV8IteratorVMa ---> type metadata accessor for AsyncDropWhileSequence.Iterator
+_$ss22AsyncDropWhileSequenceV8IteratorVMn ---> nominal type descriptor for AsyncDropWhileSequence.Iterator
+_$ss22AsyncDropWhileSequenceV8IteratorV_9predicateADyx_G0aE0Qz_Sb7ElementQzYactcfC ---> AsyncDropWhileSequence.Iterator.init(_:predicate:)
+_$ss22AsyncDropWhileSequenceV8IteratorVyx_GScIsMc ---> protocol conformance descriptor for AsyncDropWhileSequence<A>.Iterator
+_$ss22AsyncDropWhileSequenceV9predicateySb7ElementQzYacvg ---> AsyncDropWhileSequence.predicate.getter
+_$ss22AsyncDropWhileSequenceV9predicateySb7ElementQzYacvpMV ---> property descriptor for AsyncDropWhileSequence.predicate
+_$ss22AsyncDropWhileSequenceVMa ---> type metadata accessor for AsyncDropWhileSequence
+_$ss22AsyncDropWhileSequenceVMn ---> nominal type descriptor for AsyncDropWhileSequence
+_$ss22AsyncDropWhileSequenceV_9predicateAByxGx_Sb7ElementQzYactcfC ---> AsyncDropWhileSequence.init(_:predicate:)
+_$ss22AsyncDropWhileSequenceVyxGScisMc ---> protocol conformance descriptor for AsyncDropWhileSequence<A>
+_$ss22_checkExpectedExecutor14_filenameStart01_D6Length01_D7IsASCII5_line9_executoryBp_BwBi1_BwBetF ---> _checkExpectedExecutor(_filenameStart:_filenameLength:_filenameIsASCII:_line:_executor:)
+_$ss23AsyncCompactMapSequenceV04makeA8IteratorAB0F0Vyxq__GyF ---> AsyncCompactMapSequence.makeAsyncIterator()
+_$ss23AsyncCompactMapSequenceV4basexvg ---> AsyncCompactMapSequence.base.getter
+_$ss23AsyncCompactMapSequenceV4basexvpMV ---> property descriptor for AsyncCompactMapSequence.base
+_$ss23AsyncCompactMapSequenceV8IteratorV04baseE00aE0QzvM ---> AsyncCompactMapSequence.Iterator.baseIterator.modify
+_$ss23AsyncCompactMapSequenceV8IteratorV04baseE00aE0Qzvg ---> AsyncCompactMapSequence.Iterator.baseIterator.getter
+_$ss23AsyncCompactMapSequenceV8IteratorV04baseE00aE0QzvpMV ---> property descriptor for AsyncCompactMapSequence.Iterator.baseIterator
+_$ss23AsyncCompactMapSequenceV8IteratorV04baseE00aE0Qzvs ---> AsyncCompactMapSequence.Iterator.baseIterator.setter
+_$ss23AsyncCompactMapSequenceV8IteratorV4next9isolationq_SgScA_pSgYi_tYa7FailureQzYKF ---> AsyncCompactMapSequence.Iterator.next(isolation:)
+_$ss23AsyncCompactMapSequenceV8IteratorV4next9isolationq_SgScA_pSgYi_tYa7FailureQzYKFTu ---> async function pointer to AsyncCompactMapSequence.Iterator.next(isolation:)
+_$ss23AsyncCompactMapSequenceV8IteratorV4nextq_SgyYaKF ---> AsyncCompactMapSequence.Iterator.next()
+_$ss23AsyncCompactMapSequenceV8IteratorV4nextq_SgyYaKFTu ---> async function pointer to AsyncCompactMapSequence.Iterator.next()
+_$ss23AsyncCompactMapSequenceV8IteratorV9transformyq_Sg7ElementQzYacvg ---> AsyncCompactMapSequence.Iterator.transform.getter
+_$ss23AsyncCompactMapSequenceV8IteratorV9transformyq_Sg7ElementQzYacvpMV ---> property descriptor for AsyncCompactMapSequence.Iterator.transform
+_$ss23AsyncCompactMapSequenceV8IteratorVMa ---> type metadata accessor for AsyncCompactMapSequence.Iterator
+_$ss23AsyncCompactMapSequenceV8IteratorVMn ---> nominal type descriptor for AsyncCompactMapSequence.Iterator
+_$ss23AsyncCompactMapSequenceV8IteratorV_9transformADyxq__G0aE0Qz_q_Sg7ElementQzYactcfC ---> AsyncCompactMapSequence.Iterator.init(_:transform:)
+_$ss23AsyncCompactMapSequenceV8IteratorVyxq__GScIsMc ---> protocol conformance descriptor for AsyncCompactMapSequence<A, B>.Iterator
+_$ss23AsyncCompactMapSequenceV9transformyq_Sg7ElementQzYacvg ---> AsyncCompactMapSequence.transform.getter
+_$ss23AsyncCompactMapSequenceV9transformyq_Sg7ElementQzYacvpMV ---> property descriptor for AsyncCompactMapSequence.transform
+_$ss23AsyncCompactMapSequenceVMa ---> type metadata accessor for AsyncCompactMapSequence
+_$ss23AsyncCompactMapSequenceVMn ---> nominal type descriptor for AsyncCompactMapSequence
+_$ss23AsyncCompactMapSequenceV_9transformAByxq_Gx_q_Sg7ElementQzYactcfC ---> AsyncCompactMapSequence.init(_:transform:)
+_$ss23AsyncCompactMapSequenceVyxq_GScisMc ---> protocol conformance descriptor for AsyncCompactMapSequence<A, B>
+_$ss23PlatformExecutorFactoryV04mainB0s04MainB0_pvgZ ---> static PlatformExecutorFactory.mainExecutor.getter
+_$ss23PlatformExecutorFactoryV04mainB0s04MainB0_pvpZMV ---> property descriptor for static PlatformExecutorFactory.mainExecutor
+_$ss23PlatformExecutorFactoryV07defaultB0Sch_pvgZ ---> static PlatformExecutorFactory.defaultExecutor.getter
+_$ss23PlatformExecutorFactoryV07defaultB0Sch_pvpZMV ---> property descriptor for static PlatformExecutorFactory.defaultExecutor
+_$ss23PlatformExecutorFactoryVMa ---> type metadata accessor for PlatformExecutorFactory
+_$ss23PlatformExecutorFactoryVMn ---> nominal type descriptor for PlatformExecutorFactory
+_$ss23PlatformExecutorFactoryVN ---> type metadata for PlatformExecutorFactory
+_$ss23PlatformExecutorFactoryVs0bC0sMc ---> protocol conformance descriptor for PlatformExecutorFactory
+_$ss23PlatformExecutorFactoryVs0bC0sWP ---> protocol witness table for PlatformExecutorFactory
+_$ss23withCheckedContinuation8function_xSS_yScCyxs5NeverOGXEtYalF ---> withCheckedContinuation<A>(function:_:)
+_$ss23withCheckedContinuation8function_xSS_yScCyxs5NeverOGXEtYalFTu ---> async function pointer to withCheckedContinuation<A>(function:_:)
+_$ss23withCheckedContinuation9isolation8function_xScA_pSgYi_SSyScCyxs5NeverOGXEtYalF ---> withCheckedContinuation<A>(isolation:function:_:)
+_$ss23withCheckedContinuation9isolation8function_xScA_pSgYi_SSyScCyxs5NeverOGXEtYalFTu ---> async function pointer to withCheckedContinuation<A>(isolation:function:_:)
+_$ss23withDiscardingTaskGroup9returning4bodyxxm_xs0bcD0VzYaXEtYalF ---> withDiscardingTaskGroup<A>(returning:body:)
+_$ss23withDiscardingTaskGroup9returning4bodyxxm_xs0bcD0VzYaXEtYalFTu ---> async function pointer to withDiscardingTaskGroup<A>(returning:body:)
+_$ss23withDiscardingTaskGroup9returning9isolation4bodyxxm_ScA_pSgYixs0bcD0VzYaXEtYalF ---> withDiscardingTaskGroup<A>(returning:isolation:body:)
+_$ss23withDiscardingTaskGroup9returning9isolation4bodyxxm_ScA_pSgYixs0bcD0VzYaXEtYalFTu ---> async function pointer to withDiscardingTaskGroup<A>(returning:isolation:body:)
+_$ss24AsyncPrefixWhileSequenceV04makeA8IteratorAB0F0Vyx_GyF ---> AsyncPrefixWhileSequence.makeAsyncIterator()
+_$ss24AsyncPrefixWhileSequenceV4basexvg ---> AsyncPrefixWhileSequence.base.getter
+_$ss24AsyncPrefixWhileSequenceV4basexvpMV ---> property descriptor for AsyncPrefixWhileSequence.base
+_$ss24AsyncPrefixWhileSequenceV8IteratorV04baseE00aE0QzvM ---> AsyncPrefixWhileSequence.Iterator.baseIterator.modify
+_$ss24AsyncPrefixWhileSequenceV8IteratorV04baseE00aE0Qzvg ---> AsyncPrefixWhileSequence.Iterator.baseIterator.getter
+_$ss24AsyncPrefixWhileSequenceV8IteratorV04baseE00aE0QzvpMV ---> property descriptor for AsyncPrefixWhileSequence.Iterator.baseIterator
+_$ss24AsyncPrefixWhileSequenceV8IteratorV04baseE00aE0Qzvs ---> AsyncPrefixWhileSequence.Iterator.baseIterator.setter
+_$ss24AsyncPrefixWhileSequenceV8IteratorV18predicateHasFailedSbvM ---> AsyncPrefixWhileSequence.Iterator.predicateHasFailed.modify
+_$ss24AsyncPrefixWhileSequenceV8IteratorV18predicateHasFailedSbvg ---> AsyncPrefixWhileSequence.Iterator.predicateHasFailed.getter
+_$ss24AsyncPrefixWhileSequenceV8IteratorV18predicateHasFailedSbvpMV ---> property descriptor for AsyncPrefixWhileSequence.Iterator.predicateHasFailed
+_$ss24AsyncPrefixWhileSequenceV8IteratorV18predicateHasFailedSbvs ---> AsyncPrefixWhileSequence.Iterator.predicateHasFailed.setter
+_$ss24AsyncPrefixWhileSequenceV8IteratorV4next7ElementQzSgyYaKF ---> AsyncPrefixWhileSequence.Iterator.next()
+_$ss24AsyncPrefixWhileSequenceV8IteratorV4next7ElementQzSgyYaKFTu ---> async function pointer to AsyncPrefixWhileSequence.Iterator.next()
+_$ss24AsyncPrefixWhileSequenceV8IteratorV4next9isolation7ElementQzSgScA_pSgYi_tYa7FailureQzYKF ---> AsyncPrefixWhileSequence.Iterator.next(isolation:)
+_$ss24AsyncPrefixWhileSequenceV8IteratorV4next9isolation7ElementQzSgScA_pSgYi_tYa7FailureQzYKFTu ---> async function pointer to AsyncPrefixWhileSequence.Iterator.next(isolation:)
+_$ss24AsyncPrefixWhileSequenceV8IteratorV9predicateySb7ElementQzYacvg ---> AsyncPrefixWhileSequence.Iterator.predicate.getter
+_$ss24AsyncPrefixWhileSequenceV8IteratorV9predicateySb7ElementQzYacvpMV ---> property descriptor for AsyncPrefixWhileSequence.Iterator.predicate
+_$ss24AsyncPrefixWhileSequenceV8IteratorVMa ---> type metadata accessor for AsyncPrefixWhileSequence.Iterator
+_$ss24AsyncPrefixWhileSequenceV8IteratorVMn ---> nominal type descriptor for AsyncPrefixWhileSequence.Iterator
+_$ss24AsyncPrefixWhileSequenceV8IteratorV_9predicateADyx_G0aE0Qz_Sb7ElementQzYactcfC ---> AsyncPrefixWhileSequence.Iterator.init(_:predicate:)
+_$ss24AsyncPrefixWhileSequenceV8IteratorVyx_GScIsMc ---> protocol conformance descriptor for AsyncPrefixWhileSequence<A>.Iterator
+_$ss24AsyncPrefixWhileSequenceV9predicateySb7ElementQzYacvg ---> AsyncPrefixWhileSequence.predicate.getter
+_$ss24AsyncPrefixWhileSequenceV9predicateySb7ElementQzYacvpMV ---> property descriptor for AsyncPrefixWhileSequence.predicate
+_$ss24AsyncPrefixWhileSequenceVMa ---> type metadata accessor for AsyncPrefixWhileSequence
+_$ss24AsyncPrefixWhileSequenceVMn ---> nominal type descriptor for AsyncPrefixWhileSequence
+_$ss24AsyncPrefixWhileSequenceV_9predicateAByxGx_Sb7ElementQzYactcfC ---> AsyncPrefixWhileSequence.init(_:predicate:)
+_$ss24AsyncPrefixWhileSequenceVyxGScisMc ---> protocol conformance descriptor for AsyncPrefixWhileSequence<A>
+_$ss24AsyncThrowingMapSequenceV04makeA8IteratorAB0F0Vyxq__GyF ---> AsyncThrowingMapSequence.makeAsyncIterator()
+_$ss24AsyncThrowingMapSequenceV4basexvg ---> AsyncThrowingMapSequence.base.getter
+_$ss24AsyncThrowingMapSequenceV4basexvpMV ---> property descriptor for AsyncThrowingMapSequence.base
+_$ss24AsyncThrowingMapSequenceV8IteratorV04baseE00aE0QzvM ---> AsyncThrowingMapSequence.Iterator.baseIterator.modify
+_$ss24AsyncThrowingMapSequenceV8IteratorV04baseE00aE0Qzvg ---> AsyncThrowingMapSequence.Iterator.baseIterator.getter
+_$ss24AsyncThrowingMapSequenceV8IteratorV04baseE00aE0QzvpMV ---> property descriptor for AsyncThrowingMapSequence.Iterator.baseIterator
+_$ss24AsyncThrowingMapSequenceV8IteratorV04baseE00aE0Qzvs ---> AsyncThrowingMapSequence.Iterator.baseIterator.setter
+_$ss24AsyncThrowingMapSequenceV8IteratorV4next9isolationq_SgScA_pSgYi_tYaKF ---> AsyncThrowingMapSequence.Iterator.next(isolation:)
+_$ss24AsyncThrowingMapSequenceV8IteratorV4next9isolationq_SgScA_pSgYi_tYaKFTu ---> async function pointer to AsyncThrowingMapSequence.Iterator.next(isolation:)
+_$ss24AsyncThrowingMapSequenceV8IteratorV4nextq_SgyYaKF ---> AsyncThrowingMapSequence.Iterator.next()
+_$ss24AsyncThrowingMapSequenceV8IteratorV4nextq_SgyYaKFTu ---> async function pointer to AsyncThrowingMapSequence.Iterator.next()
+_$ss24AsyncThrowingMapSequenceV8IteratorV8finishedSbvM ---> AsyncThrowingMapSequence.Iterator.finished.modify
+_$ss24AsyncThrowingMapSequenceV8IteratorV8finishedSbvg ---> AsyncThrowingMapSequence.Iterator.finished.getter
+_$ss24AsyncThrowingMapSequenceV8IteratorV8finishedSbvpMV ---> property descriptor for AsyncThrowingMapSequence.Iterator.finished
+_$ss24AsyncThrowingMapSequenceV8IteratorV8finishedSbvs ---> AsyncThrowingMapSequence.Iterator.finished.setter
+_$ss24AsyncThrowingMapSequenceV8IteratorV9transformyq_7ElementQzYaKcvg ---> AsyncThrowingMapSequence.Iterator.transform.getter
+_$ss24AsyncThrowingMapSequenceV8IteratorV9transformyq_7ElementQzYaKcvpMV ---> property descriptor for AsyncThrowingMapSequence.Iterator.transform
+_$ss24AsyncThrowingMapSequenceV8IteratorVMa ---> type metadata accessor for AsyncThrowingMapSequence.Iterator
+_$ss24AsyncThrowingMapSequenceV8IteratorVMn ---> nominal type descriptor for AsyncThrowingMapSequence.Iterator
+_$ss24AsyncThrowingMapSequenceV8IteratorV_9transformADyxq__G0aE0Qz_q_7ElementQzYaKctcfC ---> AsyncThrowingMapSequence.Iterator.init(_:transform:)
+_$ss24AsyncThrowingMapSequenceV8IteratorVyxq__GScIsMc ---> protocol conformance descriptor for AsyncThrowingMapSequence<A, B>.Iterator
+_$ss24AsyncThrowingMapSequenceV9transformyq_7ElementQzYaKcvg ---> AsyncThrowingMapSequence.transform.getter
+_$ss24AsyncThrowingMapSequenceV9transformyq_7ElementQzYaKcvpMV ---> property descriptor for AsyncThrowingMapSequence.transform
+_$ss24AsyncThrowingMapSequenceVMa ---> type metadata accessor for AsyncThrowingMapSequence
+_$ss24AsyncThrowingMapSequenceVMn ---> nominal type descriptor for AsyncThrowingMapSequence
+_$ss24AsyncThrowingMapSequenceV_9transformAByxq_Gx_q_7ElementQzYaKctcfC ---> AsyncThrowingMapSequence.init(_:transform:)
+_$ss24AsyncThrowingMapSequenceVyxq_GScisMc ---> protocol conformance descriptor for AsyncThrowingMapSequence<A, B>
+_$ss24globalConcurrentExecutorSch_pvg ---> globalConcurrentExecutor.getter
+_$ss25UnimplementedMainExecutorC02isbC0Sbvg ---> UnimplementedMainExecutor.isMainExecutor.getter
+_$ss25UnimplementedMainExecutorC02isbC0SbvpMV ---> property descriptor for UnimplementedMainExecutor.isMainExecutor
+_$ss25UnimplementedMainExecutorC13checkIsolatedyyF ---> UnimplementedMainExecutor.checkIsolated()
+_$ss25UnimplementedMainExecutorC3runyyKF ---> UnimplementedMainExecutor.run()
+_$ss25UnimplementedMainExecutorC4stopyyF ---> UnimplementedMainExecutor.stop()
+_$ss25UnimplementedMainExecutorC7enqueueyys0C3JobVnF ---> UnimplementedMainExecutor.enqueue(_:)
+_$ss25UnimplementedMainExecutorCABycfC ---> UnimplementedMainExecutor.__allocating_init()
+_$ss25UnimplementedMainExecutorCABycfCTj ---> dispatch thunk of UnimplementedMainExecutor.__allocating_init()
+_$ss25UnimplementedMainExecutorCABycfCTq ---> method descriptor for UnimplementedMainExecutor.__allocating_init()
+_$ss25UnimplementedMainExecutorCABycfc ---> UnimplementedMainExecutor.init()
+_$ss25UnimplementedMainExecutorCMa ---> type metadata accessor for UnimplementedMainExecutor
+_$ss25UnimplementedMainExecutorCMm ---> metaclass for UnimplementedMainExecutor
+_$ss25UnimplementedMainExecutorCMn ---> nominal type descriptor for UnimplementedMainExecutor
+_$ss25UnimplementedMainExecutorCMo ---> class metadata base offset for UnimplementedMainExecutor
+_$ss25UnimplementedMainExecutorCMu ---> method lookup function for UnimplementedMainExecutor
+_$ss25UnimplementedMainExecutorCN ---> type metadata for UnimplementedMainExecutor
+_$ss25UnimplementedMainExecutorCScFsMc ---> protocol conformance descriptor for UnimplementedMainExecutor
+_$ss25UnimplementedMainExecutorCScFsWP ---> protocol witness table for UnimplementedMainExecutor
+_$ss25UnimplementedMainExecutorCScfsMc ---> protocol conformance descriptor for UnimplementedMainExecutor
+_$ss25UnimplementedMainExecutorCScfsWP ---> protocol witness table for UnimplementedMainExecutor
+_$ss25UnimplementedMainExecutorCfD ---> UnimplementedMainExecutor.__deallocating_deinit
+_$ss25UnimplementedMainExecutorCfd ---> UnimplementedMainExecutor.deinit
+_$ss25UnimplementedMainExecutorCs07RunLoopC0sMc ---> protocol conformance descriptor for UnimplementedMainExecutor
+_$ss25UnimplementedMainExecutorCs07RunLoopC0sWP ---> protocol witness table for UnimplementedMainExecutor
+_$ss25UnimplementedMainExecutorCs0bC0sMc ---> protocol conformance descriptor for UnimplementedMainExecutor
+_$ss25UnimplementedMainExecutorCs0bC0sWP ---> protocol witness table for UnimplementedMainExecutor
+_$ss25UnimplementedTaskExecutorC06isMainC0Sbvg ---> UnimplementedTaskExecutor.isMainExecutor.getter
+_$ss25UnimplementedTaskExecutorC06isMainC0SbvpMV ---> property descriptor for UnimplementedTaskExecutor.isMainExecutor
+_$ss25UnimplementedTaskExecutorC7enqueueyys0C3JobVnF ---> UnimplementedTaskExecutor.enqueue(_:)
+_$ss25UnimplementedTaskExecutorCABycfC ---> UnimplementedTaskExecutor.__allocating_init()
+_$ss25UnimplementedTaskExecutorCABycfCTj ---> dispatch thunk of UnimplementedTaskExecutor.__allocating_init()
+_$ss25UnimplementedTaskExecutorCABycfCTq ---> method descriptor for UnimplementedTaskExecutor.__allocating_init()
+_$ss25UnimplementedTaskExecutorCABycfc ---> UnimplementedTaskExecutor.init()
+_$ss25UnimplementedTaskExecutorCMa ---> type metadata accessor for UnimplementedTaskExecutor
+_$ss25UnimplementedTaskExecutorCMm ---> metaclass for UnimplementedTaskExecutor
+_$ss25UnimplementedTaskExecutorCMn ---> nominal type descriptor for UnimplementedTaskExecutor
+_$ss25UnimplementedTaskExecutorCMo ---> class metadata base offset for UnimplementedTaskExecutor
+_$ss25UnimplementedTaskExecutorCMu ---> method lookup function for UnimplementedTaskExecutor
+_$ss25UnimplementedTaskExecutorCN ---> type metadata for UnimplementedTaskExecutor
+_$ss25UnimplementedTaskExecutorCScFsMc ---> protocol conformance descriptor for UnimplementedTaskExecutor
+_$ss25UnimplementedTaskExecutorCScFsWP ---> protocol witness table for UnimplementedTaskExecutor
+_$ss25UnimplementedTaskExecutorCSchsMc ---> protocol conformance descriptor for UnimplementedTaskExecutor
+_$ss25UnimplementedTaskExecutorCSchsWP ---> protocol witness table for UnimplementedTaskExecutor
+_$ss25UnimplementedTaskExecutorCfD ---> UnimplementedTaskExecutor.__deallocating_deinit
+_$ss25UnimplementedTaskExecutorCfd ---> UnimplementedTaskExecutor.deinit
+_$ss25_getGenericSerialExecutorBeyF ---> _getGenericSerialExecutor()
+_$ss25_getUndefinedTaskExecutorBeyF ---> _getUndefinedTaskExecutor()
+_$ss26withTaskExecutorPreference_9isolation9operationxSch_pSg_ScA_pSgYixyYaq_YKXEtYaq_YKs5ErrorR_r0_lF ---> withTaskExecutorPreference<A, B>(_:isolation:operation:)
+_$ss26withTaskExecutorPreference_9isolation9operationxSch_pSg_ScA_pSgYixyYaq_YKXEtYaq_YKs5ErrorR_r0_lFTu ---> async function pointer to withTaskExecutorPreference<A, B>(_:isolation:operation:)
+_$ss26withTaskExecutorPreference_9operationxSch_pSg_xyYaYbKXEtYaKs8SendableRzlF ---> withTaskExecutorPreference<A>(_:operation:)
+_$ss26withTaskExecutorPreference_9operationxSch_pSg_xyYaYbKXEtYaKs8SendableRzlFTu ---> async function pointer to withTaskExecutorPreference<A>(_:operation:)
+_$ss27AsyncThrowingFilterSequenceV04makeA8IteratorAB0F0Vyx_GyF ---> AsyncThrowingFilterSequence.makeAsyncIterator()
+_$ss27AsyncThrowingFilterSequenceV10isIncludedySb7ElementQzYaKcvg ---> AsyncThrowingFilterSequence.isIncluded.getter
+_$ss27AsyncThrowingFilterSequenceV10isIncludedySb7ElementQzYaKcvpMV ---> property descriptor for AsyncThrowingFilterSequence.isIncluded
+_$ss27AsyncThrowingFilterSequenceV4basexvg ---> AsyncThrowingFilterSequence.base.getter
+_$ss27AsyncThrowingFilterSequenceV4basexvpMV ---> property descriptor for AsyncThrowingFilterSequence.base
+_$ss27AsyncThrowingFilterSequenceV8IteratorV04baseE00aE0QzvM ---> AsyncThrowingFilterSequence.Iterator.baseIterator.modify
+_$ss27AsyncThrowingFilterSequenceV8IteratorV04baseE00aE0Qzvg ---> AsyncThrowingFilterSequence.Iterator.baseIterator.getter
+_$ss27AsyncThrowingFilterSequenceV8IteratorV04baseE00aE0QzvpMV ---> property descriptor for AsyncThrowingFilterSequence.Iterator.baseIterator
+_$ss27AsyncThrowingFilterSequenceV8IteratorV04baseE00aE0Qzvs ---> AsyncThrowingFilterSequence.Iterator.baseIterator.setter
+_$ss27AsyncThrowingFilterSequenceV8IteratorV10isIncludedySb7ElementQzYaKcvg ---> AsyncThrowingFilterSequence.Iterator.isIncluded.getter
+_$ss27AsyncThrowingFilterSequenceV8IteratorV10isIncludedySb7ElementQzYaKcvpMV ---> property descriptor for AsyncThrowingFilterSequence.Iterator.isIncluded
+_$ss27AsyncThrowingFilterSequenceV8IteratorV4next7ElementQzSgyYaKF ---> AsyncThrowingFilterSequence.Iterator.next()
+_$ss27AsyncThrowingFilterSequenceV8IteratorV4next7ElementQzSgyYaKFTu ---> async function pointer to AsyncThrowingFilterSequence.Iterator.next()
+_$ss27AsyncThrowingFilterSequenceV8IteratorV4next9isolation7ElementQzSgScA_pSgYi_tYaKF ---> AsyncThrowingFilterSequence.Iterator.next(isolation:)
+_$ss27AsyncThrowingFilterSequenceV8IteratorV4next9isolation7ElementQzSgScA_pSgYi_tYaKFTu ---> async function pointer to AsyncThrowingFilterSequence.Iterator.next(isolation:)
+_$ss27AsyncThrowingFilterSequenceV8IteratorV8finishedSbvM ---> AsyncThrowingFilterSequence.Iterator.finished.modify
+_$ss27AsyncThrowingFilterSequenceV8IteratorV8finishedSbvg ---> AsyncThrowingFilterSequence.Iterator.finished.getter
+_$ss27AsyncThrowingFilterSequenceV8IteratorV8finishedSbvpMV ---> property descriptor for AsyncThrowingFilterSequence.Iterator.finished
+_$ss27AsyncThrowingFilterSequenceV8IteratorV8finishedSbvs ---> AsyncThrowingFilterSequence.Iterator.finished.setter
+_$ss27AsyncThrowingFilterSequenceV8IteratorVMa ---> type metadata accessor for AsyncThrowingFilterSequence.Iterator
+_$ss27AsyncThrowingFilterSequenceV8IteratorVMn ---> nominal type descriptor for AsyncThrowingFilterSequence.Iterator
+_$ss27AsyncThrowingFilterSequenceV8IteratorV_10isIncludedADyx_G0aE0Qz_Sb7ElementQzYaKctcfC ---> AsyncThrowingFilterSequence.Iterator.init(_:isIncluded:)
+_$ss27AsyncThrowingFilterSequenceV8IteratorVyx_GScIsMc ---> protocol conformance descriptor for AsyncThrowingFilterSequence<A>.Iterator
+_$ss27AsyncThrowingFilterSequenceVMa ---> type metadata accessor for AsyncThrowingFilterSequence
+_$ss27AsyncThrowingFilterSequenceVMn ---> nominal type descriptor for AsyncThrowingFilterSequence
+_$ss27AsyncThrowingFilterSequenceV_10isIncludedAByxGx_Sb7ElementQzYaKctcfC ---> AsyncThrowingFilterSequence.init(_:isIncluded:)
+_$ss27AsyncThrowingFilterSequenceVyxGScisMc ---> protocol conformance descriptor for AsyncThrowingFilterSequence<A>
+_$ss27ThrowingDiscardingTaskGroupV11isCancelledSbvg ---> ThrowingDiscardingTaskGroup.isCancelled.getter
+_$ss27ThrowingDiscardingTaskGroupV11isCancelledSbvpMV ---> property descriptor for ThrowingDiscardingTaskGroup.isCancelled
+_$ss27ThrowingDiscardingTaskGroupV22awaitAllRemainingTasks9bodyErrorys0J0_pSg_tYaKF ---> ThrowingDiscardingTaskGroup.awaitAllRemainingTasks(bodyError:)
+_$ss27ThrowingDiscardingTaskGroupV22awaitAllRemainingTasks9bodyErrorys0J0_pSg_tYaKFTu ---> async function pointer to ThrowingDiscardingTaskGroup.awaitAllRemainingTasks(bodyError:)
+_$ss27ThrowingDiscardingTaskGroupV5groupAByxGBp_tcfC ---> ThrowingDiscardingTaskGroup.init(group:)
+_$ss27ThrowingDiscardingTaskGroupV6_groupBpvg ---> ThrowingDiscardingTaskGroup._group.getter
+_$ss27ThrowingDiscardingTaskGroupV6_groupBpvpMV ---> property descriptor for ThrowingDiscardingTaskGroup._group
+_$ss27ThrowingDiscardingTaskGroupV7isEmptySbvg ---> ThrowingDiscardingTaskGroup.isEmpty.getter
+_$ss27ThrowingDiscardingTaskGroupV7isEmptySbvpMV ---> property descriptor for ThrowingDiscardingTaskGroup.isEmpty
+_$ss27ThrowingDiscardingTaskGroupV9cancelAllyyF ---> ThrowingDiscardingTaskGroup.cancelAll()
+_$ss27ThrowingDiscardingTaskGroupVMa ---> type metadata accessor for ThrowingDiscardingTaskGroup
+_$ss27ThrowingDiscardingTaskGroupVMn ---> nominal type descriptor for ThrowingDiscardingTaskGroup
+_$ss27withTaskCancellationHandler9operation8onCancel9isolationxxyYaKXE_yyYbXEScA_pSgYitYaKlF ---> withTaskCancellationHandler<A>(operation:onCancel:isolation:)
+_$ss27withTaskCancellationHandler9operation8onCancel9isolationxxyYaKXE_yyYbXEScA_pSgYitYaKlFTu ---> async function pointer to withTaskCancellationHandler<A>(operation:onCancel:isolation:)
+_$ss27withTaskCancellationHandler9operation8onCancelxxyYaKXE_yyYbXEtYaKlF ---> withTaskCancellationHandler<A>(operation:onCancel:)
+_$ss27withTaskCancellationHandler9operation8onCancelxxyYaKXE_yyYbXEtYaKlFTu ---> async function pointer to withTaskCancellationHandler<A>(operation:onCancel:)
+_$ss28AsyncThrowingFlatMapSequenceV04makeA8IteratorAB0G0Vyxq__GyF ---> AsyncThrowingFlatMapSequence.makeAsyncIterator()
+_$ss28AsyncThrowingFlatMapSequenceV4basexvg ---> AsyncThrowingFlatMapSequence.base.getter
+_$ss28AsyncThrowingFlatMapSequenceV4basexvpMV ---> property descriptor for AsyncThrowingFlatMapSequence.base
+_$ss28AsyncThrowingFlatMapSequenceV8IteratorV04baseF00aF0QzvM ---> AsyncThrowingFlatMapSequence.Iterator.baseIterator.modify
+_$ss28AsyncThrowingFlatMapSequenceV8IteratorV04baseF00aF0Qzvg ---> AsyncThrowingFlatMapSequence.Iterator.baseIterator.getter
+_$ss28AsyncThrowingFlatMapSequenceV8IteratorV04baseF00aF0QzvpMV ---> property descriptor for AsyncThrowingFlatMapSequence.Iterator.baseIterator
+_$ss28AsyncThrowingFlatMapSequenceV8IteratorV04baseF00aF0Qzvs ---> AsyncThrowingFlatMapSequence.Iterator.baseIterator.setter
+_$ss28AsyncThrowingFlatMapSequenceV8IteratorV07currentF00aF0Qy_SgvM ---> AsyncThrowingFlatMapSequence.Iterator.currentIterator.modify
+_$ss28AsyncThrowingFlatMapSequenceV8IteratorV07currentF00aF0Qy_Sgvg ---> AsyncThrowingFlatMapSequence.Iterator.currentIterator.getter
+_$ss28AsyncThrowingFlatMapSequenceV8IteratorV07currentF00aF0Qy_SgvpMV ---> property descriptor for AsyncThrowingFlatMapSequence.Iterator.currentIterator
+_$ss28AsyncThrowingFlatMapSequenceV8IteratorV07currentF00aF0Qy_Sgvs ---> AsyncThrowingFlatMapSequence.Iterator.currentIterator.setter
+_$ss28AsyncThrowingFlatMapSequenceV8IteratorV4next7ElementQy_SgyYaKF ---> AsyncThrowingFlatMapSequence.Iterator.next()
+_$ss28AsyncThrowingFlatMapSequenceV8IteratorV4next7ElementQy_SgyYaKFTu ---> async function pointer to AsyncThrowingFlatMapSequence.Iterator.next()
+_$ss28AsyncThrowingFlatMapSequenceV8IteratorV4next9isolation7ElementQy_SgScA_pSgYi_tYaKF ---> AsyncThrowingFlatMapSequence.Iterator.next(isolation:)
+_$ss28AsyncThrowingFlatMapSequenceV8IteratorV4next9isolation7ElementQy_SgScA_pSgYi_tYaKFTu ---> async function pointer to AsyncThrowingFlatMapSequence.Iterator.next(isolation:)
+_$ss28AsyncThrowingFlatMapSequenceV8IteratorV8finishedSbvM ---> AsyncThrowingFlatMapSequence.Iterator.finished.modify
+_$ss28AsyncThrowingFlatMapSequenceV8IteratorV8finishedSbvg ---> AsyncThrowingFlatMapSequence.Iterator.finished.getter
+_$ss28AsyncThrowingFlatMapSequenceV8IteratorV8finishedSbvpMV ---> property descriptor for AsyncThrowingFlatMapSequence.Iterator.finished
+_$ss28AsyncThrowingFlatMapSequenceV8IteratorV8finishedSbvs ---> AsyncThrowingFlatMapSequence.Iterator.finished.setter
+_$ss28AsyncThrowingFlatMapSequenceV8IteratorV9transformyq_7ElementQzYaKcvg ---> AsyncThrowingFlatMapSequence.Iterator.transform.getter
+_$ss28AsyncThrowingFlatMapSequenceV8IteratorV9transformyq_7ElementQzYaKcvpMV ---> property descriptor for AsyncThrowingFlatMapSequence.Iterator.transform
+_$ss28AsyncThrowingFlatMapSequenceV8IteratorVMa ---> type metadata accessor for AsyncThrowingFlatMapSequence.Iterator
+_$ss28AsyncThrowingFlatMapSequenceV8IteratorVMn ---> nominal type descriptor for AsyncThrowingFlatMapSequence.Iterator
+_$ss28AsyncThrowingFlatMapSequenceV8IteratorV_9transformADyxq__G0aF0Qz_q_7ElementQzYaKctcfC ---> AsyncThrowingFlatMapSequence.Iterator.init(_:transform:)
+_$ss28AsyncThrowingFlatMapSequenceV8IteratorVyxq__GScIsMc ---> protocol conformance descriptor for AsyncThrowingFlatMapSequence<A, B>.Iterator
+_$ss28AsyncThrowingFlatMapSequenceV9transformyq_7ElementQzYaKcvg ---> AsyncThrowingFlatMapSequence.transform.getter
+_$ss28AsyncThrowingFlatMapSequenceV9transformyq_7ElementQzYaKcvpMV ---> property descriptor for AsyncThrowingFlatMapSequence.transform
+_$ss28AsyncThrowingFlatMapSequenceVMa ---> type metadata accessor for AsyncThrowingFlatMapSequence
+_$ss28AsyncThrowingFlatMapSequenceVMn ---> nominal type descriptor for AsyncThrowingFlatMapSequence
+_$ss28AsyncThrowingFlatMapSequenceV_9transformAByxq_Gx_q_7ElementQzYaKctcfC ---> AsyncThrowingFlatMapSequence.init(_:transform:)
+_$ss28AsyncThrowingFlatMapSequenceVyxq_GScisMc ---> protocol conformance descriptor for AsyncThrowingFlatMapSequence<A, B>
+_$ss30AsyncThrowingDropWhileSequenceV04makeA8IteratorAB0G0Vyx_GyF ---> AsyncThrowingDropWhileSequence.makeAsyncIterator()
+_$ss30AsyncThrowingDropWhileSequenceV4basexvg ---> AsyncThrowingDropWhileSequence.base.getter
+_$ss30AsyncThrowingDropWhileSequenceV4basexvpMV ---> property descriptor for AsyncThrowingDropWhileSequence.base
+_$ss30AsyncThrowingDropWhileSequenceV8IteratorV04baseF00aF0QzvM ---> AsyncThrowingDropWhileSequence.Iterator.baseIterator.modify
+_$ss30AsyncThrowingDropWhileSequenceV8IteratorV04baseF00aF0Qzvg ---> AsyncThrowingDropWhileSequence.Iterator.baseIterator.getter
+_$ss30AsyncThrowingDropWhileSequenceV8IteratorV04baseF00aF0QzvpMV ---> property descriptor for AsyncThrowingDropWhileSequence.Iterator.baseIterator
+_$ss30AsyncThrowingDropWhileSequenceV8IteratorV04baseF00aF0Qzvs ---> AsyncThrowingDropWhileSequence.Iterator.baseIterator.setter
+_$ss30AsyncThrowingDropWhileSequenceV8IteratorV12doneDroppingSbvM ---> AsyncThrowingDropWhileSequence.Iterator.doneDropping.modify
+_$ss30AsyncThrowingDropWhileSequenceV8IteratorV12doneDroppingSbvg ---> AsyncThrowingDropWhileSequence.Iterator.doneDropping.getter
+_$ss30AsyncThrowingDropWhileSequenceV8IteratorV12doneDroppingSbvpMV ---> property descriptor for AsyncThrowingDropWhileSequence.Iterator.doneDropping
+_$ss30AsyncThrowingDropWhileSequenceV8IteratorV12doneDroppingSbvs ---> AsyncThrowingDropWhileSequence.Iterator.doneDropping.setter
+_$ss30AsyncThrowingDropWhileSequenceV8IteratorV4next7ElementQzSgyYaKF ---> AsyncThrowingDropWhileSequence.Iterator.next()
+_$ss30AsyncThrowingDropWhileSequenceV8IteratorV4next7ElementQzSgyYaKFTu ---> async function pointer to AsyncThrowingDropWhileSequence.Iterator.next()
+_$ss30AsyncThrowingDropWhileSequenceV8IteratorV4next9isolation7ElementQzSgScA_pSgYi_tYaKF ---> AsyncThrowingDropWhileSequence.Iterator.next(isolation:)
+_$ss30AsyncThrowingDropWhileSequenceV8IteratorV4next9isolation7ElementQzSgScA_pSgYi_tYaKFTu ---> async function pointer to AsyncThrowingDropWhileSequence.Iterator.next(isolation:)
+_$ss30AsyncThrowingDropWhileSequenceV8IteratorV8finishedSbvM ---> AsyncThrowingDropWhileSequence.Iterator.finished.modify
+_$ss30AsyncThrowingDropWhileSequenceV8IteratorV8finishedSbvg ---> AsyncThrowingDropWhileSequence.Iterator.finished.getter
+_$ss30AsyncThrowingDropWhileSequenceV8IteratorV8finishedSbvpMV ---> property descriptor for AsyncThrowingDropWhileSequence.Iterator.finished
+_$ss30AsyncThrowingDropWhileSequenceV8IteratorV8finishedSbvs ---> AsyncThrowingDropWhileSequence.Iterator.finished.setter
+_$ss30AsyncThrowingDropWhileSequenceV8IteratorV9predicateySb7ElementQzYaKcvg ---> AsyncThrowingDropWhileSequence.Iterator.predicate.getter
+_$ss30AsyncThrowingDropWhileSequenceV8IteratorV9predicateySb7ElementQzYaKcvpMV ---> property descriptor for AsyncThrowingDropWhileSequence.Iterator.predicate
+_$ss30AsyncThrowingDropWhileSequenceV8IteratorVMa ---> type metadata accessor for AsyncThrowingDropWhileSequence.Iterator
+_$ss30AsyncThrowingDropWhileSequenceV8IteratorVMn ---> nominal type descriptor for AsyncThrowingDropWhileSequence.Iterator
+_$ss30AsyncThrowingDropWhileSequenceV8IteratorV_9predicateADyx_G0aF0Qz_Sb7ElementQzYaKctcfC ---> AsyncThrowingDropWhileSequence.Iterator.init(_:predicate:)
+_$ss30AsyncThrowingDropWhileSequenceV8IteratorVyx_GScIsMc ---> protocol conformance descriptor for AsyncThrowingDropWhileSequence<A>.Iterator
+_$ss30AsyncThrowingDropWhileSequenceV9predicateySb7ElementQzYaKcvg ---> AsyncThrowingDropWhileSequence.predicate.getter
+_$ss30AsyncThrowingDropWhileSequenceV9predicateySb7ElementQzYaKcvpMV ---> property descriptor for AsyncThrowingDropWhileSequence.predicate
+_$ss30AsyncThrowingDropWhileSequenceVMa ---> type metadata accessor for AsyncThrowingDropWhileSequence
+_$ss30AsyncThrowingDropWhileSequenceVMn ---> nominal type descriptor for AsyncThrowingDropWhileSequence
+_$ss30AsyncThrowingDropWhileSequenceV_9predicateAByxGx_Sb7ElementQzYaKctcfC ---> AsyncThrowingDropWhileSequence.init(_:predicate:)
+_$ss30AsyncThrowingDropWhileSequenceVyxGScisMc ---> protocol conformance descriptor for AsyncThrowingDropWhileSequence<A>
+_$ss31AsyncThrowingCompactMapSequenceV04makeA8IteratorAB0G0Vyxq__GyF ---> AsyncThrowingCompactMapSequence.makeAsyncIterator()
+_$ss31AsyncThrowingCompactMapSequenceV4basexvg ---> AsyncThrowingCompactMapSequence.base.getter
+_$ss31AsyncThrowingCompactMapSequenceV4basexvpMV ---> property descriptor for AsyncThrowingCompactMapSequence.base
+_$ss31AsyncThrowingCompactMapSequenceV8IteratorV04baseF00aF0QzvM ---> AsyncThrowingCompactMapSequence.Iterator.baseIterator.modify
+_$ss31AsyncThrowingCompactMapSequenceV8IteratorV04baseF00aF0Qzvg ---> AsyncThrowingCompactMapSequence.Iterator.baseIterator.getter
+_$ss31AsyncThrowingCompactMapSequenceV8IteratorV04baseF00aF0QzvpMV ---> property descriptor for AsyncThrowingCompactMapSequence.Iterator.baseIterator
+_$ss31AsyncThrowingCompactMapSequenceV8IteratorV04baseF00aF0Qzvs ---> AsyncThrowingCompactMapSequence.Iterator.baseIterator.setter
+_$ss31AsyncThrowingCompactMapSequenceV8IteratorV4next9isolationq_SgScA_pSgYi_tYaKF ---> AsyncThrowingCompactMapSequence.Iterator.next(isolation:)
+_$ss31AsyncThrowingCompactMapSequenceV8IteratorV4next9isolationq_SgScA_pSgYi_tYaKFTu ---> async function pointer to AsyncThrowingCompactMapSequence.Iterator.next(isolation:)
+_$ss31AsyncThrowingCompactMapSequenceV8IteratorV4nextq_SgyYaKF ---> AsyncThrowingCompactMapSequence.Iterator.next()
+_$ss31AsyncThrowingCompactMapSequenceV8IteratorV4nextq_SgyYaKFTu ---> async function pointer to AsyncThrowingCompactMapSequence.Iterator.next()
+_$ss31AsyncThrowingCompactMapSequenceV8IteratorV8finishedSbvM ---> AsyncThrowingCompactMapSequence.Iterator.finished.modify
+_$ss31AsyncThrowingCompactMapSequenceV8IteratorV8finishedSbvg ---> AsyncThrowingCompactMapSequence.Iterator.finished.getter
+_$ss31AsyncThrowingCompactMapSequenceV8IteratorV8finishedSbvpMV ---> property descriptor for AsyncThrowingCompactMapSequence.Iterator.finished
+_$ss31AsyncThrowingCompactMapSequenceV8IteratorV8finishedSbvs ---> AsyncThrowingCompactMapSequence.Iterator.finished.setter
+_$ss31AsyncThrowingCompactMapSequenceV8IteratorV9transformyq_Sg7ElementQzYaKcvg ---> AsyncThrowingCompactMapSequence.Iterator.transform.getter
+_$ss31AsyncThrowingCompactMapSequenceV8IteratorV9transformyq_Sg7ElementQzYaKcvpMV ---> property descriptor for AsyncThrowingCompactMapSequence.Iterator.transform
+_$ss31AsyncThrowingCompactMapSequenceV8IteratorVMa ---> type metadata accessor for AsyncThrowingCompactMapSequence.Iterator
+_$ss31AsyncThrowingCompactMapSequenceV8IteratorVMn ---> nominal type descriptor for AsyncThrowingCompactMapSequence.Iterator
+_$ss31AsyncThrowingCompactMapSequenceV8IteratorV_9transformADyxq__G0aF0Qz_q_Sg7ElementQzYaKctcfC ---> AsyncThrowingCompactMapSequence.Iterator.init(_:transform:)
+_$ss31AsyncThrowingCompactMapSequenceV8IteratorVyxq__GScIsMc ---> protocol conformance descriptor for AsyncThrowingCompactMapSequence<A, B>.Iterator
+_$ss31AsyncThrowingCompactMapSequenceV9transformyq_Sg7ElementQzYaKcvg ---> AsyncThrowingCompactMapSequence.transform.getter
+_$ss31AsyncThrowingCompactMapSequenceV9transformyq_Sg7ElementQzYaKcvpMV ---> property descriptor for AsyncThrowingCompactMapSequence.transform
+_$ss31AsyncThrowingCompactMapSequenceVMa ---> type metadata accessor for AsyncThrowingCompactMapSequence
+_$ss31AsyncThrowingCompactMapSequenceVMn ---> nominal type descriptor for AsyncThrowingCompactMapSequence
+_$ss31AsyncThrowingCompactMapSequenceV_9transformAByxq_Gx_q_Sg7ElementQzYaKctcfC ---> AsyncThrowingCompactMapSequence.init(_:transform:)
+_$ss31AsyncThrowingCompactMapSequenceVyxq_GScisMc ---> protocol conformance descriptor for AsyncThrowingCompactMapSequence<A, B>
+_$ss31withCheckedThrowingContinuation8function_xSS_yScCyxs5Error_pGXEtYaKlF ---> withCheckedThrowingContinuation<A>(function:_:)
+_$ss31withCheckedThrowingContinuation8function_xSS_yScCyxs5Error_pGXEtYaKlFTu ---> async function pointer to withCheckedThrowingContinuation<A>(function:_:)
+_$ss31withCheckedThrowingContinuation9isolation8function_xScA_pSgYi_SSyScCyxs5Error_pGXEtYaKlF ---> withCheckedThrowingContinuation<A>(isolation:function:_:)
+_$ss31withCheckedThrowingContinuation9isolation8function_xScA_pSgYi_SSyScCyxs5Error_pGXEtYaKlFTu ---> async function pointer to withCheckedThrowingContinuation<A>(isolation:function:_:)
+_$ss31withThrowingDiscardingTaskGroup9returning4bodyxxm_xs0bcdE0Vys5Error_pGzYaKXEtYaKlF ---> withThrowingDiscardingTaskGroup<A>(returning:body:)
+_$ss31withThrowingDiscardingTaskGroup9returning4bodyxxm_xs0bcdE0Vys5Error_pGzYaKXEtYaKlFTu ---> async function pointer to withThrowingDiscardingTaskGroup<A>(returning:body:)
+_$ss31withThrowingDiscardingTaskGroup9returning9isolation4bodyxxm_ScA_pSgYixs0bcdE0Vys5Error_pGzYaKXEtYaKlF ---> withThrowingDiscardingTaskGroup<A>(returning:isolation:body:)
+_$ss31withThrowingDiscardingTaskGroup9returning9isolation4bodyxxm_ScA_pSgYixs0bcdE0Vys5Error_pGzYaKXEtYaKlFTu ---> async function pointer to withThrowingDiscardingTaskGroup<A>(returning:isolation:body:)
+_$ss32AsyncThrowingPrefixWhileSequenceV04makeA8IteratorAB0G0Vyx_GyF ---> AsyncThrowingPrefixWhileSequence.makeAsyncIterator()
+_$ss32AsyncThrowingPrefixWhileSequenceV4basexvg ---> AsyncThrowingPrefixWhileSequence.base.getter
+_$ss32AsyncThrowingPrefixWhileSequenceV4basexvpMV ---> property descriptor for AsyncThrowingPrefixWhileSequence.base
+_$ss32AsyncThrowingPrefixWhileSequenceV8IteratorV04baseF00aF0QzvM ---> AsyncThrowingPrefixWhileSequence.Iterator.baseIterator.modify
+_$ss32AsyncThrowingPrefixWhileSequenceV8IteratorV04baseF00aF0Qzvg ---> AsyncThrowingPrefixWhileSequence.Iterator.baseIterator.getter
+_$ss32AsyncThrowingPrefixWhileSequenceV8IteratorV04baseF00aF0QzvpMV ---> property descriptor for AsyncThrowingPrefixWhileSequence.Iterator.baseIterator
+_$ss32AsyncThrowingPrefixWhileSequenceV8IteratorV04baseF00aF0Qzvs ---> AsyncThrowingPrefixWhileSequence.Iterator.baseIterator.setter
+_$ss32AsyncThrowingPrefixWhileSequenceV8IteratorV18predicateHasFailedSbvM ---> AsyncThrowingPrefixWhileSequence.Iterator.predicateHasFailed.modify
+_$ss32AsyncThrowingPrefixWhileSequenceV8IteratorV18predicateHasFailedSbvg ---> AsyncThrowingPrefixWhileSequence.Iterator.predicateHasFailed.getter
+_$ss32AsyncThrowingPrefixWhileSequenceV8IteratorV18predicateHasFailedSbvpMV ---> property descriptor for AsyncThrowingPrefixWhileSequence.Iterator.predicateHasFailed
+_$ss32AsyncThrowingPrefixWhileSequenceV8IteratorV18predicateHasFailedSbvs ---> AsyncThrowingPrefixWhileSequence.Iterator.predicateHasFailed.setter
+_$ss32AsyncThrowingPrefixWhileSequenceV8IteratorV4next7ElementQzSgyYaKF ---> AsyncThrowingPrefixWhileSequence.Iterator.next()
+_$ss32AsyncThrowingPrefixWhileSequenceV8IteratorV4next7ElementQzSgyYaKFTu ---> async function pointer to AsyncThrowingPrefixWhileSequence.Iterator.next()
+_$ss32AsyncThrowingPrefixWhileSequenceV8IteratorV4next9isolation7ElementQzSgScA_pSgYi_tYaKF ---> AsyncThrowingPrefixWhileSequence.Iterator.next(isolation:)
+_$ss32AsyncThrowingPrefixWhileSequenceV8IteratorV4next9isolation7ElementQzSgScA_pSgYi_tYaKFTu ---> async function pointer to AsyncThrowingPrefixWhileSequence.Iterator.next(isolation:)
+_$ss32AsyncThrowingPrefixWhileSequenceV8IteratorV9predicateySb7ElementQzYaKcvg ---> AsyncThrowingPrefixWhileSequence.Iterator.predicate.getter
+_$ss32AsyncThrowingPrefixWhileSequenceV8IteratorV9predicateySb7ElementQzYaKcvpMV ---> property descriptor for AsyncThrowingPrefixWhileSequence.Iterator.predicate
+_$ss32AsyncThrowingPrefixWhileSequenceV8IteratorVMa ---> type metadata accessor for AsyncThrowingPrefixWhileSequence.Iterator
+_$ss32AsyncThrowingPrefixWhileSequenceV8IteratorVMn ---> nominal type descriptor for AsyncThrowingPrefixWhileSequence.Iterator
+_$ss32AsyncThrowingPrefixWhileSequenceV8IteratorV_9predicateADyx_G0aF0Qz_Sb7ElementQzYaKctcfC ---> AsyncThrowingPrefixWhileSequence.Iterator.init(_:predicate:)
+_$ss32AsyncThrowingPrefixWhileSequenceV8IteratorVyx_GScIsMc ---> protocol conformance descriptor for AsyncThrowingPrefixWhileSequence<A>.Iterator
+_$ss32AsyncThrowingPrefixWhileSequenceV9predicateySb7ElementQzYaKcvg ---> AsyncThrowingPrefixWhileSequence.predicate.getter
+_$ss32AsyncThrowingPrefixWhileSequenceV9predicateySb7ElementQzYaKcvpMV ---> property descriptor for AsyncThrowingPrefixWhileSequence.predicate
+_$ss32AsyncThrowingPrefixWhileSequenceVMa ---> type metadata accessor for AsyncThrowingPrefixWhileSequence
+_$ss32AsyncThrowingPrefixWhileSequenceVMn ---> nominal type descriptor for AsyncThrowingPrefixWhileSequence
+_$ss32AsyncThrowingPrefixWhileSequenceV_9predicateAByxGx_Sb7ElementQzYaKctcfC ---> AsyncThrowingPrefixWhileSequence.init(_:predicate:)
+_$ss32AsyncThrowingPrefixWhileSequenceVyxGScisMc ---> protocol conformance descriptor for AsyncThrowingPrefixWhileSequence<A>
+_$ss33withTaskPriorityEscalationHandler9operation02onC9Escalated9isolationxxyYaq_YKXE_yScP_ScPtYbXEScA_pSgYitYaq_YKs5ErrorR_r0_lF ---> withTaskPriorityEscalationHandler<A, B>(operation:onPriorityEscalated:isolation:)
+_$ss33withTaskPriorityEscalationHandler9operation02onC9Escalated9isolationxxyYaq_YKXE_yScP_ScPtYbXEScA_pSgYitYaq_YKs5ErrorR_r0_lFTu ---> async function pointer to withTaskPriorityEscalationHandler<A, B>(operation:onPriorityEscalated:isolation:)
+_$ss3JobV11descriptionSSvg ---> Job.description.getter
+_$ss3JobV7contextABBjn_tcfC ---> Job.init(context:)
+_$ss3JobV8prioritys0A8PriorityVvg ---> Job.priority.getter
+_$ss3JobVMa ---> type metadata accessor for Job
+_$ss3JobVMn ---> nominal type descriptor for Job
+_$ss3JobVN ---> type metadata for Job
+_$ss3JobVyABScJcfC ---> Job.init(_:)
+_$ss3JobVyABs08ExecutorA0VncfC ---> Job.init(_:)
+_$ss5ClockMp ---> protocol descriptor for Clock
+_$ss5ClockP17minimumResolution8DurationQzvgTj ---> dispatch thunk of Clock.minimumResolution.getter
+_$ss5ClockP17minimumResolution8DurationQzvgTq ---> method descriptor for Clock.minimumResolution.getter
+_$ss5ClockP3now7InstantQzvgTj ---> dispatch thunk of Clock.now.getter
+_$ss5ClockP3now7InstantQzvgTq ---> method descriptor for Clock.now.getter
+_$ss5ClockP5sleep5until9tolerancey7InstantQz_8DurationQzSgtYaKFTj ---> dispatch thunk of Clock.sleep(until:tolerance:)
+_$ss5ClockP5sleep5until9tolerancey7InstantQz_8DurationQzSgtYaKFTjTu ---> async function pointer to dispatch thunk of Clock.sleep(until:tolerance:)
+_$ss5ClockP5sleep5until9tolerancey7InstantQz_8DurationQzSgtYaKFTq ---> method descriptor for Clock.sleep(until:tolerance:)
+_$ss5ClockP7InstantAB_s0B8ProtocolTn ---> associated conformance descriptor for Clock.Clock.Instant: InstantProtocol
+_$ss5ClockPsE7measurey8DurationQzyyKXEKF ---> Clock.measure(_:)
+_$ss5ClockPsE7measurey8DurationQzyyYaKXEYaKF ---> Clock.measure(_:)
+_$ss5ClockPsE7measurey8DurationQzyyYaKXEYaKFTu ---> async function pointer to Clock.measure(_:)
+_$ss5ClockPss010ContinuousA0VRszrlE10continuousADvgZ ---> static Clock<>.continuous.getter
+_$ss5ClockPss010ContinuousA0VRszrlE10continuousADvpZMV ---> property descriptor for static Clock<>.continuous
+_$ss5ClockPss010SuspendingA0VRszrlE10suspendingADvgZ ---> static Clock<>.suspending.getter
+_$ss5ClockPss010SuspendingA0VRszrlE10suspendingADvpZMV ---> property descriptor for static Clock<>.suspending
+_$ss5ClockTL ---> protocol requirements base descriptor for Clock
+_$ss6_first_5where7ElementQzSgx_SbADYaKXEtYaKSciRzlF ---> _first<A>(_:where:)
+_$ss6_first_5where7ElementQzSgx_SbADYaKXEtYaKSciRzlFTu ---> async function pointer to _first<A>(_:where:)
+_$ss9TaskLocalC11descriptionSSvg ---> TaskLocal.description.getter
+_$ss9TaskLocalC11descriptionSSvpMV ---> property descriptor for TaskLocal.description
+_$ss9TaskLocalC12wrappedValueAByxGx_tcfC ---> TaskLocal.__allocating_init(wrappedValue:)
+_$ss9TaskLocalC12wrappedValueAByxGx_tcfCTj ---> dispatch thunk of TaskLocal.__allocating_init(wrappedValue:)
+_$ss9TaskLocalC12wrappedValueAByxGx_tcfCTq ---> method descriptor for TaskLocal.__allocating_init(wrappedValue:)
+_$ss9TaskLocalC12wrappedValueAByxGx_tcfc ---> TaskLocal.init(wrappedValue:)
+_$ss9TaskLocalC12wrappedValuexvg ---> TaskLocal.wrappedValue.getter
+_$ss9TaskLocalC12wrappedValuexvpMV ---> property descriptor for TaskLocal.wrappedValue
+_$ss9TaskLocalC13withValueImpl_9operation4file4lineqd__xn_qd__yYaKXESSSutYaKlF ---> TaskLocal.withValueImpl<A>(_:operation:file:line:)
+_$ss9TaskLocalC13withValueImpl_9operation4file4lineqd__xn_qd__yYaKXESSSutYaKlFTu ---> async function pointer to TaskLocal.withValueImpl<A>(_:operation:file:line:)
+_$ss9TaskLocalC13withValueImpl_9operation9isolation4file4lineqd__xn_qd__yYaKXEScA_pSgYiSSSutYaKlF ---> TaskLocal.withValueImpl<A>(_:operation:isolation:file:line:)
+_$ss9TaskLocalC13withValueImpl_9operation9isolation4file4lineqd__xn_qd__yYaKXEScA_pSgYiSSSutYaKlFTu ---> async function pointer to TaskLocal.withValueImpl<A>(_:operation:isolation:file:line:)
+_$ss9TaskLocalC14projectedValueAByxGvM ---> TaskLocal.projectedValue.modify
+_$ss9TaskLocalC14projectedValueAByxGvg ---> TaskLocal.projectedValue.getter
+_$ss9TaskLocalC14projectedValueAByxGvpMV ---> property descriptor for TaskLocal.projectedValue
+_$ss9TaskLocalC14projectedValueAByxGvs ---> TaskLocal.projectedValue.setter
+_$ss9TaskLocalC18_enclosingInstance7wrapped7storagexs5NeverO_s24ReferenceWritableKeyPathCyAGxGAIyAgByxGGtcigZ ---> static TaskLocal.subscript.getter
+_$ss9TaskLocalC18_enclosingInstance7wrapped7storagexs5NeverO_s24ReferenceWritableKeyPathCyAGxGAIyAgByxGGtcipZMV ---> property descriptor for static TaskLocal.subscript(_enclosingInstance:wrapped:storage:)
+_$ss9TaskLocalC3getxyF ---> TaskLocal.get()
+_$ss9TaskLocalC3keyBpvpMV ---> property descriptor for TaskLocal.key
+_$ss9TaskLocalC9withValue_9operation4file4lineqd__x_qd__yKXESSSutKlF ---> TaskLocal.withValue<A>(_:operation:file:line:)
+_$ss9TaskLocalC9withValue_9operation4file4lineqd__x_qd__yYaKXESSSutYaKlF ---> TaskLocal.withValue<A>(_:operation:file:line:)
+_$ss9TaskLocalC9withValue_9operation4file4lineqd__x_qd__yYaKXESSSutYaKlFTu ---> async function pointer to TaskLocal.withValue<A>(_:operation:file:line:)
+_$ss9TaskLocalC9withValue_9operation9isolation4file4lineqd__x_qd__yYaKXEScA_pSgYiSSSutYaKlF ---> TaskLocal.withValue<A>(_:operation:isolation:file:line:)
+_$ss9TaskLocalC9withValue_9operation9isolation4file4lineqd__x_qd__yYaKXEScA_pSgYiSSSutYaKlFTu ---> async function pointer to TaskLocal.withValue<A>(_:operation:isolation:file:line:)
+_$ss9TaskLocalCMa ---> type metadata accessor for TaskLocal
+_$ss9TaskLocalCMn ---> nominal type descriptor for TaskLocal
+_$ss9TaskLocalCMo ---> class metadata base offset for TaskLocal
+_$ss9TaskLocalCMu ---> method lookup function for TaskLocal
+_$ss9TaskLocalCfD ---> TaskLocal.__deallocating_deinit
+_$ss9TaskLocalCfd ---> TaskLocal.deinit
+_$ss9TaskLocalCyxGs23CustomStringConvertiblesMc ---> protocol conformance descriptor for TaskLocal<A>
+_$ss9_contains_5whereSbx_Sb7ElementQzYaKXEtYaKSciRzlF ---> _contains<A>(_:where:)
+_$ss9_contains_5whereSbx_Sb7ElementQzYaKXEtYaKSciRzlFTu ---> async function pointer to _contains<A>(_:where:)
