@@ -116,7 +116,7 @@ func ParseBody(schemeName, origin, body string, prefixBytes int) (*demangle.Resu
 }
 
 func parseBodyWithOpts(schemeName, origin, body string, prefixBytes int, opts demangle.Options) (*demangle.Result, error) {
-	p := &parser{s: body, origin: origin, prefixBytes: prefixBytes, schemeName: schemeName}
+	p := &parser{s: body, origin: origin, prefixBytes: prefixBytes, schemeName: schemeName, words: make([]string, 0, 26), subs: common.WithCapacity(32)}
 	tree, err := p.parseGlobal()
 	if err != nil {
 		return nil, err
@@ -9432,8 +9432,8 @@ func (p *parser) parseIdentifier() (string, error) {
 				p.i++
 			}
 			length := 0
-			for _, c := range p.s[start:p.i] {
-				length = length*10 + int(c-'0')
+			for k := start; k < p.i; k++ {
+				length = length*10 + int(p.s[k]-'0')
 				if length > len(p.s) {
 					return "", p.grammarErr("punycoded identifier length")
 				}
@@ -9454,41 +9454,48 @@ func (p *parser) parseIdentifier() (string, error) {
 		p.i++
 		hasWordSubsts = true
 	}
-	var buf strings.Builder
-	captureWords := func(s string) {
-		// Apple's isWordStart/isWordEnd heuristic. Start = upper-letter
-		// OR underscore-after-lower (transition). End = before upper-
-		// case-after-lower OR final.
-		isUpper := func(c byte) bool { return c >= 'A' && c <= 'Z' }
-		isLower := func(c byte) bool { return c >= 'a' && c <= 'z' }
-		isLetter := func(c byte) bool { return isUpper(c) || isLower(c) }
-		isWordStart := func(c byte) bool { return isLetter(c) || c == '_' }
-		isWordEnd := func(c, prev byte) bool {
-			if !isLetter(c) {
-				return true
-			}
-			if isUpper(c) && isLower(prev) {
-				return true
-			}
-			return false
+
+	// Fast path: simple length-prefixed identifier with no word-subs.
+	// This is the hot case (~95% of identifiers in production symbols).
+	// Return a substring of p.s directly — zero heap allocation.
+	if !hasWordSubsts {
+		if p.eof() || !(p.s[p.i] >= '0' && p.s[p.i] <= '9') {
+			return "", p.grammarErr("identifier length")
 		}
-		wordStart := -1
-		for i := 0; i <= len(s); i++ {
-			var c byte
-			if i < len(s) {
-				c = s[i]
+		start := p.i
+		for !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+			p.i++
+		}
+		length := 0
+		for k := start; k < p.i; k++ {
+			length = length*10 + int(p.s[k]-'0')
+			if length > len(p.s) {
+				return "", p.grammarErr("identifier length too large")
 			}
-			if wordStart >= 0 && (i == len(s) || isWordEnd(c, s[i-1])) {
-				if i-wordStart >= 2 && len(p.words) < 26 {
-					p.words = append(p.words, s[wordStart:i])
+		}
+		if length <= 0 {
+			return "", p.grammarErr("positive identifier length")
+		}
+		if p.i+length > len(p.s) {
+			return "", demangle.TruncatedInput(p.schemeName, p.origin, p.i+p.prefixBytes)
+		}
+		chunk := p.s[p.i : p.i+length]
+		p.i += length
+		// Capture words for potential future word-sub identifiers.
+		p.captureWords(chunk)
+		// Validate UTF-8: skip the range scan for pure-ASCII identifiers
+		// (the common case) — bytes above 0x7F indicate multi-byte runes.
+		if !isAllASCII(chunk) {
+			for _, r := range chunk {
+				if r == unicode.ReplacementChar {
+					return "", p.grammarErr("valid identifier UTF-8")
 				}
-				wordStart = -1
-			}
-			if wordStart < 0 && i < len(s) && isWordStart(c) {
-				wordStart = i
 			}
 		}
+		return chunk, nil
 	}
+
+	var buf strings.Builder
 	wasWordSubMode := hasWordSubsts
 	for {
 		// Word-ref letters (only when hasWordSubsts).
@@ -9531,8 +9538,8 @@ func (p *parser) parseIdentifier() (string, error) {
 			p.i++
 		}
 		length := 0
-		for _, c := range p.s[start:p.i] {
-			length = length*10 + int(c-'0')
+		for k := start; k < p.i; k++ {
+			length = length*10 + int(p.s[k]-'0')
 			if length > len(p.s) {
 				return "", p.grammarErr("identifier length too large")
 			}
@@ -9546,7 +9553,7 @@ func (p *parser) parseIdentifier() (string, error) {
 		chunk := p.s[p.i : p.i+length]
 		p.i += length
 		buf.WriteString(chunk)
-		captureWords(chunk)
+		p.captureWords(chunk)
 		// Non-word-sub identifiers have exactly one literal chunk.
 		// Also exits when an upper-letter ref inside the word-sub
 		// loop set hasWordSubsts=false (Apple's do-while condition).
@@ -9561,6 +9568,55 @@ func (p *parser) parseIdentifier() (string, error) {
 		}
 	}
 	return text, nil
+}
+
+// captureWords extracts word fragments from an identifier string and
+// appends them to p.words. Apple's word-substitution encoding stores
+// up to 26 words per symbol; each word is a run of ≥2 letters starting
+// at an uppercase letter or underscore and ending before the next
+// uppercase-after-lowercase transition.
+//
+// Implemented as a method (not a closure) to avoid heap-escape of the
+// receiver; this is called on every identifier parse and is a hot path.
+// All character predicates are inlined to avoid closure allocation.
+func (p *parser) captureWords(s string) {
+	wordStart := -1
+	for i := 0; i <= len(s); i++ {
+		if wordStart >= 0 {
+			atEnd := i == len(s)
+			if !atEnd {
+				c := s[i]
+				prev := s[i-1]
+				// isLetter(c) = c in [A-Za-z]
+				isLetterC := c >= 'A' && c <= 'Z' || c >= 'a' && c <= 'z'
+				// isWordEnd: not a letter, OR uppercase-after-lowercase
+				atEnd = !isLetterC || (c >= 'A' && c <= 'Z' && prev >= 'a' && prev <= 'z')
+			}
+			if atEnd {
+				if i-wordStart >= 2 && len(p.words) < 26 {
+					p.words = append(p.words, s[wordStart:i])
+				}
+				wordStart = -1
+			}
+		}
+		if wordStart < 0 && i < len(s) {
+			c := s[i]
+			if c >= 'A' && c <= 'Z' || c >= 'a' && c <= 'z' || c == '_' {
+				wordStart = i
+			}
+		}
+	}
+}
+
+// isAllASCII reports whether every byte in s is below 0x80.
+// Used to skip the unicode.ReplacementChar scan for the common case.
+func isAllASCII(s string) bool {
+	for i := 0; i < len(s); i++ {
+		if s[i] >= 0x80 {
+			return false
+		}
+	}
+	return true
 }
 
 func (p *parser) grammarErr(expected string) error {

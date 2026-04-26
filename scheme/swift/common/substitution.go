@@ -207,3 +207,10 @@ func (t *SubstitutionTable) Clone() *SubstitutionTable {
 	copy(cp, t.entries)
 	return &SubstitutionTable{entries: cp}
 }
+
+// WithCapacity returns a SubstitutionTable pre-allocated with the
+// given initial capacity. Use at parser construction to avoid
+// repeated growslice calls on the hot Push path.
+func WithCapacity(n int) SubstitutionTable {
+	return SubstitutionTable{entries: make([]*demangle.Node, 0, n)}
+}
