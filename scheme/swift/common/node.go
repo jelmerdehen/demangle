@@ -500,6 +500,15 @@ func RootNameOf(n *demangle.Node) string {
 	if NodeKind(cur.Kind) == KindType && len(cur.Children) > 0 {
 		cur = cur.Children[0]
 	}
+	// Unwrap bound-generic to reach the base nominal.
+	switch NodeKind(cur.Kind) {
+	case KindBoundGenericStructure, KindBoundGenericClass,
+		KindBoundGenericEnum, KindBoundGenericProtocol:
+		if len(cur.Children) > 0 {
+			return RootNameOf(cur.Children[0])
+		}
+		return ""
+	}
 	switch NodeKind(cur.Kind) {
 	case KindStructure, KindClass, KindEnum, KindProtocol:
 	default:

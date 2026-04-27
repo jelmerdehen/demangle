@@ -7001,7 +7001,11 @@ func (p *parser) tryAssocTypeDescriptor() (*demangle.Node, bool) {
 			return nil, false
 		}
 		p.i++ // consume 'P'
-		qualifiedProto = "Swift." + protoName
+		if swiftConcurrencyRuntimeTypes[protoName] {
+			qualifiedProto = protoName
+		} else {
+			qualifiedProto = "Swift." + protoName
+		}
 
 	case p.s[p.i] == 'S' && p.i+1 < len(p.s):
 		// Pattern C: S<letter> stdlib substitution + Tl (no P byte)
