@@ -379,7 +379,17 @@ func (p *parser) parseGlobal() (*demangle.Node, error) {
 	// entity-suffix loop below.
 	if p.i+1 < len(p.s) && p.s[p.i] == 'Q' && p.s[p.i+1] == 'O' {
 		p.i += 2
-		innerStr := common.Print(inner, common.DefaultPrintOptions())
+		var innerStr string
+		if common.NodeKind(inner.Kind) == common.KindStoredProperty && len(inner.Children) >= 2 {
+			// Stored property: print path without module or type annotation.
+			// Apple omits the type annotation in opaque-return-type context.
+			nc := len(inner.Children)
+			path := common.NewNode(common.KindEntityPath)
+			common.AddChildren(path, inner.Children[1:nc-1]...)
+			innerStr = common.Print(path, common.DefaultPrintOptions())
+		} else {
+			innerStr = common.Print(inner, common.DefaultPrintOptions())
+		}
 		wrap := common.NewNode(common.KindTypeMangling)
 		wrap.Text = "<<opaque return type of " + innerStr + ">>"
 		inner = wrap
@@ -904,7 +914,9 @@ func (p *parser) tryStdlibProtoConformanceSuffix(inner *demangle.Node) (*demangl
 	protoName := protoEntry.Name
 
 	var body string
-	if moduleName == "Foundation" || (moduleName == "Swift" && !common.IsConcurrencyType(inner)) {
+	isSwiftConcurrency := common.IsConcurrencyType(inner) || common.HasConcurrencyAncestor(inner) ||
+		swiftConcurrencyRuntimeTypes[common.RootNameOf(inner)]
+	if moduleName == "Foundation" || (moduleName == "Swift" && !isSwiftConcurrency) {
 		// Foundation and non-concurrency Swift stdlib: full qualified form.
 		body = innerStr + " : Swift." + protoName + " in " + moduleName
 	} else {
@@ -3831,7 +3843,8 @@ func (p *parser) tryVariableEntity() (*demangle.Node, bool, error) {
 	if kindByte == 'p' && p.i+1 < len(p.s) && p.s[p.i] == 'M' && p.s[p.i+1] == 'V' {
 		p.i += 2 // consume 'MV'
 		opts := common.DefaultPrintOptions()
-		if mod == "Foundation" || mod == "Swift" {
+		isConcurrencyProp := mod == "Swift" && len(pathSteps) >= 2 && swiftConcurrencyRuntimeTypes[pathSteps[1].Text]
+		if (mod == "Foundation" || mod == "Swift") && !isConcurrencyProp {
 			// Full: module-qualified path + type annotation.
 			path := common.NewNode(common.KindEntityPath)
 			common.AddChildren(path, pathSteps...)
@@ -3868,7 +3881,8 @@ func (p *parser) tryVariableEntity() (*demangle.Node, bool, error) {
 	opts := common.DefaultPrintOptions()
 	switch kindByte {
 	case 'g', 's', 'M', 'w', 'W':
-		if mod == "Foundation" || mod == "Swift" {
+		isConcurrencyAcc := mod == "Swift" && len(pathSteps) >= 2 && swiftConcurrencyRuntimeTypes[pathSteps[1].Text]
+		if (mod == "Foundation" || mod == "Swift") && !isConcurrencyAcc {
 			// Full form: module-qualified path + type annotation.
 			path := common.NewNode(common.KindEntityPath)
 			common.AddChildren(path, pathSteps...)
@@ -4473,12 +4487,18 @@ var swiftConcurrencyRuntimeTypes = map[string]bool{
 	"AsyncThrowingFlatMapSequence":    true,
 	"AsyncThrowingMapSequence":    true,
 	"AsyncThrowingPrefixWhileSequence": true,
+	"Clock":                       true,
 	"ContinuousClock":             true,
 	"DiscardingTaskGroup":         true,
+	"ExecutorFactory":             true,
 	"ExecutorJob":                 true,
+	"GlobalActor":                 true,
 	"Job":                         true,
 	"JobPriority":                 true,
+	"MainExecutor":                true,
 	"PlatformExecutorFactory":     true,
+	"RunLoopExecutor":             true,
+	"SchedulingExecutor":          true,
 	"SuspendingClock":             true,
 	"TaskLocal":                   true,
 	"ThrowingDiscardingTaskGroup": true,

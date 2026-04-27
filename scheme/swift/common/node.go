@@ -549,6 +549,16 @@ func HasConcurrencyAncestor(n *demangle.Node) bool {
 	if NodeKind(cur.Kind) == KindType && len(cur.Children) > 0 {
 		cur = cur.Children[0]
 	}
+	// Unwrap bound-generic to reach the base nominal so we can walk its
+	// parent chain for the concurrency tag.
+	switch NodeKind(cur.Kind) {
+	case KindBoundGenericStructure, KindBoundGenericClass,
+		KindBoundGenericEnum, KindBoundGenericProtocol:
+		if len(cur.Children) > 0 {
+			return HasConcurrencyAncestor(cur.Children[0])
+		}
+		return false
+	}
 	for {
 		switch NodeKind(cur.Kind) {
 		case KindStructure, KindClass, KindEnum, KindProtocol:
