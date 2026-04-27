@@ -4214,13 +4214,16 @@ func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 		}
 	}
 	// Consume optional async/throws annotations before the 'cfC' terminal.
+	var throwsInit, asyncInit bool
 	for !p.eof() {
 		if p.s[p.i] == 'K' {
 			p.i++
+			throwsInit = true
 			continue
 		}
 		if p.i+1 < len(p.s) && p.s[p.i] == 'Y' && p.s[p.i+1] == 'a' {
 			p.i += 2
+			asyncInit = true
 			continue
 		}
 		break
@@ -4289,6 +4292,12 @@ func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 			sbFull.WriteString(funcEntityFullParams(paramsType, opts))
 		}
 		sbFull.WriteByte(')')
+		if asyncInit {
+			sbFull.WriteString(" async")
+		}
+		if throwsInit {
+			sbFull.WriteString(" throws")
+		}
 		sbFull.WriteString(" -> ")
 		if retType == nil || common.NodeKind(retType.Kind) == common.KindEmptyList {
 			sbFull.WriteString("()")
@@ -7429,6 +7438,11 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 	// Push module to subs so subsequent A<idx>_ can resolve to it.
 	p.subs.Push(moduleNode)
 
+	// lastNomCtx is the most recently built nominal-type node, used as
+	// the parent context for the next nested nominal so that paths like
+	// Foundation.Morphology.PronounType are fully qualified in subs.
+	var lastNomCtx *demangle.Node = moduleNode
+
 	// Walk identifier + optional (V/C/O) nominal-kind step until we
 	// hit a function-sig marker: 'y' (empty args/return) OR the
 	// start of a type (B, S, s, A, or digit-led for a second-level
@@ -7494,10 +7508,11 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 					kind = common.KindProtocol
 				}
 				nom := common.NewNode(kind)
-				common.AddChildren(nom, moduleNode, identNode)
+				common.AddChildren(nom, lastNomCtx, identNode)
 				typ := common.NewNode(common.KindType)
 				common.AddChildren(typ, nom)
 				p.subs.Push(typ)
+				lastNomCtx = typ
 				continue
 			}
 			pathSteps = append(pathSteps, identNode)
@@ -7547,18 +7562,12 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 			case 'P':
 				kind = common.KindProtocol
 			}
-			ctx := moduleNode
-			if len(pathSteps) > 1 {
-				// Parent of this nominal was the preceding pathStep
-				// (either the module or a nested nominal Type). For
-				// our narrow usage we keep the module as context.
-				ctx = moduleNode
-			}
 			nom := common.NewNode(kind)
-			common.AddChildren(nom, ctx, identNode)
+			common.AddChildren(nom, lastNomCtx, identNode)
 			typ := common.NewNode(common.KindType)
 			common.AddChildren(typ, nom)
 			p.subs.Push(typ)
+			lastNomCtx = typ
 			continue
 		}
 		// No V/C/O/P → this identifier is the decl-name. Subsequent
@@ -8377,6 +8386,25 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 			restore()
 			return nil, false, nil
 		}
+	}
+
+	// WC enum-case rescue: when tryPath(false) parsed `y`→void, `A<n>Em`→metatype,
+	// the actual signature is result=BaseType, params=BaseType.Type.
+	// Detect: result=void, params=X.Type metatype, and WC follows in input.
+	if (ret == nil || common.NodeKind(ret.Kind) == common.KindEmptyList) &&
+		args != nil &&
+		common.NodeKind(args.Kind) == common.KindType &&
+		len(args.Children) > 0 &&
+		common.NodeKind(args.Children[0].Kind) == common.KindBuiltinTypeName &&
+		strings.HasSuffix(args.Children[0].Text, ".Type") &&
+		p.i+1 < len(p.s) && p.s[p.i] == 'W' && p.s[p.i+1] == 'C' {
+		// Reconstruct result as a plain Type node with the base text.
+		baseText := strings.TrimSuffix(args.Children[0].Text, ".Type")
+		baseNode := common.NewNode(common.KindType)
+		tn := common.NewNode(common.KindBuiltinTypeName)
+		tn.Text = baseText
+		common.AddChildren(baseNode, tn)
+		ret = baseNode
 	}
 
 	path := common.NewNode(common.KindEntityPath)
