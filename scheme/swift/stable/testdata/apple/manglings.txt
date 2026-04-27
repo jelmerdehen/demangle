@@ -348,7 +348,7 @@ _$S3BBBBv0602365061_ ---> _$S3BBBBv0602365061_
 _T0lxxxmmmTk ---> _T0lxxxmmmTk
 _TtCF4test11doNotCrash1FT_QuL_8MyClass1 ---> MyClass1 #1 in test.doNotCrash1() -> some
 $s3Bar3FooVAA5DrinkVyxGs5Error_pSeRzSERzlyShy4AbcdAHO6MemberVGALSeHPAKSeAAyHC_HCg_ALSEHPAKSEAAyHC_HCg0_Iseggozo_SgWOe ---> outlined consume of (@escaping @callee_guaranteed @substituted <A where A: Swift.Decodable, A: Swift.Encodable> (@guaranteed Bar.Foo) -> (@owned Bar.Drink<A>, @error @owned Swift.Error) for <Swift.Set<Abcd.Abcd.Member>>)?
-$s4Test5ProtoP8IteratorV10collectionAEy_qd__Gqd___tcfc ---> Test.Proto.Iterator.init(collection: A1) -> Test.Proto.Iterator<A1>
+$s4Test5ProtoP8IteratorV10collectionAEy_qd__Gqd___tcfc ---> Proto.Iterator.init(collection:)
 $s4test3fooV4blahyAA1SV1fQryFQOy_Qo_AHF ---> foo.blah(_:)
 $S3nix8MystructV1xACyxGx_tcfc7MyaliasL_ayx__GD ---> Myalias #1 in nix.Mystruct<A>.init(x: A) -> nix.Mystruct<A>
 $S3nix7MyclassCfd7MyaliasL_ayx__GD ---> Myalias #1 in nix.Myclass<A>.deinit
@@ -372,7 +372,7 @@ $s4Test6testityyxlFAA8MystructV_TB5 ---> generic specialization <Test.Mystruct> 
 $sSUss17FixedWidthIntegerRzrlEyxqd__cSzRd__lufCSu_SiTg5 ---> generic specialization <Swift.UInt, Swift.Int> of (extension in Swift):Swift.UnsignedInteger< where A: Swift.FixedWidthInteger>.init<A where A1: Swift.BinaryInteger>(A1) -> A
 $s4test7genFuncyyx_q_tr0_lFSi_SbTtt1g5 ---> generic specialization <Swift.Int, Swift.Bool> of genFunc<A, B>(_:_:)
 $sSD5IndexVy__GD ---> $sSD5IndexVy__GD
-$s4test3StrCACycfC ---> {T:$s4test3StrCACycfc} test.Str.__allocating_init() -> test.Str
+$s4test3StrCACycfC ---> Str.__allocating_init()
 @$s8keypaths1KV3valACSi_tcfcACmTkmu : $@convention(keypath_accessor_getter) (@in_guaranteed @thick K.Type) -> @out @callee_guaranteed @substituted <τ_0_0, τ_0_1> (@in_guaranteed τ_0_0) -> @out τ_0_1 for <Int, K>)
 @$s8keypaths1KVACycfcACmTkMA : $@convention(keypath_accessor_getter) (@in_guaranteed @thick K.Type) -> @out K)
 $s18keypaths_inlinable13KeypathStructV8computedSSvpACTKq  ---> key path getter for keypaths_inlinable.KeypathStruct.computed : Swift.String : keypaths_inlinable.KeypathStruct, serialized

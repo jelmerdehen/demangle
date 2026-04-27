@@ -3733,24 +3733,45 @@ func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 		return nil, false, nil
 	}
 	p.i += 3
-	// Render display.
-	opts := common.DefaultPrintOptions()
-	path := common.NewNode(common.KindEntityPath)
-	common.AddChildren(path, pathSteps...)
-	pathStr := common.Print(path, opts)
-	paramsStr := "()"
-	if common.NodeKind(paramsType.Kind) != common.KindEmptyList {
-		inner := common.Print(paramsType, opts)
-		if lbl := paramsType.Attrs["swift.label"]; lbl != "" {
-			inner = lbl + ": " + inner
+	// Render display — simplified form matching Apple swift-demangle production.
+	// Strip module prefix, use labels-only params, omit return type.
+	var pathParts []string
+	for _, step := range pathSteps[1:] {
+		pathParts = append(pathParts, step.Text)
+	}
+	pathStr := strings.Join(pathParts, ".")
+	// Build labels-only params string.
+	var lbls []string
+	if common.NodeKind(paramsType.Kind) == common.KindTypeList {
+		for _, el := range paramsType.Children {
+			lbl := ""
+			if el.Attrs != nil {
+				lbl = el.Attrs["swift.label"]
+			}
+			if lbl != "" {
+				lbls = append(lbls, lbl+":")
+			} else {
+				lbls = append(lbls, "_:")
+			}
 		}
-		paramsStr = "(" + inner + ")"
+	} else if common.NodeKind(paramsType.Kind) != common.KindEmptyList {
+		lbl := ""
+		if paramsType.Attrs != nil {
+			lbl = paramsType.Attrs["swift.label"]
+		}
+		if lbl != "" {
+			lbls = []string{lbl + ":"}
+		} else {
+			lbls = []string{"_:"}
+		}
 	}
-	retStr := "()"
-	if common.NodeKind(retType.Kind) != common.KindEmptyList {
-		retStr = common.Print(retType, opts)
+	paramsStr := "(" + strings.Join(lbls, "") + ")"
+	// __nonallocating_init → init in display; __allocating_init kept as-is.
+	displayTerminal := terminal
+	if terminal == "__nonallocating_init" {
+		displayTerminal = "init"
 	}
-	display := pathStr + "." + terminal + paramsStr + " -> " + retStr
+	display := pathStr + "." + displayTerminal + paramsStr
 	// Build a structural init/deinit node.  Children are the path steps
 	// followed by the result type and params type.  The display text is
 	// stored in Text so the printer can render it without walking children.

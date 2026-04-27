@@ -930,3 +930,49 @@ $s9MathUtils9fibonacciyS2iF
 $s9Operators6addVecyAA4Vec3VAD_ADtF
 $s9Operators9magnitudeySdAA4Vec3VF
 $s9Protocols9totalAreaySdSayAA5Shape_pGF
+
+# B4: init/deinit simplified form (module-stripped, labels-only) — 2026-04-27
+# Cause: tryInitDeinitEntity now emits simplified display (no module, labels only, no ret)
+# Production corpus (Xcode 26.x) format; differs from swiftc oracle full format
+# Upstream: B4 task
+$s10Subscripts14CircularBufferC8capacityACyxGSi_tcfC
+$s10Subscripts15FixedDictionaryVACyxq_GycfC
+$s12Existentials11CircleShapeV6radiusACSd_tcfC
+$s12Existentials11SquareShapeV4sideACSd_tcfC
+$s12Existentials13TriangleShapeV4baseACSd_tcfC
+$s12InitVariants11PositiveIntV7clampedACSi_tcfC
+$s12InitVariants4BaseC1xACSi_tcfC
+$s12InitVariants4BaseCACycfC
+$s12InitVariants5EmailV6stringACSgSS_tcfC
+$s12InitVariants7DerivedC1xACSi_tcfC
+$s12InitVariants7DerivedC1yACSi_tcfC
+$s13BoundGenerics7MyErrorVACycfC
+$s13BoundGenerics7Result2V2okACyxq_Gx_tcfC
+$s13GenericsBasic5StackVACyxGycfC
+$s13StaticMethods12DerivedClassC3tagACSS_tcfC
+$s13StaticMethods9BaseClassC3tagACSS_tcfC
+$s15ArrayAlgorithms5QueueVACyxGycfC
+$s15CollectionTypes11SortedArrayVACyxGycfC
+$s15CollectionTypes5StackVACyxGycfC
+$s15CollectionTypes8MultiMapVACyxq_GycfC
+$s16GenericProtocols14ArrayContainerVACyxGycfC
+$s16GenericProtocols17StringTransformerVACycfC
+$s16GenericProtocols7DoublerVACycfC
+$s16PropertyWrappers10UppercasedV12wrappedValueACSS_tcfC
+$s16StringAlgorithms0A4AlgoVACycfC
+$s16StringAlgorithms0A6BufferVACycfC
+$s19GenericsConstrained9SortedSetVACyxGycfC
+$s5Async9DataStoreCACycfC
+$s5Enums10HTTPStatusO8rawValueACSgSS_tcfC
+$s5Enums6PlanetO8rawValueACSgSi_tcfC
+$s6Actors11BankAccountC7balanceACSd_tcfC
+$s6Actors5CacheCACyxq_GycfC
+$s6Actors7CounterCACycfC
+$s6Throws10SafeParserVACycfC
+$s7Classes3CarC8maxSpeedACSd_tcfC
+$s7Classes7VehicleC8maxSpeedACSd_tcfC
+$s7Methods7CounterV5startACSi_tcfC
+$s7Structs11TemperatureV10fahrenheitACSd_tcfC
+$s7Structs11TemperatureV7celsiusACSd_tcfC
+$s8Closures12EventHandlerCACycfC
+$s9Protocols6CircleV6radiusACSd_tcfC
