@@ -4272,15 +4272,32 @@ func (p *parser) tryEntitySuffix(inner *demangle.Node) (*demangle.Node, bool) {
 		}
 	case 'f':
 		// Init/deinit markers.
+		// fD (deallocating deinit) and fd (destroying deinit) use suffix form:
+		// "Type.__deallocating_deinit" / "Type.deinit", module stripped.
+		// Handle these early and return directly, like the 'v' accessor branch.
+		switch p.s[p.i+1] {
+		case 'D', 'd':
+			kindByte := p.s[p.i+1]
+			sfx := string(p.s[p.i : p.i+2])
+			p.i += 2
+			innerStr := common.Print(inner, descriptorPrintOpts(inner))
+			var suffix string
+			if kindByte == 'D' {
+				suffix = ".__deallocating_deinit"
+			} else {
+				suffix = ".deinit"
+			}
+			wrap := common.NewNode(common.KindTypeMangling)
+			wrap.Text = innerStr + suffix
+			wrap.Attrs = map[string]string{"swift.suffix": sfx, "swift.prerendered": "true"}
+			common.AddChildren(wrap, inner)
+			return wrap, true
+		}
 		switch p.s[p.i+1] {
 		case 'C':
 			prefix = "__allocating_init "
 		case 'c':
 			prefix = "__nonallocating_init "
-		case 'D':
-			prefix = "__deallocating_deinit "
-		case 'd':
-			prefix = "__destroying_deinit "
 		case 'F':
 			prefix = "property wrapped field init accessor of "
 		case 'A':

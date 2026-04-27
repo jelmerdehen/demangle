@@ -311,8 +311,8 @@ func TestStableFunctionEntities(t *testing.T) {
 	initCases := []struct {
 		in, want string
 	}{
-		{"$s4test3StrCfd", "__destroying_deinit test.Str"},
-		{"$s4main3FooCyyFfD", "__deallocating_deinit Foo()"},
+		{"$s4test3StrCfd", "Str.deinit"},
+		{"$s4main3FooCyyFfD", "Foo().__deallocating_deinit"},
 	}
 	for _, c := range initCases {
 		c := c
