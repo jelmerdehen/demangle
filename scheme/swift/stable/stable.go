@@ -7789,6 +7789,56 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 			p.i = saveCompact
 			p.subs = saveSubsCompact
 		}
+		// Compact result+params via 'A<digits><UPPER>' — repeat-count
+		// substitution back-ref. 'A<N><LETTER>' expands to N copies of
+		// subs[LETTER-'A']. First copy → result; remaining → params.
+		// e.g. 'A2C' with subs[2]=CharacterSet gives result+params both CharacterSet.
+		if !p.eof() && p.s[p.i] == 'A' && p.i+1 < len(p.s) &&
+			p.s[p.i+1] >= '0' && p.s[p.i+1] <= '9' {
+			saveACompact := p.i
+			saveASubsCompact := p.subs
+			p.i++ // consume 'A'
+			digStart := p.i
+			for p.i < len(p.s) && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+				p.i++
+			}
+			aOK := false
+			var aCompactTypes []*demangle.Node
+			if p.i < len(p.s) && p.s[p.i] >= 'A' && p.s[p.i] <= 'Z' {
+				num := 0
+				overflow := false
+				for k := digStart; k < p.i; k++ {
+					num = num*10 + int(p.s[k]-'0')
+					if num > 512 {
+						overflow = true
+						break
+					}
+				}
+				idx := int(p.s[p.i] - 'A')
+				if !overflow && num >= 2 {
+					if n, ok := p.subs.Get(idx); ok {
+						p.i++
+						for k := 0; k < num; k++ {
+							aCompactTypes = append(aCompactTypes, n)
+						}
+						aOK = true
+					}
+				}
+			}
+			if aOK && len(aCompactTypes) >= 2 {
+				r = aCompactTypes[0]
+				if len(aCompactTypes) == 2 {
+					a = aCompactTypes[1]
+				} else {
+					tup := common.NewNode(common.KindTypeList)
+					common.AddChildren(tup, aCompactTypes[1:]...)
+					a = tup
+				}
+				goto afterSigSlots
+			}
+			p.i = saveACompact
+			p.subs = saveASubsCompact
+		}
 		if p.s[p.i] == 'y' && !(p.i+1 < len(p.s) && p.s[p.i+1] == 'p') {
 			p.i++
 			r = common.NewNode(common.KindEmptyList)
