@@ -785,12 +785,18 @@ func (p *parser) tryConformanceDescriptorMc(inner *demangle.Node) (*demangle.Nod
 	if !p.eof() && p.s[p.i] == 'l' {
 		p.i++
 	}
-	// Require 'Mc'.
-	if p.i+1 >= len(p.s) || p.s[p.i] != 'M' || p.s[p.i+1] != 'c' {
+	// Require 'Mc' or 'WP'.
+	var termPrefix string
+	if p.i+1 < len(p.s) && p.s[p.i] == 'M' && p.s[p.i+1] == 'c' {
+		termPrefix = "protocol conformance descriptor for "
+		p.i += 2
+	} else if p.i+1 < len(p.s) && p.s[p.i] == 'W' && p.s[p.i+1] == 'P' {
+		termPrefix = "protocol witness table for "
+		p.i += 2
+	} else {
 		revert()
 		return inner, false
 	}
-	p.i += 2
 	innerStr := common.Print(inner, common.DefaultPrintOptions())
 	sig := ""
 	if constraintStr != "" {
@@ -799,15 +805,14 @@ func (p *parser) tryConformanceDescriptorMc(inner *demangle.Node) (*demangle.Nod
 	wrap := common.NewNode(common.KindTypeMangling)
 	// For concurrency types, Apple shows only the type (no ": Proto in Module").
 	if common.IsConcurrencyType(inner) {
-		wrap.Text = "protocol conformance descriptor for " + sig + innerStr
+		wrap.Text = termPrefix + sig + innerStr
 	} else {
 		// Use the TYPE's module for "in", not the protocol module.
 		typeMod := common.RootModuleOf(inner)
 		if typeMod == "" {
 			typeMod = modName // fallback
 		}
-		wrap.Text = "protocol conformance descriptor for " + sig + innerStr + " : " +
-			modName + "." + protoName + " in " + typeMod
+		wrap.Text = termPrefix + sig + innerStr + " : " + modName + "." + protoName + " in " + typeMod
 	}
 	return wrap, true
 }
@@ -945,7 +950,7 @@ func (p *parser) tryAAConformanceSuffix(inner *demangle.Node) (*demangle.Node, b
 		revert()
 		return inner, false
 	}
-	_, err := p.parseIdentifier()
+	protoName, err := p.parseIdentifier()
 	if err != nil {
 		revert()
 		return inner, false
@@ -957,12 +962,14 @@ func (p *parser) tryAAConformanceSuffix(inner *demangle.Node) (*demangle.Node, b
 		return inner, false
 	}
 	sameModule := false
+	conformanceIsSwift := false
 	switch {
 	case p.i+1 < len(p.s) && p.s[p.i] == 'A' && p.s[p.i+1] == 'A':
 		p.i += 2
 		sameModule = true
 	case p.s[p.i] == 's':
 		p.i++
+		conformanceIsSwift = true
 	default:
 		revert()
 		return inner, false
@@ -988,13 +995,29 @@ func (p *parser) tryAAConformanceSuffix(inner *demangle.Node) (*demangle.Node, b
 	innerStr := common.Print(inner, common.DefaultPrintOptions())
 	var body string
 	if sameModule {
-		// Same-module conformance: strip declaring-module prefix from type.
 		modNode, mok := p.subs.Get(0)
+		modText := ""
 		if mok && modNode != nil && common.NodeKind(modNode.Kind) == common.KindModule {
-			body = strings.TrimPrefix(innerStr, modNode.Text+".")
-		} else {
-			body = innerStr
+			modText = modNode.Text
 		}
+		if modText == "Foundation" {
+			// Foundation: full qualified format — "Foundation.X : Module.Proto in Foundation".
+			protoModStr := modText
+			if c == 's' {
+				protoModStr = "Swift"
+			}
+			body = innerStr + " : " + protoModStr + "." + protoName + " in " + modText
+		} else {
+			// All other modules (Combine, UIKit, SwiftUI…): simplified — strip module prefix.
+			if modText != "" {
+				body = strings.TrimPrefix(innerStr, modText+".")
+			} else {
+				body = innerStr
+			}
+		}
+	} else if conformanceIsSwift && strings.HasPrefix(innerStr, "Swift.") {
+		// Swift-module conformance where the type is also in Swift: strip "Swift." prefix.
+		body = innerStr[len("Swift."):]
 	} else {
 		body = innerStr
 	}
@@ -4054,6 +4077,41 @@ func (p *parser) tryConformanceDescriptor(inner *demangle.Node) (*demangle.Node,
 	return wrap, true
 }
 
+// swiftConcurrencyRuntimeTypes is the set of Swift stdlib concurrency runtime
+// type names (root names, without module prefix) that Apple shows unqualified
+// in descriptor/metadata contexts. These types were introduced in Swift 5.7-5.9
+// for the structured concurrency and executor redesign; unlike S<letter>
+// shorthand types they use the full ss<N><name> path, so IsConcurrencyType
+// cannot detect them — check the root name directly.
+var swiftConcurrencyRuntimeTypes = map[string]bool{
+	"AsyncCompactMapSequence":     true,
+	"AsyncDropFirstSequence":      true,
+	"AsyncDropWhileSequence":      true,
+	"AsyncFilterSequence":         true,
+	"AsyncFlatMapSequence":        true,
+	"AsyncMapSequence":            true,
+	"AsyncPrefixSequence":         true,
+	"AsyncPrefixWhileSequence":    true,
+	"AsyncThrowingCompactMapSequence": true,
+	"AsyncThrowingDropWhileSequence":  true,
+	"AsyncThrowingFilterSequence":     true,
+	"AsyncThrowingFlatMapSequence":    true,
+	"AsyncThrowingMapSequence":    true,
+	"AsyncThrowingPrefixWhileSequence": true,
+	"ContinuousClock":             true,
+	"DiscardingTaskGroup":         true,
+	"ExecutorJob":                 true,
+	"Job":                         true,
+	"JobPriority":                 true,
+	"PlatformExecutorFactory":     true,
+	"SuspendingClock":             true,
+	"TaskLocal":                   true,
+	"ThrowingDiscardingTaskGroup": true,
+	"UnimplementedMainExecutor":   true,
+	"UnimplementedTaskExecutor":   true,
+	"UnownedTaskExecutor":         true,
+}
+
 // descriptorPrintOpts returns the appropriate PrintOptions for rendering a
 // nominal type in a descriptor/metadata context (N, Mn, Ma, Mf, Mp, WP, etc.):
 //   - Foundation module → full qualified ("Foundation.X")
@@ -4061,16 +4119,23 @@ func (p *parser) tryConformanceDescriptor(inner *demangle.Node) (*demangle.Node,
 //   - Swift concurrency types (Sc<letter>) → simplified ("X", no module)
 //   - All other modules → simplified ("X", no module)
 func descriptorPrintOpts(inner *demangle.Node) common.PrintOptions {
+	simplified := common.PrintOptions{QualifyEntities: false, SynthesizeSugar: true}
 	// Sc<X> concurrency types and their nested types (e.g. TaskGroup.Iterator)
 	// are always simplified — no module prefix.
 	if common.IsConcurrencyType(inner) || common.HasConcurrencyAncestor(inner) {
-		return common.PrintOptions{QualifyEntities: false, SynthesizeSugar: true}
+		return simplified
 	}
 	// Swift stdlib types stay qualified:
 	//   Direct types via S<letter> shorthand (SA, SS, Si, SD…) have ModuleOf="Swift".
 	//   Nested types (Dictionary.Keys.Iterator, etc.) have ModuleOf="" but
 	//   RootModuleOf="Swift" — they also need the "Swift." prefix per Apple output.
 	if common.ModuleOf(inner) == "Swift" || common.RootModuleOf(inner) == "Swift" {
+		// Exception: Swift concurrency runtime types introduced in 5.7-5.9 are
+		// shown unqualified by Apple even in descriptor contexts.
+		rootName := common.RootNameOf(inner)
+		if swiftConcurrencyRuntimeTypes[rootName] {
+			return simplified
+		}
 		return common.DefaultPrintOptions()
 	}
 	// Foundation types (including nested like Date.FormatStyle) stay qualified.
@@ -5083,6 +5148,45 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 		}
 		return false
 	}
+	// consumeParamConvention eats an optional h/H/T ownership convention modifier
+	// after a param type and records a "__shared"/"__owned"/"__consuming" prefix.
+	// Returns the (possibly wrapped) node and the prefix string.
+	applyParamConvention := func(n *demangle.Node) *demangle.Node {
+		if p.eof() {
+			return n
+		}
+		var conv string
+		switch p.s[p.i] {
+		case 'h':
+			conv = "__shared "
+			p.i++
+		case 'H':
+			conv = "__owned "
+			p.i++
+		case 'T':
+			conv = "__consuming "
+			p.i++
+		default:
+			return n
+		}
+		if n == nil {
+			return n
+		}
+		// Wrap the type with a convention prefix stored as an attribute.
+		wrapped := common.NewNode(common.KindType)
+		wrapped.Text = conv + common.Print(n, common.DefaultPrintOptions())
+		wrapped.Attrs = map[string]string{"swift.conv": conv}
+		common.AddChildren(wrapped, n)
+		return wrapped
+	}
+	// consumeSingleParamTupleTerm eats a `_t` single-element labeled-tuple
+	// terminator after params/convention if present.
+	consumeSingleParamTupleTerm := func() {
+		if !p.eof() && p.s[p.i] == '_' && p.i+1 < len(p.s) && p.s[p.i+1] == 't' {
+			p.i += 2
+		}
+	}
+
 	if p.paramsSlotIsEmpty() {
 		p.i++
 		paramsNode = common.NewNode(common.KindEmptyList)
@@ -5092,6 +5196,7 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 			restore()
 			return nil, false, nil
 		}
+		t = applyParamConvention(t)
 		paramTypes = append(paramTypes, t)
 		// Consume additional tuple elements. In Swift ABI, a multi-element
 		// tuple terminates with 't'. Between elements, an optional '_' byte
@@ -5130,11 +5235,16 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 				p.subs = elemSubs
 				break
 			}
+			elem = applyParamConvention(elem)
 			paramTypes = append(paramTypes, elem)
 		}
 		// Tuple terminator 't' (only present when > 1 element).
 		if !p.eof() && p.s[p.i] == 't' {
 			p.i++ // consume 't'
+		}
+		// Single-element labeled-tuple terminator '_t'.
+		if len(paramTypes) == 1 {
+			consumeSingleParamTupleTerm()
 		}
 		if len(paramTypes) == 1 {
 			paramsNode = paramTypes[0]
@@ -5356,9 +5466,18 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 		}
 		break
 	}
-	// Consume any remaining requirement-count or trailing bytes before 'F'.
-	for !p.eof() && (p.s[p.i] == 'u' || p.s[p.i] == 'r' ||
+	// Consume any remaining requirement-count or trailing convention bytes before terminal.
+	// 'c' may appear before 'fC' in init entities (callee-owned result convention).
+	for !p.eof() && (p.s[p.i] == 'u' || p.s[p.i] == 'r' || p.s[p.i] == 'c' ||
 		(p.s[p.i] >= '0' && p.s[p.i] <= '9')) {
+		// Only consume 'c' if it is followed by 'f' (part of 'cfC'/'cfc').
+		if p.s[p.i] == 'c' {
+			if p.i+1 < len(p.s) && p.s[p.i+1] == 'f' {
+				p.i++
+				break
+			}
+			break
+		}
 		p.i++
 	}
 

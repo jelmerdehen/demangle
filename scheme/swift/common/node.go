@@ -491,6 +491,54 @@ func RootModuleOf(n *demangle.Node) string {
 	}
 }
 
+// RootNameOf returns the identifier text of the outermost (root) nominal type
+// in n's parent chain. For a nested type like Foundation.Morphology.PronounType
+// it returns "Morphology" (the root under the module). For a top-level type
+// like Swift.ContinuousClock it returns "ContinuousClock".
+func RootNameOf(n *demangle.Node) string {
+	cur := n
+	if NodeKind(cur.Kind) == KindType && len(cur.Children) > 0 {
+		cur = cur.Children[0]
+	}
+	switch NodeKind(cur.Kind) {
+	case KindStructure, KindClass, KindEnum, KindProtocol:
+	default:
+		return ""
+	}
+	// Walk up to find the nominal directly under the module.
+	last := cur
+	for {
+		var parentNode *demangle.Node
+		for _, c := range cur.Children {
+			switch NodeKind(c.Kind) {
+			case KindStructure, KindClass, KindEnum, KindProtocol:
+				parentNode = c
+			case KindType:
+				if len(c.Children) > 0 {
+					kk := NodeKind(c.Children[0].Kind)
+					switch kk {
+					case KindStructure, KindClass, KindEnum, KindProtocol:
+						parentNode = c.Children[0]
+					}
+				}
+			}
+		}
+		if parentNode == nil {
+			break
+		}
+		last = cur
+		cur = parentNode
+	}
+	// cur is now the root nominal (directly under the module). Extract its identifier.
+	for _, c := range cur.Children {
+		if NodeKind(c.Kind) == KindIdentifier {
+			return c.Text
+		}
+	}
+	_ = last
+	return ""
+}
+
 // HasConcurrencyAncestor reports whether n or any of its parent-nominal
 // chain nodes carries the "swift.concurrency" attribute. This is used to
 // detect nested types inside Sc<X> concurrency substitutions (e.g.
