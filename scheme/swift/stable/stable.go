@@ -5213,6 +5213,44 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 	crossModule := len(constraintBytes) > 0 &&
 		constraintBytes[0] >= '0' && constraintBytes[0] <= '9'
 
+	// For cross-module extensions the constraint bytes may begin with nested
+	// nominal-type components (len+ident+V/C/O/P) before the extension-module
+	// name.  Parse them out to build the full host path, e.g.:
+	//   constraintBytes "4CodeV8CoreData"  → hostPath "CocoaError.Code"
+	//   constraintBytes "10CompletionOAASHRzrl" → hostPath "Subscribers.Completion", extMarker "<>"
+	hostPath := hostName
+	nestedExtMarker := ""
+	if crossModule {
+		cb := constraintBytes
+		for len(cb) > 0 && cb[0] >= '0' && cb[0] <= '9' {
+			lenEnd := 0
+			for lenEnd < len(cb) && cb[lenEnd] >= '0' && cb[lenEnd] <= '9' {
+				lenEnd++
+			}
+			if lenEnd >= len(cb) {
+				break
+			}
+			n := 0
+			for _, d := range cb[:lenEnd] {
+				n = n*10 + int(d-'0')
+			}
+			endPos := lenEnd + n
+			if endPos >= len(cb) {
+				break
+			}
+			kind := cb[endPos]
+			if kind != 'V' && kind != 'C' && kind != 'O' && kind != 'P' {
+				break // not a nominal kind — stop (extension module name follows)
+			}
+			hostPath += "." + string(cb[lenEnd:endPos])
+			cb = cb[endPos+1:]
+		}
+		// If remaining bytes start with a non-digit, it's a generic sig → add <>.
+		if hostPath != hostName && len(cb) > 0 && !(cb[0] >= '0' && cb[0] <= '9') {
+			nestedExtMarker = "<>"
+		}
+	}
+
 	// Property accessor terminals: v<kind> or pMV.
 	// retNode holds the property type; paramsNode is empty.
 	if !p.eof() && p.s[p.i] == 'v' && p.i+1 < len(p.s) {
@@ -5235,7 +5273,7 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 			var text string
 			if crossModule {
 				// Simplified: TypeName.propName.getter (no module, no type)
-				text = hostName + "." + declName + accessor
+				text = hostPath + nestedExtMarker + "." + declName + accessor
 			} else {
 				sig, sameTypeConstraint := extractConstraintSigFull(constraintBytes)
 				if sig == "" {
@@ -5291,7 +5329,7 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 		if isDescriptor {
 			if crossModule {
 				// Simplified: no type annotation (matches Apple swift-demangle output).
-				text = "property descriptor for " + hostName + "." + declName
+				text = "property descriptor for " + hostPath + nestedExtMarker + "." + declName
 			} else {
 				sig, sameTypeConstraint := extractConstraintSigFull(constraintBytes)
 				if sig == "" {
@@ -5318,7 +5356,8 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 		} else {
 			// Stored property (vp): emit simplified or verbose.
 			if crossModule {
-				text = hostName + "." + declName + propTypeStr
+				// Drop propTypeStr: Apple shows no type annotation for cross-module stored properties.
+				text = hostPath + nestedExtMarker + "." + declName
 			} else {
 				sig, sameTypeConstraint := extractConstraintSigFull(constraintBytes)
 				if sig == "" {
@@ -5381,7 +5420,7 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 			_ = allocating
 			var text string
 			if crossModule {
-				text = hostName + ".init" + labelStr
+				text = hostPath + nestedExtMarker + ".init" + labelStr
 			} else {
 				opts := common.DefaultPrintOptions()
 				sig, sameTypeConstraint := extractConstraintSigFull(constraintBytes)
@@ -5532,7 +5571,7 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 			genericPart = "<A>"
 		}
 		wrap := common.NewNode(common.KindTypeMangling)
-		wrap.Text = hostName + "." + declName + genericPart + labelOnlyStr
+		wrap.Text = hostPath + nestedExtMarker + "." + declName + genericPart + labelOnlyStr
 		rawPrefix := fmt.Sprintf("%d%s%d%s%c%sE", len(modName), modName, len(hostName), hostName, hostKind, constraintBytes)
 		wrap.Attrs = map[string]string{"swift.ext.rawPrefix": rawPrefix}
 		funcIdent := common.NewIdentifier(declName)
