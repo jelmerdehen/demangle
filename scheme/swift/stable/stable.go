@@ -3509,13 +3509,25 @@ func (p *parser) tryVariableEntity() (*demangle.Node, bool, error) {
 		return node, true, nil
 	}
 	// Build display.
-	// Accessor kinds vg/vs/vM/vw/vW strip the module prefix and type annotation,
-	// matching macOS swift-demangle production output:
+	// Foundation accessor kinds vg/vs/vM/vw/vW keep the full module-qualified +
+	// type-annotated form matching Apple swift-demangle:
+	//   "Foundation.Type.prop.getter : ReturnType"
+	// All other modules strip the module prefix and type annotation:
 	//   "Foo.prop.getter" instead of "Module.Foo.prop.getter : SomeType"
-	// Other accessor/addressor kinds keep the full module-qualified + typed form.
+	// Other accessor/addressor kinds always keep the full module-qualified + typed form.
 	opts := common.DefaultPrintOptions()
 	switch kindByte {
 	case 'g', 's', 'M', 'w', 'W':
+		if mod == "Foundation" {
+			// Full form: module-qualified path + type annotation.
+			path := common.NewNode(common.KindEntityPath)
+			common.AddChildren(path, pathSteps...)
+			pathStr := common.Print(path, opts)
+			typeStr := common.Print(typ, opts)
+			wrap := common.NewNode(common.KindTypeMangling)
+			wrap.Text = staticPrefix + pathStr + pathSuffix + " : " + typeStr
+			return wrap, true, nil
+		}
 		// Module-stripped, type-annotation-stripped.
 		pathNoMod := common.NewNode(common.KindEntityPath)
 		common.AddChildren(pathNoMod, pathSteps[1:]...)
