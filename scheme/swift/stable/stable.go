@@ -3974,7 +3974,7 @@ func (p *parser) tryEntitySuffix(inner *demangle.Node) (*demangle.Node, bool) {
 		case 'N':
 			prefix = "nominal type descriptor runtime-instantiation cache for "
 		case 'm':
-			prefix = "metaclass object for "
+			prefix = "metaclass for "
 		case 'M':
 			prefix = "metadata instantiation function for "
 		case 'V':
