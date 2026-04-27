@@ -3367,6 +3367,11 @@ func (p *parser) tryVariableEntity() (*demangle.Node, bool, error) {
 	pathSteps = append(pathSteps, moduleNode)
 	// Push module to subs so AA back-refs can reach it.
 	p.subs.Push(moduleNode)
+	// accParent tracks the accumulated nominal context for building
+	// correctly nested type substitutions (Foundation.CocoaError.Code,
+	// not Foundation.Code).
+	var accParent *demangle.Node = moduleNode
+	var accType *demangle.Node
 	// Walk identifier + optional (V/C/O) nominal-kind step until we
 	// have a terminating plain-ident (decl-name).
 	for {
@@ -3405,12 +3410,15 @@ func (p *parser) tryVariableEntity() (*demangle.Node, bool, error) {
 				nKind = common.KindProtocol
 			}
 			nom := common.NewNode(nKind)
-			common.AddChildren(nom, moduleNode, identNode)
+			common.AddChildren(nom, accParent, identNode)
 			nomTyp := common.NewNode(common.KindType)
 			common.AddChildren(nomTyp, nom)
 			p.subs.Push(nomTyp)
+			accType = nomTyp
+			accParent = nom
 			continue
 		}
+		_ = accType
 		pathSteps = append(pathSteps, common.NewIdentifier(ident))
 		break
 	}
@@ -3745,14 +3753,60 @@ func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 		return nil, false, nil
 	}
 	p.i += 3
-	// Render display — simplified form matching Apple swift-demangle production.
-	// Strip module prefix, use labels-only params, omit return type.
+	// __nonallocating_init → init in display; __allocating_init kept as-is.
+	displayTerminal := terminal
+	if terminal == "__nonallocating_init" {
+		displayTerminal = "init"
+	}
+
+	var nodeKind common.NodeKind
+	switch kindByte {
+	case 'C':
+		nodeKind = common.KindAllocatingInit
+	case 'c':
+		nodeKind = common.KindInitializer
+	case 'D':
+		nodeKind = common.KindDeallocatingDeinit
+	default: // 'd'
+		nodeKind = common.KindDeinit
+	}
+
+	// Foundation module: full form with module prefix, param types, return type.
+	if mod == "Foundation" && (kindByte == 'C' || kindByte == 'c') {
+		opts := common.DefaultPrintOptions()
+		var sbFull strings.Builder
+		for i, step := range pathSteps {
+			if i > 0 {
+				sbFull.WriteByte('.')
+			}
+			sbFull.WriteString(step.Text)
+		}
+		sbFull.WriteByte('.')
+		sbFull.WriteString(displayTerminal)
+		sbFull.WriteByte('(')
+		if paramsType != nil && common.NodeKind(paramsType.Kind) != common.KindEmptyList {
+			sbFull.WriteString(funcEntityFullParams(paramsType, opts))
+		}
+		sbFull.WriteByte(')')
+		sbFull.WriteString(" -> ")
+		if retType == nil || common.NodeKind(retType.Kind) == common.KindEmptyList {
+			sbFull.WriteString("()")
+		} else {
+			sbFull.WriteString(common.Print(retType, opts))
+		}
+		initNode := common.NewNode(nodeKind)
+		initNode.Text = sbFull.String()
+		common.AddChildren(initNode, pathSteps...)
+		common.AddChildren(initNode, retType, paramsType)
+		return initNode, true, nil
+	}
+
+	// Simplified display: strip module prefix, use labels-only params, omit return type.
 	var pathParts []string
 	for _, step := range pathSteps[1:] {
 		pathParts = append(pathParts, step.Text)
 	}
 	pathStr := strings.Join(pathParts, ".")
-	// Build labels-only params string.
 	var lbls []string
 	if common.NodeKind(paramsType.Kind) == common.KindTypeList {
 		for _, el := range paramsType.Children {
@@ -3778,26 +3832,10 @@ func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 		}
 	}
 	paramsStr := "(" + strings.Join(lbls, "") + ")"
-	// __nonallocating_init → init in display; __allocating_init kept as-is.
-	displayTerminal := terminal
-	if terminal == "__nonallocating_init" {
-		displayTerminal = "init"
-	}
 	display := pathStr + "." + displayTerminal + paramsStr
 	// Build a structural init/deinit node.  Children are the path steps
 	// followed by the result type and params type.  The display text is
 	// stored in Text so the printer can render it without walking children.
-	var nodeKind common.NodeKind
-	switch kindByte {
-	case 'C':
-		nodeKind = common.KindAllocatingInit
-	case 'c':
-		nodeKind = common.KindInitializer
-	case 'D':
-		nodeKind = common.KindDeallocatingDeinit
-	default: // 'd'
-		nodeKind = common.KindDeinit
-	}
 	initNode := common.NewNode(nodeKind)
 	initNode.Text = display
 	common.AddChildren(initNode, pathSteps...)
@@ -6037,6 +6075,39 @@ func simplifiedFuncEntity(inner *demangle.Node) string {
 	return common.Print(inner, common.PrintOptions{QualifyEntities: false, SynthesizeSugar: true})
 }
 
+// funcEntityFullParams renders params with labels and types for Foundation
+// full-form output: "label: Type, label: Type".
+func funcEntityFullParams(args *demangle.Node, opts common.PrintOptions) string {
+	var b strings.Builder
+	if common.NodeKind(args.Kind) == common.KindTypeList {
+		for i, c := range args.Children {
+			if i > 0 {
+				b.WriteString(", ")
+			}
+			lbl := ""
+			if c.Attrs != nil {
+				lbl = c.Attrs["swift.label"]
+			}
+			if lbl != "" && lbl != "_" {
+				b.WriteString(lbl)
+				b.WriteString(": ")
+			}
+			b.WriteString(common.Print(c, opts))
+		}
+	} else {
+		lbl := ""
+		if args.Attrs != nil {
+			lbl = args.Attrs["swift.label"]
+		}
+		if lbl != "" && lbl != "_" {
+			b.WriteString(lbl)
+			b.WriteString(": ")
+		}
+		b.WriteString(common.Print(args, opts))
+	}
+	return b.String()
+}
+
 // funcEntityLabels returns the parameter-label portion of a simplified
 // function entity display: "label:" for named params and "_:" for unnamed.
 // args is the parsed args node (KindTypeList or a single type node).
@@ -7068,6 +7139,45 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 		entity.Attrs["swift.generic"] = genericSigStr
 	}
 	common.AddChildren(entity, path, args, ret)
+
+	opts := common.DefaultPrintOptions()
+
+	// Foundation module: full form with module prefix, param types, return type.
+	if mod == "Foundation" {
+		var sbFull strings.Builder
+		for i, step := range pathSteps {
+			if i > 0 {
+				sbFull.WriteByte('.')
+			}
+			sbFull.WriteString(step.Text)
+		}
+		sbFull.WriteByte('(')
+		if args != nil && common.NodeKind(args.Kind) != common.KindEmptyList {
+			sbFull.WriteString(funcEntityFullParams(args, opts))
+		}
+		sbFull.WriteByte(')')
+		if async {
+			sbFull.WriteString(" async")
+		}
+		if throws {
+			if throwsTypeStr != "" {
+				sbFull.WriteString(" throws(" + throwsTypeStr + ")")
+			} else {
+				sbFull.WriteString(" throws")
+			}
+		}
+		sbFull.WriteString(" -> ")
+		if ret == nil || common.NodeKind(ret.Kind) == common.KindEmptyList {
+			sbFull.WriteString("()")
+		} else {
+			sbFull.WriteString(common.Print(ret, opts))
+		}
+		wrap := common.NewNode(common.KindTypeMangling)
+		wrap.Text = sbFull.String()
+		wrap.Attrs = map[string]string{"swift.prerendered": "true"}
+		common.AddChildren(wrap, entity)
+		return wrap, true, nil
+	}
 
 	// Simplified display: "TypeName.method[<G>](labels)" — no module, no types, no return.
 	var sb strings.Builder
