@@ -6085,35 +6085,53 @@ func simplifiedFuncEntity(inner *demangle.Node) string {
 	return common.Print(inner, common.PrintOptions{QualifyEntities: false, SynthesizeSugar: true})
 }
 
+// decodeOperatorName decodes Swift stable-ABI operator character encoding.
+// Each letter maps to an operator character per the standard table; unknown
+// letters pass through unchanged.
+func decodeOperatorName(encoded string) string {
+	const opTable = "& @/= >    <*!|+?%-~   ^ ."
+	b := make([]byte, 0, len(encoded))
+	for i := 0; i < len(encoded); i++ {
+		c := encoded[i]
+		if c >= 'a' && c <= 'z' {
+			idx := int(c - 'a')
+			if idx < len(opTable) && opTable[idx] != ' ' {
+				b = append(b, opTable[idx])
+				continue
+			}
+		}
+		b = append(b, c)
+	}
+	return string(b)
+}
+
 // funcEntityFullParams renders params with labels and types for Foundation
 // full-form output: "label: Type, label: Type".
 func funcEntityFullParams(args *demangle.Node, opts common.PrintOptions) string {
 	var b strings.Builder
-	if common.NodeKind(args.Kind) == common.KindTypeList {
-		for i, c := range args.Children {
-			if i > 0 {
-				b.WriteString(", ")
-			}
-			lbl := ""
-			if c.Attrs != nil {
-				lbl = c.Attrs["swift.label"]
-			}
-			if lbl != "" && lbl != "_" {
-				b.WriteString(lbl)
-				b.WriteString(": ")
-			}
-			b.WriteString(common.Print(c, opts))
-		}
-	} else {
+	renderParam := func(c *demangle.Node) {
 		lbl := ""
-		if args.Attrs != nil {
-			lbl = args.Attrs["swift.label"]
+		if c.Attrs != nil {
+			lbl = c.Attrs["swift.label"]
 		}
 		if lbl != "" && lbl != "_" {
 			b.WriteString(lbl)
 			b.WriteString(": ")
 		}
-		b.WriteString(common.Print(args, opts))
+		if c.Attrs != nil && c.Attrs["swift.inout"] == "true" {
+			b.WriteString("inout ")
+		}
+		b.WriteString(common.Print(c, opts))
+	}
+	if common.NodeKind(args.Kind) == common.KindTypeList {
+		for i, c := range args.Children {
+			if i > 0 {
+				b.WriteString(", ")
+			}
+			renderParam(c)
+		}
+	} else {
+		renderParam(args)
 	}
 	return b.String()
 }
@@ -6337,6 +6355,25 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 		}
 		// No V/C/O/P → this identifier is the decl-name. Subsequent
 		// digit-led bytes belong to the label-list, NOT the chain.
+		// Operator designator: 'oi'=infix, 'op'=prefix, 'oP'=postfix.
+		// Follows the decl-name identifier immediately.
+		if !p.eof() && p.s[p.i] == 'o' && p.i+1 < len(p.s) {
+			opKind := p.s[p.i+1]
+			if opKind == 'i' || opKind == 'p' || opKind == 'P' {
+				p.i += 2
+				decoded := decodeOperatorName(ident)
+				var kindStr string
+				switch opKind {
+				case 'i':
+					kindStr = " infix"
+				case 'p':
+					kindStr = " prefix"
+				case 'P':
+					kindStr = " postfix"
+				}
+				identNode = common.NewIdentifier(decoded + kindStr)
+			}
+		}
 		pathSteps = append(pathSteps, identNode)
 		break
 	}
@@ -6791,6 +6828,14 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 				}
 			}
 		paramModsDone:
+			// Single-element labeled tuple terminator. Apple emits '_t'
+			// after the single param (and its modifiers) when the param
+			// has an argument label, e.g. "into: inout Hasher" →
+			// "s6HasherVz_t". Consume it so 'F' is the next byte.
+			if !p.eof() && p.s[p.i] == '_' &&
+				p.i+1 < len(p.s) && p.s[p.i+1] == 't' {
+				p.i += 2
+			}
 		}
 	afterSigSlots:
 		// Function-level annotations. Order in mangled form (bottom-
