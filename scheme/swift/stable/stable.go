@@ -4025,7 +4025,13 @@ func (p *parser) tryEntitySuffix(inner *demangle.Node) (*demangle.Node, bool) {
 		case 'T':
 			prefix = "associated type witness table accessor for "
 		case 'o':
-			prefix = "method descriptor for "
+			innerStr := simplifiedFuncEntity(inner)
+			wrap := common.NewNode(common.KindTypeMangling)
+			wrap.Text = "method descriptor for " + innerStr
+			wrap.Attrs = map[string]string{"swift.suffix": "Wo", "swift.prerendered": "true"}
+			common.AddChildren(wrap, inner)
+			p.i += 2
+			return wrap, true
 		case 'S':
 			prefix = "self-conformance witness for "
 		case 'J':
@@ -4147,7 +4153,13 @@ func (p *parser) tryEntitySuffix(inner *demangle.Node) (*demangle.Node, bool) {
 		} else if p.s[p.i+1] == 'I' {
 			prefix = "inlined generic function "
 		} else if p.s[p.i+1] == 'j' {
-			prefix = "dispatch thunk of "
+			innerStr := simplifiedFuncEntity(inner)
+			wrap := common.NewNode(common.KindTypeMangling)
+			wrap.Text = "dispatch thunk of " + innerStr
+			wrap.Attrs = map[string]string{"swift.suffix": "Tj", "swift.prerendered": "true"}
+			common.AddChildren(wrap, inner)
+			p.i += 2
+			return wrap, true
 		} else if p.s[p.i+1] == 'Y' {
 			// TY<N>?_ = (<N+1>) or (0) suspend resume partial function.
 			prefix = "async await resume partial function for "
@@ -4185,7 +4197,13 @@ func (p *parser) tryEntitySuffix(inner *demangle.Node) (*demangle.Node, bool) {
 		} else if p.s[p.i+1] == 'c' {
 			prefix = "curry thunk of "
 		} else if p.s[p.i+1] == 'q' {
-			prefix = "method descriptor for "
+			innerStr := simplifiedFuncEntity(inner)
+			wrap := common.NewNode(common.KindTypeMangling)
+			wrap.Text = "method descriptor for " + innerStr
+			wrap.Attrs = map[string]string{"swift.suffix": "Tq", "swift.prerendered": "true"}
+			common.AddChildren(wrap, inner)
+			p.i += 2
+			return wrap, true
 		} else if p.s[p.i+1] == 'H' {
 			prefix = "key path accessor thunk helper for "
 		} else if p.s[p.i+1] == 'K' {
@@ -5875,6 +5893,96 @@ func extractConstraintSigFull(b []byte) (sig, sameTypeConstraint string) {
 		return "", ""
 	}
 	return "< where " + strings.Join(constraints, ", ") + ">", ""
+}
+
+// simplifiedFuncEntity returns the simplified display of a function entity:
+// no module qualifier, parameter labels only (no types), no return type.
+func simplifiedFuncEntity(inner *demangle.Node) string {
+	if inner == nil {
+		return ""
+	}
+	nk := common.NodeKind(inner.Kind)
+	if nk == common.KindTypeMangling {
+		if inner.Attrs != nil && inner.Attrs["swift.prerendered"] == "true" && inner.Text != "" {
+			return inner.Text
+		}
+		if len(inner.Children) > 0 {
+			result := simplifiedFuncEntity(inner.Children[0])
+			if inner.Attrs != nil && inner.Attrs["swift.static"] == "true" {
+				return "static " + result
+			}
+			return result
+		}
+		return common.Print(inner, common.DefaultPrintOptions())
+	}
+	if nk == common.KindFunctionEntity {
+		if len(inner.Children) < 3 {
+			return common.Print(inner, common.DefaultPrintOptions())
+		}
+		pathNode := inner.Children[0]
+		var pathParts []string
+		if common.NodeKind(pathNode.Kind) == common.KindEntityPath {
+			for i, c := range pathNode.Children {
+				if i == 0 && common.NodeKind(c.Kind) == common.KindModule {
+					continue
+				}
+				pathParts = append(pathParts, c.Text)
+			}
+		} else {
+			pathParts = []string{common.Print(pathNode, common.DefaultPrintOptions())}
+		}
+		args := inner.Children[1]
+		path := strings.Join(pathParts, ".")
+		if g := inner.Attrs["swift.generic"]; g != "" {
+			if wi := strings.Index(g, " where "); wi >= 0 {
+				path += g[:wi] + ">"
+			} else {
+				path += g
+			}
+		}
+		if args == nil || common.NodeKind(args.Kind) == common.KindEmptyList {
+			return path + "()"
+		}
+		return path + "(" + funcEntityLabels(args) + ")"
+	}
+	if nk == common.KindAllocatingInit || nk == common.KindInitializer ||
+		nk == common.KindDeallocatingDeinit || nk == common.KindDeinit {
+		if len(inner.Children) < 3 || inner.Text == "" {
+			if inner.Text != "" {
+				return inner.Text
+			}
+			return common.Print(inner, common.DefaultPrintOptions())
+		}
+		terminal := ""
+		if parenIdx := strings.Index(inner.Text, "("); parenIdx >= 0 {
+			before := inner.Text[:parenIdx]
+			if dotIdx := strings.LastIndex(before, "."); dotIdx >= 0 {
+				terminal = before[dotIdx+1:]
+			} else {
+				terminal = before
+			}
+		}
+		nChildren := len(inner.Children)
+		pathSteps := inner.Children[:nChildren-2]
+		var pathParts []string
+		for i, c := range pathSteps {
+			if i == 0 && common.NodeKind(c.Kind) == common.KindModule {
+				continue
+			}
+			pathParts = append(pathParts, c.Text)
+		}
+		paramsType := inner.Children[nChildren-1]
+		path := strings.Join(pathParts, ".")
+		if terminal != "" {
+			path = path + "." + terminal
+		}
+		if paramsType == nil || common.NodeKind(paramsType.Kind) == common.KindEmptyList {
+			return path + "()"
+		}
+		return path + "(" + funcEntityLabels(paramsType) + ")"
+	}
+	// Fallback (nominal types, autodiff thunks, etc.): strip module.
+	return common.Print(inner, common.PrintOptions{QualifyEntities: false, SynthesizeSugar: true})
 }
 
 // funcEntityLabels returns the parameter-label portion of a simplified
