@@ -288,13 +288,14 @@ func (p *parser) parseGlobal() (*demangle.Node, error) {
 		return g, nil
 	}
 
-	// Try associated-type-descriptor shape first:
-	//   <N><assocTypeName><M><moduleName><K><protocolName>PTl
-	// Must be tried before tryExtensionEntity because both start with
-	// a digit-led identifier, but the assoc-type form ends with PTl
-	// (not a function/accessor terminal).
+	// Protocol-requirements-base-descriptor shape:
+	//   <module-ident> <proto-ident> TL
+	// Emits "protocol requirements base descriptor for <proto-name>".
+	// Must be tried before tryAssocTypeDescriptor which also starts digit-led.
 	var inner *demangle.Node
-	if atdNode, atdOk := p.tryAssocTypeDescriptor(); atdOk {
+	if tlNode, tlOk := p.tryProtoRequirementsBaseDescriptor(); tlOk {
+		inner = tlNode
+	} else if atdNode, atdOk := p.tryAssocTypeDescriptor(); atdOk {
 		inner = atdNode
 	} else if extEntity, ok, err := p.tryExtensionEntity(); err != nil {
 		return nil, err
@@ -417,6 +418,10 @@ func (p *parser) parseGlobal() (*demangle.Node, error) {
 			continue
 		}
 		if wrapped, ok := p.tryStdlibProtoConformanceSuffix(inner); ok {
+			inner = wrapped
+			continue
+		}
+		if wrapped, ok := p.tryAAConformanceSuffix(inner); ok {
 			inner = wrapped
 			continue
 		}
@@ -887,6 +892,111 @@ func (p *parser) tryStdlibProtoConformanceSuffix(inner *demangle.Node) (*demangl
 		// Concurrency types and all other modules: simplified — type name only,
 		// module prefix stripped. Apple omits ": Proto in Module" for these.
 		body = strings.TrimPrefix(innerStr, moduleName+".")
+	}
+
+	wrap := common.NewNode(common.KindTypeMangling)
+	wrap.Text = termPrefix + body
+	return wrap, true
+}
+
+// tryAAConformanceSuffix handles protocol-conformance-descriptor and
+// protocol-witness-table suffixes where the protocol module is either:
+//   AA  — same-module back-reference (substitution 0)
+//   s   — Swift stdlib marker followed by a digit-led identifier
+//
+// and the conformance module is AA or s. Simplified output (no ": Proto in Module")
+// is used when the conformance module is AA (same-module conformance).
+//
+// Handles:
+//   AA<digit-ident>(AA|s)Mc/WP
+//   s<digit-ident>(AA|s)Mc/WP
+func (p *parser) tryAAConformanceSuffix(inner *demangle.Node) (*demangle.Node, bool) {
+	if p.eof() {
+		return inner, false
+	}
+	c := p.s[p.i]
+	if c != 'A' && c != 's' {
+		return inner, false
+	}
+	// Require at least AA or s followed by a digit.
+	if c == 'A' {
+		if p.i+2 >= len(p.s) || p.s[p.i+1] != 'A' {
+			return inner, false
+		}
+	} else { // 's'
+		if p.i+1 >= len(p.s) || !(p.s[p.i+1] >= '0' && p.s[p.i+1] <= '9') {
+			return inner, false
+		}
+	}
+	save := p.i
+	saveSubs := p.subs
+	saveWords := p.words
+	revert := func() { p.i = save; p.subs = saveSubs; p.words = saveWords }
+
+	// Consume proto-module.
+	if c == 'A' {
+		p.i += 2 // consume AA
+	} else {
+		p.i++ // consume s
+	}
+
+	// Parse protocol identifier (must be digit-led).
+	if p.eof() || !(p.s[p.i] >= '0' && p.s[p.i] <= '9') {
+		revert()
+		return inner, false
+	}
+	_, err := p.parseIdentifier()
+	if err != nil {
+		revert()
+		return inner, false
+	}
+
+	// Consume conformance module: AA or s.
+	if p.eof() {
+		revert()
+		return inner, false
+	}
+	sameModule := false
+	switch {
+	case p.i+1 < len(p.s) && p.s[p.i] == 'A' && p.s[p.i+1] == 'A':
+		p.i += 2
+		sameModule = true
+	case p.s[p.i] == 's':
+		p.i++
+	default:
+		revert()
+		return inner, false
+	}
+
+	// Require Mc or WP.
+	if p.i+1 >= len(p.s) {
+		revert()
+		return inner, false
+	}
+	var termPrefix string
+	if p.s[p.i] == 'M' && p.s[p.i+1] == 'c' {
+		termPrefix = "protocol conformance descriptor for "
+		p.i += 2
+	} else if p.s[p.i] == 'W' && p.s[p.i+1] == 'P' {
+		termPrefix = "protocol witness table for "
+		p.i += 2
+	} else {
+		revert()
+		return inner, false
+	}
+
+	innerStr := common.Print(inner, common.DefaultPrintOptions())
+	var body string
+	if sameModule {
+		// Same-module conformance: strip declaring-module prefix from type.
+		modNode, mok := p.subs.Get(0)
+		if mok && modNode != nil && common.NodeKind(modNode.Kind) == common.KindModule {
+			body = strings.TrimPrefix(innerStr, modNode.Text+".")
+		} else {
+			body = innerStr
+		}
+	} else {
+		body = innerStr
 	}
 
 	wrap := common.NewNode(common.KindTypeMangling)
@@ -4032,6 +4142,10 @@ func (p *parser) tryEntitySuffix(inner *demangle.Node) (*demangle.Node, bool) {
 			prefix = "method lookup function for "
 		case 's':
 			prefix = "ObjC class stub for "
+		case 'o':
+			prefix = "class metadata base offset for "
+		case 'Q':
+			prefix = "opaque type descriptor for "
 		}
 	case 'H':
 		switch p.s[p.i+1] {
@@ -4086,6 +4200,8 @@ func (p *parser) tryEntitySuffix(inner *demangle.Node) (*demangle.Node, bool) {
 			common.AddChildren(wrap, inner)
 			p.i += 2
 			return wrap, true
+		case 'C':
+			prefix = "enum case for "
 		case 'S':
 			prefix = "self-conformance witness for "
 		case 'J':
@@ -5678,6 +5794,53 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 	funcIdent := common.NewIdentifier(declName)
 	common.AddChildren(wrap, funcIdent, paramsNode, retNode)
 	return wrap, true, nil
+}
+
+// tryProtoRequirementsBaseDescriptor matches the protocol-requirements-base-descriptor
+// shape:
+//
+//	<digit-led-module> <digit-led-proto-ident> TL
+//	  → "protocol requirements base descriptor for <proto-name>"
+//
+// Module prefix is dropped from output; only the protocol name is shown.
+func (p *parser) tryProtoRequirementsBaseDescriptor() (*demangle.Node, bool) {
+	if p.eof() || !(p.s[p.i] >= '0' && p.s[p.i] <= '9') {
+		return nil, false
+	}
+	save := p.i
+	saveSubs := p.subs
+	saveWords := p.words
+	revert := func() { p.i = save; p.subs = saveSubs; p.words = saveWords }
+
+	modName, err := p.parseIdentifier() // module
+	if err != nil {
+		revert()
+		return nil, false
+	}
+	if p.eof() || !(p.s[p.i] >= '0' && p.s[p.i] <= '9') {
+		revert()
+		return nil, false
+	}
+	protoName, err := p.parseIdentifier() // protocol
+	if err != nil {
+		revert()
+		return nil, false
+	}
+	if p.i+1 >= len(p.s) || p.s[p.i] != 'T' || p.s[p.i+1] != 'L' {
+		revert()
+		return nil, false
+	}
+	p.i += 2
+	var displayName string
+	// Foundation keeps module prefix; other modules drop it.
+	if modName == "Foundation" {
+		displayName = modName + "." + protoName
+	} else {
+		displayName = protoName
+	}
+	wrap := common.NewNode(common.KindTypeMangling)
+	wrap.Text = "protocol requirements base descriptor for " + displayName
+	return wrap, true
 }
 
 // tryAssocTypeDescriptor matches three associated-type-descriptor shapes:
