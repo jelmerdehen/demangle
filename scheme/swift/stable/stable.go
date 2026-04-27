@@ -252,6 +252,12 @@ type parser struct {
 	// exponential blowup from speculative postfix chains (tryPostfix-
 	// FixedArray ↔ tryPostfixFunctionTypeWithParams interleaving).
 	parseOps int
+	// inSubscriptTypes suppresses tryPostfixFunctionTypeWithParams while
+	// parsing subscript result/index types. Without this, a generic-param
+	// result type like 'x' followed by a stdlib index type 'Si' would be
+	// greedily promoted to a function type (Swift.Int) -> A, consuming the
+	// subscript 'c' terminator in the process.
+	inSubscriptTypes bool
 }
 
 const maxParseDepth = 64
@@ -297,6 +303,10 @@ func (p *parser) parseGlobal() (*demangle.Node, error) {
 		inner = tlNode
 	} else if atdNode, atdOk := p.tryAssocTypeDescriptor(); atdOk {
 		inner = atdNode
+	} else if extEntity, ok, err := p.tryTypeFirstExtensionEntity(); err != nil {
+		return nil, err
+	} else if ok {
+		inner = extEntity
 	} else if extEntity, ok, err := p.tryExtensionEntity(); err != nil {
 		return nil, err
 	} else if ok {
@@ -309,6 +319,10 @@ func (p *parser) parseGlobal() (*demangle.Node, error) {
 		return nil, err
 	} else if ok {
 		inner = varEntity
+	} else if initCompact, ok, err := p.tryCompactStdlibInitEntity(); err != nil {
+		return nil, err
+	} else if ok {
+		inner = initCompact
 	} else if initEntity, ok, err := p.tryInitDeinitEntity(); err != nil {
 		return nil, err
 	} else if ok {
@@ -1015,9 +1029,15 @@ func (p *parser) tryAAConformanceSuffix(inner *demangle.Node) (*demangle.Node, b
 				body = innerStr
 			}
 		}
-	} else if conformanceIsSwift && strings.HasPrefix(innerStr, "Swift.") {
-		// Swift-module conformance where the type is also in Swift: strip "Swift." prefix.
-		body = innerStr[len("Swift."):]
+	} else if conformanceIsSwift {
+		isConcurrency := common.IsConcurrencyType(inner) || common.HasConcurrencyAncestor(inner) ||
+			swiftConcurrencyRuntimeTypes[common.RootNameOf(inner)]
+		if isConcurrency {
+			body = strings.TrimPrefix(innerStr, "Swift.")
+		} else {
+			// Regular stdlib type: full qualified format.
+			body = innerStr + " : Swift." + protoName + " in Swift"
+		}
 	} else {
 		body = innerStr
 	}
@@ -1027,21 +1047,26 @@ func (p *parser) tryAAConformanceSuffix(inner *demangle.Node) (*demangle.Node, b
 	return wrap, true
 }
 
-// trySubscriptEntity matches the subscript-entity shape
+// trySubscriptEntity matches subscript-entity shapes:
 //
-//   <T> 'i' <kind> [<ident> 'P']
+//  New typed form:  'y' <result-type> <index-types> 'c' 'i' <accessor-kind>
+//  Old generic form: 'x' 'i' <accessor-kind> [<ident> 'P']
 //
-// where <T> is the subscript's element-type (already parsed into
-// inner via parseType), 'i' marks subscript accessor, <kind> is one
-// of p/g/s/w/W/M/a/m (property/getter/...), and the optional
-// <ident>P is a local-private-decl discriminator. Renders as
-// "<prefix> <owner>.subscript : <T>" or "<local> in <owner>.subscript : <T>".
+// Accessor kinds: g=getter, s=setter, M=modify, a=unsafeAddressor,
+// m=unsafeMutableAddressor, w=willset, W=didset, p=property (for pMV descriptor).
 //
-// inner must be a Type wrapping a nominal — the subscript's owner is
-// determined by a preceding 'x' (generic A) or via the element type.
-// Narrow: only 'ip' property form with optional local-private suffix.
+// Rendering:
+//   Swift/Foundation owners — full module-qualified + type-annotated form.
+//   Other owners — simplified: module stripped, no type annotation.
 func (p *parser) trySubscriptEntity(inner *demangle.Node) (*demangle.Node, bool) {
-	if p.eof() || p.s[p.i] != 'x' {
+	if p.eof() {
+		return inner, false
+	}
+	if p.s[p.i] == 'y' {
+		return p.trySubscriptEntityTyped(inner)
+	}
+	// Old generic form: x i <kind> [<ident>P]
+	if p.s[p.i] != 'x' {
 		return inner, false
 	}
 	if p.i+2 >= len(p.s) || p.s[p.i+1] != 'i' {
@@ -1089,6 +1114,138 @@ func (p *parser) trySubscriptEntity(inner *demangle.Node) (*demangle.Node, bool)
 		wrap.Text = local + " in " + prefix + ownerStr + ".subscript : A"
 	} else {
 		wrap.Text = prefix + ownerStr + ".subscript : A"
+	}
+	return wrap, true
+}
+
+// trySubscriptEntityTyped handles the typed subscript shape:
+//
+//	'y' <result-type> <index-types> 'c' 'i' <accessor-kind>
+//
+// where 'c' terminates the index-type list (not a valid type-start byte),
+// 'i' is the subscript marker, and accessor-kind is g/s/M/a/m/w/W/p.
+func (p *parser) trySubscriptEntityTyped(inner *demangle.Node) (*demangle.Node, bool) {
+	save := p.i
+	saveSubs := p.subs
+	revert := func() { p.i = save; p.subs = saveSubs }
+
+	p.i++ // consume 'y'
+
+	// Set flag so tryPostfixFunctionTypeWithParams doesn't greedily consume
+	// an index type + 'c' subscript terminator as a function-type encoding.
+	p.inSubscriptTypes = true
+	defer func() { p.inSubscriptTypes = false }()
+
+	// Parse result type.
+	resultNode, err := p.parseType()
+	if err != nil {
+		revert()
+		return inner, false
+	}
+
+	// Parse index types until 'c' (not a valid type-start, so parseType errors).
+	var indexNodes []*demangle.Node
+	for !p.eof() && p.s[p.i] != 'c' {
+		idxSave := p.i
+		idxSubs := p.subs
+		idxNode, idxErr := p.parseType()
+		if idxErr != nil {
+			p.i = idxSave
+			p.subs = idxSubs
+			break
+		}
+		indexNodes = append(indexNodes, idxNode)
+	}
+
+	// Require 'c' terminator.
+	if p.eof() || p.s[p.i] != 'c' {
+		revert()
+		return inner, false
+	}
+	p.i++
+
+	// Require 'i' subscript marker.
+	if p.eof() || p.s[p.i] != 'i' {
+		revert()
+		return inner, false
+	}
+	p.i++
+
+	// Accessor kind.
+	if p.eof() {
+		revert()
+		return inner, false
+	}
+	kindByte := p.s[p.i]
+	switch kindByte {
+	case 'g', 's', 'M', 'a', 'm', 'w', 'W', 'p':
+	default:
+		revert()
+		return inner, false
+	}
+	p.i++
+
+	opts := common.DefaultPrintOptions()
+	ownerStr := common.Print(inner, opts)
+	resultStr := common.Print(resultNode, opts)
+
+	var paramParts []string
+	for _, idx := range indexNodes {
+		paramParts = append(paramParts, common.Print(idx, opts))
+	}
+	paramsStr := strings.Join(paramParts, ", ")
+
+	// Swift.* and Foundation.* owners use full module-qualified + type-annotated form.
+	// All others strip the module prefix and omit the type annotation.
+	fullForm := strings.Contains(ownerStr, "Swift.") || strings.Contains(ownerStr, "Foundation.")
+
+	strippedOwner := ownerStr
+	if !fullForm {
+		if dot := strings.Index(ownerStr, "."); dot >= 0 {
+			strippedOwner = ownerStr[dot+1:]
+		}
+	}
+
+	wrap := common.NewNode(common.KindTypeMangling)
+	switch kindByte {
+	case 'g':
+		if fullForm {
+			wrap.Text = strippedOwner + ".subscript.getter : (" + paramsStr + ") -> " + resultStr
+		} else {
+			wrap.Text = strippedOwner + ".subscript.getter"
+		}
+	case 's':
+		if fullForm {
+			wrap.Text = strippedOwner + ".subscript.setter : (" + paramsStr + ") -> " + resultStr
+		} else {
+			wrap.Text = strippedOwner + ".subscript.setter"
+		}
+	case 'M':
+		if fullForm {
+			wrap.Text = strippedOwner + ".subscript.modify : (" + paramsStr + ") -> " + resultStr
+		} else {
+			wrap.Text = strippedOwner + ".subscript.modify"
+		}
+	case 'w':
+		wrap.Text = strippedOwner + ".subscript.willset"
+	case 'W':
+		wrap.Text = strippedOwner + ".subscript.didset"
+	case 'a':
+		wrap.Text = "unsafeAddressor for " + strippedOwner + ".subscript : (" + paramsStr + ") -> " + resultStr
+	case 'm':
+		wrap.Text = "unsafeMutableAddressor for " + strippedOwner + ".subscript : (" + paramsStr + ") -> " + resultStr
+	case 'p':
+		if fullForm {
+			// Full form: subscript call notation — consumed by MV → "property descriptor for ..."
+			wrap.Text = strippedOwner + ".subscript(" + paramsStr + ") -> " + resultStr
+		} else {
+			// Simplified: subscript label notation — one "_:" per unnamed param.
+			labels := make([]string, len(indexNodes))
+			for i := range labels {
+				labels[i] = "_:"
+			}
+			wrap.Text = strippedOwner + ".subscript(" + strings.Join(labels, "") + ")"
+		}
 	}
 	return wrap, true
 }
@@ -1902,6 +2059,12 @@ func (p *parser) tryPostfixCompactTuple(node *demangle.Node) (*demangle.Node, bo
 // result), and 'c' marking escaping function-type.
 func (p *parser) tryPostfixFunctionTypeWithParams(node *demangle.Node) (*demangle.Node, bool) {
 	if p.eof() {
+		return node, false
+	}
+	// Suppress inside subscript type parsing — the 'c' that would be
+	// consumed as function-type convention is actually the subscript
+	// terminator. Allowing it would greedily eat index types + 'c'.
+	if p.inSubscriptTypes {
 		return node, false
 	}
 	// Only try when the current byte could start a type — conservative.
@@ -3489,25 +3652,66 @@ func (p *parser) tryVariableEntity() (*demangle.Node, bool, error) {
 		p.i = save
 		p.subs = saveSubs
 	}
-	if p.eof() || !(p.s[p.i] >= '0' && p.s[p.i] <= '9') {
-		return nil, false, nil
-	}
-	// Module.
-	mod, err := p.parseIdentifier()
-	if err != nil {
-		restore()
-		return nil, false, nil
-	}
+	// Accept 's' (Swift module shorthand), 'S<letter>' (stdlib substitution
+	// type as context), or digit-led module identifier.
+	var mod string
 	var pathSteps []*demangle.Node
-	moduleNode := common.NewModule(mod)
-	pathSteps = append(pathSteps, moduleNode)
-	// Push module to subs so AA back-refs can reach it.
-	p.subs.Push(moduleNode)
-	// accParent tracks the accumulated nominal context for building
-	// correctly nested type substitutions (Foundation.CocoaError.Code,
-	// not Foundation.Code).
-	var accParent *demangle.Node = moduleNode
+	moduleNode := common.NewModule("Swift") // default; overwritten for non-Swift
+	var accParent *demangle.Node
 	var accType *demangle.Node
+	if !p.eof() && p.s[p.i] == 'S' && p.i+1 < len(p.s) {
+		letter := p.s[p.i+1]
+		stdlibTyp, ok := common.BuildStdlibNominal(letter)
+		if !ok {
+			return nil, false, nil
+		}
+		p.i += 2
+		mod = "Swift"
+		moduleNode = common.NewModule("Swift")
+		pathSteps = append(pathSteps, moduleNode)
+		// Build ident node for the stdlib type so pathSteps is parallel
+		// with the digit-led case.
+		nom := stdlibTyp.Children[0] // the Structure/Class/Enum/Protocol node
+		stdlibIdent := nom.Children[1] // the Identifier child from buildFromStdlib
+		identNode := common.NewIdentifier(stdlibIdent.Text)
+		var kindByte string
+		switch common.NodeKind(nom.Kind) {
+		case common.KindStructure:
+			kindByte = "V"
+		case common.KindClass:
+			kindByte = "C"
+		case common.KindEnum:
+			kindByte = "O"
+		case common.KindProtocol:
+			kindByte = "P"
+		}
+		identNode.Attrs = map[string]string{"swift.nominalKind": kindByte}
+		pathSteps = append(pathSteps, identNode)
+		p.subs.Push(identNode)
+		p.subs.Push(stdlibTyp)
+		accType = stdlibTyp
+		accParent = nom
+	} else if !p.eof() && p.s[p.i] == 's' {
+		p.i++
+		mod = "Swift"
+		moduleNode = common.NewModule("Swift")
+		pathSteps = append(pathSteps, moduleNode)
+		// 's' Swift-module shorthand: Apple does NOT push module to subs.
+		accParent = moduleNode
+	} else if p.eof() || !(p.s[p.i] >= '0' && p.s[p.i] <= '9') {
+		return nil, false, nil
+	} else {
+		var err error
+		mod, err = p.parseIdentifier()
+		if err != nil {
+			restore()
+			return nil, false, nil
+		}
+		moduleNode = common.NewModule(mod)
+		pathSteps = append(pathSteps, moduleNode)
+		p.subs.Push(moduleNode)
+		accParent = moduleNode
+	}
 	// Walk identifier + optional (V/C/O) nominal-kind step until we
 	// have a terminating plain-ident (decl-name).
 	for {
@@ -3620,14 +3824,14 @@ func (p *parser) tryVariableEntity() (*demangle.Node, bool, error) {
 		staticPrefix = "static "
 	}
 	// Property descriptor vpMV / vpZMV.
-	// Foundation module: full format — "property descriptor for (static?)
-	//   Module.TypeName.prop : TypeStr" (matches Apple output for Foundation).
+	// Foundation and Swift-stdlib: full format — "property descriptor for (static?)
+	//   Module.TypeName.prop : TypeStr" (matches Apple output).
 	// All other modules: simplified — "property descriptor for (static?)
 	//   TypeName.prop" (no module prefix, no type annotation).
 	if kindByte == 'p' && p.i+1 < len(p.s) && p.s[p.i] == 'M' && p.s[p.i+1] == 'V' {
 		p.i += 2 // consume 'MV'
 		opts := common.DefaultPrintOptions()
-		if mod == "Foundation" {
+		if mod == "Foundation" || mod == "Swift" {
 			// Full: module-qualified path + type annotation.
 			path := common.NewNode(common.KindEntityPath)
 			common.AddChildren(path, pathSteps...)
@@ -3653,8 +3857,9 @@ func (p *parser) tryVariableEntity() (*demangle.Node, bool, error) {
 		return node, true, nil
 	}
 	// Build display.
-	// Foundation accessor kinds vg/vs/vM/vw/vW keep the full module-qualified +
-	// type-annotated form matching Apple swift-demangle:
+	// Foundation and Swift-stdlib accessor kinds (vg/vs/vM/vw/vW) keep the
+	// full module-qualified + type-annotated form matching Apple swift-demangle:
+	//   "Swift.Dictionary.debugDescription.getter : Swift.String"
 	//   "Foundation.Type.prop.getter : ReturnType"
 	// All other modules strip the module prefix and type annotation:
 	//   "Foo.prop.getter" instead of "Module.Foo.prop.getter : SomeType"
@@ -3662,7 +3867,7 @@ func (p *parser) tryVariableEntity() (*demangle.Node, bool, error) {
 	opts := common.DefaultPrintOptions()
 	switch kindByte {
 	case 'g', 's', 'M', 'w', 'W':
-		if mod == "Foundation" {
+		if mod == "Foundation" || mod == "Swift" {
 			// Full form: module-qualified path + type annotation.
 			path := common.NewNode(common.KindEntityPath)
 			common.AddChildren(path, pathSteps...)
@@ -3690,6 +3895,143 @@ func (p *parser) tryVariableEntity() (*demangle.Node, bool, error) {
 	}
 }
 
+// tryCompactStdlibInitEntity handles the compact global init form:
+//
+//	S<N><letter>[y<types>G] y c f<C|c>
+//
+// S<N><letter> encodes the stdlib type N times — the first copy is the
+// context (owner), the second is the return type (optionally wrapped in a
+// bound-generic via y<types>G for generic types). y = empty params,
+// c = escaping convention, fC/fc = allocating/non-allocating init.
+//
+// Examples:
+//
+//	S2bycfC  → Swift.Bool.init() -> Swift.Bool
+//	S2ayxGycfC → Swift.Array.init() -> [A]
+//	S2cEycfC → CancellationError.init()
+func (p *parser) tryCompactStdlibInitEntity() (*demangle.Node, bool, error) {
+	if p.i+2 >= len(p.s) || p.s[p.i] != 'S' ||
+		p.s[p.i+1] < '0' || p.s[p.i+1] > '9' {
+		return nil, false, nil
+	}
+	save := p.i
+	saveSubs := p.subs
+	revert := func() { p.i = save; p.subs = saveSubs }
+
+	p.i++ // consume 'S'
+	digStart := p.i
+	for p.i < len(p.s) && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+		p.i++
+	}
+	if p.eof() {
+		revert()
+		return nil, false, nil
+	}
+	n := 0
+	for _, d := range p.s[digStart:p.i] {
+		n = n*10 + int(d-'0')
+		if n > 512 {
+			revert()
+			return nil, false, nil
+		}
+	}
+	if n < 2 {
+		revert()
+		return nil, false, nil
+	}
+
+	letter := p.s[p.i]
+	var baseType *demangle.Node
+	isConcurrency := false
+	if letter == 'c' && p.i+1 < len(p.s) {
+		next := p.s[p.i+1]
+		node, ok := common.BuildStdlibNominal2(next)
+		if !ok {
+			revert()
+			return nil, false, nil
+		}
+		isConcurrency = true
+		baseType = node
+		p.i += 2
+	} else {
+		node, ok := common.BuildStdlibNominal(letter)
+		if !ok {
+			revert()
+			return nil, false, nil
+		}
+		baseType = node
+		p.i++
+	}
+
+	for k := 0; k < n; k++ {
+		p.subs.Push(baseType)
+	}
+
+	// Result type: base type optionally wrapped in a bound-generic.
+	resultType := baseType
+	if !p.eof() && p.s[p.i] == 'y' {
+		if bg, ok, _ := p.tryBoundGeneric(baseType); ok {
+			resultType = bg
+		}
+	}
+
+	// Empty params.
+	if p.eof() || p.s[p.i] != 'y' {
+		revert()
+		return nil, false, nil
+	}
+	p.i++
+
+	// Escaping convention.
+	if p.eof() || p.s[p.i] != 'c' {
+		revert()
+		return nil, false, nil
+	}
+	p.i++
+
+	// Entity kind fC or fc.
+	if p.i+1 >= len(p.s) || p.s[p.i] != 'f' {
+		revert()
+		return nil, false, nil
+	}
+	kindByte := p.s[p.i+1]
+	if kindByte != 'C' && kindByte != 'c' {
+		revert()
+		return nil, false, nil
+	}
+	p.i += 2
+
+	var nodeKind common.NodeKind
+	if kindByte == 'C' {
+		nodeKind = common.KindAllocatingInit
+	} else {
+		nodeKind = common.KindInitializer
+	}
+
+	opts := common.DefaultPrintOptions()
+	var display string
+	if isConcurrency {
+		typName := ""
+		if len(baseType.Children) > 0 {
+			for _, c := range baseType.Children[0].Children {
+				if common.NodeKind(c.Kind) == common.KindIdentifier {
+					typName = c.Text
+					break
+				}
+			}
+		}
+		display = typName + ".init()"
+	} else {
+		contextStr := common.Print(baseType, opts)
+		resultStr := common.Print(resultType, opts)
+		display = contextStr + ".init() -> " + resultStr
+	}
+
+	initNode := common.NewNode(nodeKind)
+	initNode.Text = display
+	return initNode, true, nil
+}
+
 // tryInitDeinitEntity matches:
 //
 //	<context> <result-type> <params-type> 'c' f <C|c|d|D>
@@ -3703,18 +4045,29 @@ func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 	save := p.i
 	saveSubs := p.subs
 	restore := func() { p.i = save; p.subs = saveSubs }
-	if p.eof() || !(p.s[p.i] >= '0' && p.s[p.i] <= '9') {
+	// Accept 's' (Swift module shorthand) or digit-led module identifier.
+	var mod string
+	if !p.eof() && p.s[p.i] == 's' {
+		p.i++
+		mod = "Swift"
+	} else if p.eof() || !(p.s[p.i] >= '0' && p.s[p.i] <= '9') {
 		return nil, false, nil
-	}
-	mod, err := p.parseIdentifier()
-	if err != nil {
-		restore()
-		return nil, false, nil
+	} else {
+		var err error
+		mod, err = p.parseIdentifier()
+		if err != nil {
+			restore()
+			return nil, false, nil
+		}
 	}
 	var pathSteps []*demangle.Node
 	moduleNode := common.NewModule(mod)
 	pathSteps = append(pathSteps, moduleNode)
-	p.subs.Push(moduleNode)
+	// For the 's' Swift-module shorthand, Apple does NOT push the module
+	// to subs — only named modules (digit-led) occupy a subs slot.
+	if mod != "Swift" {
+		p.subs.Push(moduleNode)
+	}
 	lastKind := byte(0)
 	for {
 		if p.eof() || !(p.s[p.i] >= '0' && p.s[p.i] <= '9') {
@@ -3859,6 +4212,18 @@ func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 			}
 			paramsType.Attrs["swift.label"] = labels[0]
 		}
+	}
+	// Consume optional async/throws annotations before the 'cfC' terminal.
+	for !p.eof() {
+		if p.s[p.i] == 'K' {
+			p.i++
+			continue
+		}
+		if p.i+1 < len(p.s) && p.s[p.i] == 'Y' && p.s[p.i+1] == 'a' {
+			p.i += 2
+			continue
+		}
+		break
 	}
 	// Require 'c' f <C|c|d|D>.
 	if p.i+2 >= len(p.s) || p.s[p.i] != 'c' || p.s[p.i+1] != 'f' {
@@ -4267,6 +4632,8 @@ func (p *parser) tryEntitySuffix(inner *demangle.Node) (*demangle.Node, bool) {
 			return wrap, true
 		case 'C':
 			prefix = "enum case for "
+		case 'V':
+			prefix = "value witness table for "
 		case 'S':
 			prefix = "self-conformance witness for "
 		case 'J':
@@ -4489,6 +4856,15 @@ func (p *parser) tryEntitySuffix(inner *demangle.Node) (*demangle.Node, bool) {
 			// Tt<N> — merged thunk pass.
 			prefix = "merged thunk for "
 			consumed = 2 + digitRun(p.s, p.i+2)
+		} else if p.s[p.i+1] == 'L' {
+			// TL — protocol requirements base descriptor.
+			innerStr := common.Print(inner, descriptorPrintOpts(inner))
+			wrap := common.NewNode(common.KindTypeMangling)
+			wrap.Text = "protocol requirements base descriptor for " + innerStr
+			wrap.Attrs = map[string]string{"swift.suffix": "TL", "swift.prerendered": "true"}
+			common.AddChildren(wrap, inner)
+			p.i += 2
+			return wrap, true
 		} else if p.s[p.i+1] == 'S' {
 			// TS — protocol self-conformance witness. Renders as
 			// "protocol self-conformance witness for <inner>".
@@ -4895,6 +5271,497 @@ func extractStdlibExtConstraintSig(b string) string {
 	return "< where A: Swift." + name + ">"
 }
 
+// tryTypeFirstExtensionEntity handles extension entities where the host type
+// appears before the extension module:
+//
+//	<host-type> <ext-module> E <nested-type-chain>* <decl> <suffix>
+//
+// Supported host types:
+//
+//	So<n><name>C/V/O/P  — Objective-C type extended in a Swift module
+//	s<n><name>V/C/O/P   — Swift stdlib type extended in another module
+//
+// Output is always simplified (no module prefix):
+//
+//	TypePath.decl.accessor          (property accessor)
+//	property descriptor for TypePath.decl (vpMV)
+//	TypePath.init(labels:)          (init)
+//	TypePath.decl(labels:)          (function — Z/Tj/Tq handled by outer)
+func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
+	save := p.i
+	saveSubs := p.subs
+	saveWords := p.words
+	restore := func() { p.i = save; p.subs = saveSubs; p.words = saveWords }
+
+	if p.eof() {
+		return nil, false, nil
+	}
+
+	var hostPath string
+
+	switch {
+	case p.i+1 < len(p.s) && p.s[p.i] == 'S' && p.s[p.i+1] == 'o':
+		// Objective-C type: So<n><name><kind>
+		p.i += 2
+		name, err := p.parseIdentifier()
+		if err != nil {
+			restore()
+			return nil, false, nil
+		}
+		if p.eof() {
+			restore()
+			return nil, false, nil
+		}
+		kind := p.s[p.i]
+		if kind != 'C' && kind != 'V' && kind != 'O' && kind != 'P' && kind != 'a' {
+			restore()
+			return nil, false, nil
+		}
+		p.i++
+		hostPath = name
+		p.subs.Push(common.NewIdentifier(name))
+		var hkind common.NodeKind
+		switch kind {
+		case 'C':
+			hkind = common.KindClass
+		case 'V', 'a':
+			hkind = common.KindStructure
+		case 'O':
+			hkind = common.KindEnum
+		case 'P':
+			hkind = common.KindProtocol
+		}
+		nom := common.NewNode(hkind)
+		common.AddChildren(nom, common.NewModule("__C"), common.NewIdentifier(name))
+		typeNode := common.NewNode(common.KindType)
+		common.AddChildren(typeNode, nom)
+		p.subs.Push(typeNode)
+
+	case p.i+1 < len(p.s) && p.s[p.i] == 's' && p.s[p.i+1] >= '0' && p.s[p.i+1] <= '9':
+		// Swift stdlib type: s<n><name><kind>
+		p.i++ // skip 's'
+		name, err := p.parseIdentifier()
+		if err != nil {
+			restore()
+			return nil, false, nil
+		}
+		if p.eof() {
+			restore()
+			return nil, false, nil
+		}
+		kind := p.s[p.i]
+		if kind != 'C' && kind != 'V' && kind != 'O' && kind != 'P' {
+			restore()
+			return nil, false, nil
+		}
+		p.i++
+		hostPath = name
+		p.subs.Push(common.NewModule("Swift"))
+		p.subs.Push(common.NewIdentifier(name))
+		var hkind common.NodeKind
+		switch kind {
+		case 'C':
+			hkind = common.KindClass
+		case 'V':
+			hkind = common.KindStructure
+		case 'O':
+			hkind = common.KindEnum
+		case 'P':
+			hkind = common.KindProtocol
+		}
+		nom := common.NewNode(hkind)
+		common.AddChildren(nom, common.NewModule("Swift"), common.NewIdentifier(name))
+		typeNode := common.NewNode(common.KindType)
+		common.AddChildren(typeNode, nom)
+		p.subs.Push(typeNode)
+
+	default:
+		return nil, false, nil
+	}
+
+	// Extension module must start with a digit.
+	if p.eof() || !(p.s[p.i] >= '0' && p.s[p.i] <= '9') {
+		restore()
+		return nil, false, nil
+	}
+	modName, err := p.parseIdentifier()
+	if err != nil {
+		restore()
+		return nil, false, nil
+	}
+	p.subs.Push(common.NewModule(modName))
+
+	// Immediately followed by 'E'.
+	if p.eof() || p.s[p.i] != 'E' {
+		restore()
+		return nil, false, nil
+	}
+	p.i++ // consume 'E'
+
+	// Parse nested type chain + final decl name.
+	// Zero or more <n><ident><kind-byte> pairs (nested types), then one
+	// <n><ident> without a kind byte (the decl name).
+	// If no digit-led identifier follows E at all (e.g. AB-style init),
+	// declName stays "" and the init/function terminal handles it.
+	var nestedTypes []string
+	var declName string
+	for {
+		if p.eof() || !(p.s[p.i] >= '0' && p.s[p.i] <= '9') {
+			// Non-digit after E (or after nested types): no more
+			// digit-led identifiers. Break gracefully; the terminal
+			// handler below will succeed or restore.
+			break
+		}
+		ident, iErr := p.parseIdentifier()
+		if iErr != nil {
+			restore()
+			return nil, false, nil
+		}
+		p.subs.Push(common.NewIdentifier(ident))
+		if !p.eof() && (p.s[p.i] == 'V' || p.s[p.i] == 'C' ||
+			p.s[p.i] == 'O' || p.s[p.i] == 'P') {
+			kindByte := p.s[p.i]
+			p.i++ // consume kind byte — nested type level
+			nestedTypes = append(nestedTypes, ident)
+			// Push a Type node so AE/AF-style back-refs resolve.
+			var ntKind common.NodeKind
+			switch kindByte {
+			case 'C':
+				ntKind = common.KindClass
+			case 'V':
+				ntKind = common.KindStructure
+			case 'O':
+				ntKind = common.KindEnum
+			case 'P':
+				ntKind = common.KindProtocol
+			}
+			ntNom := common.NewNode(ntKind)
+			common.AddChildren(ntNom, common.NewIdentifier(ident))
+			ntType := common.NewNode(common.KindType)
+			common.AddChildren(ntType, ntNom)
+			p.subs.Push(ntType)
+		} else {
+			declName = ident
+			break
+		}
+	}
+	for _, nt := range nestedTypes {
+		hostPath += "." + nt
+	}
+
+	// Entity-suffix terminal (Ma, Mn, N, Mc, etc.) directly after the
+	// nested-type chain — no function signature follows. Build a synthetic
+	// node from the accumulated path and delegate to tryEntitySuffix.
+	{
+		pathText := hostPath
+		if declName != "" {
+			pathText += "." + declName
+		}
+		inner := common.NewNode(common.KindTypeMangling)
+		inner.Text = pathText
+		if wrapped, ok := p.tryEntitySuffix(inner); ok {
+			return wrapped, true, nil
+		}
+	}
+
+	// Parse labels (wildcard '_' and digit-led named labels).
+	var labels []string
+	for !p.eof() {
+		c := p.s[p.i]
+		if c == '_' {
+			labels = append(labels, "_")
+			p.i++
+		} else if c >= '0' && c <= '9' {
+			lblSave := p.i
+			lblSubs := p.subs
+			lbl, lerr := p.parseIdentifier()
+			if lerr != nil {
+				p.i = lblSave
+				p.subs = lblSubs
+				break
+			}
+			labels = append(labels, lbl)
+		} else if c == 'y' && p.i+1 < len(p.s) && p.s[p.i+1] == 'y' {
+			p.i++ // consume first 'y' (label-list-empty marker)
+			break
+		} else {
+			break
+		}
+	}
+
+	// Speculative y-as-label check: same logic as tryExtensionEntity.
+	var retNode *demangle.Node
+	if len(labels) == 0 && !p.eof() && p.s[p.i] == 'y' && p.i+1 < len(p.s) {
+		next := p.s[p.i+1]
+		typeStart := next == 'A' || next == 'S' || next == 's' || next == 'B' ||
+			next == 'x' || next == 'q' || next == 'Q' || (next >= '0' && next <= '9')
+		if typeStart {
+			specSave := p.i
+			specSubs := p.subs
+			specWords := p.words
+			p.i++ // tentatively consume y as label
+			specResult, serr := p.parseType()
+			if serr == nil && !p.eof() {
+				nc := p.s[p.i]
+				if nc != 'F' && nc != 'l' && nc != 'K' && nc != 'Y' &&
+					nc != 'v' && nc != 'r' && nc != 'u' {
+					labels = append(labels, "_")
+					retNode = specResult
+				}
+			}
+			if retNode == nil {
+				p.i = specSave
+				p.subs = specSubs
+				p.words = specWords
+			}
+		}
+	}
+	if retNode == nil {
+		// Result type: 'y' = void, else parseType.
+		if p.eof() {
+			restore()
+			return nil, false, nil
+		}
+		if p.s[p.i] == 'y' {
+			p.i++
+		} else {
+			t, terr := p.parseType()
+			if terr != nil {
+				restore()
+				return nil, false, nil
+			}
+			_ = t
+		}
+	}
+
+	// Params: loop until 't' tuple-end, 'F', or property terminal (v<kind>).
+	isPropTerm := func() bool {
+		if p.eof() {
+			return false
+		}
+		c := p.s[p.i]
+		if c == 'v' && p.i+1 < len(p.s) {
+			switch p.s[p.i+1] {
+			case 'g', 's', 'M', 'w', 'W', 'p':
+				return true
+			}
+		}
+		return false
+	}
+	var paramCount int
+	ycConvention := !p.eof() && p.s[p.i] == 'y' && p.i+1 < len(p.s) && p.s[p.i+1] == 'c'
+	if p.paramsSlotIsEmpty() || ycConvention {
+		p.i++ // consume 'y'
+	} else if !p.eof() && p.s[p.i] != 'F' && !isPropTerm() &&
+		p.s[p.i] != 'K' && p.s[p.i] != 'f' {
+		elem, eerr := p.parseType()
+		if eerr != nil {
+			restore()
+			return nil, false, nil
+		}
+		_ = elem
+		paramCount++
+		for !p.eof() && p.s[p.i] != 't' && p.s[p.i] != 'F' && !isPropTerm() {
+			if p.s[p.i] == '_' {
+				p.i++
+				if p.eof() || p.s[p.i] == 't' {
+					break
+				}
+			}
+			elemSave := p.i
+			elemSubs := p.subs
+			elem2, eerr2 := p.parseType()
+			if eerr2 != nil {
+				p.i = elemSave
+				p.subs = elemSubs
+				break
+			}
+			_ = elem2
+			paramCount++
+		}
+		if !p.eof() && p.s[p.i] == 't' {
+			p.i++
+		}
+		// Single-element labeled-tuple terminator '_t'.
+		if paramCount == 1 && !p.eof() && p.s[p.i] == '_' &&
+			p.i+1 < len(p.s) && p.s[p.i+1] == 't' {
+			p.i += 2
+		}
+	}
+
+	// Skip local generic-sig (type R <kind> ... l).
+	for !p.eof() {
+		c := p.s[p.i]
+		if c == 'l' {
+			p.i++
+			break
+		}
+		if c == 'r' {
+			j := p.i + 1
+			for j < len(p.s) && p.s[j] >= '0' && p.s[j] <= '9' {
+				j++
+			}
+			if j < len(p.s) && p.s[j] == '_' {
+				p.i = j + 1
+				continue
+			}
+			break
+		}
+		if c == 'S' || c == 's' || c == 'x' || c == 'q' || c == 'A' ||
+			c == 'B' || (c >= '0' && c <= '9') {
+			saveSig := p.i
+			saveSubsSig := p.subs
+			_, cerr := p.parseType()
+			if cerr != nil {
+				p.i = saveSig
+				p.subs = saveSubsSig
+				break
+			}
+			if p.eof() || p.s[p.i] != 'R' {
+				p.i = saveSig
+				p.subs = saveSubsSig
+				break
+			}
+			p.i++ // consume R
+			if p.eof() {
+				p.i = saveSig
+				p.subs = saveSubsSig
+				break
+			}
+			p.i++ // skip req kind
+			continue
+		}
+		break
+	}
+
+	// Consume trailing convention bytes (u/r/c).
+	for !p.eof() {
+		b := p.s[p.i]
+		if b == 'u' || b == 'r' {
+			p.i++
+		} else if b == 'c' && p.i+1 < len(p.s) && p.s[p.i+1] == 'f' {
+			p.i++ // consume 'c', leave 'f' for init-terminal check
+			break
+		} else {
+			break
+		}
+	}
+
+	// Build label-only string for function output.
+	makeLabelStr := func(count int) string {
+		if count == 0 && len(labels) == 0 {
+			return "()"
+		}
+		n := count
+		if n == 0 {
+			n = len(labels)
+		}
+		var parts []string
+		for i := 0; i < n; i++ {
+			lbl := ""
+			if i < len(labels) {
+				lbl = labels[i]
+			}
+			if lbl != "" && lbl != "_" {
+				parts = append(parts, lbl+":")
+			} else {
+				parts = append(parts, "_:")
+			}
+		}
+		return "(" + strings.Join(parts, "") + ")"
+	}
+
+	// Property accessor and descriptor terminals.
+	if !p.eof() && p.s[p.i] == 'v' && p.i+1 < len(p.s) {
+		switch p.s[p.i+1] {
+		case 'g', 's', 'M', 'w', 'W':
+			var accessor string
+			switch p.s[p.i+1] {
+			case 'g':
+				accessor = ".getter"
+			case 's':
+				accessor = ".setter"
+			case 'M':
+				accessor = ".modify"
+			case 'w':
+				accessor = ".willset"
+			case 'W':
+				accessor = ".didset"
+			}
+			p.i += 2
+			// Optional 'Z' = static.
+			staticPfx := ""
+			if !p.eof() && p.s[p.i] == 'Z' {
+				staticPfx = "static "
+				p.i++
+			}
+			wrap := common.NewNode(common.KindTypeMangling)
+			wrap.Text = staticPfx + hostPath + "." + declName + accessor
+			return wrap, true, nil
+		case 'p':
+			if p.i+3 < len(p.s) && p.s[p.i+2] == 'M' && p.s[p.i+3] == 'V' {
+				p.i += 4
+				// Optional 'Z' = static.
+				staticPfx := ""
+				if !p.eof() && p.s[p.i] == 'Z' {
+					staticPfx = "static "
+					p.i++
+				}
+				wrap := common.NewNode(common.KindTypeMangling)
+				wrap.Text = "property descriptor for " + staticPfx + hostPath + "." + declName
+				return wrap, true, nil
+			}
+			// Plain 'vp' (stored property).
+			p.i += 2
+			staticPfx := ""
+			if !p.eof() && p.s[p.i] == 'Z' {
+				staticPfx = "static "
+				p.i++
+			}
+			wrap := common.NewNode(common.KindTypeMangling)
+			wrap.Text = staticPfx + hostPath + "." + declName
+			return wrap, true, nil
+		}
+	}
+
+	// Init terminals: optional 'K' (throws), then 'fC' or 'fc'.
+	{
+		throwsInit := false
+		if !p.eof() && p.s[p.i] == 'K' {
+			throwsInit = true
+			p.i++
+		}
+		if !p.eof() && p.s[p.i] == 'f' && p.i+1 < len(p.s) &&
+			(p.s[p.i+1] == 'C' || p.s[p.i+1] == 'c') {
+			p.i += 2
+			_ = throwsInit
+			// declName was the first identifier not followed by a type-kind byte
+			// in the nested-type chain; for init entities it is the first param
+			// label, so prepend it to recover the full label list.
+			if declName != "" {
+				labels = append([]string{declName}, labels...)
+			}
+			wrap := common.NewNode(common.KindTypeMangling)
+			wrap.Text = hostPath + ".init" + makeLabelStr(paramCount)
+			return wrap, true, nil
+		}
+		if throwsInit {
+			p.i-- // restore K
+		}
+	}
+
+	// Function terminal 'F': consume and return; outer handles Z/Tj/Tq/WC.
+	if p.eof() || p.s[p.i] != 'F' {
+		restore()
+		return nil, false, nil
+	}
+	p.i++
+
+	wrap := common.NewNode(common.KindTypeMangling)
+	wrap.Text = hostPath + "." + declName + makeLabelStr(paramCount)
+	return wrap, true, nil
+}
+
 // tryExtensionEntity matches the extension-method shape:
 //
 //	<module><nominal-chain><constraints>*E<decl-name>
@@ -5082,21 +5949,39 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 			}
 		}
 	}
-	// Parse decl-name and push to subs.
-	declName, err := p.parseIdentifier()
-	if err != nil {
-		restore()
-		return nil, false, nil
+	// Parse the declaration path after E.
+	// After E there may be nested nominal-type levels (identifier + kind-byte pairs)
+	// before the actual decl name.  Example: "UIKitAttributesV010AttachmentB0O4name"
+	// has two nested types (UIKitAttributes struct, AttachmentAttribute enum) and
+	// then decl name "name".
+	var nestedTypesSuffix []string
+	var declName string
+	for {
+		ident, identErr := p.parseIdentifier()
+		if identErr != nil {
+			restore()
+			return nil, false, nil
+		}
+		if !p.eof() && (p.s[p.i] == 'V' || p.s[p.i] == 'C' ||
+			p.s[p.i] == 'O' || p.s[p.i] == 'P') {
+			p.subs.Push(common.NewIdentifier(ident))
+			p.i++ // consume kind byte — this is a nested type level
+			nestedTypesSuffix = append(nestedTypesSuffix, ident)
+		} else {
+			declName = ident
+			break
+		}
 	}
-	// Label-list + result + params parse. Apple's signature grammar:
+	// Label-list: wildcard '_' labels and digit-led named labels.  Apple's grammar:
 	//   <labels>? <result> <params>
-	// where labels is empty, 'y' (explicit empty), or ident-run, and
-	// result/params are types or 'y'-terminated empty-lists. We use
-	// paramsSlotIsEmpty to distinguish 'y' as empty-marker vs 'y' as
-	// fn-type prefix.
+	// '_' is never a valid type-start byte so any leading '_' must be a label.
 	var labels []string
-	if !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
-		for !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+	for !p.eof() {
+		c := p.s[p.i]
+		if c == '_' {
+			labels = append(labels, "_")
+			p.i++
+		} else if c >= '0' && c <= '9' {
 			lblSave := p.i
 			lblSubs := p.subs
 			lbl, lerr := p.parseIdentifier()
@@ -5106,28 +5991,66 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 				break
 			}
 			labels = append(labels, lbl)
+		} else if c == 'y' && p.i+1 < len(p.s) && p.s[p.i+1] == 'y' {
+			// 'yy' prefix: first y is label-list-empty marker.
+			p.i++
+			break
+		} else {
+			break
 		}
-	} else if !p.eof() && p.s[p.i] == 'y' && p.i+1 < len(p.s) &&
-		p.s[p.i+1] == 'y' {
-		// 'yy' prefix: first y is label-list-empty marker.
-		p.i++
 	}
-	// Result-type.
+	// Speculative y-as-label check: when y is followed by a type-start byte
+	// (not another y, which is the yy=no-labels+void pattern) we tentatively
+	// consume y as ONE anonymous label and parse one result-type. If more
+	// type bytes remain before a function-entity terminal (F, l, K, Y, v, r)
+	// we commit: y was a label marker and specResult is the return type.
+	// Otherwise we revert and y will be treated as void-return below.
+	// This covers opaque return types (Qr), substitution-ref returns (AA...),
+	// stdlib returns (Sb, SS, …), and direct-nominal returns (7Foo...).
 	var retNode *demangle.Node
-	if p.eof() {
-		restore()
-		return nil, false, nil
+	if len(labels) == 0 && !p.eof() && p.s[p.i] == 'y' && p.i+1 < len(p.s) {
+		next := p.s[p.i+1]
+		typeStart := next == 'A' || next == 'S' || next == 's' || next == 'B' ||
+			next == 'x' || next == 'q' || next == 'Q' || (next >= '0' && next <= '9')
+		if typeStart {
+			specSave := p.i
+			specSubs := p.subs
+			specWords := p.words
+			p.i++ // tentatively consume y as label
+			specResult, serr := p.parseType()
+			if serr == nil && !p.eof() {
+				nc := p.s[p.i]
+				// Commit when more type-bytes remain before any terminal.
+				if nc != 'F' && nc != 'l' && nc != 'K' && nc != 'Y' &&
+					nc != 'v' && nc != 'r' && nc != 'u' {
+					labels = append(labels, "_")
+					retNode = specResult
+				}
+			}
+			if retNode == nil {
+				// Revert — y was void-return
+				p.i = specSave
+				p.subs = specSubs
+				p.words = specWords
+			}
+		}
 	}
-	if p.s[p.i] == 'y' {
-		p.i++
-		retNode = common.NewNode(common.KindEmptyList)
-	} else {
-		t, terr := p.parseType()
-		if terr != nil {
+	if retNode == nil {
+		if p.eof() {
 			restore()
 			return nil, false, nil
 		}
-		retNode = t
+		if p.s[p.i] == 'y' {
+			p.i++
+			retNode = common.NewNode(common.KindEmptyList)
+		} else {
+			t, terr := p.parseType()
+			if terr != nil {
+				restore()
+				return nil, false, nil
+			}
+			retNode = t
+		}
 	}
 	// Params-type: may be empty, a single type, or a multi-element
 	// tuple encoded as <type> ('_' <type>)* 't'.
@@ -5525,6 +6448,10 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 		if hostPath != hostName && len(cb) > 0 && !(cb[0] >= '0' && cb[0] <= '9') {
 			nestedExtMarker = "<>"
 		}
+	}
+	// Extend hostPath with any nested type levels parsed from after the E marker.
+	for _, nt := range nestedTypesSuffix {
+		hostPath += "." + nt
 	}
 
 	// Property accessor terminals: v<kind> or pMV.
@@ -6473,9 +7400,8 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 	// prefix for the Swift module, or 'So'/'SC' for the __C /
 	// __C_Synthesized clang-importer modules.
 	var mod string
-	if p.s[p.i] == 's' && p.i+1 < len(p.s) && !(p.s[p.i+1] >= '0' && p.s[p.i+1] <= '9') {
-		// 's' alone (NOT a length-prefix digit that happens to start
-		// with 's') introduces the Swift module.
+	if p.s[p.i] == 's' {
+		// 's' introduces the Swift module (standalone or s<digit> stdlib path).
 		p.i++
 		mod = "Swift"
 	} else if p.i+1 < len(p.s) && p.s[p.i] == 'S' &&
@@ -10630,6 +11556,8 @@ func (p *parser) parseBuiltin() (*demangle.Node, error) {
 		return p.builtinTypeNamed("IntLiteral"), nil
 	case 'j':
 		return p.builtinTypeNamed("Job"), nil
+	case 'c':
+		return p.builtinTypeNamed("RawUnsafeContinuation"), nil
 	case 'P':
 		return p.builtinTypeNamed("PackIndex"), nil
 	case 'V':
@@ -10950,7 +11878,7 @@ func (p *parser) captureWords(s string) {
 		}
 		if wordStart < 0 && i < len(s) {
 			c := s[i]
-			if c >= 'A' && c <= 'Z' || c >= 'a' && c <= 'z' || c == '_' {
+			if c >= 'A' && c <= 'Z' || c >= 'a' && c <= 'z' {
 				wordStart = i
 			}
 		}

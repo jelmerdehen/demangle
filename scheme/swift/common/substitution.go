@@ -163,6 +163,8 @@ func BuildStdlibNominal2(c byte) (*demangle.Node, bool) {
 // IsConcurrencyType reports whether n (or its first child) is a Swift
 // concurrency type built from the Sc<X> substitution table. These types
 // use simplified (no module) output in M/W descriptor context.
+// Also handles bound-generic wrappers (e.g. Task<A, B>, AsyncStream<A>)
+// by checking the base type inside the bound-generic node.
 func IsConcurrencyType(n *demangle.Node) bool {
 	if n == nil {
 		return false
@@ -171,7 +173,18 @@ func IsConcurrencyType(n *demangle.Node) bool {
 	if NodeKind(cur.Kind) == KindType && len(cur.Children) > 0 {
 		cur = cur.Children[0]
 	}
-	return cur.Attrs != nil && cur.Attrs["swift.concurrency"] == "true"
+	if cur.Attrs != nil && cur.Attrs["swift.concurrency"] == "true" {
+		return true
+	}
+	// Bound generic: check the base type (Children[0]) recursively.
+	switch NodeKind(cur.Kind) {
+	case KindBoundGenericStructure, KindBoundGenericClass,
+		KindBoundGenericEnum, KindBoundGenericProtocol:
+		if len(cur.Children) > 0 {
+			return IsConcurrencyType(cur.Children[0])
+		}
+	}
+	return false
 }
 
 func buildFromStdlib(s stdlib) *demangle.Node {
