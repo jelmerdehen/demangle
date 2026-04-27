@@ -3915,10 +3915,11 @@ func descriptorPrintOpts(inner *demangle.Node) common.PrintOptions {
 	if common.IsConcurrencyType(inner) || common.HasConcurrencyAncestor(inner) {
 		return common.PrintOptions{QualifyEntities: false, SynthesizeSugar: true}
 	}
-	// Direct Swift stdlib types (ModuleOf returns "Swift") stay qualified.
-	// Nested Swift stdlib types (ModuleOf returns "") lose the Swift. prefix —
-	// Apple swift-demangle prints e.g. "ExecutorJob.Kind" not "Swift.ExecutorJob.Kind".
-	if common.ModuleOf(inner) == "Swift" {
+	// Swift stdlib types stay qualified:
+	//   Direct types via S<letter> shorthand (SA, SS, Si, SD…) have ModuleOf="Swift".
+	//   Nested types (Dictionary.Keys.Iterator, etc.) have ModuleOf="" but
+	//   RootModuleOf="Swift" — they also need the "Swift." prefix per Apple output.
+	if common.ModuleOf(inner) == "Swift" || common.RootModuleOf(inner) == "Swift" {
 		return common.DefaultPrintOptions()
 	}
 	// Foundation types (including nested like Date.FormatStyle) stay qualified.
