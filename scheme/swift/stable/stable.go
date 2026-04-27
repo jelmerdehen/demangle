@@ -792,8 +792,18 @@ func (p *parser) tryConformanceDescriptorMc(inner *demangle.Node) (*demangle.Nod
 		sig = "< where " + constraintStr + "> "
 	}
 	wrap := common.NewNode(common.KindTypeMangling)
-	wrap.Text = "protocol conformance descriptor for " + sig + innerStr + " : " +
-		modName + "." + protoName + " in " + modName
+	// For concurrency types, Apple shows only the type (no ": Proto in Module").
+	if common.IsConcurrencyType(inner) {
+		wrap.Text = "protocol conformance descriptor for " + sig + innerStr
+	} else {
+		// Use the TYPE's module for "in", not the protocol module.
+		typeMod := common.RootModuleOf(inner)
+		if typeMod == "" {
+			typeMod = modName // fallback
+		}
+		wrap.Text = "protocol conformance descriptor for " + sig + innerStr + " : " +
+			modName + "." + protoName + " in " + typeMod
+	}
 	return wrap, true
 }
 
@@ -3867,11 +3877,19 @@ func (p *parser) tryConformanceDescriptor(inner *demangle.Node) (*demangle.Node,
 //   - Swift concurrency types (Sc<letter>) → simplified ("X", no module)
 //   - All other modules → simplified ("X", no module)
 func descriptorPrintOpts(inner *demangle.Node) common.PrintOptions {
-	if common.IsConcurrencyType(inner) {
+	// Sc<X> concurrency types and their nested types (e.g. TaskGroup.Iterator)
+	// are always simplified — no module prefix.
+	if common.IsConcurrencyType(inner) || common.HasConcurrencyAncestor(inner) {
 		return common.PrintOptions{QualifyEntities: false, SynthesizeSugar: true}
 	}
-	mod := common.ModuleOf(inner)
-	if mod == "Foundation" || mod == "Swift" {
+	// Direct Swift stdlib types (ModuleOf returns "Swift") stay qualified.
+	// Nested Swift stdlib types (ModuleOf returns "") lose the Swift. prefix —
+	// Apple swift-demangle prints e.g. "ExecutorJob.Kind" not "Swift.ExecutorJob.Kind".
+	if common.ModuleOf(inner) == "Swift" {
+		return common.DefaultPrintOptions()
+	}
+	// Foundation types (including nested like Date.FormatStyle) stay qualified.
+	if common.RootModuleOf(inner) == "Foundation" {
 		return common.DefaultPrintOptions()
 	}
 	return common.PrintOptions{QualifyEntities: false, SynthesizeSugar: true}

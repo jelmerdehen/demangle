@@ -448,3 +448,90 @@ func ModuleOf(n *demangle.Node) string {
 	}
 	return ""
 }
+
+// RootModuleOf returns the module name by traversing the parent-nominal chain
+// of a type node. Unlike ModuleOf, this works for nested types where the module
+// node is on a root ancestor rather than the direct node.
+func RootModuleOf(n *demangle.Node) string {
+	cur := n
+	if NodeKind(cur.Kind) == KindType && len(cur.Children) > 0 {
+		cur = cur.Children[0]
+	}
+	for {
+		switch NodeKind(cur.Kind) {
+		case KindStructure, KindClass, KindEnum, KindProtocol:
+		default:
+			return ""
+		}
+		var modNode *demangle.Node
+		var parentNode *demangle.Node
+		for _, c := range cur.Children {
+			switch NodeKind(c.Kind) {
+			case KindModule:
+				modNode = c
+			case KindStructure, KindClass, KindEnum, KindProtocol:
+				parentNode = c
+			case KindType:
+				if len(c.Children) > 0 {
+					kk := NodeKind(c.Children[0].Kind)
+					switch kk {
+					case KindStructure, KindClass, KindEnum, KindProtocol:
+						parentNode = c.Children[0]
+					}
+				}
+			}
+		}
+		if modNode != nil {
+			return modNode.Text
+		}
+		if parentNode == nil {
+			return ""
+		}
+		cur = parentNode
+	}
+}
+
+// HasConcurrencyAncestor reports whether n or any of its parent-nominal
+// chain nodes carries the "swift.concurrency" attribute. This is used to
+// detect nested types inside Sc<X> concurrency substitutions (e.g.
+// TaskGroup.Iterator) where IsConcurrencyType returns false for the inner
+// node but a parent is tagged as a concurrency type.
+func HasConcurrencyAncestor(n *demangle.Node) bool {
+	cur := n
+	if NodeKind(cur.Kind) == KindType && len(cur.Children) > 0 {
+		cur = cur.Children[0]
+	}
+	for {
+		switch NodeKind(cur.Kind) {
+		case KindStructure, KindClass, KindEnum, KindProtocol:
+		default:
+			return false
+		}
+		// Check concurrency tag on this node.
+		if cur.Attrs != nil && cur.Attrs["swift.concurrency"] == "true" {
+			return true
+		}
+		// Find parent nominal.
+		var parentNode *demangle.Node
+		for _, c := range cur.Children {
+			switch NodeKind(c.Kind) {
+			case KindStructure, KindClass, KindEnum, KindProtocol:
+				parentNode = c
+			case KindType:
+				if len(c.Children) > 0 {
+					kk := NodeKind(c.Children[0].Kind)
+					switch kk {
+					case KindStructure, KindClass, KindEnum, KindProtocol:
+						parentNode = c.Children[0]
+					}
+				}
+			case KindModule:
+				return false
+			}
+		}
+		if parentNode == nil {
+			return false
+		}
+		cur = parentNode
+	}
+}
