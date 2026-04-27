@@ -3857,6 +3857,7 @@ func (p *parser) tryVariableEntity() (*demangle.Node, bool, error) {
 		return node, true, nil
 	}
 	// Build display.
+	// Build display.
 	// Foundation and Swift-stdlib accessor kinds (vg/vs/vM/vw/vW) keep the
 	// full module-qualified + type-annotated form matching Apple swift-demangle:
 	//   "Swift.Dictionary.debugDescription.getter : Swift.String"
@@ -5383,6 +5384,31 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 		typeNode := common.NewNode(common.KindType)
 		common.AddChildren(typeNode, nom)
 		p.subs.Push(typeNode)
+
+	case p.i+1 < len(p.s) && p.s[p.i] == 'S' && p.s[p.i+1] != 'o':
+		// S<letter> stdlib shorthand — extension on a known stdlib type.
+		// e.g. ST = Sequence, Sq = Optional, SS = String, SA = AutoreleasingUnsafeMutablePointer
+		p.i++ // consume 'S'
+		letter := p.s[p.i]
+		stdNode, ok := common.BuildStdlibNominal(letter)
+		if !ok {
+			restore()
+			return nil, false, nil
+		}
+		p.i++ // consume letter
+		// Extract type name from the built node (KindType → KindStructure/Protocol/etc. → Identifier child)
+		typeName := ""
+		if len(stdNode.Children) > 0 && len(stdNode.Children[0].Children) > 1 {
+			typeName = stdNode.Children[0].Children[1].Text
+		}
+		if typeName == "" {
+			restore()
+			return nil, false, nil
+		}
+		hostPath = typeName
+		p.subs.Push(common.NewModule("Swift"))
+		p.subs.Push(common.NewIdentifier(typeName))
+		p.subs.Push(stdNode)
 
 	default:
 		return nil, false, nil
