@@ -880,9 +880,12 @@ func (p *parser) tryStdlibProtoConformanceSuffix(inner *demangle.Node) (*demangl
 	protoName := protoEntry.Name
 
 	var body string
-	if moduleName == "Foundation" || moduleName == "Swift" {
+	if moduleName == "Foundation" || (moduleName == "Swift" && !common.IsConcurrencyType(inner)) {
+		// Foundation and non-concurrency Swift stdlib: full qualified form.
 		body = innerStr + " : Swift." + protoName + " in " + moduleName
 	} else {
+		// Concurrency types and all other modules: simplified — type name only,
+		// module prefix stripped. Apple omits ": Proto in Module" for these.
 		body = strings.TrimPrefix(innerStr, moduleName+".")
 	}
 
@@ -6037,6 +6040,13 @@ func simplifiedFuncEntity(inner *demangle.Node) string {
 	}
 	if nk == common.KindAllocatingInit || nk == common.KindInitializer ||
 		nk == common.KindDeallocatingDeinit || nk == common.KindDeinit {
+		// Foundation init/deinit carry the full qualified form in Text;
+		// Tj/Tq wrappers need that, not the stripped simplified form.
+		if inner.Text != "" && len(inner.Children) > 0 &&
+			common.NodeKind(inner.Children[0].Kind) == common.KindModule &&
+			inner.Children[0].Text == "Foundation" {
+			return inner.Text
+		}
 		if len(inner.Children) < 3 || inner.Text == "" {
 			if inner.Text != "" {
 				return inner.Text
