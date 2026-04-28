@@ -6214,12 +6214,35 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 				return nil, false, nil
 			}
 		} else {
+			applyMod := func(n *demangle.Node) *demangle.Node {
+				if p.eof() {
+					return n
+				}
+				switch p.s[p.i] {
+				case 'h':
+					p.i++
+					w := common.NewNode(common.KindType)
+					w.Attrs = map[string]string{"swift.conv": "__shared "}
+					common.AddChildren(w, n)
+					return w
+				case 'n':
+					p.i++
+					w := common.NewNode(common.KindType)
+					w.Attrs = map[string]string{"swift.conv": "__owned "}
+					common.AddChildren(w, n)
+					return w
+				case 'z':
+					p.i++
+					if n.Attrs == nil {
+						n.Attrs = map[string]string{}
+					}
+					n.Attrs["swift.inout"] = "true"
+				}
+				return n
+			}
+			elem = applyMod(elem)
 			paramTypes = append(paramTypes, elem)
 			paramCount++
-			// consume inout/shared/owned per-element modifiers
-			for !p.eof() && (p.s[p.i] == 'z' || p.s[p.i] == 'h' || p.s[p.i] == 'n') {
-				p.i++
-			}
 			for !p.eof() && p.s[p.i] != 't' && p.s[p.i] != 'F' && !isPropTerm() {
 				if p.s[p.i] == '_' {
 					p.i++
@@ -6235,12 +6258,9 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 					p.subs = elemSubs
 					break
 				}
+				elem2 = applyMod(elem2)
 				paramTypes = append(paramTypes, elem2)
 				paramCount++
-				// consume inout/shared/owned per-element modifiers
-				for !p.eof() && (p.s[p.i] == 'z' || p.s[p.i] == 'h' || p.s[p.i] == 'n') {
-					p.i++
-				}
 			}
 			if !p.eof() && p.s[p.i] == 't' {
 				p.i++
@@ -6370,6 +6390,7 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 	}
 
 	// verboseParamStr builds "(label: type, ...)" using preserved paramTypes.
+	// Ownership modifiers (inout/__shared/__owned) stored in Attrs are prepended.
 	verboseParamStr := func(lbls []string) string {
 		if len(paramTypes) == 0 {
 			return "()"
@@ -6380,7 +6401,18 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 			if i < len(lbls) {
 				lbl = lbls[i]
 			}
-			typeStr := common.Print(pt, opts)
+			var typeStr string
+			if pt != nil && pt.Attrs != nil {
+				if conv := pt.Attrs["swift.conv"]; conv != "" && len(pt.Children) > 0 {
+					typeStr = conv + common.Print(pt.Children[0], opts)
+				} else if pt.Attrs["swift.inout"] == "true" {
+					typeStr = "inout " + common.Print(pt, opts)
+				} else {
+					typeStr = common.Print(pt, opts)
+				}
+			} else {
+				typeStr = common.Print(pt, opts)
+			}
 			if lbl != "" && lbl != "_" {
 				parts = append(parts, lbl+": "+typeStr)
 			} else {
