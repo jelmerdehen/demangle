@@ -4388,11 +4388,68 @@ func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 	save := p.i
 	saveSubs := p.subs
 	restore := func() { p.i = save; p.subs = saveSubs }
-	// Accept 's' (Swift module shorthand) or digit-led module identifier.
+	// Accept 's' (Swift module shorthand), 'So'/'SC' (Obj-C importer),
+	// 'S<letter>' (stdlib known-type abbreviation), or digit-led module.
 	var mod string
+	var pathSteps []*demangle.Node
+	lastKind := byte(0)
+	var stdlibDirect bool // true when S<letter>/Sc<letter> seeds pathSteps+subs inline
 	if !p.eof() && p.s[p.i] == 's' {
 		p.i++
 		mod = "Swift"
+	} else if p.i+1 < len(p.s) && p.s[p.i] == 'S' &&
+		(p.s[p.i+1] == 'o' || p.s[p.i+1] == 'C') {
+		if p.s[p.i+1] == 'o' {
+			mod = "__C"
+		} else {
+			mod = "__C_Synthesized"
+		}
+		p.i += 2
+	} else if p.i+1 < len(p.s) && p.s[p.i] == 'S' {
+		letter := p.s[p.i+1]
+		nomNode, ok := common.BuildStdlibNominal(letter)
+		if !ok {
+			if letter == 'c' && p.i+2 < len(p.s) {
+				nomNode, ok = common.BuildStdlibNominal2(p.s[p.i+2])
+				if ok {
+					p.i += 3
+				}
+			}
+			if !ok {
+				restore()
+				return nil, false, nil
+			}
+		} else {
+			p.i += 2
+		}
+		modNode := common.NewModule("Swift")
+		inner := nomNode
+		if common.NodeKind(inner.Kind) == common.KindType && len(inner.Children) > 0 {
+			inner = inner.Children[0]
+		}
+		var typeName string
+		if len(inner.Children) > 1 {
+			typeName = inner.Children[1].Text
+		}
+		identNode := common.NewIdentifier(typeName)
+		identNode.Attrs = map[string]string{}
+		switch common.NodeKind(inner.Kind) {
+		case common.KindClass:
+			identNode.Attrs["swift.nominalKind"] = "C"
+			lastKind = 'C'
+		case common.KindStructure:
+			identNode.Attrs["swift.nominalKind"] = "V"
+		case common.KindEnum:
+			identNode.Attrs["swift.nominalKind"] = "O"
+		default:
+			identNode.Attrs["swift.nominalKind"] = "P"
+		}
+		p.subs.Push(modNode)
+		p.subs.Push(identNode)
+		p.subs.Push(nomNode)
+		pathSteps = append(pathSteps, modNode, identNode)
+		mod = "Swift"
+		stdlibDirect = true
 	} else if p.eof() || !(p.s[p.i] >= '0' && p.s[p.i] <= '9') {
 		return nil, false, nil
 	} else {
@@ -4403,104 +4460,120 @@ func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 			return nil, false, nil
 		}
 	}
-	var pathSteps []*demangle.Node
-	moduleNode := common.NewModule(mod)
-	pathSteps = append(pathSteps, moduleNode)
-	// For the 's' Swift-module shorthand, Apple does NOT push the module
-	// to subs — only named modules (digit-led) occupy a subs slot.
-	if mod != "Swift" {
-		p.subs.Push(moduleNode)
-	}
-	lastKind := byte(0)
-	for {
-		if p.eof() || !(p.s[p.i] >= '0' && p.s[p.i] <= '9') {
-			// For init/deinit, the context chain may end with a
-			// nominal V/C/O (no follow-up decl-name) — break out and
-			// let the caller try to match result + params + cf<X>.
+
+	if !stdlibDirect {
+		moduleNode := common.NewModule(mod)
+		pathSteps = append(pathSteps, moduleNode)
+		// For the 's' Swift-module shorthand, Apple does NOT push the module
+		// to subs — only named modules (digit-led) occupy a subs slot.
+		if mod != "Swift" {
+			p.subs.Push(moduleNode)
+		}
+		for {
+			if p.eof() || !(p.s[p.i] >= '0' && p.s[p.i] <= '9') {
+				// For init/deinit, the context chain may end with a
+				// nominal V/C/O (no follow-up decl-name) — break out and
+				// let the caller try to match result + params + cf<X>.
+				break
+			}
+			identSave := p.i
+			ident, err := p.parseIdentifier()
+			if err != nil {
+				restore()
+				return nil, false, nil
+			}
+			if p.eof() {
+				restore()
+				return nil, false, nil
+			}
+			peek := p.s[p.i]
+			if peek == 'V' || peek == 'C' || peek == 'O' || peek == 'P' {
+				p.i++
+				lastKind = peek
+				identNode := common.NewIdentifier(ident)
+				identNode.Attrs = map[string]string{"swift.nominalKind": string(peek)}
+				pathSteps = append(pathSteps, identNode)
+				continue
+			}
+			// No kind byte — this ident is the label-list start, not a
+			// path component. Roll back so the label-list parse below can
+			// re-consume it.
+			p.i = identSave
+			_ = ident
 			break
 		}
-		identSave := p.i
-		ident, err := p.parseIdentifier()
-		if err != nil {
-			restore()
-			return nil, false, nil
+		// Track the type for substitution lookups. Apple's demangler
+		// pushes each intermediate nominal element AND its type to the
+		// subs table. Mirror by pushing identifier + cumulative Type for
+		// each chain step past the module. The final Type becomes the
+		// most recent sub and short back-refs (AB/AC/etc) resolve to the
+		// nested nominal at the matching index.
+		var accType *demangle.Node
+		for i, step := range pathSteps {
+			if i == 0 {
+				continue // module already pushed
+			}
+			p.subs.Push(step)
+			// Use the actual nominal kind from the parsed kind byte (V/C/O/P).
+			var nomKind common.NodeKind
+			switch step.Attrs["swift.nominalKind"] {
+			case "V":
+				nomKind = common.KindStructure
+			case "O":
+				nomKind = common.KindEnum
+			case "P":
+				nomKind = common.KindProtocol
+			default:
+				nomKind = common.KindClass
+			}
+			nom := common.NewNode(nomKind)
+			var parent *demangle.Node
+			if accType == nil {
+				parent = moduleNode
+			} else {
+				parent = accType
+			}
+			common.AddChildren(nom, parent, step)
+			t := common.NewNode(common.KindType)
+			common.AddChildren(t, nom)
+			p.subs.Push(t)
+			accType = t
 		}
-		if p.eof() {
-			restore()
-			return nil, false, nil
-		}
-		peek := p.s[p.i]
-		if peek == 'V' || peek == 'C' || peek == 'O' || peek == 'P' {
-			p.i++
-			lastKind = peek
-			identNode := common.NewIdentifier(ident)
-			identNode.Attrs = map[string]string{"swift.nominalKind": string(peek)}
-			pathSteps = append(pathSteps, identNode)
-			continue
-		}
-		// No kind byte — this ident is the label-list start, not a
-		// path component. Roll back so the label-list parse below can
-		// re-consume it.
-		p.i = identSave
-		_ = ident
-		break
 	}
-	// Track the type for substitution lookups. Apple's demangler
-	// pushes each intermediate nominal element AND its type to the
-	// subs table. Mirror by pushing identifier + cumulative Type for
-	// each chain step past the module. The final Type becomes the
-	// most recent sub and short back-refs (AB/AC/etc) resolve to the
-	// nested nominal at the matching index.
-	var accType *demangle.Node
-	for i, step := range pathSteps {
-		if i == 0 {
-			continue // module already pushed
-		}
-		p.subs.Push(step)
-		// Use the actual nominal kind from the parsed kind byte (V/C/O/P).
-		var nomKind common.NodeKind
-		switch step.Attrs["swift.nominalKind"] {
-		case "V":
-			nomKind = common.KindStructure
-		case "O":
-			nomKind = common.KindEnum
-		case "P":
-			nomKind = common.KindProtocol
-		default:
-			nomKind = common.KindClass
-		}
-		nom := common.NewNode(nomKind)
-		var parent *demangle.Node
-		if accType == nil {
-			parent = moduleNode
-		} else {
-			parent = accType
-		}
-		common.AddChildren(nom, parent, step)
-		t := common.NewNode(common.KindType)
-		common.AddChildren(t, nom)
-		p.subs.Push(t)
-		accType = t
-	}
-	// Label-list: run of digit-led idents that don't end in V/C/O/P,
-	// followed by the result-type start byte. Greedy with backtrack.
+
+	// Label-list: 'y' = empty-list shortcut (no labels); digit-led idents
+	// or 'x'/'_' markers = per-param labels (blank for x/_).
 	var labels []string
-	for !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
-		lblSave := p.i
-		lblSubs := p.subs
-		lbl, err := p.parseIdentifier()
-		if err != nil {
-			p.i = lblSave
-			p.subs = lblSubs
-			break
+	if !p.eof() && p.s[p.i] == 'y' {
+		// Empty-list shortcut: all params positional, no labels. Consume.
+		p.i++
+	} else {
+		for !p.eof() {
+			c := p.s[p.i]
+			if c == 'x' || c == '_' {
+				labels = append(labels, "_")
+				p.i++
+				continue
+			}
+			if c < '0' || c > '9' {
+				break
+			}
+			lblSave := p.i
+			lblSubs := p.subs
+			lbl, err := p.parseIdentifier()
+			if err != nil {
+				p.i = lblSave
+				p.subs = lblSubs
+				break
+			}
+			if !p.eof() && (p.s[p.i] == 'V' || p.s[p.i] == 'C' ||
+				p.s[p.i] == 'O' || p.s[p.i] == 'P') {
+				p.i = lblSave
+				p.subs = lblSubs
+				break
+			}
+			labels = append(labels, lbl)
 		}
-		if !p.eof() && (p.s[p.i] == 'V' || p.s[p.i] == 'C' ||
-			p.s[p.i] == 'O' || p.s[p.i] == 'P') {
-			p.i = lblSave
-			p.subs = lblSubs
-			break
-		}
-		labels = append(labels, lbl)
 	}
 	// Result-type.
 	var retType *demangle.Node
