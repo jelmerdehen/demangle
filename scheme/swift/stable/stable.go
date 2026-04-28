@@ -994,7 +994,8 @@ func (p *parser) tryStdlibProtoConformanceSuffix(inner *demangle.Node) (*demangl
 	//   'rl'        → conditional conformance → show "<>"
 	type stdReq struct {
 		protoName  string
-		subjectIdx int // 0=A, 1=B, 2=C, ...
+		subjectIdx int    // 0=A, 1=B, 2=C, ...
+		assocType  string // non-empty for A.AssocType constraints
 	}
 	var parsedReqs []stdReq
 	reqParseOK := true   // false = blind scan used (no structured prefix available)
@@ -1037,11 +1038,31 @@ func (p *parser) tryStdlibProtoConformanceSuffix(inner *demangle.Node) (*demangl
 				break
 			}
 			p.i += 2
+			// Optional digit-led associated type path (e.g., "6Stride" → "Stride").
+			var assocTypeName string
+			if !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+				n2 := 0
+				for !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+					n2 = n2*10 + int(p.s[p.i]-'0')
+					p.i++
+				}
+				if n2 > 0 && p.i+n2 <= len(p.s) {
+					assocTypeName = string(p.s[p.i : p.i+n2])
+					p.i += n2
+				} else {
+					ok2 = false
+					break
+				}
+			}
 			if p.eof() || p.s[p.i] != 'R' {
 				ok2 = false
 				break
 			}
 			p.i++
+			// Optional 'p' or 't' suffix on R (associated type / same-type req).
+			if !p.eof() && (p.s[p.i] == 'p' || p.s[p.i] == 't') {
+				p.i++
+			}
 			// Subject: 'z'=0, '_'=1, N'_'=N+2
 			subj := -1
 			if p.eof() {
@@ -1070,7 +1091,7 @@ func (p *parser) tryStdlibProtoConformanceSuffix(inner *demangle.Node) (*demangl
 				ok2 = false
 				break
 			}
-			reqs = append(reqs, stdReq{pEntry.Name, subj})
+			reqs = append(reqs, stdReq{pEntry.Name, subj, assocTypeName})
 		}
 		if ok2 && !p.eof() {
 			parsedReqs = reqs
@@ -1124,29 +1145,54 @@ func (p *parser) tryStdlibProtoConformanceSuffix(inner *demangle.Node) (*demangl
 	// Build constraint prefix from parsed requirements.
 	var constraintPrefix string
 	if reqParseOK && len(parsedReqs) > 0 {
-		// Foundation/Swift: full "<  where A: Swift.X, B: Swift.Y>" form.
-		// Simplified: "<A, B>" — unique subjects in order.
 		isSwiftConcurrency2 := common.IsConcurrencyType(inner) || common.HasConcurrencyAncestor(inner) ||
 			swiftConcurrencyRuntimeTypes[common.RootNameOf(inner)]
 		if moduleName == "Foundation" || (moduleName == "Swift" && !isSwiftConcurrency2) {
+			// Build constraint list and unique subject list.
 			var parts []string
-			seen := map[string]bool{}
-			for _, r := range parsedReqs {
-				key := fmt.Sprintf("%s:%d", r.protoName, r.subjectIdx)
-				if !seen[key] {
-					seen[key] = true
-					subj := string(rune('A' + r.subjectIdx))
-					parts = append(parts, subj+": Swift."+r.protoName)
-				}
-			}
-			constraintPrefix = "< where " + strings.Join(parts, ", ") + "> "
-		} else {
-			// Simplified: collect unique subjects in order.
+			seenParts := map[string]bool{}
 			seen2 := map[int]bool{}
 			var subjects []string
 			for _, r := range parsedReqs {
+				subj := string(rune('A' + r.subjectIdx))
+				var lhs string
+				if r.assocType != "" {
+					lhs = subj + "." + r.assocType
+				} else {
+					lhs = subj
+				}
+				key := lhs + ":" + r.protoName
+				if !seenParts[key] {
+					seenParts[key] = true
+					parts = append(parts, lhs+": Swift."+r.protoName)
+				}
 				if !seen2[r.subjectIdx] {
 					seen2[r.subjectIdx] = true
+					subjects = append(subjects, subj)
+				}
+			}
+			constraints := strings.Join(parts, ", ")
+			hasAssocType := false
+			for _, r := range parsedReqs {
+				if r.assocType != "" {
+					hasAssocType = true
+					break
+				}
+			}
+			if moduleName == "Swift" && !hasAssocType && !condReq {
+				// Swift stdlib, simple l-terminated conformance: "<A where A: ...>".
+				constraintPrefix = "<" + strings.Join(subjects, ", ") + " where " + constraints + "> "
+			} else {
+				// Foundation, Swift with assoc-type, or rl-terminated: "< where ...>".
+				constraintPrefix = "< where " + constraints + "> "
+			}
+		} else {
+			// Simplified: collect unique subjects in order.
+			seen3 := map[int]bool{}
+			var subjects []string
+			for _, r := range parsedReqs {
+				if !seen3[r.subjectIdx] {
+					seen3[r.subjectIdx] = true
 					subjects = append(subjects, string(rune('A'+r.subjectIdx)))
 				}
 			}
