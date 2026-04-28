@@ -1683,12 +1683,28 @@ func (r *remangler) mangleEntitySuffix(n *demangle.Node) error {
 			if err := r.remangleNode(n.Children[0]); err != nil { // funcName
 				return err
 			}
-			// Label list: emit 'y' (empty = all-anonymous) when params are present.
-			// Apple always emits the label-list slot before the function signature.
+			// Label list: emit param labels or 'y' (all-anonymous) when params present.
 			extParams := n.Children[1]
 			extParamsEmpty := common.NodeKind(extParams.Kind) == common.KindEmptyList
 			if !extParamsEmpty {
-				r.buf.WriteByte('y')
+				extTypeList := common.NodeKind(extParams.Kind) == common.KindTypeList
+				if extTypeList && typeListHasLabels(extParams) {
+					for _, child := range extParams.Children {
+						lbl := ""
+						if child.Attrs != nil {
+							lbl = child.Attrs["swift.label"]
+						}
+						if lbl == "" || lbl == "_" {
+							r.buf.WriteByte('0')
+						} else {
+							if err := r.mangleIdentifier(common.NewIdentifier(lbl)); err != nil {
+								return err
+							}
+						}
+					}
+				} else {
+					r.buf.WriteByte('y')
+				}
 			}
 			if err := r.remangleNode(n.Children[2]); err != nil { // result
 				return err
