@@ -4393,7 +4393,8 @@ func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 	var mod string
 	var pathSteps []*demangle.Node
 	lastKind := byte(0)
-	var stdlibDirect bool // true when S<letter>/Sc<letter> seeds pathSteps+subs inline
+	var stdlibDirect bool      // true when S<letter>/Sc<letter> seeds pathSteps+subs inline
+	var stdlibIsConcurrency bool // true when Sc<letter> concurrency type (simplified display)
 	if !p.eof() && p.s[p.i] == 's' {
 		p.i++
 		mod = "Swift"
@@ -4413,6 +4414,7 @@ func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 				nomNode, ok = common.BuildStdlibNominal2(p.s[p.i+2])
 				if ok {
 					p.i += 3
+					stdlibIsConcurrency = true
 				}
 			}
 			if !ok {
@@ -4746,7 +4748,7 @@ func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 	if len(pathSteps) > 1 {
 		rootInitName = pathSteps[1].Text
 	}
-	isSwiftInitVerbose := mod == "Swift" && (kindByte == 'C' || kindByte == 'c') && !swiftConcurrencyRuntimeTypes[rootInitName]
+	isSwiftInitVerbose := mod == "Swift" && (kindByte == 'C' || kindByte == 'c') && !swiftConcurrencyRuntimeTypes[rootInitName] && !stdlibIsConcurrency
 	if (mod == "Foundation" || isSwiftInitVerbose) && (kindByte == 'C' || kindByte == 'c') {
 		opts := common.DefaultPrintOptions()
 		var sbFull strings.Builder
@@ -8013,9 +8015,13 @@ func verboseDispatchEntity(inner *demangle.Node) string {
 	}
 	// Pre-rendered wrapper around KindFunctionEntity: re-render from the entity
 	// so that generic constraints (swift.generic) and full types are included.
-	// Only for Foundation and Swift-module entities — SwiftUI/UIKit/Combine
-	// dispatch thunks use the simplified pre-rendered text (Apple preference).
+	// Only for Foundation and Swift-module entities — SwiftUI/UIKit/Combine and
+	// concurrency types use the simplified pre-rendered text (Apple preference).
 	if inner.Attrs != nil && inner.Attrs["swift.prerendered"] == "true" && len(inner.Children) > 0 {
+		if inner.Attrs["swift.concurrency"] == "true" {
+			// Concurrency type: use the simplified pre-rendered text as-is.
+			return inner.Text
+		}
 		child := inner.Children[0]
 		if common.NodeKind(child.Kind) == common.KindFunctionEntity {
 			mod := funcEntityModule(child)
@@ -9419,7 +9425,9 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 	if len(pathSteps) > 1 {
 		rootName = pathSteps[1].Text
 	}
-	isSwiftVerbose := mod == "Swift" && !swiftConcurrencyRuntimeTypes[rootName] && !common.IsConcurrencyType(lastNomCtx)
+	isConcurrencyEntity := swiftConcurrencyRuntimeTypes[rootName] ||
+		common.IsConcurrencyType(lastNomCtx) || common.HasConcurrencyAncestor(lastNomCtx)
+	isSwiftVerbose := mod == "Swift" && !isConcurrencyEntity
 	if mod == "Foundation" || (isWC && mod == "Swift") {
 		var sbFull strings.Builder
 		for i, step := range pathSteps {
@@ -9489,6 +9497,9 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 	wrap := common.NewNode(common.KindTypeMangling)
 	wrap.Text = sb.String()
 	wrap.Attrs = map[string]string{"swift.prerendered": "true"}
+	if isConcurrencyEntity {
+		wrap.Attrs["swift.concurrency"] = "true"
+	}
 	common.AddChildren(wrap, entity)
 	return wrap, true, nil
 }
