@@ -1,0 +1,3 @@
+#!/bin/sh
+# Run smoke gate before every commit. Fail = abort commit.
+exec make smoke

@@ -1,4 +1,4 @@
-.PHONY: all build test vet fmt lint fuzz bench bench-check tidy clean size-check
+.PHONY: all build test vet fmt lint fuzz bench bench-check tidy clean size-check smoke digest
 
 GO      ?= go
 PKGS    := ./...
@@ -96,6 +96,26 @@ size-check:
 	check full-cli      12582912  ./cmd/demangle; \
 	if [ "$$PASS" = "false" ]; then exit 1; fi; \
 	echo "size-check: all variants within budget"
+
+# smoke: fast regression gate — runs Apple curated + swiftc + per-category baselines.
+# Total runtime < 5 s. Any failure = regression. Called by pre-commit hook + CI.
+smoke:
+	@echo "=== smoke: Apple curated 153/153 ==="
+	$(GO) test -count=1 -run TestAppleCorpusStrict ./scheme/swift/stable/
+	@echo "=== smoke: swiftc three-way parity 222/222 ==="
+	$(GO) test -count=1 -run TestThreeWayParity ./scheme/swift/stable/
+	@echo "=== smoke: per-category fixture baselines ==="
+	$(GO) test -count=1 -v ./scheme/swift/stable/testdata/categories/ 2>&1 | grep -E 'category |TOTAL|FAIL|ok '
+	@echo "smoke: all gates passed"
+
+# digest: regenerate digest.md from production-divergences.txt.
+digest:
+	$(GO) run ./cmd/swiftclose-digest/
+
+# install-hooks: wire up .githooks/ as the git hook directory.
+install-hooks:
+	git config core.hooksPath .githooks
+	@echo "install-hooks: .githooks/ wired as git hook directory"
 
 clean:
 	rm -rf build dist
