@@ -955,6 +955,9 @@ func (p *parser) tryStdlibProtoConformanceSuffix(inner *demangle.Node) (*demangl
 
 	// Skip optional conditional-requirements block terminated by 'rl'.
 	// Pattern: <requirements>rl before Mc/WP (conditional conformance).
+	// foundCondReq is true when we consumed a conditional-requirements block;
+	// Apple prefixes the output with "<> " in the simplified (else) branch.
+	foundCondReq := false
 	if !p.eof() && p.i+1 < len(p.s) &&
 		!((p.s[p.i] == 'M' && p.s[p.i+1] == 'c') || (p.s[p.i] == 'W' && p.s[p.i+1] == 'P')) {
 		found := false
@@ -963,6 +966,7 @@ func (p *parser) tryStdlibProtoConformanceSuffix(inner *demangle.Node) (*demangl
 				((p.s[k+2] == 'M' && p.s[k+3] == 'c') || (p.s[k+2] == 'W' && p.s[k+3] == 'P')) {
 				p.i = k + 2 // skip past 'rl', now points at Mc/WP
 				found = true
+				foundCondReq = true
 				break
 			}
 		}
@@ -1001,7 +1005,13 @@ func (p *parser) tryStdlibProtoConformanceSuffix(inner *demangle.Node) (*demangl
 	} else {
 		// Concurrency types and all other modules: simplified — type name only,
 		// module prefix stripped. Apple omits ": Proto in Module" for these.
-		body = strings.TrimPrefix(innerStr, moduleName+".")
+		// Conditional conformances get a "<> " prefix (Apple convention).
+		stripped := strings.TrimPrefix(innerStr, moduleName+".")
+		if foundCondReq {
+			body = "<> " + stripped
+		} else {
+			body = stripped
+		}
 	}
 
 	wrap := common.NewNode(common.KindTypeMangling)
@@ -1088,6 +1098,7 @@ func (p *parser) tryAAConformanceSuffix(inner *demangle.Node) (*demangle.Node, b
 	}
 
 	// Skip optional conditional-requirements block terminated by 'rl'.
+	foundCondReq := false
 	if !p.eof() && p.i+1 < len(p.s) &&
 		!((p.s[p.i] == 'M' && p.s[p.i+1] == 'c') || (p.s[p.i] == 'W' && p.s[p.i+1] == 'P')) {
 		found := false
@@ -1096,6 +1107,7 @@ func (p *parser) tryAAConformanceSuffix(inner *demangle.Node) (*demangle.Node, b
 				((p.s[k+2] == 'M' && p.s[k+3] == 'c') || (p.s[k+2] == 'W' && p.s[k+3] == 'P')) {
 				p.i = k + 2
 				found = true
+				foundCondReq = true
 				break
 			}
 		}
@@ -1144,7 +1156,13 @@ func (p *parser) tryAAConformanceSuffix(inner *demangle.Node) (*demangle.Node, b
 			body = innerStr + " : " + protoModStr + "." + protoName + " in " + modText
 		} else {
 			// All other modules (Combine, UIKit, SwiftUI…): simplified — strip module prefix.
-			body = strings.TrimPrefix(innerStr, modText+".")
+			// Conditional conformances get a "<> " prefix (Apple convention).
+			stripped := strings.TrimPrefix(innerStr, modText+".")
+			if foundCondReq {
+				body = "<> " + stripped
+			} else {
+				body = stripped
+			}
 		}
 	} else {
 		body = innerStr
@@ -6606,6 +6624,9 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 	// same-module uses verbose "(extension in M):" format.
 	crossModule := len(constraintBytes) > 0 &&
 		constraintBytes[0] >= '0' && constraintBytes[0] <= '9'
+	// hasCondReq: constraint bytes contain "rl" — conditional-extension terminator.
+	// When true, simplified output uses "<>" instead of "<A>" for the host type.
+	hasCondReq := bytes.Contains(constraintBytes, []byte("rl"))
 
 	// For cross-module extensions the constraint bytes may begin with nested
 	// nominal-type components (len+ident+V/C/O/P) before the extension-module
@@ -6699,7 +6720,9 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 				if sig == "" {
 					// Same-module, no inverse/same-type constraints: strip module+type.
 					extMarker := ""
-					if bytes.Contains(constraintBytes, []byte("Rz")) {
+					if hasCondReq {
+						extMarker = "<>"
+					} else if bytes.Contains(constraintBytes, []byte("Rz")) {
 						extMarker = "<A>"
 					} else if len(constraintBytes) > 2 {
 						extMarker = "<>"
@@ -6754,7 +6777,9 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 				sig, sameTypeConstraint := extractConstraintSigFull(constraintBytes)
 				if sig == "" {
 					extMarker := ""
-					if bytes.Contains(constraintBytes, []byte("Rz")) {
+					if hasCondReq {
+						extMarker = "<>"
+					} else if bytes.Contains(constraintBytes, []byte("Rz")) {
 						extMarker = "<A>"
 					} else if len(constraintBytes) > 2 {
 						extMarker = "<>"
@@ -6782,7 +6807,9 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 				sig, sameTypeConstraint := extractConstraintSigFull(constraintBytes)
 				if sig == "" {
 					extMarker := ""
-					if bytes.Contains(constraintBytes, []byte("Rz")) {
+					if hasCondReq {
+						extMarker = "<>"
+					} else if bytes.Contains(constraintBytes, []byte("Rz")) {
 						extMarker = "<A>"
 					} else if len(constraintBytes) > 2 {
 						extMarker = "<>"
@@ -6846,7 +6873,9 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 				sig, sameTypeConstraint := extractConstraintSigFull(constraintBytes)
 				if sig == "" {
 					extMarker := ""
-					if bytes.Contains(constraintBytes, []byte("Rz")) {
+					if hasCondReq {
+						extMarker = "<>"
+					} else if bytes.Contains(constraintBytes, []byte("Rz")) {
 						extMarker = "<A>"
 					} else if len(constraintBytes) > 2 {
 						extMarker = "<>"
@@ -7030,7 +7059,9 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 			}
 		}
 		extMarker := ""
-		if bytes.Contains(constraintBytes, []byte("Rz")) {
+		if hasCondReq {
+			extMarker = "<>"
+		} else if bytes.Contains(constraintBytes, []byte("Rz")) {
 			extMarker = "<A>"
 		} else if len(constraintBytes) > 2 {
 			extMarker = "<>"
