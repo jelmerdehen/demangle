@@ -5956,24 +5956,33 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 		p.i++
 		hostPath = name
 		extHostMod = "Swift"
+		// Push Module("Swift") + Type(Swift.<name>) — 2 entries matching Apple's
+		// substitution table for s<n><name><kind> extension hosts. Using Type (not
+		// a bare Identifier) ensures AB-style back-refs return a proper KindType
+		// node directly (no findTypeForIdent lookup needed). Keeping the count at
+		// 2 (not 3) means subs[2] = Module("Foundation") after the extension-module
+		// push, so AC-style back-refs resolve to the extension module — which the
+		// existing KindModule branch in parseType's 'A' case then feeds into
+		// parseNominalWithModule for patterns like AC6LocaleV → Foundation.Locale.
 		p.subs.Push(common.NewModule("Swift"))
-		p.subs.Push(common.NewIdentifier(name))
-		var hkind common.NodeKind
+		var hkind2 common.NodeKind
 		switch kind {
 		case 'C':
-			hkind = common.KindClass
+			hkind2 = common.KindClass
 		case 'V':
-			hkind = common.KindStructure
+			hkind2 = common.KindStructure
 		case 'O':
-			hkind = common.KindEnum
+			hkind2 = common.KindEnum
 		case 'P':
-			hkind = common.KindProtocol
+			hkind2 = common.KindProtocol
 		}
-		nom := common.NewNode(hkind)
-		common.AddChildren(nom, common.NewModule("Swift"), common.NewIdentifier(name))
-		typeNode := common.NewNode(common.KindType)
-		common.AddChildren(typeNode, nom)
-		p.subs.Push(typeNode)
+		{
+			nom2 := common.NewNode(hkind2)
+			common.AddChildren(nom2, common.NewModule("Swift"), common.NewIdentifier(name))
+			typeNode2 := common.NewNode(common.KindType)
+			common.AddChildren(typeNode2, nom2)
+			p.subs.Push(typeNode2)
+		}
 
 	case p.i+1 < len(p.s) && p.s[p.i] == 'S' && p.s[p.i+1] != 'o':
 		// S<letter> stdlib shorthand — extension on a known stdlib type.
