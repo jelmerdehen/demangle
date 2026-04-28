@@ -6717,7 +6717,7 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 				text = hostPath + nestedExtMarker + "." + declName + accessor
 			} else {
 				sig, sameTypeConstraint := extractConstraintSigFull(constraintBytes)
-				if sig == "" {
+				if sig == "" && modName != "Foundation" {
 					// Same-module, no inverse/same-type constraints: strip module+type.
 					extMarker := ""
 					if hasCondReq {
@@ -6775,7 +6775,7 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 				text = "property descriptor for " + hostPath + nestedExtMarker + "." + declName
 			} else {
 				sig, sameTypeConstraint := extractConstraintSigFull(constraintBytes)
-				if sig == "" {
+				if sig == "" && modName != "Foundation" {
 					extMarker := ""
 					if hasCondReq {
 						extMarker = "<>"
@@ -6805,7 +6805,7 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 				text = hostPath + nestedExtMarker + "." + declName
 			} else {
 				sig, sameTypeConstraint := extractConstraintSigFull(constraintBytes)
-				if sig == "" {
+				if sig == "" && modName != "Foundation" {
 					extMarker := ""
 					if hasCondReq {
 						extMarker = "<>"
@@ -6871,7 +6871,7 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 			} else {
 				opts := common.DefaultPrintOptions()
 				sig, sameTypeConstraint := extractConstraintSigFull(constraintBytes)
-				if sig == "" {
+				if sig == "" && modName != "Foundation" {
 					extMarker := ""
 					if hasCondReq {
 						extMarker = "<>"
@@ -6963,8 +6963,12 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 		var parts []string
 		for idx, c := range paramsNode.Children {
 			s := common.Print(c, opts)
-			if idx < len(labels) && labels[idx] != "" {
-				parts = append(parts, labels[idx]+": "+s)
+			lbl := ""
+			if idx < len(labels) {
+				lbl = labels[idx]
+			}
+			if lbl != "" && lbl != "_" {
+				parts = append(parts, lbl+": "+s)
 			} else {
 				parts = append(parts, s)
 			}
@@ -6972,7 +6976,7 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 		paramsStr = "(" + strings.Join(parts, ", ") + ")"
 	default:
 		s := common.Print(paramsNode, opts)
-		if len(labels) > 0 && labels[0] != "" {
+		if len(labels) > 0 && labels[0] != "" && labels[0] != "_" {
 			s = labels[0] + ": " + s
 		}
 		paramsStr = "(" + s + ")"
@@ -7028,7 +7032,8 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 		return wrap, true, nil
 	}
 	// Same-module: simplify when sig == "" (no inverse/same-type constraints).
-	if !crossModule && sig == "" {
+	// Foundation module always uses verbose format to match Apple's output.
+	if !crossModule && sig == "" && modName != "Foundation" {
 		var labelOnlyStr string
 		switch {
 		case paramsNode == nil || common.NodeKind(paramsNode.Kind) == common.KindEmptyList:
