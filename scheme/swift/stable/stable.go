@@ -9419,7 +9419,7 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 	if len(pathSteps) > 1 {
 		rootName = pathSteps[1].Text
 	}
-	isSwiftVerbose := mod == "Swift" && !swiftConcurrencyRuntimeTypes[rootName]
+	isSwiftVerbose := mod == "Swift" && !swiftConcurrencyRuntimeTypes[rootName] && !common.IsConcurrencyType(lastNomCtx)
 	if mod == "Foundation" || (isWC && mod == "Swift") {
 		var sbFull strings.Builder
 		for i, step := range pathSteps {
