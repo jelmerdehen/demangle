@@ -1,0 +1,14 @@
+# Category: protocol conformance descriptor
+# Format: <symbol> ---> <expected>
+# Source: production-divergences.txt (last parity run 2026-04-28T11:56:43Z)
+
+_$s10Foundation16AttributedStringV4RunsV16AttributesSlice1V8IteratorVy__x_GStAAMc ---> protocol conformance descriptor for Foundation.AttributedString.Runs.AttributesSlice1<A>.Iterator : Swift.IteratorProtocol in Foundation
+_$s10Foundation16AttributedStringV4RunsV16AttributesSlice1Vy__xGSKAAMc ---> protocol conformance descriptor for Foundation.AttributedString.Runs.AttributesSlice1<A> : Swift.BidirectionalCollection in Foundation
+_$s10Foundation16AttributedStringV4RunsV16AttributesSlice1Vy__xGSTAAMc ---> protocol conformance descriptor for Foundation.AttributedString.Runs.AttributesSlice1<A> : Swift.Sequence in Foundation
+_$s10Foundation16AttributedStringV4RunsV16AttributesSlice1Vy__xGSlAAMc ---> protocol conformance descriptor for Foundation.AttributedString.Runs.AttributesSlice1<A> : Swift.Collection in Foundation
+_$s10Foundation16AttributedStringV4RunsV16AttributesSlice2V8IteratorVy__xq__GStAAMc ---> protocol conformance descriptor for Foundation.AttributedString.Runs.AttributesSlice2<A, B>.Iterator : Swift.IteratorProtocol in Foundation
+_$s10Foundation16AttributedStringV4RunsV16AttributesSlice2Vy__xq_GSKAAMc ---> protocol conformance descriptor for Foundation.AttributedString.Runs.AttributesSlice2<A, B> : Swift.BidirectionalCollection in Foundation
+_$s10Foundation16AttributedStringV4RunsV16AttributesSlice2Vy__xq_GSTAAMc ---> protocol conformance descriptor for Foundation.AttributedString.Runs.AttributesSlice2<A, B> : Swift.Sequence in Foundation
+_$s10Foundation16AttributedStringV4RunsV16AttributesSlice2Vy__xq_GSlAAMc ---> protocol conformance descriptor for Foundation.AttributedString.Runs.AttributesSlice2<A, B> : Swift.Collection in Foundation
+_$s10Foundation16AttributedStringV4RunsV16AttributesSlice3V8IteratorVy__xq_q0__GStAAMc ---> protocol conformance descriptor for Foundation.AttributedString.Runs.AttributesSlice3<A, B, C>.Iterator : Swift.IteratorProtocol in Foundation
+_$s10Foundation16AttributedStringV4RunsV16AttributesSlice3Vy__xq_q0_GSKAAMc ---> protocol conformance descriptor for Foundation.AttributedString.Runs.AttributesSlice3<A, B, C> : Swift.BidirectionalCollection in Foundation

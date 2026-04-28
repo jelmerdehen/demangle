@@ -1,0 +1,9 @@
+# Category: type metadata accessor
+# Format: <symbol> ---> <expected>
+# Source: production-divergences.txt (last parity run 2026-04-28T11:56:43Z)
+
+_$s10Foundation20PredicateExpressionsO7KeyPathV06CommondE4KindOMa ---> type metadata accessor for Foundation.PredicateExpressions.KeyPath.CommonKeyPathKind
+_$s10Foundation4DateV19RelativeFormatStyleV05UnitsE0VMa ---> type metadata accessor for Foundation.Date.RelativeFormatStyle.UnitsStyle
+_$s8Dispatch0A4DataV10FoundationE6RegionVMa ---> type metadata accessor for (extension in Foundation):Dispatch.DispatchData.Region
+_$s7SwiftUI19MultimodalListStyleV04IconE0OMa ---> type metadata accessor for MultimodalListStyle.IconStyle
+_$s7SwiftUI20TabViewCustomizationV07SectionE0VMa ---> type metadata accessor for TabViewCustomization.SectionCustomization

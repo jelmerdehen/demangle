@@ -1,0 +1,14 @@
+# Category: enum case (WC suffix)
+# Format: <symbol> ---> <expected>
+# Source: production-divergences.txt (last parity run 2026-04-28T11:56:43Z)
+
+_$sScS12ContinuationV11TerminationO8finishedyADyx__GAFmlFWC ---> enum case for AsyncStream.Continuation.Termination.finished<A>(_:)
+_$sScS12ContinuationV11TerminationO9cancelledyADyx__GAFmlFWC ---> enum case for AsyncStream.Continuation.Termination.cancelled<A>(_:)
+_$sScS12ContinuationV11YieldResultO10terminatedyADyx__GAFmlFWC ---> enum case for AsyncStream.Continuation.YieldResult.terminated<A>(_:)
+_$sScS12ContinuationV15BufferingPolicyO9unboundedyADyx__GAFmlFWC ---> enum case for AsyncStream.Continuation.BufferingPolicy.unbounded<A>(_:)
+_$sScs12ContinuationV11TerminationO9cancelledyADyxq___GAFms5ErrorR_r0_lFWC ---> enum case for AsyncThrowingStream.Continuation.Termination.cancelled<A, B>(_:)
+_$sScs12ContinuationV11YieldResultO10terminatedyADyxq___GAFms5ErrorR_r0_lFWC ---> enum case for AsyncThrowingStream.Continuation.YieldResult.terminated<A, B>(_:)
+_$sScs12ContinuationV15BufferingPolicyO9unboundedyADyxq___GAFms5ErrorR_r0_lFWC ---> enum case for AsyncThrowingStream.Continuation.BufferingPolicy.unbounded<A, B>(_:)
+_$s10Foundation11JSONDecoderC34NonConformingFloatDecodingStrategyO17convertFromStringyAESS_S2StcAEmFWC ---> enum case for Foundation.JSONDecoder.NonConformingFloatDecodingStrategy.convertFromString(Foundation.JSONDecoder.NonConformingFloatDecodingStrategy.Type) -> (Swift.String, Swift.String, Swift.String) -> Foundation.JSONDecoder.NonConformingFloatDecodingStrategy
+_$s10Foundation11JSONEncoderC34NonConformingFloatEncodingStrategyO15convertToStringyAESS_S2StcAEmFWC ---> enum case for Foundation.JSONEncoder.NonConformingFloatEncodingStrategy.convertToString(Foundation.JSONEncoder.NonConformingFloatEncodingStrategy.Type) -> (Swift.String, Swift.String, Swift.String) -> Foundation.JSONEncoder.NonConformingFloatEncodingStrategy
+_$s10Foundation20PredicateExpressionsO7KeyPathV06CommondE4KindO15collectionCountyAGy_xq__GAImAA0B10ExpressionRzr0_lFWC ---> enum case for Foundation.PredicateExpressions.KeyPath.CommonKeyPathKind.collectionCount<A, B where A: Foundation.PredicateExpression>(Foundation.PredicateExpressions.KeyPath<A, B>.CommonKeyPathKind.Type) -> Foundation.PredicateExpressions.KeyPath<A, B>.CommonKeyPathKind

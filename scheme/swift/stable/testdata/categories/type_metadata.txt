@@ -1,0 +1,9 @@
+# Category: type metadata
+# Format: <symbol> ---> <expected>
+# Source: production-divergences.txt (last parity run 2026-04-28T11:56:43Z)
+
+_$s10Foundation4DateV19RelativeFormatStyleV05UnitsE0VN ---> type metadata for Foundation.Date.RelativeFormatStyle.UnitsStyle
+_$s8Dispatch0A4DataV10FoundationE6RegionVN ---> type metadata for (extension in Foundation):Dispatch.DispatchData.Region
+_$s7SwiftUI19MultimodalListStyleV04IconE0ON ---> type metadata for MultimodalListStyle.IconStyle
+_$s7SwiftUI20TabViewCustomizationV07SectionE0VN ---> type metadata for TabViewCustomization.SectionCustomization
+_$s10Foundation20PredicateExpressionsO7KeyPathV06CommondE4KindON ---> type metadata for Foundation.PredicateExpressions.KeyPath.CommonKeyPathKind

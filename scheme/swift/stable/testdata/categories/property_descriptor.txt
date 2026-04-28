@@ -1,0 +1,15 @@
+# Category: property descriptor
+# Format: <symbol> ---> <expected>
+# Source: production-divergences.txt (last parity run 2026-04-28T11:56:43Z)
+# All 10 are currently failing — track improvement
+
+_$s7Combine10PublishersO5LabelV8categoryAE8CategoryVy_x_GvpMV ---> property descriptor for Publishers.Label.category
+_$s7Combine10PublishersO8DebounceV7dueTime09SchedulerE4Type_6StrideQY_vpMV ---> property descriptor for Publishers.Debounce.dueTime
+_$s7Combine11SubscribersO6AssignC7keyPaths020ReferenceWritableKeyE0Cyxq_GvpMV ---> property descriptor for Subscribers.Assign.keyPath
+_$s10Foundation10ExpressionV10expressionAA017StandardPredicateB0_pq_6OutputAA0eB0PRts_XPvpMV ---> property descriptor for Foundation.Expression.expression : any Foundation.StandardPredicateExpression<Self.Foundation.PredicateExpression.Output == B>
+_$s10Foundation10POSIXErrorV10EADDRINUSE6Darwin0B4CodeOvpZMV ---> property descriptor for static Foundation.POSIXError.EADDRINUSE : Darwin.POSIXErrorCode
+_$s10Foundation10POSIXErrorV10EPROTOTYPE6Darwin0B4CodeOvpZMV ---> property descriptor for static Foundation.POSIXError.EPROTOTYPE : Darwin.POSIXErrorCode
+_$s10Foundation10POSIXErrorV15ENOTRECOVERABLE6Darwin0B4CodeOvpZMV ---> property descriptor for static Foundation.POSIXError.ENOTRECOVERABLE : Darwin.POSIXErrorCode
+_$s10Foundation10POSIXErrorV5E2BIG6Darwin0B4CodeOvpZMV ---> property descriptor for static Foundation.POSIXError.E2BIG : Darwin.POSIXErrorCode
+_$s10Foundation10POSIXErrorV5EPIPE6Darwin0B4CodeOvpZMV ---> property descriptor for static Foundation.POSIXError.EPIPE : Darwin.POSIXErrorCode
+_$s10Foundation10POSIXErrorV5ETIME6Darwin0B4CodeOvpZMV ---> property descriptor for static Foundation.POSIXError.ETIME : Darwin.POSIXErrorCode

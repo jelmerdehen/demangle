@@ -1,0 +1,14 @@
+# Category: method descriptor
+# Format: <symbol> ---> <expected>
+# Source: production-divergences.txt (last parity run 2026-04-28T11:56:43Z)
+
+_$s10Foundation16RecoverableErrorP15attemptRecovery11optionIndex13resultHandlerySi_ySbctFTq ---> method descriptor for Foundation.RecoverableError.attemptRecovery(optionIndex: Swift.Int, resultHandler: (Swift.Bool) -> ()) -> ()
+_$s10Foundation17_CalendarProtocolP4date8byAdding2to18wrappingComponentsAA4DateVSgAA0jI0V_AISbtFTq ---> method descriptor for Foundation._CalendarProtocol.date(byAdding: Foundation.DateComponents, to: Foundation.Date, wrappingComponents: Swift.Bool) -> Foundation.Date?
+_$s10Foundation17_TimeZoneProtocolP018nextDaylightSavingB10Transition5afterAA4DateVSgAG_tFTq ---> method descriptor for Foundation._TimeZoneProtocol.nextDaylightSavingTimeTransition(after: Foundation.Date) -> Foundation.Date?
+_$s10Foundation28DecodableAttributedStringKeyP6decode4from5ValueQzs7Decoder_p_tKFZTq ---> method descriptor for static Foundation.DecodableAttributedStringKey.decode(from: Swift.Decoder) throws -> A.Value
+_$s10Foundation32NSKeyValueObservingCustomizationP017keyPathsAffectingC03forShys10AnyKeyPathCGAG_tFZTq ---> method descriptor for static Foundation.NSKeyValueObservingCustomization.keyPathsAffectingValue(for: Swift.AnyKeyPath) -> Swift.Set<Swift.AnyKeyPath>
+_$s10Foundation36MarkdownDecodableAttributedStringKeyP06decodeB04from5ValueQzs7Decoder_p_tKFZTq ---> method descriptor for static Foundation.MarkdownDecodableAttributedStringKey.decodeMarkdown(from: Swift.Decoder) throws -> A.Value
+_$s10Foundation40ObjectiveCConvertibleAttributedStringKeyP15objectiveCValue3for0bH0Qz5ValueQz_tKFZTq ---> method descriptor for static Foundation.ObjectiveCConvertibleAttributedStringKey.objectiveCValue(for: A.Value) throws -> A.ObjectiveCValue
+_$s10Foundation40ObjectiveCConvertibleAttributedStringKeyP5value3for5ValueQz0B6CValueQz_tKFZTq ---> method descriptor for static Foundation.ObjectiveCConvertibleAttributedStringKey.value(for: A.ObjectiveCValue) throws -> A.Value
+_$sSK5index6before5IndexQzAD_tFTq ---> method descriptor for Swift.BidirectionalCollection.index(before: A.Index) -> A.Index
+_$sSK5index_8offsetBy07limitedC05IndexQzSgAE_SiAEtFTq ---> method descriptor for Swift.BidirectionalCollection.index(_: A.Index, offsetBy: Swift.Int, limitedBy: A.Index) -> A.Index?

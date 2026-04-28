@@ -1,0 +1,14 @@
+# Category: associated type descriptor
+# Format: <symbol> ---> <expected>
+# Source: production-divergences.txt (last parity run 2026-04-28T11:56:43Z)
+
+_$s10ParseInput10Foundation0A8StrategyPTl ---> associated type descriptor for Foundation.ParseStrategy.ParseInput
+_$s10_ErrorType10Foundation01_A12CodeProtocolPTl ---> associated type descriptor for Foundation._ErrorCodeProtocol._ErrorType
+_$s11FormatInput10Foundation0A5StylePTl ---> associated type descriptor for Foundation.FormatStyle.FormatInput
+_$s11ParseOutput10Foundation0A8StrategyPTl ---> associated type descriptor for Foundation.ParseStrategy.ParseOutput
+_$s12FormatOutput10Foundation0A5StylePTl ---> associated type descriptor for Foundation.FormatStyle.FormatOutput
+_$s13ReferenceType10Foundation0A11ConvertiblePTl ---> associated type descriptor for Foundation.ReferenceConvertible.ReferenceType
+_$s15ObjectiveCValue10Foundation0A31CConvertibleAttributedStringKeyPTl ---> associated type descriptor for Foundation.ObjectiveCConvertibleAttributedStringKey.ObjectiveCValue
+_$s21DecodingConfiguration10Foundation013DecodableWithB0PTl ---> associated type descriptor for Foundation.DecodableWithConfiguration.DecodingConfiguration
+_$s21DecodingConfiguration10Foundation0aB9ProvidingPTl ---> associated type descriptor for Foundation.DecodingConfigurationProviding.DecodingConfiguration
+_$s21EncodingConfiguration10Foundation013EncodableWithB0PTl ---> associated type descriptor for Foundation.EncodableWithConfiguration.EncodingConfiguration

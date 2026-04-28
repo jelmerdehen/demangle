@@ -1,0 +1,14 @@
+# Category: opaque type descriptor
+# Format: <symbol> ---> <expected>
+# Source: production-divergences.txt (last parity run 2026-04-28T11:56:43Z)
+
+_$s10Foundation8CalendarV14RecurrenceRuleV11recurrences2of2inQrAA4DateV_s16PartialRangeFromVyAJGtFQOMQ ---> opaque type descriptor for <<opaque return type of Foundation.Calendar.RecurrenceRule.recurrences(of: Foundation.Date, in: Swift.PartialRangeFrom<Foundation.Date>) -> some>>
+_$s10Foundation8CalendarV14RecurrenceRuleV11recurrences2of2inQrAA4DateV_s16PartialRangeUpToVyAJGtFQOMQ ---> opaque type descriptor for <<opaque return type of Foundation.Calendar.RecurrenceRule.recurrences(of: Foundation.Date, in: Swift.PartialRangeUpTo<Foundation.Date>) -> some>>
+_$s10Foundation8CalendarV14RecurrenceRuleV11recurrences2of2inQrAA4DateV_s19PartialRangeThroughVyAJGtFQOMQ ---> opaque type descriptor for <<opaque return type of Foundation.Calendar.RecurrenceRule.recurrences(of: Foundation.Date, in: Swift.PartialRangeThrough<Foundation.Date>) -> some>>
+_$s7SwiftUI10TabSectionVA2A4ViewRzAA0C7ContentR_AaDR0_0C5ValueQy_Rs1_rlE011_identifiedE0QrvpQOMQ ---> opaque type descriptor for <<opaque return type of TabSection<>._identifiedView>>
+_$s7SwiftUI16PlainButtonStyleV06buttonE14RepresentationQrvpQOMQ ---> opaque type descriptor for <<opaque return type of PlainButtonStyle.buttonStyleRepresentation>>
+_$s7SwiftUI17CustomHoverEffectPAAE8ornament16attachmentAnchor16contentAlignmentADQrAA018OrnamentAttachmentH0V_AA0J0Vqd__yXEtAA4ViewRd__lFQOMQ ---> opaque type descriptor for <<opaque return type of CustomHoverEffect.ornament<A>(attachmentAnchor:contentAlignment:ornament:)>>
+_$s7SwiftUI18DisclosureTableRowV05tableE4BodyQrvpQOMQ ---> opaque type descriptor for <<opaque return type of DisclosureTableRow.tableRowBody>>
+_$s7SwiftUI19BorderedButtonStyleV06buttonE14RepresentationQrvpQOMQ ---> opaque type descriptor for <<opaque return type of BorderedButtonStyle.buttonStyleRepresentation>>
+_$s7SwiftUI21BorderlessButtonStyleV06buttonE14RepresentationQrvpQOMQ ---> opaque type descriptor for <<opaque return type of BorderlessButtonStyle.buttonStyleRepresentation>>
+_$s7SwiftUI21TableHeaderRowContentV05tableE4BodyQrvpQOMQ ---> opaque type descriptor for <<opaque return type of TableHeaderRowContent.tableRowBody>>
