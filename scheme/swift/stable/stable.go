@@ -6586,6 +6586,16 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 			if declName != "" {
 				labels = append([]string{declName}, labels...)
 			}
+			// For Foundation extension inits, the return type is always the
+			// self type when retNode is nil (void), since init always creates
+			// an instance of the extended type.
+			if modName == "Foundation" && extHostMod != "" && retNode == nil {
+				selfTN := common.NewNode(common.KindBuiltinTypeName)
+				selfTN.Text = "(extension in Foundation):" + extHostMod + "." + hostPath
+				selfT := common.NewNode(common.KindType)
+				common.AddChildren(selfT, selfTN)
+				retNode = selfT
+			}
 			wrap := common.NewNode(common.KindTypeMangling)
 			if verbose {
 				wrap.Text = "(extension in Swift):Swift." + hostPath + ".init" + verboseParamStr(labels) + verboseRetStr(true)
@@ -6625,6 +6635,30 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 		common.AddChildren(retNode, tn)
 	}
 
+	// Foundation extension: if the function returns void (retNode nil) and has
+	// at least one parameter with no inout/owned/shared modifier, the Swift-level
+	// return type is the self type (fluent builder pattern — value types return a
+	// modified copy of self, encoded as Void at the ABI level via sret).
+	// Exclude cases where a param carries an inout/ownership modifier, which
+	// indicate the function genuinely returns void (e.g. hash(into:)).
+	if modName == "Foundation" && extHostMod != "" && retNode == nil && len(paramTypes) > 0 {
+		hasInoutParam := false
+		for _, pt := range paramTypes {
+			if pt != nil && pt.Attrs != nil {
+				if pt.Attrs["swift.inout"] == "true" || pt.Attrs["swift.conv"] != "" {
+					hasInoutParam = true
+					break
+				}
+			}
+		}
+		if !hasInoutParam {
+			selfTN := common.NewNode(common.KindBuiltinTypeName)
+			selfTN.Text = "(extension in Foundation):" + extHostMod + "." + hostPath
+			selfT := common.NewNode(common.KindType)
+			common.AddChildren(selfT, selfTN)
+			retNode = selfT
+		}
+	}
 	wrap := common.NewNode(common.KindTypeMangling)
 	genericPart := ""
 	if localGeneric {
