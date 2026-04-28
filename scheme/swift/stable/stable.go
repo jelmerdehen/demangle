@@ -4430,8 +4430,14 @@ func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 		nodeKind = common.KindDeinit
 	}
 
-	// Foundation module: full form with module prefix, param types, return type.
-	if mod == "Foundation" && (kindByte == 'C' || kindByte == 'c') {
+	// Foundation and Swift stdlib (non-concurrency) inits: full form with module
+	// prefix, param types, return type.
+	rootInitName := ""
+	if len(pathSteps) > 1 {
+		rootInitName = pathSteps[1].Text
+	}
+	isSwiftInitVerbose := mod == "Swift" && (kindByte == 'C' || kindByte == 'c') && !swiftConcurrencyRuntimeTypes[rootInitName]
+	if (mod == "Foundation" || isSwiftInitVerbose) && (kindByte == 'C' || kindByte == 'c') {
 		opts := common.DefaultPrintOptions()
 		var sbFull strings.Builder
 		for i, step := range pathSteps {
