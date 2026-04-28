@@ -1,0 +1,73 @@
+# Item: _StringProcessing.RegexComponent extension "in Foundation" same-type constraint
+# Track: P (Printer parity)
+# Started: 2026-04-28T22:30Z
+# Committed: (pending)
+
+## Root Cause
+
+`tryExtensionEntity` with `modName == "_StringProcessing"` and constraint bytes
+starting with `10Foundation` (the extension module) did not fire the
+`foundationSameTypeSig` block because that block was guarded by `modName == "Foundation"`.
+
+For symbols like:
+  `_$s17_StringProcessing14RegexComponentP10FoundationAD4DateV15HTTPFormatStyleVRszrlE4httpAHvgZ`
+
+- host module: `_StringProcessing`
+- host type: `RegexComponent` (protocol, kind 'P')
+- extension module: `Foundation` (encoded as `10Foundation` at start of constraint bytes)
+- constraint: `where A == Foundation.Date.HTTPFormatStyle`
+
+The constraint bytes `10FoundationAD4DateV15HTTPFormatStyleVRszrl` start with the
+extension module (`10Foundation`), followed by `AD` (a back-ref that Apple's demangler
+resolves to the Foundation module), then the nominal type chain (`4DateV 15HTTPFormatStyleV`).
+
+Strategy 1 of `constraintRHSType` fails because `parseNominalPath` reads
+`10Foundation` as the module, then `parseNominalWithModule` resolves `AD` via subs[3]
+to Identifier("Date") as the type name, but the following bytes `14DateComponentsV`
+look like a private-decl-name discriminator (fails the LL check) or an invalid
+kind byte.
+
+## Fix
+
+Added a new block after the existing `if modName == "Foundation"` block. When
+`foundationSameTypeSig == ""` AND `constraintBytes` starts with `"10Foundation"`:
+
+1. Skip the `10Foundation` prefix (12 bytes).
+2. Skip optional `A<letter>` back-ref (in Apple's model = re-reference to Foundation
+   module via subs table).
+3. Parse a chain of `<length><ident><kind>` nominal types (kind ∈ V/C/O).
+4. If all bytes are consumed and at least one part was parsed, return
+   `"Foundation." + strings.Join(parts, ".")`.
+
+This is a targeted, narrow strategy that handles exactly the `10Foundation A<letter>
+<ident>V <ident>V` pattern without touching the broader constraint parsing.
+
+For protocols (hostKind=='P'), uses `< where A == T>` sig form.
+For concrete types, uses `<A where A == T>` sig form.
+
+`foundationSameTypeStr` is set to the type string, which overrides the property type
+in getter/descriptor output regardless of the (wrong) `AH` sub-ref resolution.
+
+## Symbols Fixed
+
+Property getters and descriptors for:
+- `_StringProcessing.RegexComponent< where A == Foundation.Date.HTTPFormatStyle>.http`
+- `_StringProcessing.RegexComponent< where A == Foundation.Date.ISO8601FormatStyle>.iso8601`
+- `_StringProcessing.RegexComponent< where A == Foundation.DateComponents.HTTPFormatStyle>.httpComponents`
+- `_StringProcessing.RegexComponent< where A == Foundation.DateComponents.ISO8601FormatStyle>.iso8601Components`
+
+8 total symbols fixed (2 getter + 2 descriptor per case = 4 pairs × 2 = 8).
+
+Note: `iso8601WithTimeZone` function (1 symbol) remains a mismatch — the sig is now
+correct (`< where A == Foundation.Date.ISO8601FormatStyle>`) but parameter/return
+types using `AH` sub-ref still resolve to `Swift.ObjectIdentifier` because our
+constraint-byte scanner's subs table doesn't match Apple's model for this index.
+
+## Delta
+
+Parity 82.45%→82.46% (+8 symbols, 52569→52577).
+Foundation: 12224→12232 (+8).
+Mismatches: 994→986 (-8).
+static (extension: 65→61 (-4).
+property descriptor: 44→40 (-4).
+Round-trip: 63.63% (unchanged).

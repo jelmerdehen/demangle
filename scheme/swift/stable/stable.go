@@ -7141,6 +7141,50 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 			}
 		}
 	}
+	// Handle extensions "in Foundation" on non-Foundation host modules (e.g. _StringProcessing).
+	// Constraint bytes start with "10Foundation" (the extension module), optionally followed
+	// by A<letter> (a back-ref that Apple's demangler resolves to the Foundation module), then
+	// a chain of <length><ident><kind> nominal types. Example:
+	//   10Foundation AD 14DateComponents V 15HTTPFormatStyle V
+	//   → Foundation.DateComponents.HTTPFormatStyle
+	if foundationSameTypeSig == "" && bytes.HasPrefix(constraintBytes, []byte("10Foundation")) {
+		if rsIdx := bytes.Index(constraintBytes, []byte("Rsz")); rsIdx > 0 {
+			rest := constraintBytes[12:rsIdx]
+			if len(rest) >= 2 && rest[0] == 'A' && rest[1] >= 'A' && rest[1] <= 'Z' {
+				rest = rest[2:]
+			}
+			var parts []string
+			for len(rest) > 0 && rest[0] >= '0' && rest[0] <= '9' {
+				lend := 0
+				for lend < len(rest) && rest[lend] >= '0' && rest[lend] <= '9' {
+					lend++
+				}
+				length := 0
+				for _, d := range rest[:lend] {
+					length = length*10 + int(d-'0')
+				}
+				end := lend + length
+				if end >= len(rest) {
+					break
+				}
+				kind := rest[end]
+				if kind != 'V' && kind != 'C' && kind != 'O' {
+					break
+				}
+				parts = append(parts, string(rest[lend:end]))
+				rest = rest[end+1:]
+			}
+			if len(rest) == 0 && len(parts) > 0 {
+				typeStr := "Foundation." + strings.Join(parts, ".")
+				foundationSameTypeStr = typeStr
+				if hostKind == 'P' {
+					foundationSameTypeSig = "< where A == " + typeStr + ">"
+				} else {
+					foundationSameTypeSig = "<A where A == " + typeStr + ">"
+				}
+			}
+		}
+	}
 	// Parse the declaration path after E.
 	// After E there may be nested nominal-type levels (identifier + kind-byte pairs)
 	// before the actual decl name.  Example: "UIKitAttributesV010AttachmentB0O4name"
