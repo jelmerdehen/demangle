@@ -1,0 +1,59 @@
+# Item: _forceBridgeFromObjectiveC / _conditionallyBridgeFromObjectiveC _: label
+# Track: P (Printer parity)
+# Started: 2026-04-28T22:39Z
+# Committed: (pending)
+
+## Root Cause
+
+`_forceBridgeFromObjectiveC` and `_conditionallyBridgeFromObjectiveC` are static
+Foundation extension methods with a mixed-label signature: the first param has label
+`_` (unlabeled in Swift source) and the second has label `result`. Expected output:
+
+  `static (extension in Foundation):Swift.Array._forceBridgeFromObjectiveC(_: __C.NSArray, result: inout [A]?) -> ()`
+
+Our demangler emitted:
+
+  `static (extension in Foundation):Swift.Array._forceBridgeFromObjectiveC(__C.NSArray, result: inout [A]?) -> ()`
+
+(missing `_: ` prefix on first param).
+
+Two code paths print function params:
+
+1. `verboseParamStr` in `tryTypeFirstExtensionEntity` (ObjC/stdlib host types)
+2. TypeList case in `tryExtensionEntity` F-terminal (general extension entities)
+
+Both paths had logic `if lbl == "_" { /* no label */ }`. The fix is: emit `_: ` for
+`_`-labeled params ONLY when the function also has at least one named (non-`_`,
+non-empty) label alongside. Pure-underscore functions like `locale(_:)` must NOT
+gain `_: ` prefix.
+
+## Fix
+
+In both code paths, compute `hasNamedLabel` (or `hasNamedLbl`) by scanning the
+labels slice for any entry that is non-empty and not `"_"`. Then:
+
+- `lbl == "_" && hasNamedLabel` → emit `"_: " + typeStr`
+- `lbl != "" && lbl != "_"` → emit `lbl + ": " + typeStr`
+- else → emit bare `typeStr`
+
+**Path 1** (`verboseParamStr` in `tryTypeFirstExtensionEntity`, ~line 6454):
+Added `hasNamedLabel` bool computed from `lbls` before the loop.
+
+**Path 2** (TypeList case in `tryExtensionEntity` F-terminal, ~line 8304):
+Added `hasNamedLbl` bool computed from `labels` slice. Changed single `if lbl != ""
+&& lbl != "_"` branch to three-way: `_`+named → `_: s`; named → `lbl: s`; else → `s`.
+
+## Symbols Fixed
+
+All `_forceBridgeFromObjectiveC` and `_conditionallyBridgeFromObjectiveC` static
+extension methods across Foundation corpus (Array, Dictionary, Set, String, etc.).
+Also any other mixed-label Foundation extension methods where first param is `_`.
+
+## Delta
+
+Parity 82.46%→82.57% (+66 symbols, 52577→52643).
+Foundation: 12232→12292 (+60).
+libswiftcore: ~+6.
+Mismatches: 986→920 (-66).
+static (extension: 61→7 (-54 directly from this fix + residual).
+Round-trip: 63.63% (unchanged).

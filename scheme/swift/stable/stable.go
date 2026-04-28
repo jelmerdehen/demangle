@@ -6455,6 +6455,15 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 		if len(paramTypes) == 0 {
 			return "()"
 		}
+		// Show "_: " for underscore-labeled params only when the function also
+		// has at least one named label — mixed labels need the underscore explicit.
+		hasNamedLabel := false
+		for _, l := range lbls {
+			if l != "" && l != "_" {
+				hasNamedLabel = true
+				break
+			}
+		}
 		var parts []string
 		for i, pt := range paramTypes {
 			lbl := ""
@@ -6473,7 +6482,9 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 			} else {
 				typeStr = common.Print(pt, opts)
 			}
-			if lbl != "" && lbl != "_" {
+			if lbl == "_" && hasNamedLabel {
+				parts = append(parts, "_: "+typeStr)
+			} else if lbl != "" && lbl != "_" {
 				parts = append(parts, lbl+": "+typeStr)
 			} else {
 				parts = append(parts, typeStr)
@@ -8291,6 +8302,13 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 	case paramsNode == nil || common.NodeKind(paramsNode.Kind) == common.KindEmptyList:
 		paramsStr = "()"
 	case common.NodeKind(paramsNode.Kind) == common.KindTypeList:
+		hasNamedLbl := false
+		for _, l := range labels {
+			if l != "" && l != "_" {
+				hasNamedLbl = true
+				break
+			}
+		}
 		var parts []string
 		for idx, c := range paramsNode.Children {
 			s := common.Print(c, opts)
@@ -8298,7 +8316,9 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 			if idx < len(labels) {
 				lbl = labels[idx]
 			}
-			if lbl != "" && lbl != "_" {
+			if lbl == "_" && hasNamedLbl {
+				parts = append(parts, "_: "+s)
+			} else if lbl != "" && lbl != "_" {
 				parts = append(parts, lbl+": "+s)
 			} else {
 				parts = append(parts, s)
