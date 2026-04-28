@@ -6880,6 +6880,42 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 			}
 		}
 	}
+	// Foundation same-type constraint: decode the concrete type that appears
+	// before "Rsz" in the constraint bytes using a sub-parser.  This produces
+	// the "< where A == T>" clause and the correct property-type string for
+	// Foundation protocol extensions like FormatStyle, ParseStrategy, etc.
+	var foundationSameTypeSig string
+	var foundationSameTypeStr string
+	if modName == "Foundation" {
+		if rsIdx := bytes.Index(constraintBytes, []byte("Rsz")); rsIdx > 0 {
+			subP := &parser{
+				s:     string(constraintBytes[:rsIdx]),
+				subs:  *p.subs.Clone(),
+				words: append([]string(nil), p.words...),
+			}
+			if typeNode, terr := subP.parseType(); terr == nil {
+				// Chain nested nominal levels (e.g. DateComponents.ISO8601FormatStyle).
+				for !subP.eof() {
+					s0 := subP.i
+					ss0 := subP.subs
+					nested, nerr := subP.parseNominalWithModule(typeNode)
+					if nerr != nil {
+						subP.i = s0
+						subP.subs = ss0
+						break
+					}
+					typeNode = nested
+				}
+				if subP.i == len(subP.s) {
+					typeStr := common.Print(typeNode, common.DefaultPrintOptions())
+					if typeStr != "" && !strings.HasPrefix(typeStr, "<<") {
+						foundationSameTypeStr = typeStr
+						foundationSameTypeSig = "< where A == " + typeStr + ">"
+					}
+				}
+			}
+		}
+	}
 	// Parse the declaration path after E.
 	// After E there may be nested nominal-type levels (identifier + kind-byte pairs)
 	// before the actual decl name.  Example: "UIKitAttributesV010AttachmentB0O4name"
@@ -7639,6 +7675,10 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 					extInMod = "Foundation"
 				}
 				sig, sameTypeConstraint := extractConstraintSigFullOpts(constraintBytes, extInMod == "Foundation")
+				if foundationSameTypeSig != "" {
+					sig = foundationSameTypeSig
+					sameTypeConstraint = ""
+				}
 				if sig == "" && extInMod != "Foundation" {
 					// Same-module, no inverse/same-type constraints: strip module+type.
 					extMarker := ""
@@ -7668,6 +7708,9 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 					if retNode != nil && common.NodeKind(retNode.Kind) != common.KindEmptyList {
 						propTypeStr = " : " + common.Print(retNode, opts)
 					}
+					if foundationSameTypeStr != "" {
+						propTypeStr = " : " + foundationSameTypeStr
+					}
 					text = "(extension in " + extInMod + "):" + hostQualified + sig +
 						"." + declName + localSig + accessor + propTypeStr
 				}
@@ -7695,6 +7738,9 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 		if retNode != nil && common.NodeKind(retNode.Kind) != common.KindEmptyList {
 			propTypeStr = " : " + common.Print(retNode, opts)
 		}
+		if foundationSameTypeStr != "" {
+			propTypeStr = " : " + foundationSameTypeStr
+		}
 		extInModProp := modName
 		if isCrossFoundation {
 			extInModProp = "Foundation"
@@ -7706,6 +7752,10 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 				text = "property descriptor for " + hostPath + nestedExtMarker + "." + declName
 			} else {
 				sig, sameTypeConstraint := extractConstraintSigFullOpts(constraintBytes, extInModProp == "Foundation")
+				if foundationSameTypeSig != "" {
+					sig = foundationSameTypeSig
+					sameTypeConstraint = ""
+				}
 				if sig == "" && extInModProp != "Foundation" {
 					extMarker := ""
 					if hasCondReq {
@@ -7741,6 +7791,10 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 				text = hostPath + nestedExtMarker + "." + declName
 			} else {
 				sig, sameTypeConstraint := extractConstraintSigFullOpts(constraintBytes, extInModProp == "Foundation")
+				if foundationSameTypeSig != "" {
+					sig = foundationSameTypeSig
+					sameTypeConstraint = ""
+				}
 				if sig == "" && extInModProp != "Foundation" {
 					extMarker := ""
 					if hasCondReq {
@@ -7821,6 +7875,10 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 			} else {
 				opts := common.DefaultPrintOptions()
 				sig, sameTypeConstraint := extractConstraintSigFullOpts(constraintBytes, extInModInit == "Foundation")
+				if foundationSameTypeSig != "" {
+					sig = foundationSameTypeSig
+					sameTypeConstraint = ""
+				}
 				if sig == "" && extInModInit != "Foundation" {
 					extMarker := ""
 					if hasCondReq {
@@ -7933,6 +7991,10 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 		extInModF = "Foundation"
 	}
 	sig, sameTypeConstraint := extractConstraintSigFullOpts(constraintBytes, extInModF == "Foundation")
+	if foundationSameTypeSig != "" {
+		sig = foundationSameTypeSig
+		sameTypeConstraint = ""
+	}
 	sigEmpty := sig == "" && sameTypeConstraint == ""
 	nestedSuffix5 := hostPath[len(hostName):]
 	hostQualified := modName + "." + hostName
@@ -13433,7 +13495,8 @@ func (p *parser) parseIdentifier() (string, error) {
 				hasWordSubsts = false
 			}
 			if idx >= len(p.words) {
-				return "", p.grammarErr("word-substitution index out of range")
+				p.i-- // undo letter consumption — letter is a kind byte for caller
+				break
 			}
 			buf.WriteString(p.words[idx])
 			if !hasWordSubsts {
