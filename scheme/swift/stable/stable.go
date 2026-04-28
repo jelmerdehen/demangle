@@ -884,17 +884,33 @@ func (p *parser) tryConformanceDescriptorMc(inner *demangle.Node) (*demangle.Nod
 	if constraintStr != "" {
 		sig = "< where " + constraintStr + "> "
 	}
+	typeMod := common.RootModuleOf(inner)
+	if typeMod == "" {
+		typeMod = modName
+	}
 	wrap := common.NewNode(common.KindTypeMangling)
-	// For concurrency types, Apple shows only the type (no ": Proto in Module").
-	if common.IsConcurrencyType(inner) {
+	isSwiftConcurrency := common.IsConcurrencyType(inner) || common.HasConcurrencyAncestor(inner) ||
+		swiftConcurrencyRuntimeTypes[common.RootNameOf(inner)]
+	// UI/app-layer frameworks: simplified (just the type name, no ": Proto in Module").
+	// System/core frameworks (Foundation, Synchronization, Swift, …): verbose.
+	simplified := map[string]bool{"SwiftUI": true, "UIKit": true, "Combine": true}
+	switch {
+	case isSwiftConcurrency:
 		wrap.Text = termPrefix + sig + innerStr
-	} else {
-		// Use the TYPE's module for "in", not the protocol module.
-		typeMod := common.RootModuleOf(inner)
-		if typeMod == "" {
-			typeMod = modName // fallback
+	case simplified[modName]:
+		// Strip module prefix from innerStr (e.g. "Swift.Never" → "Never").
+		stripped := innerStr
+		if dot := strings.IndexByte(innerStr, '.'); dot > 0 {
+			stripped = innerStr[dot+1:]
 		}
+		wrap.Text = termPrefix + sig + stripped
+	case modName == "Swift":
+		// Swift proto: conformance declared in the type's module.
 		wrap.Text = termPrefix + sig + innerStr + " : " + modName + "." + protoName + " in " + typeMod
+	default:
+		// Foundation, Synchronization, and other system frameworks:
+		// verbose with proto module as the conformance module.
+		wrap.Text = termPrefix + sig + innerStr + " : " + modName + "." + protoName + " in " + modName
 	}
 	return wrap, true
 }
