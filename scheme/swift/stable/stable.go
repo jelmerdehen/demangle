@@ -4027,8 +4027,9 @@ func (p *parser) tryVariableEntity() (*demangle.Node, bool, error) {
 		}
 		identNode.Attrs = map[string]string{"swift.nominalKind": kindByte}
 		pathSteps = append(pathSteps, identNode)
-		p.subs.Push(identNode)
-		p.subs.Push(stdlibTyp)
+		// Standard stdlib substitutions (SS, Si, etc.) are NOT pushed to the
+		// regular substitution table — Apple's demangler treats them as a
+		// separate "standard substitutions" namespace.
 		accType = stdlibTyp
 		accParent = nom
 	} else if !p.eof() && p.s[p.i] == 's' {
@@ -4074,9 +4075,6 @@ func (p *parser) tryVariableEntity() (*demangle.Node, bool, error) {
 			identNode := common.NewIdentifier(ident)
 			identNode.Attrs = map[string]string{"swift.nominalKind": string(peek)}
 			pathSteps = append(pathSteps, identNode)
-			// Push identifier + nominal-Type to subs so later A<idx>
-			// back-refs resolve against the same indices Apple's
-			// demangler uses (identifier goes first, nominal second).
 			p.subs.Push(identNode)
 			var nKind common.NodeKind
 			switch peek {
