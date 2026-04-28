@@ -5993,9 +5993,13 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 		}
 		hostPath = typeName
 		extHostMod = "Swift"
-		p.subs.Push(common.NewModule("Swift"))
-		p.subs.Push(common.NewIdentifier(typeName))
-		p.subs.Push(stdNode)
+		// Apple's demangler does NOT push any substitutions for S<letter>
+		// stdlib shorthand types — the host type is recorded internally only.
+		// Pushing Module/Identifier/Type here shifts all subsequent subs indices
+		// by +3, causing AA-style refs in return/param types to resolve to the
+		// wrong entry (e.g. AA → Module("Swift") instead of Module("Foundation")).
+		// With zero pushes, subs[0] = Module(extension_module) after the
+		// extension-module push at line 6020, matching Apple's substitution table.
 
 	default:
 		return nil, false, nil
