@@ -6800,6 +6800,66 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 			break
 		}
 	}
+	// Early exit: no explicit decl name means the entity is a runtime record
+	// (Ma, Mn, Mc, etc.) directly on the accumulated type path.  Skip the
+	// function-entity sections (labels, ret, params, local sig) — they don't
+	// apply here and parseType would fail on the 'M'/'H'/'W' suffix bytes.
+	//
+	// Guard: only fire when the remaining byte is a known entity-descriptor
+	// starter. If it's 'v' (property accessor), '0' (word-sub), 'y' (void
+	// ret), or 'F' (function kind), the E was a false match inside an ObjC
+	// type name — restore and let another parser handle it.
+	if declName == "" && !p.eof() &&
+		(p.s[p.i] == 'M' || p.s[p.i] == 'H' || p.s[p.i] == 'W' ||
+			p.s[p.i] == 'N' || p.s[p.i] == 'T' || p.s[p.i] == 'I') {
+		eHostPath := hostName
+		// Cross-module: constraintBytes starts with a digit.
+		if len(constraintBytes) > 0 && constraintBytes[0] >= '0' && constraintBytes[0] <= '9' {
+			cbr := string(constraintBytes)
+			for len(cbr) > 0 && cbr[0] >= '0' && cbr[0] <= '9' {
+				lenEnd := 0
+				for lenEnd < len(cbr) && cbr[lenEnd] >= '0' && cbr[lenEnd] <= '9' {
+					lenEnd++
+				}
+				if lenEnd >= len(cbr) {
+					break
+				}
+				n := 0
+				for _, d := range cbr[:lenEnd] {
+					n = n*10 + int(d-'0')
+				}
+				endPos := lenEnd + n
+				if endPos >= len(cbr) {
+					break
+				}
+				kind := cbr[endPos]
+				if kind != 'V' && kind != 'C' && kind != 'O' && kind != 'P' {
+					break
+				}
+				eHostPath += "." + cbr[lenEnd:endPos]
+				cbr = cbr[endPos+1:]
+			}
+		}
+		for _, nt := range nestedTypesSuffix {
+			eHostPath += "." + nt
+		}
+		inner := common.NewNode(common.KindTypeMangling)
+		inner.Text = eHostPath
+		if wrapped, ok := p.tryEntitySuffix(inner); ok {
+			return wrapped, true, nil
+		}
+		if wrapped, ok := p.tryStdlibProtoConformanceSuffix(inner); ok {
+			return wrapped, true, nil
+		}
+		if wrapped, ok := p.tryAAConformanceSuffix(inner); ok {
+			return wrapped, true, nil
+		}
+		if wrapped, ok := p.tryConformanceDescriptorMc(inner); ok {
+			return wrapped, true, nil
+		}
+		restore()
+		return nil, false, nil
+	}
 	// Label-list: wildcard '_' labels and digit-led named labels.  Apple's grammar:
 	//   <labels>? <result> <params>
 	// '_' is never a valid type-start byte so any leading '_' must be a label.
@@ -7325,28 +7385,6 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 		hostPath += "." + nt
 	}
 
-	// When there is no decl name (the type path IS the entity itself), try
-	// entity/conformance suffix handlers directly on the accumulated path.
-	if declName == "" {
-		pathText := hostPath + nestedExtMarker
-		inner := common.NewNode(common.KindTypeMangling)
-		inner.Text = pathText
-		if wrapped, ok := p.tryEntitySuffix(inner); ok {
-			return wrapped, true, nil
-		}
-		if wrapped, ok := p.tryStdlibProtoConformanceSuffix(inner); ok {
-			return wrapped, true, nil
-		}
-		if wrapped, ok := p.tryAAConformanceSuffix(inner); ok {
-			return wrapped, true, nil
-		}
-		if wrapped, ok := p.tryConformanceDescriptorMc(inner); ok {
-			return wrapped, true, nil
-		}
-		restore()
-		return nil, false, nil
-	}
-
 	// Property accessor terminals: v<kind> or pMV.
 	// retNode holds the property type; paramsNode is empty.
 	if !p.eof() && p.s[p.i] == 'v' && p.i+1 < len(p.s) {
@@ -7615,6 +7653,28 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 		}
 	}
 
+	// Late declName=="" check: handles cases where A-ref bytes were parsed as
+	// retNode/params (e.g. AA…Mc conformance descriptors) — the bytes consumed
+	// above were part of the conformance sig, not a function signature.
+	if declName == "" {
+		pathText := hostPath + nestedExtMarker
+		inner := common.NewNode(common.KindTypeMangling)
+		inner.Text = pathText
+		if wrapped, ok := p.tryEntitySuffix(inner); ok {
+			return wrapped, true, nil
+		}
+		if wrapped, ok := p.tryStdlibProtoConformanceSuffix(inner); ok {
+			return wrapped, true, nil
+		}
+		if wrapped, ok := p.tryAAConformanceSuffix(inner); ok {
+			return wrapped, true, nil
+		}
+		if wrapped, ok := p.tryConformanceDescriptorMc(inner); ok {
+			return wrapped, true, nil
+		}
+		restore()
+		return nil, false, nil
+	}
 	// Require 'F'.
 	if p.eof() || p.s[p.i] != 'F' {
 		restore()
