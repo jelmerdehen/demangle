@@ -9202,7 +9202,13 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 					}
 					if !p.eof() &&
 						(p.s[p.i] == 'V' || p.s[p.i] == 'C' ||
-							p.s[p.i] == 'O' || p.s[p.i] == 'P') {
+							p.s[p.i] == 'O' || p.s[p.i] == 'P' ||
+							(p.s[p.i] == 'Q' && p.i+1 < len(p.s) &&
+								(p.s[p.i+1] == 'z' || p.s[p.i+1] == 'y'))) {
+						// 'Qz'/'Qy' after an identifier means the identifier
+						// is the associated-type name in a dependent-member-type
+						// (e.g. '7ElementQz' = A.Element). Treat it as the start
+						// of the result-type slot, not a label.
 						p.i = savePosL
 						p.subs = saveSubsL
 						break
