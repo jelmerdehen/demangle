@@ -6765,6 +6765,14 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 				if k < len(p.s) && p.s[k] >= 'A' && p.s[k] <= 'Z' {
 					k++
 				}
+			} else if k < len(p.s) && p.s[k] >= 'A' && p.s[k] <= 'Z' {
+				// Pattern C: uppercase-only word-sub ref '0<Upper>0' (no prior literal
+				// chunk). Example: "0E0" where 'E' is word-ref idx 4, not extension
+				// marker. Skip the uppercase ref letter and the trailing '0' terminator.
+				k++ // skip uppercase word-ref letter
+				if k < len(p.s) && p.s[k] == '0' {
+					k++ // skip trailing '0' terminator
+				}
 			}
 			continue
 		}
