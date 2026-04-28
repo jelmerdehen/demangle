@@ -4590,18 +4590,42 @@ func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 		}
 		retType = t
 	}
-	// Params-type.
+	// Params-type: may be empty, a single type, or a multi-element tuple
+	// encoded as <type> ('_' <type>)* 't'.
 	var paramsType *demangle.Node
 	if !p.eof() && p.s[p.i] == 'y' {
 		p.i++
 		paramsType = common.NewNode(common.KindEmptyList)
 	} else {
-		t, err := p.parseType()
+		firstParam, err := p.parseType()
 		if err != nil {
 			restore()
 			return nil, false, nil
 		}
-		paramsType = t
+		var paramTypes []*demangle.Node
+		paramTypes = append(paramTypes, firstParam)
+		// Multi-element tuple: collect additional '_' <type> elements until 't'.
+		// '_t' (single-labeled tuple marker) is handled by the terminator check below.
+		for !p.eof() && p.s[p.i] == '_' && p.i+1 < len(p.s) && p.s[p.i+1] != 't' {
+			p.i++ // skip '_' separator
+			elem, eerr := p.parseType()
+			if eerr != nil {
+				p.i-- // undo '_'
+				break
+			}
+			paramTypes = append(paramTypes, elem)
+		}
+		// Consume tuple terminator 't' (present when >1 elements).
+		if !p.eof() && p.s[p.i] == 't' {
+			p.i++
+		}
+		if len(paramTypes) == 1 {
+			paramsType = paramTypes[0]
+		} else {
+			tl := common.NewNode(common.KindTypeList)
+			common.AddChildren(tl, paramTypes...)
+			paramsType = tl
+		}
 	}
 	// Optional '_t' trailing tuple-terminator (single-labeled-arg form).
 	if p.i+1 < len(p.s) && p.s[p.i] == '_' && p.s[p.i+1] == 't' {
@@ -6558,9 +6582,26 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 	p.subs.Push(hostTypeNode)
 	// Optional constraints: bytes that end in 'E' marker. Scan for 'E'
 	// within a reasonable window followed by digit (decl-name).
+	// Word-sub sequences '0<letters>' must be skipped: the uppercase letter
+	// that terminates a word-sub (e.g. '0E6Delete' → terminal 'E') is NOT
+	// the extension marker. A '0' that is NOT preceded by a digit (1-9) is
+	// a word-sub mode byte; advance past its letter sequence so the false 'E'
+	// inside it does not trigger the match.
 	scan := p.i
 	eFound := -1
 	for k := scan; k < len(p.s)-1 && k < scan+80; k++ {
+		if p.s[k] == '0' && !(k > scan && p.s[k-1] >= '1' && p.s[k-1] <= '9') {
+			// Word-sub mode: skip '0' and the following letter run.
+			k++
+			for k < len(p.s) && ((p.s[k] >= 'a' && p.s[k] <= 'z') || (p.s[k] >= 'A' && p.s[k] <= 'Z')) {
+				if p.s[k] >= 'A' && p.s[k] <= 'Z' {
+					break // uppercase letter terminates word-sub letters
+				}
+				k++
+			}
+			// outer k++ advances past the uppercase terminal (or harmlessly past a non-letter)
+			continue
+		}
 		if p.s[k] == 'E' && p.s[k+1] >= '0' && p.s[k+1] <= '9' {
 			eFound = k
 			break
@@ -7408,19 +7449,24 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 			allocating := p.s[p.i+1] == 'C'
 			p.i += 2
 			// Build simplified init output: TypeName.init(labels:)
+			// declName is the first param label (parsed as decl-name from the
+			// digit-led identifier after E, but Swift inits encode labels first).
+			initAllLabels := append([]string{declName}, labels...)
 			var labelStr string
-			if len(labels) == 0 {
-				labelStr = "()"
-			} else {
+			{
 				var parts []string
-				for _, lbl := range labels {
+				for _, lbl := range initAllLabels {
 					if lbl == "_" || lbl == "" {
 						parts = append(parts, "_:")
 					} else {
 						parts = append(parts, lbl+":")
 					}
 				}
-				labelStr = "(" + strings.Join(parts, "") + ")"
+				if len(parts) == 0 {
+					labelStr = "()"
+				} else {
+					labelStr = "(" + strings.Join(parts, "") + ")"
+				}
 			}
 			_ = throwsInit
 			_ = allocating
