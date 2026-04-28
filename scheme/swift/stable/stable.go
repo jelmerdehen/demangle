@@ -10546,6 +10546,22 @@ func (p *parser) tryBoundGeneric(base *demangle.Node) (*demangle.Node, bool, err
 			}
 			continue
 		}
+		// Qp — PackExpansionType: pop the last two args (pattern + pack)
+		// and create a PackExpansion{pattern, pack} node = "repeat <pattern>".
+		if p.s[p.i] == 'Q' && p.i+1 < len(p.s) && p.s[p.i+1] == 'p' {
+			p.i += 2 // consume 'Qp'
+			if len(args) >= 2 {
+				pack := args[len(args)-1]
+				pattern := args[len(args)-2]
+				args = args[:len(args)-2]
+				expansion := common.NewNode(common.KindPackExpansion)
+				common.AddChildren(expansion, pattern, pack)
+				expType := common.NewNode(common.KindType)
+				common.AddChildren(expType, expansion)
+				args = append(args, expType)
+			}
+			continue
+		}
 		// Try parsing a type arg first. On failure, fall back to
 		// skipping a retroactive-conformance-ref metadata block.
 		argSave := p.i

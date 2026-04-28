@@ -178,6 +178,11 @@ const (
 	// Printed as "Pack{child0, child1, ...}".
 	KindPack
 
+	// KindPackExpansion — Qp pack expansion type.
+	// Children[0] = pattern type, Children[1] = pack type.
+	// Printed as "repeat <pattern>".
+	KindPackExpansion
+
 	// KindConcreteProtocolConformance — HC conformance witness.
 	// Children[0] = KindType (the conforming type).
 	// Children[1] = KindProtocolConformanceRefInTypeModule (or other ref).
@@ -315,6 +320,8 @@ func (k NodeKind) Name() string {
 		return "AutoDiffFunction"
 	case KindPack:
 		return "Pack"
+	case KindPackExpansion:
+		return "PackExpansion"
 	case KindConcreteProtocolConformance:
 		return "ConcreteProtocolConformance"
 	case KindPackProtocolConformance:
@@ -374,7 +381,7 @@ func (k NodeKind) Category() demangle.KindCategory {
 		return demangle.KindCatOther
 	case KindAutoDiffSubsetParametersThunk, KindAutoDiffFunction:
 		return demangle.KindCatFunction
-	case KindPack:
+	case KindPack, KindPackExpansion:
 		return demangle.KindCatType
 	case KindConcreteProtocolConformance, KindPackProtocolConformance,
 		KindAnyProtocolConformanceList, KindProtocolConformanceRefInTypeModule:

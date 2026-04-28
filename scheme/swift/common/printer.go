@@ -441,6 +441,12 @@ func printNode(b *strings.Builder, n *demangle.Node, opts PrintOptions) {
 			printNode(b, c, opts)
 		}
 		b.WriteByte('}')
+	case KindPackExpansion:
+		// "repeat <pattern>" — children[0] is the pattern type.
+		b.WriteString("repeat ")
+		if len(n.Children) > 0 {
+			printNode(b, n.Children[0], opts)
+		}
 	case KindConcreteProtocolConformance:
 		// "concrete protocol conformance <type> to <ref>[ with conditional requirements: <list>]"
 		b.WriteString("concrete protocol conformance ")
