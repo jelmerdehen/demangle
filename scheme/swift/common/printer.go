@@ -278,6 +278,21 @@ func printNode(b *strings.Builder, n *demangle.Node, opts PrintOptions) {
 				b.WriteString(label)
 				b.WriteString(": ")
 			}
+			if c.Attrs["swift.inout"] == "true" {
+				b.WriteString("inout ")
+			}
+			if c.Attrs["swift.shared"] == "true" {
+				b.WriteString("__shared ")
+			}
+			if c.Attrs["swift.owned"] == "true" {
+				b.WriteString("__owned ")
+			}
+			if c.Attrs["swift.isolated"] == "true" {
+				b.WriteString("isolated ")
+			}
+			if c.Attrs["swift.sending"] == "true" {
+				b.WriteString("sending ")
+			}
 			printNode(b, c, opts)
 		}
 	case KindFunctionType:
@@ -565,25 +580,43 @@ func printFunctionEntity(b *strings.Builder, n *demangle.Node, opts PrintOptions
 	if !paramsInline {
 		b.WriteByte('(')
 		if n.Children[1] != nil && NodeKind(n.Children[1].Kind) != KindEmptyList {
-			if n.Children[1].Attrs["swift.inout"] == "true" {
-				b.WriteString("inout ")
-			}
-			if n.Children[1].Attrs["swift.shared"] == "true" {
-				b.WriteString("__shared ")
-			}
-			if n.Children[1].Attrs["swift.isolated"] == "true" {
-				b.WriteString("isolated ")
-			}
-			if n.Children[1].Attrs["swift.sending"] == "true" {
-				b.WriteString("sending ")
-			}
-			if n.Children[1].Attrs["swift.owned"] == "true" {
-				b.WriteString("__owned ")
-			}
 			if NodeKind(n.Children[1].Kind) != KindTypeList {
+				// Single param: label first, then qualifiers, then type.
 				if label := n.Children[1].Attrs["swift.label"]; label != "" {
 					b.WriteString(label)
 					b.WriteString(": ")
+				}
+				if n.Children[1].Attrs["swift.inout"] == "true" {
+					b.WriteString("inout ")
+				}
+				if n.Children[1].Attrs["swift.shared"] == "true" {
+					b.WriteString("__shared ")
+				}
+				if n.Children[1].Attrs["swift.isolated"] == "true" {
+					b.WriteString("isolated ")
+				}
+				if n.Children[1].Attrs["swift.sending"] == "true" {
+					b.WriteString("sending ")
+				}
+				if n.Children[1].Attrs["swift.owned"] == "true" {
+					b.WriteString("__owned ")
+				}
+			} else {
+				// TypeList: qualifiers at list level (unusual but keep for safety).
+				if n.Children[1].Attrs["swift.inout"] == "true" {
+					b.WriteString("inout ")
+				}
+				if n.Children[1].Attrs["swift.shared"] == "true" {
+					b.WriteString("__shared ")
+				}
+				if n.Children[1].Attrs["swift.isolated"] == "true" {
+					b.WriteString("isolated ")
+				}
+				if n.Children[1].Attrs["swift.sending"] == "true" {
+					b.WriteString("sending ")
+				}
+				if n.Children[1].Attrs["swift.owned"] == "true" {
+					b.WriteString("__owned ")
 				}
 			}
 			printNode(b, n.Children[1], opts)

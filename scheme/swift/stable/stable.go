@@ -8337,15 +8337,15 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 			if p.s[p.i] == 'y' {
 				// Empty-list shortcut. Consume.
 				p.i++
-			} else if p.s[p.i] >= '0' && p.s[p.i] <= '9' || p.s[p.i] == 'x' {
+			} else if p.s[p.i] >= '0' && p.s[p.i] <= '9' || p.s[p.i] == 'x' || p.s[p.i] == '_' {
 				for {
 					if p.eof() {
 						revert()
 						return false
 					}
-					// Labels end where a non-digit-non-'x' byte appears
+					// Labels end where a non-digit-non-blank-marker byte appears
 					// (that's the result-type slot starting).
-					if p.s[p.i] == 'x' {
+					if p.s[p.i] == 'x' || p.s[p.i] == '_' {
 						labels = append(labels, "_")
 						p.i++
 						continue
@@ -8471,7 +8471,7 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 				if len(compactTypes) == 2 {
 					a = compactTypes[1]
 					// Apply single-param label from label-list.
-					if len(pathLabels) == 1 && pathLabels[0] != "" && pathLabels[0] != "_" {
+					if len(pathLabels) == 1 && pathLabels[0] != "" {
 						if a.Attrs == nil {
 							a.Attrs = map[string]string{}
 						}
@@ -8483,7 +8483,7 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 					common.AddChildren(tup, els...)
 					// Apply labels to tuple elements.
 					for i, el := range tup.Children {
-						if i >= len(pathLabels) || pathLabels[i] == "" || pathLabels[i] == "_" {
+						if i >= len(pathLabels) || pathLabels[i] == "" {
 							continue
 						}
 						if el.Attrs == nil {
@@ -8560,7 +8560,7 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 				if len(aCompactTypes) == 2 {
 					a = aCompactTypes[1]
 					// Apply single-param label from label-list.
-					if len(pathLabels) == 1 && pathLabels[0] != "" && pathLabels[0] != "_" {
+					if len(pathLabels) == 1 && pathLabels[0] != "" {
 						if a.Attrs == nil {
 							a.Attrs = map[string]string{}
 						}
@@ -8571,7 +8571,7 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 					common.AddChildren(tup, aCompactTypes[1:]...)
 					// Apply labels to tuple elements.
 					for i, el := range tup.Children {
-						if i >= len(pathLabels) || pathLabels[i] == "" || pathLabels[i] == "_" {
+						if i >= len(pathLabels) || pathLabels[i] == "" {
 							continue
 						}
 						if el.Attrs == nil {
@@ -8730,6 +8730,52 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 				revert()
 				return false
 			}
+			// consumeElemMods applies per-element type modifiers (z=inout,
+			// h=__shared, n=__owned, Yi=isolated, Yu=sending) to a type node.
+			// Must be called after each element parse, BEFORE checking for '_'
+			// tuple separators — some modifiers (like 'n') appear between the
+			// type and its trailing separator.
+			consumeElemMods := func(n *demangle.Node) {
+				ensureA := func() {
+					if n.Attrs == nil {
+						n.Attrs = map[string]string{}
+					}
+				}
+				for !p.eof() {
+					c := p.s[p.i]
+					switch {
+					case c == 'z':
+						p.i++
+						ensureA()
+						n.Attrs["swift.inout"] = "true"
+					case c == 'h':
+						p.i++
+						ensureA()
+						n.Attrs["swift.shared"] = "true"
+					case c == 'n':
+						p.i++
+						ensureA()
+						n.Attrs["swift.owned"] = "true"
+					case c == 'Y' && p.i+1 < len(p.s):
+						next := p.s[p.i+1]
+						switch next {
+						case 'i':
+							p.i += 2
+							ensureA()
+							n.Attrs["swift.isolated"] = "true"
+						case 'u':
+							p.i += 2
+							ensureA()
+							n.Attrs["swift.sending"] = "true"
+						default:
+							return
+						}
+					default:
+						return
+					}
+				}
+			}
+			consumeElemMods(x)
 			if !p.eof() && p.s[p.i] == '_' {
 				// Multi-element tuple OR single-element labeled tuple.
 				// Single-element form: '<type>_t' closes directly
@@ -8750,6 +8796,7 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 						revert()
 						return false
 					}
+					consumeElemMods(y)
 					elements = append(elements, y)
 				}
 				// Generic-param encodings like 'q_' (B) consume their
@@ -8766,6 +8813,7 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 						p.subs = saveTupleSubs
 						break
 					}
+					consumeElemMods(y)
 					elements = append(elements, y)
 				}
 				if p.eof() || p.s[p.i] != 't' {
@@ -8779,7 +8827,7 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 					if i >= len(pathLabels) {
 						break
 					}
-					if pathLabels[i] == "" || pathLabels[i] == "_" {
+					if pathLabels[i] == "" {
 						continue
 					}
 					if el.Attrs == nil {
@@ -8792,7 +8840,7 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 				a = tup
 			} else {
 				// Single param: label-list may still carry one label.
-				if len(pathLabels) == 1 && pathLabels[0] != "" && pathLabels[0] != "_" {
+				if len(pathLabels) == 1 && pathLabels[0] != "" {
 					if x.Attrs == nil {
 						x.Attrs = map[string]string{}
 					}
@@ -8800,48 +8848,6 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 				}
 				a = x
 			}
-			// params-type modifiers — can appear in any order: z
-			// (inout), h (__shared), Yi (isolated), YT (sending-result),
-			// Yu (sending), n (__owned). Loop until no more match.
-			ensureAttrs := func() {
-				if a.Attrs == nil {
-					a.Attrs = map[string]string{}
-				}
-			}
-			for !p.eof() {
-				c := p.s[p.i]
-				switch {
-				case c == 'z':
-					p.i++
-					ensureAttrs()
-					a.Attrs["swift.inout"] = "true"
-				case c == 'h':
-					p.i++
-					ensureAttrs()
-					a.Attrs["swift.shared"] = "true"
-				case c == 'n':
-					p.i++
-					ensureAttrs()
-					a.Attrs["swift.owned"] = "true"
-				case c == 'Y' && p.i+1 < len(p.s):
-					next := p.s[p.i+1]
-					switch next {
-					case 'i':
-						p.i += 2
-						ensureAttrs()
-						a.Attrs["swift.isolated"] = "true"
-					case 'u':
-						p.i += 2
-						ensureAttrs()
-						a.Attrs["swift.sending"] = "true"
-					default:
-						goto paramModsDone
-					}
-				default:
-					goto paramModsDone
-				}
-			}
-		paramModsDone:
 			// Single-element labeled tuple terminator. Apple emits '_t'
 			// after the single param (and its modifiers) when the param
 			// has an argument label, e.g. "into: inout Hasher" →
