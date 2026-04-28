@@ -8875,9 +8875,16 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 
 	opts := common.DefaultPrintOptions()
 
-	// Foundation and Swift stdlib WC (enum-case witness) entities: full form with
-	// module prefix, param types, return type. UIKit/SwiftUI/Combine use simplified.
+	// Foundation and Swift stdlib entities: full form with module prefix, param
+	// types, return type. UIKit/SwiftUI/Combine use simplified.
+	// Swift concurrency runtime types (GlobalActor, Clock, etc.) stay simplified
+	// even though their module is "Swift" — Apple renders them without prefix.
 	isWC := !p.eof() && p.i+1 < len(p.s) && p.s[p.i] == 'W' && p.s[p.i+1] == 'C'
+	rootName := ""
+	if len(pathSteps) > 1 {
+		rootName = pathSteps[1].Text
+	}
+	isSwiftVerbose := mod == "Swift" && !swiftConcurrencyRuntimeTypes[rootName]
 	if mod == "Foundation" || (isWC && mod == "Swift") {
 		var sbFull strings.Builder
 		for i, step := range pathSteps {
@@ -8909,6 +8916,16 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 		}
 		wrap := common.NewNode(common.KindTypeMangling)
 		wrap.Text = sbFull.String()
+		wrap.Attrs = map[string]string{"swift.prerendered": "true"}
+		common.AddChildren(wrap, entity)
+		return wrap, true, nil
+	}
+	if isSwiftVerbose {
+		// Swift stdlib (non-concurrency) entities: use printFunctionEntity which
+		// includes generic constraints (swift.generic attr) and full module-qualified
+		// path with param types and return type.
+		wrap := common.NewNode(common.KindTypeMangling)
+		wrap.Text = common.Print(entity, opts)
 		wrap.Attrs = map[string]string{"swift.prerendered": "true"}
 		common.AddChildren(wrap, entity)
 		return wrap, true, nil
