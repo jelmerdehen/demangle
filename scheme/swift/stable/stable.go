@@ -6665,7 +6665,7 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 			// outer k++ advances past the uppercase terminal (or harmlessly past a non-letter)
 			continue
 		}
-		if p.s[k] == 'E' && p.s[k+1] >= '0' && p.s[k+1] <= '9' {
+		if p.s[k] == 'E' && (p.s[k+1] >= '0' && p.s[k+1] <= '9' || p.s[k+1] == '_') {
 			eFound = k
 			break
 		}
@@ -6843,8 +6843,23 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 		for _, nt := range nestedTypesSuffix {
 			eHostPath += "." + nt
 		}
+		// If Rb/Rs constraints present, use verbose (extension in M):M.Host<sig>.nested form.
+		earlySig, earlyStc := extractConstraintSigFullOpts(constraintBytes, modName == "Foundation")
+		innerText := eHostPath
+		if earlySig != "" || earlyStc != "" {
+			extInMod := modName
+			nestedSuffix := eHostPath[len(hostName):]
+			verboseHost := modName + "." + hostName
+			if earlyStc != "" {
+				verboseHost += "<" + earlyStc + ">"
+			} else {
+				verboseHost += earlySig
+			}
+			verboseHost += nestedSuffix
+			innerText = "(extension in " + extInMod + "):" + verboseHost
+		}
 		inner := common.NewNode(common.KindTypeMangling)
-		inner.Text = eHostPath
+		inner.Text = innerText
 		if wrapped, ok := p.tryEntitySuffix(inner); ok {
 			return wrapped, true, nil
 		}
@@ -6921,6 +6936,41 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 				p.subs = specSubs
 				p.words = specWords
 			}
+		}
+	}
+	// Fast-path for non-Foundation E_-initiated init symbols.
+	// When declName=="" and labels are present and the symbol ends with an
+	// init designator (fC/fc/KfC/Kfc), produce simplified output directly
+	// without attempting to parse the complex generic param types (which
+	// often fail for deeply generic inits in SwiftUI/UIKit).
+	if modName != "Foundation" && declName == "" && len(labels) > 0 {
+		sEnd := len(p.s)
+		isInitFP := (sEnd >= 2 && (p.s[sEnd-2:] == "fC" || p.s[sEnd-2:] == "fc")) ||
+			(sEnd >= 3 && (p.s[sEnd-3:] == "KfC" || p.s[sEnd-3:] == "Kfc"))
+		if isInitFP {
+			extMarker := ""
+			if bytes.Contains(constraintBytes, []byte("rl")) {
+				extMarker = "<>"
+			} else if bytes.Contains(constraintBytes, []byte("Rz")) {
+				extMarker = "<A>"
+			} else if len(constraintBytes) > 2 {
+				extMarker = "<>"
+			}
+			var parts []string
+			for _, lbl := range labels {
+				if lbl == "_" || lbl == "" {
+					parts = append(parts, "_:")
+				} else {
+					parts = append(parts, lbl+":")
+				}
+			}
+			labelStr := "(" + strings.Join(parts, "") + ")"
+			wrap := common.NewNode(common.KindTypeMangling)
+			wrap.Text = hostName + extMarker + ".init" + labelStr
+			p.i = len(p.s)
+			rawPrefix := fmt.Sprintf("%d%s%d%s%c%sE", len(modName), modName, len(hostName), hostName, hostKind, constraintBytes)
+			wrap.Attrs = map[string]string{"swift.ext.rawPrefix": rawPrefix}
+			return wrap, true, nil
 		}
 	}
 	if retNode == nil {
@@ -7409,11 +7459,11 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 				// Simplified: TypeName.propName.getter (no module, no type)
 				text = hostPath + nestedExtMarker + "." + declName + accessor
 			} else {
-				sig, sameTypeConstraint := extractConstraintSigFull(constraintBytes)
 				extInMod := modName
 				if isCrossFoundation {
 					extInMod = "Foundation"
 				}
+				sig, sameTypeConstraint := extractConstraintSigFullOpts(constraintBytes, extInMod == "Foundation")
 				if sig == "" && extInMod != "Foundation" {
 					// Same-module, no inverse/same-type constraints: strip module+type.
 					extMarker := ""
@@ -7426,10 +7476,15 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 					}
 					text = hostName + extMarker + "." + declName + accessor
 				} else {
-					hostQualified := modName + "." + hostPath
+					nestedSuffix := hostPath[len(hostName):]
+					hostQualified := modName + "." + hostName
 					if sameTypeConstraint != "" {
 						hostQualified += "<" + sameTypeConstraint + ">"
+					} else {
+						hostQualified += sig
+						sig = ""
 					}
+					hostQualified += nestedSuffix
 					localSig := ""
 					if len(localConstraints) > 0 {
 						localSig = "<A where " + strings.Join(localConstraints, ", ") + ">"
@@ -7475,7 +7530,7 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 				// Simplified: no type annotation (matches Apple swift-demangle output).
 				text = "property descriptor for " + hostPath + nestedExtMarker + "." + declName
 			} else {
-				sig, sameTypeConstraint := extractConstraintSigFull(constraintBytes)
+				sig, sameTypeConstraint := extractConstraintSigFullOpts(constraintBytes, extInModProp == "Foundation")
 				if sig == "" && extInModProp != "Foundation" {
 					extMarker := ""
 					if hasCondReq {
@@ -7487,10 +7542,15 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 					}
 					text = "property descriptor for " + hostName + extMarker + "." + declName
 				} else {
-					hostQualified := modName + "." + hostPath
+					nestedSuffix := hostPath[len(hostName):]
+					hostQualified := modName + "." + hostName
 					if sameTypeConstraint != "" {
 						hostQualified += "<" + sameTypeConstraint + ">"
+					} else {
+						hostQualified += sig
+						sig = ""
 					}
+					hostQualified += nestedSuffix
 					localSig := ""
 					if len(localConstraints) > 0 {
 						localSig = "<A where " + strings.Join(localConstraints, ", ") + ">"
@@ -7505,7 +7565,7 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 				// Drop propTypeStr: Apple shows no type annotation for cross-module stored properties.
 				text = hostPath + nestedExtMarker + "." + declName
 			} else {
-				sig, sameTypeConstraint := extractConstraintSigFull(constraintBytes)
+				sig, sameTypeConstraint := extractConstraintSigFullOpts(constraintBytes, extInModProp == "Foundation")
 				if sig == "" && extInModProp != "Foundation" {
 					extMarker := ""
 					if hasCondReq {
@@ -7517,10 +7577,15 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 					}
 					text = hostName + extMarker + "." + declName
 				} else {
-					hostQualified := modName + "." + hostPath
+					nestedSuffix := hostPath[len(hostName):]
+					hostQualified := modName + "." + hostName
 					if sameTypeConstraint != "" {
 						hostQualified += "<" + sameTypeConstraint + ">"
+					} else {
+						hostQualified += sig
+						sig = ""
 					}
+					hostQualified += nestedSuffix
 					localSig := ""
 					if len(localConstraints) > 0 {
 						localSig = "<A where " + strings.Join(localConstraints, ", ") + ">"
@@ -7580,7 +7645,7 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 				text = hostPath + nestedExtMarker + ".init" + labelStr
 			} else {
 				opts := common.DefaultPrintOptions()
-				sig, sameTypeConstraint := extractConstraintSigFull(constraintBytes)
+				sig, sameTypeConstraint := extractConstraintSigFullOpts(constraintBytes, extInModInit == "Foundation")
 				if sig == "" && extInModInit != "Foundation" {
 					extMarker := ""
 					if hasCondReq {
@@ -7592,10 +7657,15 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 					}
 					text = hostName + extMarker + ".init" + labelStr
 				} else {
-					hostQualified := modName + "." + hostPath
+					nestedSuffix4 := hostPath[len(hostName):]
+					hostQualified := modName + "." + hostName
 					if sameTypeConstraint != "" {
 						hostQualified += "<" + sameTypeConstraint + ">"
+					} else {
+						hostQualified += sig
+						sig = ""
 					}
+					hostQualified += nestedSuffix4
 					localSig := ""
 					if len(localConstraints) > 0 {
 						localSig = "<A where " + strings.Join(localConstraints, ", ") + ">"
@@ -7683,15 +7753,21 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 	p.i++
 	// Render.
 	opts := common.DefaultPrintOptions()
-	sig, sameTypeConstraint := extractConstraintSigFull(constraintBytes)
 	extInModF := modName
 	if isCrossFoundation {
 		extInModF = "Foundation"
 	}
-	hostQualified := modName + "." + hostPath
+	sig, sameTypeConstraint := extractConstraintSigFullOpts(constraintBytes, extInModF == "Foundation")
+	sigEmpty := sig == "" && sameTypeConstraint == ""
+	nestedSuffix5 := hostPath[len(hostName):]
+	hostQualified := modName + "." + hostName
 	if sameTypeConstraint != "" {
 		hostQualified += "<" + sameTypeConstraint + ">"
+	} else {
+		hostQualified += sig
+		sig = ""
 	}
+	hostQualified += nestedSuffix5
 	// Build local generic sig string from parsed constraints.
 	localSig := ""
 	if len(localConstraints) > 0 {
@@ -7781,8 +7857,8 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 		common.AddChildren(wrap, funcIdent, paramsNode, retNode)
 		return wrap, true, nil
 	}
-	// Same-module (or cross-Foundation): simplify when sig == "" and not Foundation.
-	if sig == "" && extInModF != "Foundation" {
+	// Same-module (or cross-Foundation): simplify when no constraints and not Foundation.
+	if sigEmpty && extInModF != "Foundation" {
 		var labelOnlyStr string
 		switch {
 		case paramsNode == nil || common.NodeKind(paramsNode.Kind) == common.KindEmptyList:
@@ -8087,6 +8163,15 @@ func extractConstraintSig(b []byte) string {
 // Supports multiple constraints in the same byte slice, producing
 // "< where C1, C2, ... >" output.
 func extractConstraintSigFull(b []byte) (sig, sameTypeConstraint string) {
+	return extractConstraintSigFullOpts(b, true)
+}
+
+// extractConstraintSigFullOpts is like extractConstraintSigFull but lets the
+// caller control whether ObjC base-class/same-type requirements (Rb/Rs on ObjC
+// class types) are included.  Pass includeObjCRequirements=true only for
+// Foundation-module verbose output; non-Foundation simplified output ignores
+// these constraints.
+func extractConstraintSigFullOpts(b []byte, includeObjCRequirements bool) (sig, sameTypeConstraint string) {
 	s := string(b)
 	// Same-type requirement: '<S<letter>> Rs z' encodes "A == <stdlib-type>".
 	// Check this first and return early (narrow: only one Rs per constraint).
@@ -8109,6 +8194,60 @@ func extractConstraintSigFull(b []byte) (sig, sameTypeConstraint string) {
 	}
 
 	var constraints []string
+
+	// Scan for ObjC class requirements: So<N><Name>C followed by Rb or Rs.
+	// Rb = base class ("A: __C.Name"), Rs = same-type ("A == __C.Name").
+	// Only included for Foundation-module verbose output.
+	if includeObjCRequirements {
+	for pos := 0; pos < len(s)-1; pos++ {
+		if s[pos] != 'S' || s[pos+1] != 'o' {
+			continue
+		}
+		j := pos + 2
+		if j >= len(s) || !(s[j] >= '1' && s[j] <= '9') {
+			continue
+		}
+		lenStart := j
+		for j < len(s) && s[j] >= '0' && s[j] <= '9' {
+			j++
+		}
+		n := 0
+		for k := lenStart; k < j; k++ {
+			n = n*10 + int(s[k]-'0')
+		}
+		nameEnd := j + n
+		if nameEnd+2 >= len(s) {
+			continue
+		}
+		kind := s[nameEnd]
+		if kind != 'C' && kind != 'O' && kind != 'V' {
+			continue
+		}
+		name := s[j:nameEnd]
+		req := s[nameEnd+1 : nameEnd+3]
+		if nameEnd+3 >= len(s) {
+			continue
+		}
+		subj := s[nameEnd+3]
+		var paramName string
+		switch subj {
+		case 'z':
+			paramName = "A"
+		case '_':
+			paramName = "B"
+		}
+		if paramName == "" {
+			continue
+		}
+		className := "__C." + name
+		switch req {
+		case "Rb":
+			constraints = append(constraints, paramName+": "+className)
+		case "Rs":
+			constraints = append(constraints, paramName+" == "+className)
+		}
+	}
+	} // end includeObjCRequirements
 
 	// Find 'Ri' (type-param inverse requirement): "A: ~Swift.Copyable".
 	// Pattern: Ri <idx>? _ <subj> where subj 'z' = A.
