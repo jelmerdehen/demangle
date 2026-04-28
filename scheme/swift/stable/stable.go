@@ -8057,6 +8057,9 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 	// prefix for the Swift module, or 'So'/'SC' for the __C /
 	// __C_Synthesized clang-importer modules.
 	var mod string
+	var pathSteps []*demangle.Node
+	var lastNomCtx *demangle.Node
+
 	if p.s[p.i] == 's' {
 		// 's' introduces the Swift module (standalone or s<digit> stdlib path).
 		p.i++
@@ -8069,6 +8072,47 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 			mod = "__C_Synthesized"
 		}
 		p.i += 2
+	} else if p.i+1 < len(p.s) && p.s[p.i] == 'S' {
+		// S<letter> — two-byte stdlib known-type substitution (e.g. SS=String, SD=Dictionary).
+		// Build the Swift.TypeName path directly and seed pathSteps/subs.
+		letter := p.s[p.i+1]
+		nomNode, ok := common.BuildStdlibNominal(letter)
+		if !ok {
+			// Try Sc<letter> concurrency types.
+			if letter == 'c' && p.i+2 < len(p.s) {
+				nomNode, ok = common.BuildStdlibNominal2(p.s[p.i+2])
+				if ok {
+					p.i += 3
+				}
+			}
+			if !ok {
+				restore()
+				return nil, false, nil
+			}
+		} else {
+			p.i += 2
+		}
+		// nomNode = Type(Structure/Enum/Protocol(Module("Swift"), Ident("TypeName")))
+		// Set up pathSteps: Swift module + type identifier
+		modNode := common.NewModule("Swift")
+		pathSteps = append(pathSteps, modNode)
+		p.subs.Push(modNode)
+		// Extract the inner nominal from Type wrapper.
+		inner := nomNode
+		if common.NodeKind(inner.Kind) == common.KindType && len(inner.Children) > 0 {
+			inner = inner.Children[0]
+		}
+		var typeName string
+		if len(inner.Children) > 1 {
+			typeName = inner.Children[1].Text
+		}
+		identNode := common.NewIdentifier(typeName)
+		p.subs.Push(identNode)
+		pathSteps = append(pathSteps, identNode)
+		// Push the Type(nominal) for A<idx>_ back-refs.
+		p.subs.Push(nomNode)
+		lastNomCtx = nomNode
+		mod = "Swift"
 	} else if p.s[p.i] >= '0' && p.s[p.i] <= '9' {
 		m, err := p.parseIdentifier()
 		if err != nil {
@@ -8080,16 +8124,16 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 		return nil, false, nil
 	}
 
-	var pathSteps []*demangle.Node
-	moduleNode := common.NewModule(mod)
-	pathSteps = append(pathSteps, moduleNode)
-	// Push module to subs so subsequent A<idx>_ can resolve to it.
-	p.subs.Push(moduleNode)
-
-	// lastNomCtx is the most recently built nominal-type node, used as
-	// the parent context for the next nested nominal so that paths like
-	// Foundation.Morphology.PronounType are fully qualified in subs.
-	var lastNomCtx *demangle.Node = moduleNode
+	if lastNomCtx == nil {
+		moduleNode := common.NewModule(mod)
+		pathSteps = append(pathSteps, moduleNode)
+		// Push module to subs so subsequent A<idx>_ can resolve to it.
+		p.subs.Push(moduleNode)
+		// lastNomCtx is the most recently built nominal-type node, used as
+		// the parent context for the next nested nominal so that paths like
+		// Foundation.Morphology.PronounType are fully qualified in subs.
+		lastNomCtx = moduleNode
+	}
 
 	// Walk identifier + optional (V/C/O) nominal-kind step until we
 	// hit a function-sig marker: 'y' (empty args/return) OR the
