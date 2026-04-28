@@ -4629,6 +4629,46 @@ func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 			paramsType.Attrs["swift.label"] = labels[0]
 		}
 	}
+	// Consume optional calling-convention 'c' (escape marker in init type encoding)
+	// only if NOT followed by 'f' — 'cf' is the init-discriminator-prefix, not a
+	// standalone convention byte.
+	if !p.eof() && p.s[p.i] == 'c' &&
+		(p.i+1 >= len(p.s) || p.s[p.i+1] != 'f') {
+		p.i++
+	}
+	// Consume optional generic constraint block (<type> R<kind>)* 'l' before terminal.
+	// This handles 'lufC' / 'lF' style inits with generic where-clauses.
+	for !p.eof() {
+		c := p.s[p.i]
+		if c == 'l' {
+			p.i++
+			break
+		}
+		if c == 'u' || c == 'f' || c == 'K' || c == 'Y' {
+			break // terminal or throws/async marker
+		}
+		if c == 'S' || c == 's' || c == 'x' || c == 'q' || c == 'A' ||
+			c == 'B' || (c >= '0' && c <= '9') || c == 'R' {
+			saveCon := p.i
+			saveConSubs := p.subs
+			if c == 'R' {
+				// Consume R<kind> requirement terminator.
+				p.i++
+				if !p.eof() {
+					p.i++ // kind byte
+				}
+				continue
+			}
+			_, terr := p.parseType()
+			if terr != nil {
+				p.i = saveCon
+				p.subs = saveConSubs
+				break
+			}
+			continue
+		}
+		break
+	}
 	// Consume optional async/throws annotations before the 'cfC' terminal.
 	var throwsInit, asyncInit bool
 	for !p.eof() {
@@ -4644,13 +4684,23 @@ func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 		}
 		break
 	}
-	// Require 'c' f <C|c|d|D>.
-	if p.i+2 >= len(p.s) || p.s[p.i] != 'c' || p.s[p.i+1] != 'f' {
+	// Determine terminal: 'cfC', 'cfc', 'cfD', 'cfd' (normal init/deinit),
+	// or 'ufC'/'ufc' (allocating-conv variant; 'u' acts as init discriminator).
+	var kindByte byte
+	var isUFCTerminal bool
+	if p.i+2 < len(p.s) && p.s[p.i] == 'u' && p.s[p.i+1] == 'f' &&
+		(p.s[p.i+2] == 'C' || p.s[p.i+2] == 'c') {
+		kindByte = p.s[p.i+2]
+		isUFCTerminal = true
+		p.i += 3
+	} else if p.i+2 < len(p.s) && p.s[p.i] == 'c' && p.s[p.i+1] == 'f' {
+		kindByte = p.s[p.i+2]
+		p.i += 3
+	} else {
 		restore()
 		return nil, false, nil
 	}
 	terminal := ""
-	kindByte := p.s[p.i+2]
 	switch kindByte {
 	case 'C':
 		if lastKind == 'C' {
@@ -4672,7 +4722,6 @@ func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 		restore()
 		return nil, false, nil
 	}
-	p.i += 3
 	// __nonallocating_init → init in display; __allocating_init kept as-is.
 	displayTerminal := terminal
 	if terminal == "__nonallocating_init" {
@@ -4773,7 +4822,39 @@ func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 		}
 	}
 	paramsStr := "(" + strings.Join(lbls, "") + ")"
-	display := pathStr + "." + displayTerminal + paramsStr
+	// For ufC inits (own generic where-clause), collect depth-0 generic param
+	// names (A, B, C…) from retType + paramsType to display as "<A>", "<A, B>".
+	// cfC inits of generic types inherit type params — no display needed.
+	var genParamsStr string
+	if isUFCTerminal {
+		maxIdx := -1
+		var collectGP func(n *demangle.Node)
+		collectGP = func(n *demangle.Node) {
+			if n == nil {
+				return
+			}
+			if common.NodeKind(n.Kind) == common.KindDependentGenericParamType &&
+				len(n.Text) == 1 && n.Text[0] >= 'A' && n.Text[0] <= 'Z' {
+				if idx := int(n.Text[0] - 'A'); idx > maxIdx {
+					maxIdx = idx
+				}
+				return
+			}
+			for _, ch := range n.Children {
+				collectGP(ch)
+			}
+		}
+		collectGP(retType)
+		collectGP(paramsType)
+		if maxIdx >= 0 {
+			names := make([]string, maxIdx+1)
+			for i := range names {
+				names[i] = string(rune('A' + i))
+			}
+			genParamsStr = "<" + strings.Join(names, ", ") + ">"
+		}
+	}
+	display := pathStr + "." + displayTerminal + genParamsStr + paramsStr
 	// Build a structural init/deinit node.  Children are the path steps
 	// followed by the result type and params type.  The display text is
 	// stored in Text so the printer can render it without walking children.
