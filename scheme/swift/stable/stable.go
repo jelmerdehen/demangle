@@ -6115,9 +6115,10 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 		}
 		// Foundation-extension context: descriptor nodes need the full
 		// "(extension in Foundation):<hostMod>.<path>" format.
+		// Swift extensions of ObjC types also need the full format.
 		// Other extension modules (Combine, CoreData, UIKit, etc.) stay simplified.
-		if extHostMod != "" && modName == "Foundation" {
-			pathText = "(extension in Foundation):" + extHostMod + "." + pathText
+		if extHostMod != "" && (modName == "Foundation" || (modName == "Swift" && extHostMod == "__C")) {
+			pathText = "(extension in " + modName + "):" + extHostMod + "." + pathText
 		}
 		inner := common.NewNode(common.KindTypeMangling)
 		inner.Text = pathText
@@ -6492,10 +6493,11 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 			}
 			wrap := common.NewNode(common.KindTypeMangling)
 			foundationExt := modName == "Foundation" && extHostMod != ""
+			swiftObjCExt := modName == "Swift" && extHostMod == "__C"
 			if verbose {
 				wrap.Text = staticPfx + "(extension in Swift):Swift." + hostPath + "." + declName + accessor + verboseRetStr(false)
-			} else if foundationExt {
-				wrap.Text = staticPfx + "(extension in Foundation):" + extHostMod + "." + hostPath + "." + declName + accessor + verboseRetStr(false)
+			} else if foundationExt || swiftObjCExt {
+				wrap.Text = staticPfx + "(extension in " + modName + "):" + extHostMod + "." + hostPath + "." + declName + accessor + verboseRetStr(false)
 			} else {
 				wrap.Text = staticPfx + hostPath + "." + declName + accessor
 			}
@@ -6518,10 +6520,11 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 					}
 					wrap := common.NewNode(common.KindTypeMangling)
 					foundationExt := modName == "Foundation" && extHostMod != ""
+					swiftObjCExt := modName == "Swift" && extHostMod == "__C"
 					if verbose {
 						wrap.Text = "property descriptor for " + staticPfx + "(extension in Swift):Swift." + hostPath + "." + declName + verboseRetStr(false)
-					} else if foundationExt {
-						wrap.Text = "property descriptor for " + staticPfx + "(extension in Foundation):" + extHostMod + "." + hostPath + "." + declName + verboseRetStr(false)
+					} else if foundationExt || swiftObjCExt {
+						wrap.Text = "property descriptor for " + staticPfx + "(extension in " + modName + "):" + extHostMod + "." + hostPath + "." + declName + verboseRetStr(false)
 					} else {
 						wrap.Text = "property descriptor for " + staticPfx + hostPath + "." + declName
 					}
@@ -6538,10 +6541,11 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 				}
 				wrap := common.NewNode(common.KindTypeMangling)
 				foundationExt := modName == "Foundation" && extHostMod != ""
+				swiftObjCExt := modName == "Swift" && extHostMod == "__C"
 				if verbose {
 					wrap.Text = staticPfx + "(extension in Swift):Swift." + hostPath + "." + declName
-				} else if foundationExt {
-					wrap.Text = staticPfx + "(extension in Foundation):" + extHostMod + "." + hostPath + "." + declName
+				} else if foundationExt || swiftObjCExt {
+					wrap.Text = staticPfx + "(extension in " + modName + "):" + extHostMod + "." + hostPath + "." + declName
 				} else {
 					wrap.Text = staticPfx + hostPath + "." + declName
 				}
