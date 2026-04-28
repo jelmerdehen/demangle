@@ -7971,10 +7971,27 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 				r = compactTypes[0]
 				if len(compactTypes) == 2 {
 					a = compactTypes[1]
+					// Apply single-param label from label-list.
+					if len(pathLabels) == 1 && pathLabels[0] != "" && pathLabels[0] != "_" {
+						if a.Attrs == nil {
+							a.Attrs = map[string]string{}
+						}
+						a.Attrs["swift.label"] = pathLabels[0]
+					}
 				} else {
 					tup := common.NewNode(common.KindTypeList)
 					els := compactTypes[1:]
 					common.AddChildren(tup, els...)
+					// Apply labels to tuple elements.
+					for i, el := range tup.Children {
+						if i >= len(pathLabels) || pathLabels[i] == "" || pathLabels[i] == "_" {
+							continue
+						}
+						if el.Attrs == nil {
+							el.Attrs = map[string]string{}
+						}
+						el.Attrs["swift.label"] = pathLabels[i]
+					}
 					a = tup
 				}
 				goto afterSigSlots
@@ -8018,13 +8035,51 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 					}
 				}
 			}
+			if aOK {
+				// Extended form: 'A<N><LETTER>_<types>t' — like the S<N><letter>
+				// path, a '_' FirstElementMarker can follow to add more elements.
+				if !p.eof() && p.s[p.i] == '_' {
+					p.i++ // consume FirstElementMarker
+					aExtOK := true
+					for !p.eof() && p.s[p.i] != 't' {
+						et, etErr := p.parseType()
+						if etErr != nil {
+							aExtOK = false
+							break
+						}
+						aCompactTypes = append(aCompactTypes, et)
+					}
+					if aExtOK && !p.eof() && p.s[p.i] == 't' {
+						p.i++
+					} else {
+						aOK = false
+					}
+				}
+			}
 			if aOK && len(aCompactTypes) >= 2 {
 				r = aCompactTypes[0]
 				if len(aCompactTypes) == 2 {
 					a = aCompactTypes[1]
+					// Apply single-param label from label-list.
+					if len(pathLabels) == 1 && pathLabels[0] != "" && pathLabels[0] != "_" {
+						if a.Attrs == nil {
+							a.Attrs = map[string]string{}
+						}
+						a.Attrs["swift.label"] = pathLabels[0]
+					}
 				} else {
 					tup := common.NewNode(common.KindTypeList)
 					common.AddChildren(tup, aCompactTypes[1:]...)
+					// Apply labels to tuple elements.
+					for i, el := range tup.Children {
+						if i >= len(pathLabels) || pathLabels[i] == "" || pathLabels[i] == "_" {
+							continue
+						}
+						if el.Attrs == nil {
+							el.Attrs = map[string]string{}
+						}
+						el.Attrs["swift.label"] = pathLabels[i]
+					}
 					a = tup
 				}
 				goto afterSigSlots
