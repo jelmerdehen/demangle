@@ -1676,6 +1676,10 @@ func (r *remangler) mangleEntitySuffix(n *demangle.Node) error {
 	if n.Attrs != nil {
 		if rawPrefix := n.Attrs["swift.ext.rawPrefix"]; rawPrefix != "" && len(n.Children) == 3 {
 			r.buf.WriteString(rawPrefix)
+			// Populate identSubs with identifiers encoded in the raw prefix so
+			// subsequent result/param type refs can back-reference them.
+			// Format: <modLen><modName><hostLen><hostName><hostKind><constraints>E
+			pushRawPrefixIdents(r, rawPrefix)
 			if err := r.remangleNode(n.Children[0]); err != nil { // funcName
 				return err
 			}
@@ -1708,6 +1712,49 @@ func (r *remangler) mangleEntitySuffix(n *demangle.Node) error {
 	}
 	r.buf.WriteString(suffix)
 	return nil
+}
+
+// pushRawPrefixIdents registers the length-prefixed identifiers encoded in a
+// swift.ext.rawPrefix string so that subsequent type emissions can use
+// substitution back-references instead of full module/type names.
+//
+// Format: <modLen><modName><hostLen><hostName><hostKind><constraints>E
+// Only the first two identifiers (module, host type) are pushed; the
+// constraint bytes and kind byte are already encoded as back-refs.
+func pushRawPrefixIdents(r *remangler, prefix string) {
+	i := 0
+	readIdent := func() string {
+		if i >= len(prefix) {
+			return ""
+		}
+		start := i
+		for i < len(prefix) && prefix[i] >= '0' && prefix[i] <= '9' {
+			i++
+		}
+		if i == start || i >= len(prefix) {
+			return ""
+		}
+		n := 0
+		for _, c := range prefix[start:i] {
+			n = n*10 + int(c-'0')
+		}
+		if i+n > len(prefix) {
+			return ""
+		}
+		name := prefix[i : i+n]
+		i += n
+		return name
+	}
+	if mod := readIdent(); mod != "" {
+		if _, ok := r.checkIdentSub(mod); !ok {
+			r.pushIdentSub(mod)
+		}
+	}
+	if host := readIdent(); host != "" {
+		if _, ok := r.checkIdentSub(host); !ok {
+			r.pushIdentSub(host)
+		}
+	}
 }
 
 // mangleTuple emits a KindTuple node.
