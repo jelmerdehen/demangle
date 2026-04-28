@@ -6062,36 +6062,56 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 		p.s[p.i] != 'K' && p.s[p.i] != 'f' {
 		elem, eerr := p.parseType()
 		if eerr != nil {
-			restore()
-			return nil, false, nil
-		}
-		paramTypes = append(paramTypes, elem)
-		paramCount++
-		for !p.eof() && p.s[p.i] != 't' && p.s[p.i] != 'F' && !isPropTerm() {
-			if p.s[p.i] == '_' {
+			// '_t' immediately following: the "result type" we already parsed
+			// was actually the single param (1-element labeled-tuple). Treat
+			// retNode as the param, reset retNode, and consume '_t'.
+			if retNode != nil && !p.eof() && p.s[p.i] == '_' &&
+				p.i+1 < len(p.s) && p.s[p.i+1] == 't' {
+				paramTypes = append(paramTypes, retNode)
+				retNode = nil
+				paramCount = 1
+				p.i += 2
+			} else {
+				restore()
+				return nil, false, nil
+			}
+		} else {
+			paramTypes = append(paramTypes, elem)
+			paramCount++
+			// consume inout/shared/owned per-element modifiers
+			for !p.eof() && (p.s[p.i] == 'z' || p.s[p.i] == 'h' || p.s[p.i] == 'n') {
 				p.i++
-				if p.eof() || p.s[p.i] == 't' {
+			}
+			for !p.eof() && p.s[p.i] != 't' && p.s[p.i] != 'F' && !isPropTerm() {
+				if p.s[p.i] == '_' {
+					p.i++
+					if p.eof() || p.s[p.i] == 't' {
+						break
+					}
+				}
+				elemSave := p.i
+				elemSubs := p.subs
+				elem2, eerr2 := p.parseType()
+				if eerr2 != nil {
+					p.i = elemSave
+					p.subs = elemSubs
 					break
 				}
+				paramTypes = append(paramTypes, elem2)
+				paramCount++
+				// consume inout/shared/owned per-element modifiers
+				for !p.eof() && (p.s[p.i] == 'z' || p.s[p.i] == 'h' || p.s[p.i] == 'n') {
+					p.i++
+				}
 			}
-			elemSave := p.i
-			elemSubs := p.subs
-			elem2, eerr2 := p.parseType()
-			if eerr2 != nil {
-				p.i = elemSave
-				p.subs = elemSubs
-				break
+			if !p.eof() && p.s[p.i] == 't' {
+				p.i++
 			}
-			paramTypes = append(paramTypes, elem2)
-			paramCount++
-		}
-		if !p.eof() && p.s[p.i] == 't' {
-			p.i++
-		}
-		// Single-element labeled-tuple terminator '_t'.
-		if paramCount == 1 && !p.eof() && p.s[p.i] == '_' &&
-			p.i+1 < len(p.s) && p.s[p.i+1] == 't' {
-			p.i += 2
+			// Single-element labeled-tuple terminator '_t'.
+			if paramCount == 1 && !p.eof() && p.s[p.i] == '_' &&
+				p.i+1 < len(p.s) && p.s[p.i+1] == 't' {
+				p.i += 2
+			}
 		}
 	}
 
