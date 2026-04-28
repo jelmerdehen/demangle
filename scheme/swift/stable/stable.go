@@ -7659,8 +7659,14 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 			hostPath += "." + string(cb[lenEnd:endPos])
 			cb = cb[endPos+1:]
 		}
-		// If remaining bytes start with a non-digit, it's a generic sig → add <>.
-		if hostPath != hostName && len(cb) > 0 && !(cb[0] >= '0' && cb[0] <= '9') {
+		// If remaining bytes after all A<letter> back-refs are non-empty and
+		// non-digit, they are a generic sig → add <>. Pure back-refs (AA, AB…)
+		// are not a generic sig and should not add <>.
+		cbr := cb
+		for len(cbr) >= 2 && cbr[0] == 'A' && ((cbr[1] >= 'A' && cbr[1] <= 'Z') || (cbr[1] >= 'a' && cbr[1] <= 'z')) {
+			cbr = cbr[2:]
+		}
+		if hostPath != hostName && len(cbr) > 0 && !(cbr[0] >= '0' && cbr[0] <= '9') {
 			nestedExtMarker = "<>"
 		}
 	}
