@@ -6415,39 +6415,62 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 				p.i++
 			}
 			wrap := common.NewNode(common.KindTypeMangling)
+			foundationExt := modName == "Foundation" && extHostMod != ""
 			if verbose {
 				wrap.Text = staticPfx + "(extension in Swift):Swift." + hostPath + "." + declName + accessor + verboseRetStr(false)
+			} else if foundationExt {
+				wrap.Text = staticPfx + "(extension in Foundation):" + extHostMod + "." + hostPath + "." + declName + accessor + verboseRetStr(false)
 			} else {
 				wrap.Text = staticPfx + hostPath + "." + declName + accessor
 			}
 			return wrap, true, nil
 		case 'p':
-			if p.i+3 < len(p.s) && p.s[p.i+2] == 'M' && p.s[p.i+3] == 'V' {
-				p.i += 4
-				// Optional 'Z' = static.
+			{
+				staticPfx := ""
+				descBytes := 0
+				if p.i+4 < len(p.s) && p.s[p.i+2] == 'Z' && p.s[p.i+3] == 'M' && p.s[p.i+4] == 'V' {
+					staticPfx = "static "
+					descBytes = 5 // vpZMV
+				} else if p.i+3 < len(p.s) && p.s[p.i+2] == 'M' && p.s[p.i+3] == 'V' {
+					descBytes = 4 // vpMV
+				}
+				if descBytes > 0 {
+					p.i += descBytes
+					if staticPfx == "" && !p.eof() && p.s[p.i] == 'Z' {
+						staticPfx = "static "
+						p.i++
+					}
+					wrap := common.NewNode(common.KindTypeMangling)
+					foundationExt := modName == "Foundation" && extHostMod != ""
+					if verbose {
+						wrap.Text = "property descriptor for " + staticPfx + "(extension in Swift):Swift." + hostPath + "." + declName + verboseRetStr(false)
+					} else if foundationExt {
+						wrap.Text = "property descriptor for " + staticPfx + "(extension in Foundation):" + extHostMod + "." + hostPath + "." + declName + verboseRetStr(false)
+					} else {
+						wrap.Text = "property descriptor for " + staticPfx + hostPath + "." + declName
+					}
+					return wrap, true, nil
+				}
+			}
+			// Plain 'vp' (stored property).
+			p.i += 2
+			{
 				staticPfx := ""
 				if !p.eof() && p.s[p.i] == 'Z' {
 					staticPfx = "static "
 					p.i++
 				}
 				wrap := common.NewNode(common.KindTypeMangling)
+				foundationExt := modName == "Foundation" && extHostMod != ""
 				if verbose {
-					wrap.Text = "property descriptor for " + staticPfx + "(extension in Swift):Swift." + hostPath + "." + declName + verboseRetStr(false)
+					wrap.Text = staticPfx + "(extension in Swift):Swift." + hostPath + "." + declName
+				} else if foundationExt {
+					wrap.Text = staticPfx + "(extension in Foundation):" + extHostMod + "." + hostPath + "." + declName
 				} else {
-					wrap.Text = "property descriptor for " + staticPfx + hostPath + "." + declName
+					wrap.Text = staticPfx + hostPath + "." + declName
 				}
 				return wrap, true, nil
 			}
-			// Plain 'vp' (stored property).
-			p.i += 2
-			staticPfx := ""
-			if !p.eof() && p.s[p.i] == 'Z' {
-				staticPfx = "static "
-				p.i++
-			}
-			wrap := common.NewNode(common.KindTypeMangling)
-			wrap.Text = staticPfx + hostPath + "." + declName
-			return wrap, true, nil
 		}
 	}
 
@@ -6471,6 +6494,8 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 			wrap := common.NewNode(common.KindTypeMangling)
 			if verbose {
 				wrap.Text = "(extension in Swift):Swift." + hostPath + ".init" + verboseParamStr(labels) + verboseRetStr(true)
+			} else if modName == "Foundation" && extHostMod != "" {
+				wrap.Text = "(extension in Foundation):" + extHostMod + "." + hostPath + ".init" + verboseParamStr(labels) + verboseRetStr(true)
 			} else {
 				wrap.Text = hostPath + ".init" + makeLabelStr(paramCount)
 			}
@@ -6503,6 +6528,8 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 	}
 	if verbose {
 		wrap.Text = "(extension in Swift):Swift." + hostPath + "." + declName + verboseParamStr(labels) + verboseRetStr(true)
+	} else if modName == "Foundation" && extHostMod != "" {
+		wrap.Text = "(extension in Foundation):" + extHostMod + "." + hostPath + "." + declName + genericPart + verboseParamStr(labels) + verboseRetStr(true)
 	} else {
 		wrap.Text = hostPath + "." + declName + genericPart + makeLabelStr(paramCount)
 	}
