@@ -8304,7 +8304,7 @@ func (p *parser) tryAssocTypeDescriptor() (*demangle.Node, bool) {
 
 	case p.s[p.i] >= '0' && p.s[p.i] <= '9':
 		// Pattern A: <M><moduleName> <K><protocolName> P Tl
-		_, err = p.parseIdentifier() // discard module name
+		atdMod, err := p.parseIdentifier()
 		if err != nil {
 			restore()
 			return nil, false
@@ -8323,7 +8323,13 @@ func (p *parser) tryAssocTypeDescriptor() (*demangle.Node, bool) {
 			return nil, false
 		}
 		p.i++ // consume 'P'
-		qualifiedProto = protoName
+		// Foundation protocols are emitted with module qualifier; other modules
+		// (SwiftUI, UIKit, Combine, etc.) are emitted without.
+		if atdMod == "Foundation" {
+			qualifiedProto = "Foundation." + protoName
+		} else {
+			qualifiedProto = protoName
+		}
 
 	default:
 		restore()
