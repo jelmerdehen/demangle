@@ -886,31 +886,41 @@ func (p *parser) tryConformanceDescriptorMc(inner *demangle.Node) (*demangle.Nod
 	}
 	typeMod := common.RootModuleOf(inner)
 	if typeMod == "" {
-		typeMod = modName
+		// For bound-generic or complex types, infer module from the printed string.
+		if dot := strings.IndexByte(innerStr, '.'); dot > 0 {
+			typeMod = innerStr[:dot]
+		} else {
+			typeMod = modName
+		}
 	}
 	wrap := common.NewNode(common.KindTypeMangling)
 	isSwiftConcurrency := common.IsConcurrencyType(inner) || common.HasConcurrencyAncestor(inner) ||
 		swiftConcurrencyRuntimeTypes[common.RootNameOf(inner)]
-	// UI/app-layer frameworks: simplified (just the type name, no ": Proto in Module").
-	// System/core frameworks (Foundation, Synchronization, Swift, …): verbose.
-	simplified := map[string]bool{"SwiftUI": true, "UIKit": true, "Combine": true}
+	// UI/app-layer type modules: conformances use simplified format (just type name).
+	uiTypeMods := map[string]bool{"SwiftUI": true, "UIKit": true, "Combine": true, "__C": true}
+	// UI/app-layer proto modules: simplified when the conforming type is a stdlib type.
+	uiProtoMods := map[string]bool{"SwiftUI": true, "UIKit": true, "Combine": true}
+	stripFirstDot := func(s string) string {
+		if dot := strings.IndexByte(s, '.'); dot > 0 {
+			return s[dot+1:]
+		}
+		return s
+	}
 	switch {
 	case isSwiftConcurrency:
 		wrap.Text = termPrefix + sig + innerStr
-	case simplified[modName]:
-		// Strip module prefix from innerStr (e.g. "Swift.Never" → "Never").
-		stripped := innerStr
-		if dot := strings.IndexByte(innerStr, '.'); dot > 0 {
-			stripped = innerStr[dot+1:]
-		}
-		wrap.Text = termPrefix + sig + stripped
-	case modName == "Swift":
-		// Swift proto: conformance declared in the type's module.
-		wrap.Text = termPrefix + sig + innerStr + " : " + modName + "." + protoName + " in " + typeMod
-	default:
-		// Foundation, Synchronization, and other system frameworks:
-		// verbose with proto module as the conformance module.
+	case uiTypeMods[typeMod]:
+		// UI/app-layer type: simplified (strip module prefix from type name).
+		wrap.Text = termPrefix + sig + stripFirstDot(innerStr)
+	case typeMod == "Swift" && uiProtoMods[modName]:
+		// Swift stdlib type conforming to UI-layer protocol: simplified.
+		wrap.Text = termPrefix + sig + stripFirstDot(innerStr)
+	case typeMod == "Swift":
+		// Swift stdlib type conforming to system/core protocol: "in modName".
 		wrap.Text = termPrefix + sig + innerStr + " : " + modName + "." + protoName + " in " + modName
+	default:
+		// Foundation or other core-module type: "in typeMod" (conformance in type's module).
+		wrap.Text = termPrefix + sig + innerStr + " : " + modName + "." + protoName + " in " + typeMod
 	}
 	return wrap, true
 }
