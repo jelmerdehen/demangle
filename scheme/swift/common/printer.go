@@ -717,12 +717,17 @@ func printBoundGeneric(b *strings.Builder, n *demangle.Node, opts PrintOptions) 
 				b.WriteString(trail)
 				return
 			}
-			printNode(b, root, opts)
-			b.WriteByte('<')
-			printNode(b, args, opts)
-			b.WriteByte('>')
-			b.WriteString(trail)
-			return
+			// Only apply root-args placement for single-level nesting
+			// (trail has exactly one dot-component). For deeper nesting the
+			// generic args belong to the leaf type, not the root ancestor.
+			if strings.Count(trail, ".") == 1 {
+				printNode(b, root, opts)
+				b.WriteByte('<')
+				printNode(b, args, opts)
+				b.WriteByte('>')
+				b.WriteString(trail)
+				return
+			}
 		}
 	}
 	printNode(b, base, opts)
