@@ -7706,7 +7706,7 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 					} else if len(constraintBytes) > 2 {
 						extMarker = "<>"
 					}
-					text = hostName + extMarker + "." + declName + accessor
+					text = hostName + extMarker + hostPath[len(hostName):] + "." + declName + accessor
 				} else {
 					nestedSuffix := hostPath[len(hostName):]
 					hostQualified := modName + "." + hostName
@@ -7782,7 +7782,7 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 					} else if len(constraintBytes) > 2 {
 						extMarker = "<>"
 					}
-					text = "property descriptor for " + hostName + extMarker + "." + declName
+					text = "property descriptor for " + hostName + extMarker + hostPath[len(hostName):] + "." + declName
 				} else {
 					nestedSuffix := hostPath[len(hostName):]
 					hostQualified := modName + "." + hostName
@@ -7821,7 +7821,7 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 					} else if len(constraintBytes) > 2 {
 						extMarker = "<>"
 					}
-					text = hostName + extMarker + "." + declName
+					text = hostName + extMarker + hostPath[len(hostName):] + "." + declName
 				} else {
 					nestedSuffix := hostPath[len(hostName):]
 					hostQualified := modName + "." + hostName
@@ -9297,19 +9297,26 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 						a.Attrs["swift.label"] = pathLabels[0]
 					}
 				} else {
-					tup := common.NewNode(common.KindTypeList)
-					els := compactTypes[1:]
-					common.AddChildren(tup, els...)
-					// Apply labels to tuple elements.
-					for i, el := range tup.Children {
+					els := append([]*demangle.Node(nil), compactTypes[1:]...)
+					for i := range els {
 						if i >= len(pathLabels) || pathLabels[i] == "" {
 							continue
 						}
-						if el.Attrs == nil {
-							el.Attrs = map[string]string{}
+						cloned := *els[i]
+						if cloned.Attrs == nil {
+							cloned.Attrs = map[string]string{}
+						} else {
+							aa := make(map[string]string, len(cloned.Attrs)+1)
+							for k, v := range cloned.Attrs {
+								aa[k] = v
+							}
+							cloned.Attrs = aa
 						}
-						el.Attrs["swift.label"] = pathLabels[i]
+						cloned.Attrs["swift.label"] = pathLabels[i]
+						els[i] = &cloned
 					}
+					tup := common.NewNode(common.KindTypeList)
+					common.AddChildren(tup, els...)
 					a = tup
 				}
 				goto afterSigSlots
@@ -9386,18 +9393,26 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 						a.Attrs["swift.label"] = pathLabels[0]
 					}
 				} else {
-					tup := common.NewNode(common.KindTypeList)
-					common.AddChildren(tup, aCompactTypes[1:]...)
-					// Apply labels to tuple elements.
-					for i, el := range tup.Children {
+					aEls := append([]*demangle.Node(nil), aCompactTypes[1:]...)
+					for i := range aEls {
 						if i >= len(pathLabels) || pathLabels[i] == "" {
 							continue
 						}
-						if el.Attrs == nil {
-							el.Attrs = map[string]string{}
+						cloned := *aEls[i]
+						if cloned.Attrs == nil {
+							cloned.Attrs = map[string]string{}
+						} else {
+							aa := make(map[string]string, len(cloned.Attrs)+1)
+							for k, v := range cloned.Attrs {
+								aa[k] = v
+							}
+							cloned.Attrs = aa
 						}
-						el.Attrs["swift.label"] = pathLabels[i]
+						cloned.Attrs["swift.label"] = pathLabels[i]
+						aEls[i] = &cloned
 					}
+					tup := common.NewNode(common.KindTypeList)
+					common.AddChildren(tup, aEls...)
 					a = tup
 				}
 				goto afterSigSlots
@@ -9642,17 +9657,26 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 				p.i++ // consume 't'
 			tupleClosed:
 				// Apply label-list labels in order to each tuple element.
-				for i, el := range elements {
-					if i >= len(pathLabels) {
-						break
-					}
-					if pathLabels[i] == "" {
+				// Clone nodes before labeling: two params of the same type
+				// may alias the same substitution-table entry, and mutating
+				// one element's Attrs would corrupt the other's.
+				for i := range elements {
+					if i >= len(pathLabels) || pathLabels[i] == "" {
 						continue
 					}
-					if el.Attrs == nil {
-						el.Attrs = map[string]string{}
+					el := elements[i]
+					cloned := *el
+					if cloned.Attrs == nil {
+						cloned.Attrs = map[string]string{}
+					} else {
+						a := make(map[string]string, len(cloned.Attrs)+1)
+						for k, v := range cloned.Attrs {
+							a[k] = v
+						}
+						cloned.Attrs = a
 					}
-					el.Attrs["swift.label"] = pathLabels[i]
+					cloned.Attrs["swift.label"] = pathLabels[i]
+					elements[i] = &cloned
 				}
 				tup := common.NewNode(common.KindTypeList)
 				common.AddChildren(tup, elements...)
