@@ -985,26 +985,119 @@ func (p *parser) tryStdlibProtoConformanceSuffix(inner *demangle.Node) (*demangl
 		return inner, false
 	}
 
-	// Skip optional conditional-requirements block terminated by 'rl'.
-	// Pattern: <requirements>rl before Mc/WP (conditional conformance).
-	// foundCondReq is true when we consumed a conditional-requirements block;
-	// Apple prefixes the output with "<> " in the simplified (else) branch.
-	foundCondReq := false
-	if !p.eof() && p.i+1 < len(p.s) &&
-		!((p.s[p.i] == 'M' && p.s[p.i+1] == 'c') || (p.s[p.i] == 'W' && p.s[p.i+1] == 'P')) {
-		found := false
-		for k := p.i; k+3 < len(p.s); k++ {
-			if p.s[k] == 'r' && p.s[k+1] == 'l' &&
-				((p.s[k+2] == 'M' && p.s[k+3] == 'c') || (p.s[k+2] == 'W' && p.s[k+3] == 'P')) {
-				p.i = k + 2 // skip past 'rl', now points at Mc/WP
-				found = true
-				foundCondReq = true
+	// Parse optional conditional-requirements block terminated by 'rl' or 'l'.
+	// Try structured parsing first (handles S<letter>R<subject> patterns).
+	// Falls back to a blind scan when complex requirements are present.
+	//
+	// Terminator distinction matters for simplified (non-Foundation) output:
+	//   'l'  alone → simple conformance   → show "<A, B>" (type param list)
+	//   'rl'        → conditional conformance → show "<>"
+	type stdReq struct {
+		protoName  string
+		subjectIdx int // 0=A, 1=B, 2=C, ...
+	}
+	var parsedReqs []stdReq
+	reqParseOK := true   // false = blind scan used (no structured prefix available)
+	condReq := false     // true when 'rl' (conditional) terminator was used
+
+	atMcOrWP := func(pos int) bool {
+		return pos+1 < len(p.s) &&
+			((p.s[pos] == 'M' && p.s[pos+1] == 'c') || (p.s[pos] == 'W' && p.s[pos+1] == 'P'))
+	}
+
+	if !p.eof() && !atMcOrWP(p.i) {
+		// Attempt structured requirement parse.
+		reqSave := p.i
+		var reqs []stdReq
+		ok2 := true
+		rlTerm := false
+		for !p.eof() && ok2 {
+			if atMcOrWP(p.i) {
 				break
 			}
+			// Terminator: 'rl' or 'l'
+			if p.i+1 < len(p.s) && p.s[p.i] == 'r' && p.s[p.i+1] == 'l' {
+				p.i += 2
+				rlTerm = true
+				break
+			}
+			if p.s[p.i] == 'l' {
+				p.i++
+				break
+			}
+			// Expect S<stdlib-letter>R<subject>
+			if p.i+2 >= len(p.s) || p.s[p.i] != 'S' {
+				ok2 = false
+				break
+			}
+			pLetter := p.s[p.i+1]
+			pEntry, pOK := common.StdlibLookup(pLetter)
+			if !pOK {
+				ok2 = false
+				break
+			}
+			p.i += 2
+			if p.eof() || p.s[p.i] != 'R' {
+				ok2 = false
+				break
+			}
+			p.i++
+			// Subject: 'z'=0, '_'=1, N'_'=N+2
+			subj := -1
+			if p.eof() {
+				ok2 = false
+				break
+			}
+			if p.s[p.i] == 'z' {
+				subj = 0
+				p.i++
+			} else if p.s[p.i] == '_' {
+				subj = 1
+				p.i++
+			} else if p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+				n := 0
+				for !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+					n = n*10 + int(p.s[p.i]-'0')
+					p.i++
+				}
+				if p.eof() || p.s[p.i] != '_' {
+					ok2 = false
+					break
+				}
+				p.i++
+				subj = n + 2
+			} else {
+				ok2 = false
+				break
+			}
+			reqs = append(reqs, stdReq{pEntry.Name, subj})
 		}
-		if !found {
-			revert()
-			return inner, false
+		if ok2 && !p.eof() {
+			parsedReqs = reqs
+			condReq = rlTerm
+			// reqParseOK stays true
+		} else {
+			// Fallback: blind scan for (rl|l)+Mc/WP.
+			p.i = reqSave
+			found := false
+			for k := p.i; k+1 < len(p.s); k++ {
+				if p.s[k] == 'r' && k+3 < len(p.s) && p.s[k+1] == 'l' && atMcOrWP(k+2) {
+					p.i = k + 2
+					found = true
+					condReq = true
+					break
+				}
+				if p.s[k] == 'l' && atMcOrWP(k+1) {
+					p.i = k + 1
+					found = true
+					break
+				}
+			}
+			if !found {
+				revert()
+				return inner, false
+			}
+			reqParseOK = false // no structured prefix available
 		}
 	}
 
@@ -1028,21 +1121,58 @@ func (p *parser) tryStdlibProtoConformanceSuffix(inner *demangle.Node) (*demangl
 	innerStr := common.Print(inner, common.DefaultPrintOptions())
 	protoName := protoEntry.Name
 
+	// Build constraint prefix from parsed requirements.
+	var constraintPrefix string
+	if reqParseOK && len(parsedReqs) > 0 {
+		// Foundation/Swift: full "<  where A: Swift.X, B: Swift.Y>" form.
+		// Simplified: "<A, B>" — unique subjects in order.
+		isSwiftConcurrency2 := common.IsConcurrencyType(inner) || common.HasConcurrencyAncestor(inner) ||
+			swiftConcurrencyRuntimeTypes[common.RootNameOf(inner)]
+		if moduleName == "Foundation" || (moduleName == "Swift" && !isSwiftConcurrency2) {
+			var parts []string
+			seen := map[string]bool{}
+			for _, r := range parsedReqs {
+				key := fmt.Sprintf("%s:%d", r.protoName, r.subjectIdx)
+				if !seen[key] {
+					seen[key] = true
+					subj := string(rune('A' + r.subjectIdx))
+					parts = append(parts, subj+": Swift."+r.protoName)
+				}
+			}
+			constraintPrefix = "< where " + strings.Join(parts, ", ") + "> "
+		} else {
+			// Simplified: collect unique subjects in order.
+			seen2 := map[int]bool{}
+			var subjects []string
+			for _, r := range parsedReqs {
+				if !seen2[r.subjectIdx] {
+					seen2[r.subjectIdx] = true
+					subjects = append(subjects, string(rune('A'+r.subjectIdx)))
+				}
+			}
+			constraintPrefix = "<" + strings.Join(subjects, ", ") + "> "
+		}
+	}
+
 	var body string
 	isSwiftConcurrency := common.IsConcurrencyType(inner) || common.HasConcurrencyAncestor(inner) ||
 		swiftConcurrencyRuntimeTypes[common.RootNameOf(inner)]
 	if moduleName == "Foundation" || (moduleName == "Swift" && !isSwiftConcurrency) {
 		// Foundation and non-concurrency Swift stdlib: full qualified form.
-		body = innerStr + " : Swift." + protoName + " in " + moduleName
+		body = constraintPrefix + innerStr + " : Swift." + protoName + " in " + moduleName
 	} else {
 		// Concurrency types and all other modules: simplified — type name only,
-		// module prefix stripped. Apple omits ": Proto in Module" for these.
-		// Conditional conformances get a "<> " prefix (Apple convention).
+		// module prefix stripped. constraintPrefix is "" when no requirements.
 		stripped := strings.TrimPrefix(innerStr, moduleName+".")
-		if foundCondReq {
+		if condReq && !reqParseOK {
+			// Blind scan with conditional ('rl') terminator: use "<>" per old behavior.
+			body = "<> " + stripped
+		} else if condReq && reqParseOK {
+			// Structured parse with 'rl' terminator: "<>" per Apple convention.
 			body = "<> " + stripped
 		} else {
-			body = stripped
+			// 'l' terminator or no requirements: use constraintPrefix (may be "").
+			body = constraintPrefix + stripped
 		}
 	}
 
