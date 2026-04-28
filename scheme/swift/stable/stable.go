@@ -4417,6 +4417,15 @@ func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 		}
 		initNode := common.NewNode(nodeKind)
 		initNode.Text = sbFull.String()
+		if asyncInit || throwsInit {
+			initNode.Attrs = map[string]string{}
+			if asyncInit {
+				initNode.Attrs["swift.async"] = "true"
+			}
+			if throwsInit {
+				initNode.Attrs["swift.throws"] = "true"
+			}
+		}
 		common.AddChildren(initNode, pathSteps...)
 		common.AddChildren(initNode, retType, paramsType)
 		return initNode, true, nil
