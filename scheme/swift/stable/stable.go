@@ -6853,6 +6853,11 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 				// Also populate words table for later word-substitution decoding.
 				addWordsFromConstraintIdent(ident)
 				ci = end
+			} else if length == 0 {
+				// '0' is a word-sub mode start token, not a length-0 identifier.
+				// Skip it and continue scanning so later length-prefixed identifiers
+				// (e.g. "10WillChange" after "C0c10WillChange") are processed.
+				ci++
 			} else {
 				break
 			}
