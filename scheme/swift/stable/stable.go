@@ -6049,14 +6049,16 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 			restore()
 			return nil, false, nil
 		}
-		// For Foundation extensions, the identifier sub-entry doubles as the full
-		// qualified type so that AG-style back-refs in return/param positions
-		// resolve to the complete extension-qualified name rather than just the
-		// leaf identifier.  E.g. for Swift.Duration.UnitsFormatStyle.UnitWidth in
-		// a Foundation extension, subs[N] should give
-		// "(extension in Foundation):Swift.Duration.UnitsFormatStyle.UnitWidth".
+		// For Foundation extensions, both sub-entries (identifier and type) are
+		// set to the full extension-qualified path so that AG/AH-style back-refs
+		// resolve correctly regardless of how many host-type pushes preceded them.
+		// The Swift stdlib host path pushes 3 entries (module+ident+type) while the
+		// ObjC host path pushes 2 (ident+type), so the substitution index for the
+		// same nested type differs by 1.  By making BOTH pushes carry the full path,
+		// both index variants resolve to the right string.
+		var fullNtPath string
 		if modName == "Foundation" && extHostMod != "" {
-			fullNtPath := "(extension in Foundation):" + extHostMod + "." + hostPath
+			fullNtPath = "(extension in Foundation):" + extHostMod + "." + hostPath
 			for _, prevNt := range nestedTypes {
 				fullNtPath += "." + prevNt
 			}
@@ -6072,23 +6074,30 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 			kindByte := p.s[p.i]
 			p.i++ // consume kind byte — nested type level
 			nestedTypes = append(nestedTypes, ident)
-			// Push a Type node so AE/AF-style back-refs resolve.
-			var ntKind common.NodeKind
-			switch kindByte {
-			case 'C':
-				ntKind = common.KindClass
-			case 'V':
-				ntKind = common.KindStructure
-			case 'O':
-				ntKind = common.KindEnum
-			case 'P':
-				ntKind = common.KindProtocol
+			if fullNtPath != "" {
+				// Foundation extension: type push also carries the full path.
+				ntTypeNode := common.NewNode(common.KindTypeMangling)
+				ntTypeNode.Text = fullNtPath
+				p.subs.Push(ntTypeNode)
+			} else {
+				// Push a Type node so AE/AF-style back-refs resolve.
+				var ntKind common.NodeKind
+				switch kindByte {
+				case 'C':
+					ntKind = common.KindClass
+				case 'V':
+					ntKind = common.KindStructure
+				case 'O':
+					ntKind = common.KindEnum
+				case 'P':
+					ntKind = common.KindProtocol
+				}
+				ntNom := common.NewNode(ntKind)
+				common.AddChildren(ntNom, common.NewIdentifier(ident))
+				ntType := common.NewNode(common.KindType)
+				common.AddChildren(ntType, ntNom)
+				p.subs.Push(ntType)
 			}
-			ntNom := common.NewNode(ntKind)
-			common.AddChildren(ntNom, common.NewIdentifier(ident))
-			ntType := common.NewNode(common.KindType)
-			common.AddChildren(ntType, ntNom)
-			p.subs.Push(ntType)
 		} else {
 			declName = ident
 			break
