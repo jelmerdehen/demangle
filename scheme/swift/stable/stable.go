@@ -4760,6 +4760,37 @@ func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 		}
 		sbFull.WriteByte('.')
 		sbFull.WriteString(displayTerminal)
+		// For ufC inits that introduce own generic type params, add <A>, <A, B> etc.
+		if isUFCTerminal {
+			maxIdx := -1
+			var collectGPVerbose func(n *demangle.Node)
+			collectGPVerbose = func(n *demangle.Node) {
+				if n == nil {
+					return
+				}
+				if common.NodeKind(n.Kind) == common.KindDependentGenericParamType &&
+					len(n.Text) == 1 && n.Text[0] >= 'A' && n.Text[0] <= 'Z' {
+					if idx := int(n.Text[0] - 'A'); idx > maxIdx {
+						maxIdx = idx
+					}
+					return
+				}
+				for _, ch := range n.Children {
+					collectGPVerbose(ch)
+				}
+			}
+			collectGPVerbose(retType)
+			collectGPVerbose(paramsType)
+			if maxIdx >= 0 {
+				names := make([]string, maxIdx+1)
+				for i := range names {
+					names[i] = string(rune('A' + i))
+				}
+				sbFull.WriteByte('<')
+				sbFull.WriteString(strings.Join(names, ", "))
+				sbFull.WriteByte('>')
+			}
+		}
 		sbFull.WriteByte('(')
 		if paramsType != nil && common.NodeKind(paramsType.Kind) != common.KindEmptyList {
 			sbFull.WriteString(funcEntityFullParams(paramsType, opts))
