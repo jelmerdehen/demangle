@@ -6049,7 +6049,24 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 			restore()
 			return nil, false, nil
 		}
-		p.subs.Push(common.NewIdentifier(ident))
+		// For Foundation extensions, the identifier sub-entry doubles as the full
+		// qualified type so that AG-style back-refs in return/param positions
+		// resolve to the complete extension-qualified name rather than just the
+		// leaf identifier.  E.g. for Swift.Duration.UnitsFormatStyle.UnitWidth in
+		// a Foundation extension, subs[N] should give
+		// "(extension in Foundation):Swift.Duration.UnitsFormatStyle.UnitWidth".
+		if modName == "Foundation" && extHostMod != "" {
+			fullNtPath := "(extension in Foundation):" + extHostMod + "." + hostPath
+			for _, prevNt := range nestedTypes {
+				fullNtPath += "." + prevNt
+			}
+			fullNtPath += "." + ident
+			ntPathNode := common.NewNode(common.KindTypeMangling)
+			ntPathNode.Text = fullNtPath
+			p.subs.Push(ntPathNode)
+		} else {
+			p.subs.Push(common.NewIdentifier(ident))
+		}
 		if !p.eof() && (p.s[p.i] == 'V' || p.s[p.i] == 'C' ||
 			p.s[p.i] == 'O' || p.s[p.i] == 'P') {
 			kindByte := p.s[p.i]
