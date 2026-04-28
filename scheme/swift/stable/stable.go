@@ -6748,12 +6748,23 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 			}
 			continue
 		}
-		// Skip substitution refs: A<letter> (2 bytes).
-		// Prevents "AE" type-refs from matching 'E' as an extension marker.
+		// Skip substitution refs: A<letter> (2 bytes) and A<digit(s)><letter>
+		// (multi-index sub-refs for subs index >= 26).
+		// Prevents "AE" and "A2E" style refs from matching 'E' as extension marker.
 		if c == 'A' && k+1 < len(p.s)-1 {
 			next := p.s[k+1]
 			if (next >= 'a' && next <= 'z') || (next >= 'A' && next <= 'Z') {
 				k += 2
+				continue
+			}
+			if next >= '0' && next <= '9' {
+				k++ // skip 'A'
+				for k < len(p.s)-1 && p.s[k] >= '0' && p.s[k] <= '9' {
+					k++ // skip digit(s)
+				}
+				if k < len(p.s)-1 && ((p.s[k] >= 'A' && p.s[k] <= 'Z') || (p.s[k] >= 'a' && p.s[k] <= 'z')) {
+					k++ // skip terminal letter
+				}
 				continue
 			}
 		}
@@ -6895,6 +6906,34 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 			}
 			ci = j
 			continue
+		}
+		// Skip all A-substitution-ref patterns so their bytes are not mistaken
+		// for length-prefixed identifiers:
+		//   A<letter>         — standard 2-byte sub-ref (subs[0..25])
+		//   A<digit(s)><letter> — multi-index sub-ref (subs index >= 26)
+		//
+		// Without the A<letter> skip, the SECOND byte of "AA" (e.g. in
+		// "AA14ToolbarContent") sits at ci with the following '1' digit,
+		// causing the length-prefix handler to split "14ToolbarContent"
+		// into a spurious (len-1) ident "4" + "ToolbarC..." or similar.
+		// Without the A<digit> skip, "A2A14ToolbarContent" was parsed as
+		// "A1" (len-2 ident) + "Tool" (len-4 ident) + "barContent"…
+		if constraintBytes[ci] == 'A' && ci+1 < len(constraintBytes) {
+			next := constraintBytes[ci+1]
+			if (next >= 'A' && next <= 'Z') || (next >= 'a' && next <= 'z') {
+				ci += 2 // skip A<letter>
+				continue
+			}
+			if next >= '0' && next <= '9' {
+				ci++ // skip 'A'
+				for ci < len(constraintBytes) && constraintBytes[ci] >= '0' && constraintBytes[ci] <= '9' {
+					ci++ // skip digit(s)
+				}
+				if ci < len(constraintBytes) && ((constraintBytes[ci] >= 'A' && constraintBytes[ci] <= 'Z') || (constraintBytes[ci] >= 'a' && constraintBytes[ci] <= 'z')) {
+					ci++ // skip terminal letter
+				}
+				continue
+			}
 		}
 		if constraintBytes[ci] >= '0' && constraintBytes[ci] <= '9' {
 			// Parse decimal length prefix.
