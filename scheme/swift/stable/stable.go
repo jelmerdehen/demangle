@@ -6800,8 +6800,10 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 	// Apple's demangler encounters these as top-level ops during generic-sig
 	// processing (e.g. `7Element` → Identifier pushed to the substitution table).
 	addWordsFromConstraintIdent := func(ident string) {
-		// Mirror parseIdentifier's captureWords: split at camelCase boundaries,
-		// add runs of ≥2 letters to p.words.
+		// Mirror parseIdentifier's captureWords using letters-only boundaries.
+		// NOTE: Do NOT include digits in words here — the constraint-byte scanner
+		// may extract spurious 2-char "identifiers" like "A0" (from A<n> sub-refs),
+		// and treating digits as word chars would add false words that shift indices.
 		isUpper := func(c byte) bool { return c >= 'A' && c <= 'Z' }
 		isLower := func(c byte) bool { return c >= 'a' && c <= 'z' }
 		isLetter := func(c byte) bool { return isUpper(c) || isLower(c) }
@@ -13578,10 +13580,11 @@ func (p *parser) captureWords(s string) {
 			if !atEnd {
 				c := s[i]
 				prev := s[i-1]
-				// isLetter(c) = c in [A-Za-z]
-				isLetterC := c >= 'A' && c <= 'Z' || c >= 'a' && c <= 'z'
-				// isWordEnd: not a letter, OR uppercase-after-lowercase
-				atEnd = !isLetterC || (c >= 'A' && c <= 'Z' && prev >= 'a' && prev <= 'z')
+				isAlphaNum := (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9')
+				// Word ends at: non-alphanumeric, OR uppercase after lowercase/digit
+				// (digits are included in words: "SIMD2" and "UTF8" are single words)
+				prevIsLowerOrDigit := (prev >= 'a' && prev <= 'z') || (prev >= '0' && prev <= '9')
+				atEnd = !isAlphaNum || (c >= 'A' && c <= 'Z' && prevIsLowerOrDigit)
 			}
 			if atEnd {
 				if i-wordStart >= 2 && len(p.words) < 26 {
