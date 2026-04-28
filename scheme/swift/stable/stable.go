@@ -6111,28 +6111,44 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 		}
 	}
 
+	// Skip label-parsing when the remaining input ends with a property accessor
+	// or descriptor terminal. Properties have no argument labels; if we let the
+	// label loop below run, it mis-parses the return-type bytes (which can start
+	// with a digit for length-prefixed module names like "7Combine...") as labels.
+	propTermAtEnd := false
+	{
+		rem := p.s[p.i:]
+		propTermAtEnd = strings.HasSuffix(rem, "vg") || strings.HasSuffix(rem, "vs") ||
+			strings.HasSuffix(rem, "vM") || strings.HasSuffix(rem, "vw") ||
+			strings.HasSuffix(rem, "vW") || strings.HasSuffix(rem, "vpMV") ||
+			strings.HasSuffix(rem, "vpZMV") || strings.HasSuffix(rem, "vgZ") ||
+			strings.HasSuffix(rem, "vsZ")
+	}
+
 	// Parse labels (wildcard '_' and digit-led named labels).
 	var labels []string
-	for !p.eof() {
-		c := p.s[p.i]
-		if c == '_' {
-			labels = append(labels, "_")
-			p.i++
-		} else if c >= '0' && c <= '9' {
-			lblSave := p.i
-			lblSubs := p.subs
-			lbl, lerr := p.parseIdentifier()
-			if lerr != nil {
-				p.i = lblSave
-				p.subs = lblSubs
+	if !propTermAtEnd {
+		for !p.eof() {
+			c := p.s[p.i]
+			if c == '_' {
+				labels = append(labels, "_")
+				p.i++
+			} else if c >= '0' && c <= '9' {
+				lblSave := p.i
+				lblSubs := p.subs
+				lbl, lerr := p.parseIdentifier()
+				if lerr != nil {
+					p.i = lblSave
+					p.subs = lblSubs
+					break
+				}
+				labels = append(labels, lbl)
+			} else if c == 'y' && p.i+1 < len(p.s) && p.s[p.i+1] == 'y' {
+				p.i++ // consume first 'y' (label-list-empty marker)
+				break
+			} else {
 				break
 			}
-			labels = append(labels, lbl)
-		} else if c == 'y' && p.i+1 < len(p.s) && p.s[p.i+1] == 'y' {
-			p.i++ // consume first 'y' (label-list-empty marker)
-			break
-		} else {
-			break
 		}
 	}
 
@@ -6956,6 +6972,32 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 			} else if len(constraintBytes) > 2 {
 				extMarker = "<>"
 			}
+			// Detect local generic sig: symbol ends in l u fC (local + unique entity marker).
+			// Bytes immediately before 'l' determine the local param count.
+			var localGenPart string
+			fCLen := 2
+			if sEnd >= 3 && (p.s[sEnd-3:] == "KfC" || p.s[sEnd-3:] == "Kfc") {
+				fCLen = 3
+			}
+			uOff := sEnd - fCLen - 1 // position of 'u' if present
+			lOff := uOff - 1         // position of 'l' if present
+			if uOff >= 0 && lOff >= 0 && p.s[uOff] == 'u' && p.s[lOff] == 'l' {
+				// Has local generic sig. Determine count from bytes before lOff.
+				if lOff >= 1 && p.s[lOff-1] == 'r' {
+					// ...rl → 0 extra local params (conditional only) → "<>"
+					localGenPart = "<>"
+				} else if lOff >= 3 && p.s[lOff-3] == 'r' && p.s[lOff-2] >= '0' && p.s[lOff-2] <= '9' && p.s[lOff-1] == '_' {
+					// r<N>_l → N+2 local params
+					n := int(p.s[lOff-2]-'0') + 2
+					names := make([]string, n)
+					for i := range names {
+						names[i] = string(rune('A' + i))
+					}
+					localGenPart = "<" + strings.Join(names, ", ") + ">"
+				} else {
+					localGenPart = "<A>"
+				}
+			}
 			var parts []string
 			for _, lbl := range labels {
 				if lbl == "_" || lbl == "" {
@@ -6966,7 +7008,7 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 			}
 			labelStr := "(" + strings.Join(parts, "") + ")"
 			wrap := common.NewNode(common.KindTypeMangling)
-			wrap.Text = hostName + extMarker + ".init" + labelStr
+			wrap.Text = hostName + extMarker + ".init" + localGenPart + labelStr
 			p.i = len(p.s)
 			rawPrefix := fmt.Sprintf("%d%s%d%s%c%sE", len(modName), modName, len(hostName), hostName, hostKind, constraintBytes)
 			wrap.Attrs = map[string]string{"swift.ext.rawPrefix": rawPrefix}
@@ -6984,16 +7026,61 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 		} else {
 			t, terr := p.parseType()
 			if terr != nil {
-				restore()
-				return nil, false, nil
+				// Fallback: when return-type parse fails but a property accessor
+				// terminal is at the very end of the remaining input, skip to the
+				// terminal. The return type is omitted from simplified output for
+				// cross-module non-Foundation extensions, so this is lossless there.
+				rem := p.s[p.i:]
+				propTermLen := 0
+				if strings.HasSuffix(rem, "vpZMV") {
+					propTermLen = 5
+				} else if strings.HasSuffix(rem, "vpMV") {
+					propTermLen = 4
+				} else if strings.HasSuffix(rem, "vgZ") || strings.HasSuffix(rem, "vsZ") {
+					propTermLen = 3
+				} else if strings.HasSuffix(rem, "vg") || strings.HasSuffix(rem, "vs") ||
+					strings.HasSuffix(rem, "vM") || strings.HasSuffix(rem, "vw") ||
+					strings.HasSuffix(rem, "vW") {
+					propTermLen = 2
+				}
+				if propTermLen > 0 && declName != "" {
+					p.i = len(p.s) - propTermLen
+					retNode = nil
+				} else {
+					restore()
+					return nil, false, nil
+				}
+			} else {
+				retNode = t
 			}
-			retNode = t
 		}
 	}
 	// Params-type: may be empty, a single type, or a multi-element
 	// tuple encoded as <type> ('_' <type>)* 't'.
 	// Property accessor terminals (v<kind>, pMV) are handled after the
 	// local-constraints loop — skip type-parse if we see them here.
+	// Detect property terminal at end of remaining input; if present, skip
+	// all params parsing (properties have no params, and complex return types
+	// like SayyXlGSg may partially succeed then leave unparseable params bytes).
+	{
+		rem := p.s[p.i:]
+		if strings.HasSuffix(rem, "vpZMV") || strings.HasSuffix(rem, "vpMV") ||
+			strings.HasSuffix(rem, "vgZ") || strings.HasSuffix(rem, "vsZ") ||
+			strings.HasSuffix(rem, "vg") || strings.HasSuffix(rem, "vs") ||
+			strings.HasSuffix(rem, "vM") || strings.HasSuffix(rem, "vw") ||
+			strings.HasSuffix(rem, "vW") {
+			// Skip to the terminal — property has no params.
+			termLen := 2
+			if strings.HasSuffix(rem, "vpZMV") {
+				termLen = 5
+			} else if strings.HasSuffix(rem, "vpMV") {
+				termLen = 4
+			} else if strings.HasSuffix(rem, "vgZ") || strings.HasSuffix(rem, "vsZ") {
+				termLen = 3
+			}
+			p.i = len(p.s) - termLen
+		}
+	}
 	var paramsNode *demangle.Node
 	var paramTypes []*demangle.Node
 	isPropertyTerminal := func() bool {
