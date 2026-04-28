@@ -5442,6 +5442,7 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 	}
 
 	var hostPath string
+	var extHostMod string // module of the extended type ("Swift", "__C", etc.)
 
 	switch {
 	case p.i+1 < len(p.s) && p.s[p.i] == 'S' && p.s[p.i+1] == 'o':
@@ -5463,6 +5464,7 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 		}
 		p.i++
 		hostPath = name
+		extHostMod = "__C"
 		p.subs.Push(common.NewIdentifier(name))
 		var hkind common.NodeKind
 		switch kind {
@@ -5500,6 +5502,7 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 		}
 		p.i++
 		hostPath = name
+		extHostMod = "Swift"
 		p.subs.Push(common.NewModule("Swift"))
 		p.subs.Push(common.NewIdentifier(name))
 		var hkind common.NodeKind
@@ -5540,6 +5543,7 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 			return nil, false, nil
 		}
 		hostPath = typeName
+		extHostMod = "Swift"
 		p.subs.Push(common.NewModule("Swift"))
 		p.subs.Push(common.NewIdentifier(typeName))
 		p.subs.Push(stdNode)
@@ -5631,6 +5635,12 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 		pathText := hostPath
 		if declName != "" {
 			pathText += "." + declName
+		}
+		// Foundation-extension context: descriptor nodes need the full
+		// "(extension in Foundation):<hostMod>.<path>" format.
+		// Other extension modules (Combine, CoreData, UIKit, etc.) stay simplified.
+		if extHostMod != "" && modName == "Foundation" {
+			pathText = "(extension in Foundation):" + extHostMod + "." + pathText
 		}
 		inner := common.NewNode(common.KindTypeMangling)
 		inner.Text = pathText
