@@ -4459,6 +4459,15 @@ func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 	// stored in Text so the printer can render it without walking children.
 	initNode := common.NewNode(nodeKind)
 	initNode.Text = display
+	if asyncInit || throwsInit {
+		initNode.Attrs = map[string]string{}
+		if asyncInit {
+			initNode.Attrs["swift.async"] = "true"
+		}
+		if throwsInit {
+			initNode.Attrs["swift.throws"] = "true"
+		}
+	}
 	common.AddChildren(initNode, pathSteps...)
 	common.AddChildren(initNode, retType, paramsType)
 	return initNode, true, nil

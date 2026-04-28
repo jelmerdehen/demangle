@@ -1344,6 +1344,16 @@ func (r *remangler) mangleInitDeinit(n *demangle.Node, suffix string) error {
 		}
 	}
 
+	// Emit async ('Ya') and/or throws ('K') before the init/deinit suffix.
+	if n.Attrs != nil {
+		if n.Attrs["swift.async"] == "true" {
+			r.buf.WriteString("Ya")
+		}
+		if n.Attrs["swift.throws"] == "true" {
+			r.buf.WriteByte('K')
+		}
+	}
+
 	r.buf.WriteString(suffix)
 	return nil
 }
