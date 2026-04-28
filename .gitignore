@@ -7,3 +7,9 @@
 coverage.txt
 /tmp/
 .DS_Store
+/digest.md
+/swiftclose-digest
+/swiftprod-extract
+/demangle
+/demanglegrpc
+/demanglegrpc_trimpath
