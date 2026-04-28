@@ -8786,8 +8786,10 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 
 	opts := common.DefaultPrintOptions()
 
-	// Foundation module: full form with module prefix, param types, return type.
-	if mod == "Foundation" {
+	// Foundation and Swift stdlib WC (enum-case witness) entities: full form with
+	// module prefix, param types, return type. UIKit/SwiftUI/Combine use simplified.
+	isWC := !p.eof() && p.i+1 < len(p.s) && p.s[p.i] == 'W' && p.s[p.i+1] == 'C'
+	if mod == "Foundation" || (isWC && mod == "Swift") {
 		var sbFull strings.Builder
 		for i, step := range pathSteps {
 			if i > 0 {
