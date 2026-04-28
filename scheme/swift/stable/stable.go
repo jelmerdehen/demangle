@@ -4943,7 +4943,7 @@ func (p *parser) tryEntitySuffix(inner *demangle.Node) (*demangle.Node, bool) {
 		} else if p.s[p.i+1] == 'I' {
 			prefix = "inlined generic function "
 		} else if p.s[p.i+1] == 'j' {
-			innerStr := simplifiedFuncEntity(inner)
+			innerStr := verboseDispatchEntity(inner)
 			wrap := common.NewNode(common.KindTypeMangling)
 			wrap.Text = "dispatch thunk of " + innerStr
 			wrap.Attrs = map[string]string{"swift.suffix": "Tj", "swift.prerendered": "true"}
@@ -4987,7 +4987,7 @@ func (p *parser) tryEntitySuffix(inner *demangle.Node) (*demangle.Node, bool) {
 		} else if p.s[p.i+1] == 'c' {
 			prefix = "curry thunk of "
 		} else if p.s[p.i+1] == 'q' {
-			innerStr := simplifiedFuncEntity(inner)
+			innerStr := verboseDispatchEntity(inner)
 			wrap := common.NewNode(common.KindTypeMangling)
 			wrap.Text = "method descriptor for " + innerStr
 			wrap.Attrs = map[string]string{"swift.suffix": "Tq", "swift.prerendered": "true"}
@@ -7478,6 +7478,69 @@ func extractConstraintSigFull(b []byte) (sig, sameTypeConstraint string) {
 		return "", ""
 	}
 	return "< where " + strings.Join(constraints, ", ") + ">", ""
+}
+
+// funcEntityModule returns the module name from a KindFunctionEntity node's
+// first path step. Returns "" if the entity has no path or the path has no
+// module-typed first step.
+func funcEntityModule(entity *demangle.Node) string {
+	if entity == nil || len(entity.Children) == 0 {
+		return ""
+	}
+	path := entity.Children[0]
+	if common.NodeKind(path.Kind) != common.KindEntityPath || len(path.Children) == 0 {
+		return ""
+	}
+	first := path.Children[0]
+	if common.NodeKind(first.Kind) == common.KindModule {
+		return first.Text
+	}
+	return ""
+}
+
+// verboseDispatchEntity returns the verbose representation of an entity node
+// suitable for "dispatch thunk of X" and "method descriptor for X" output.
+// Unlike simplifiedFuncEntity, it emits the full module-qualified form with
+// parameter types, generic constraints, and return type.
+//
+// Function entities are pre-rendered at parse time into a simplified
+// KindTypeMangling wrapper (see parseFuncEntity). This helper bypasses that
+// wrapper and re-renders from the KindFunctionEntity child so that the full
+// format (including generic constraints stored in swift.generic) is used.
+// Getter/setter pre-rendered wrappers (swift.suffix="vg" etc.) are NOT
+// re-rendered — they already have the correct module-qualified or simplified
+// text based on concurrency/Foundation rules applied at parse time.
+func verboseDispatchEntity(inner *demangle.Node) string {
+	if inner == nil {
+		return ""
+	}
+	nk := common.NodeKind(inner.Kind)
+	if nk != common.KindTypeMangling {
+		return common.Print(inner, common.DefaultPrintOptions())
+	}
+	// Static wrapper: "static " + recursive on structural child.
+	if inner.Attrs != nil && inner.Attrs["swift.static"] == "true" && len(inner.Children) > 0 {
+		child := verboseDispatchEntity(inner.Children[0])
+		if strings.HasPrefix(child, "static ") {
+			return child
+		}
+		return "static " + child
+	}
+	// Pre-rendered wrapper around KindFunctionEntity: re-render from the entity
+	// so that generic constraints (swift.generic) and full types are included.
+	// Only for Foundation and Swift-module entities — SwiftUI/UIKit/Combine
+	// dispatch thunks use the simplified pre-rendered text (Apple preference).
+	if inner.Attrs != nil && inner.Attrs["swift.prerendered"] == "true" && len(inner.Children) > 0 {
+		child := inner.Children[0]
+		if common.NodeKind(child.Kind) == common.KindFunctionEntity {
+			mod := funcEntityModule(child)
+			if mod == "Foundation" || mod == "Swift" {
+				return common.Print(child, common.DefaultPrintOptions())
+			}
+		}
+	}
+	// Default: use Print directly (covers getter nodes, extension-entity wrappers, etc.)
+	return common.Print(inner, common.DefaultPrintOptions())
 }
 
 // simplifiedFuncEntity returns the simplified display of a function entity:
