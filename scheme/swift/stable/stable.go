@@ -915,9 +915,12 @@ func (p *parser) tryConformanceDescriptorMc(inner *demangle.Node) (*demangle.Nod
 	switch {
 	case isSwiftConcurrency:
 		wrap.Text = termPrefix + sig + innerStr
-	case uiTypeMods[typeMod]:
-		// UI/app-layer type: simplified (strip module prefix from type name).
+	case uiTypeMods[typeMod] && modName != "Foundation":
+		// UI/app-layer type conforming to non-Foundation proto: simplified (strip module prefix).
 		wrap.Text = termPrefix + sig + stripFirstDot(innerStr)
+	case uiTypeMods[typeMod] && modName == "Foundation":
+		// ObjC type (__C) conforming to Foundation protocol: full qualified format.
+		wrap.Text = termPrefix + sig + innerStr + " : " + modName + "." + protoName + " in " + modName
 	case typeMod == "Swift" && uiProtoMods[modName]:
 		// Swift stdlib type conforming to UI-layer protocol: simplified.
 		wrap.Text = termPrefix + sig + stripFirstDot(innerStr)
@@ -1185,11 +1188,11 @@ func (p *parser) tryStdlibProtoConformanceSuffix(inner *demangle.Node) (*demangl
 					break
 				}
 			}
-			if moduleName == "Swift" && !hasAssocType && !condReq {
-				// Swift stdlib, simple l-terminated conformance: "<A where A: ...>".
+			if !hasAssocType && !condReq {
+				// Simple l-terminated conformance (Swift or Foundation): "<A where A: ...>".
 				constraintPrefix = "<" + strings.Join(subjects, ", ") + " where " + constraints + "> "
 			} else {
-				// Foundation, Swift with assoc-type, or rl-terminated: "< where ...>".
+				// Assoc-type constraint or rl-terminated conditional: "< where ...>".
 				constraintPrefix = "< where " + constraints + "> "
 			}
 		} else {
@@ -1311,23 +1314,126 @@ func (p *parser) tryAAConformanceSuffix(inner *demangle.Node) (*demangle.Node, b
 		return inner, false
 	}
 
-	// Skip optional conditional-requirements block terminated by 'rl'.
+	// Try structured S<letter>R<subject> requirement parsing. Falls back to blind scan.
+	type aaReq struct {
+		protoName  string
+		subjectIdx int
+		assocType  string
+	}
+	var parsedAAReqs []aaReq
 	foundCondReq := false
-	if !p.eof() && p.i+1 < len(p.s) &&
-		!((p.s[p.i] == 'M' && p.s[p.i+1] == 'c') || (p.s[p.i] == 'W' && p.s[p.i+1] == 'P')) {
-		found := false
-		for k := p.i; k+3 < len(p.s); k++ {
-			if p.s[k] == 'r' && p.s[k+1] == 'l' &&
-				((p.s[k+2] == 'M' && p.s[k+3] == 'c') || (p.s[k+2] == 'W' && p.s[k+3] == 'P')) {
-				p.i = k + 2
-				found = true
-				foundCondReq = true
+	aaReqParseOK := false
+	atMcOrWP2 := func(pos int) bool {
+		return pos+1 < len(p.s) &&
+			((p.s[pos] == 'M' && p.s[pos+1] == 'c') || (p.s[pos] == 'W' && p.s[pos+1] == 'P'))
+	}
+	if !p.eof() && !atMcOrWP2(p.i) {
+		reqSave2 := p.i
+		var reqs2 []aaReq
+		ok3 := true
+		rlTerm2 := false
+		for !p.eof() && ok3 {
+			if atMcOrWP2(p.i) {
 				break
 			}
+			if p.i+1 < len(p.s) && p.s[p.i] == 'r' && p.s[p.i+1] == 'l' {
+				p.i += 2
+				rlTerm2 = true
+				break
+			}
+			if p.s[p.i] == 'l' {
+				p.i++
+				break
+			}
+			if p.i+2 >= len(p.s) || p.s[p.i] != 'S' {
+				ok3 = false
+				break
+			}
+			pLetter2 := p.s[p.i+1]
+			pEntry2, pOK2 := common.StdlibLookup(pLetter2)
+			if !pOK2 {
+				ok3 = false
+				break
+			}
+			p.i += 2
+			var assocType2 string
+			if !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+				n2 := 0
+				for !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+					n2 = n2*10 + int(p.s[p.i]-'0')
+					p.i++
+				}
+				if n2 > 0 && p.i+n2 <= len(p.s) {
+					assocType2 = string(p.s[p.i : p.i+n2])
+					p.i += n2
+				} else {
+					ok3 = false
+					break
+				}
+			}
+			if p.eof() || p.s[p.i] != 'R' {
+				ok3 = false
+				break
+			}
+			p.i++
+			if !p.eof() && (p.s[p.i] == 'p' || p.s[p.i] == 't') {
+				p.i++
+			}
+			subj2 := -1
+			if p.eof() {
+				ok3 = false
+				break
+			}
+			if p.s[p.i] == 'z' {
+				subj2 = 0
+				p.i++
+			} else if p.s[p.i] == '_' {
+				subj2 = 1
+				p.i++
+			} else if p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+				n := 0
+				for !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+					n = n*10 + int(p.s[p.i]-'0')
+					p.i++
+				}
+				if p.eof() || p.s[p.i] != '_' {
+					ok3 = false
+					break
+				}
+				p.i++
+				subj2 = n + 2
+			} else {
+				ok3 = false
+				break
+			}
+			reqs2 = append(reqs2, aaReq{pEntry2.Name, subj2, assocType2})
 		}
-		if !found {
-			revert()
-			return inner, false
+		if ok3 && !p.eof() {
+			parsedAAReqs = reqs2
+			foundCondReq = rlTerm2
+			aaReqParseOK = true
+		} else {
+			// Fallback: blind scan for rl+Mc/WP.
+			p.i = reqSave2
+			found := false
+			for k := p.i; k+3 < len(p.s); k++ {
+				if p.s[k] == 'r' && p.s[k+1] == 'l' &&
+					((p.s[k+2] == 'M' && p.s[k+3] == 'c') || (p.s[k+2] == 'W' && p.s[k+3] == 'P')) {
+					p.i = k + 2
+					found = true
+					foundCondReq = true
+					break
+				}
+				if p.s[k] == 'l' && atMcOrWP2(k+1) {
+					p.i = k + 1
+					found = true
+					break
+				}
+			}
+			if !found {
+				revert()
+				return inner, false
+			}
 		}
 	}
 
@@ -1353,11 +1459,32 @@ func (p *parser) tryAAConformanceSuffix(inner *demangle.Node) (*demangle.Node, b
 	if conformanceIsSwift {
 		isConcurrency := common.IsConcurrencyType(inner) || common.HasConcurrencyAncestor(inner) ||
 			swiftConcurrencyRuntimeTypes[common.RootNameOf(inner)]
+		// Build conditional constraint prefix from parsed requirements.
+		condPrefix := ""
+		if aaReqParseOK && len(parsedAAReqs) > 0 && !isConcurrency {
+			var cparts []string
+			seen4 := map[string]bool{}
+			for _, r := range parsedAAReqs {
+				subj := string(rune('A' + r.subjectIdx))
+				var lhs string
+				if r.assocType != "" {
+					lhs = subj + "." + r.assocType
+				} else {
+					lhs = subj
+				}
+				key := lhs + ":" + r.protoName
+				if !seen4[key] {
+					seen4[key] = true
+					cparts = append(cparts, lhs+": Swift."+r.protoName)
+				}
+			}
+			condPrefix = "< where " + strings.Join(cparts, ", ") + "> "
+		}
 		if isConcurrency {
 			body = strings.TrimPrefix(innerStr, "Swift.")
 		} else {
 			// Regular stdlib type: full qualified format.
-			body = innerStr + " : Swift." + protoName + " in Swift"
+			body = condPrefix + innerStr + " : Swift." + protoName + " in Swift"
 		}
 	} else if conformanceModName != "" {
 		modText := conformanceModName
