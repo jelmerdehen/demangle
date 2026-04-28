@@ -3890,12 +3890,12 @@ func (p *parser) tryImplFunctionType() (*demangle.Node, bool) {
 			// Truncate subs back and push only the Optional-wrapped type.
 			p.subs = p.subs.TruncateTo(subsBeforeParse)
 			p.subs.Push(t)
-		} else if p.subs.Len() == subsBeforeParse+2 && isImplFnOptionalType(t) {
-			// parseType internally consumed an 'Sg' suffix, pushing two
-			// entries: the bare type then the Optional. Apple's model
-			// records only the Optional as one substitution. Normalise so
-			// A<N><letter> back-refs resolve to the Optional, not the bare
-			// inner type.
+		} else if (p.subs.Len() == subsBeforeParse+2 || p.subs.Len() == subsBeforeParse+3) && isImplFnOptionalType(t) {
+			// parseType internally consumed an 'Sg' suffix. Apple's model
+			// records only the Optional as one substitution in impl-fn-type
+			// context. normalise regardless of whether parseType pushed
+			// 2 entries (bare+Optional) or 3 (bare+bare+Optional, from the
+			// extra inner-type push added for function-entity Sg alignment).
 			p.subs = p.subs.TruncateTo(subsBeforeParse)
 			p.subs.Push(t)
 		} else if byteBeforeParse == 'A' && p.subs.Len() == subsBeforeParse+1 {
@@ -8933,7 +8933,6 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 		// Set up pathSteps: Swift module + type identifier
 		modNode := common.NewModule("Swift")
 		pathSteps = append(pathSteps, modNode)
-		p.subs.Push(modNode)
 		// Extract the inner nominal from Type wrapper.
 		inner := nomNode
 		if common.NodeKind(inner.Kind) == common.KindType && len(inner.Children) > 0 {
@@ -8944,9 +8943,12 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 			typeName = inner.Children[1].Text
 		}
 		identNode := common.NewIdentifier(typeName)
-		p.subs.Push(identNode)
 		pathSteps = append(pathSteps, identNode)
-		// Push the Type(nominal) for A<idx>_ back-refs.
+		// Apple's demangler pushes exactly 1 substitution for a known-type
+		// substitution (S<letter>): the Type node itself. Pushing module and
+		// identifier separately causes A<letter> back-refs in parameter
+		// position (e.g. 'AD' in 'BidirectionalCollection.index(before:)')
+		// to resolve to the wrong subs slot.
 		p.subs.Push(nomNode)
 		lastNomCtx = nomNode
 		mod = "Swift"
@@ -10663,6 +10665,10 @@ afterNestedLoop:
 	// y<type>G bound-generic form.
 	if p.i+1 < len(p.s) && p.s[p.i] == 'S' && p.s[p.i+1] == 'g' {
 		p.i += 2
+		// Apple pushes the inner type again before the Optional wrapper:
+		// a back-ref to the inner type (e.g. AD) and to the Optional
+		// (e.g. AE) are both valid after Sg.
+		p.subs.Push(node)
 		optBase, _ := common.BuildStdlibNominal('q') // Swift.Optional
 		baseNom := optBase
 		if common.NodeKind(baseNom.Kind) == common.KindType && len(baseNom.Children) > 0 {

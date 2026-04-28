@@ -16,12 +16,12 @@ $s10Foreground7SwiftUI18LabelGroupStyle_v0PTl ---> associated type descriptor fo
 // Word-substitution protocol name: 0A = words[0]="UIView" from "UIViewType"
 $s10UIViewType7SwiftUI0A13RepresentablePTl ---> associated type descriptor for UIViewRepresentable.UIViewType
 
-// Foundation protocol assoc-types (module is the second ident, not in output)
-$s10ParseInput10Foundation0A8StrategyPTl ---> associated type descriptor for ParseStrategy.ParseInput
+// Foundation protocol assoc-types include "Foundation." qualifier (matches Apple oracle)
+$s10ParseInput10Foundation0A8StrategyPTl ---> associated type descriptor for Foundation.ParseStrategy.ParseInput
 
-$s4Code10Foundation21_BridgedStoredNSErrorPTl ---> associated type descriptor for _BridgedStoredNSError.Code
+$s4Code10Foundation21_BridgedStoredNSErrorPTl ---> associated type descriptor for Foundation._BridgedStoredNSError.Code
 
-$s5Value10Foundation19AttributedStringKeyPTl ---> associated type descriptor for AttributedStringKey.Value
+$s5Value10Foundation19AttributedStringKeyPTl ---> associated type descriptor for Foundation.AttributedStringKey.Value
 
 // ── Cross-module extension: property accessors (digit-start constraints) ─────
 
