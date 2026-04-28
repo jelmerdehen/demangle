@@ -313,13 +313,23 @@ func (r *remangler) remangleNode(n *demangle.Node) error {
 	}
 }
 
-// mangleGlobal emits the "$s" prefix then recurses on each child.
+// mangleGlobal emits the mangling prefix then recurses on each child.
 // Corresponds to Remangler::mangleGlobal (Remangler.cpp:1825).
+//
+// The prefix is "$s" by default; if the Global node has Attrs["swift.prefix"]
+// set to "_$s" (tagged by the parser for inputs that had the ELF underscore
+// prefix), that value is used instead, preserving round-trip fidelity.
 //
 // The reverse-order logic for specialisation nodes is intentionally omitted
 // from this skeleton; those kinds fall through to ErrUnsupported anyway.
 func (r *remangler) mangleGlobal(n *demangle.Node) error {
-	r.buf.WriteString("$s")
+	prefix := "$s"
+	if n.Attrs != nil {
+		if p := n.Attrs["swift.prefix"]; p != "" {
+			prefix = p
+		}
+	}
+	r.buf.WriteString(prefix)
 	for _, child := range n.Children {
 		if err := r.remangleNode(child); err != nil {
 			return err
@@ -369,10 +379,47 @@ func (r *remangler) mangleModule(n *demangle.Node) error {
 // emits the literal and pushes to the table.
 // (ManglingUtils.h::mangleIdentifier, line 144–243;
 //  Remangler.cpp::mangleIdentifierImpl line 437)
+// operatorCharEncode maps each operator character to its single-letter Swift
+// mangling code.  The inverse of the table in decodeOperatorName (stable.go).
+var operatorCharEncode = map[byte]byte{
+	'&': 'a', '@': 'c', '/': 'd', '=': 'e', '>': 'g',
+	'<': 'l', '*': 'm', '!': 'n', '|': 'o', '+': 'p',
+	'?': 'q', '%': 'r', '-': 's', '~': 't', '^': 'x', '.': 'z',
+}
+
 func (r *remangler) mangleIdentifier(n *demangle.Node) error {
 	text := n.Text
 	if text == "" {
 		r.buf.WriteByte('0')
+		return nil
+	}
+
+	// Operator names: Text is "<op> infix" / "<op> prefix" / "<op> postfix".
+	// Encode using Swift's operator-char table and append the oi/op/oP designator.
+	// Operator identifiers bypass the subs table (Apple's mangleOperator path).
+	var opKindCode string
+	var opBase string
+	switch {
+	case strings.HasSuffix(text, " infix"):
+		opBase = text[:len(text)-6]
+		opKindCode = "oi"
+	case strings.HasSuffix(text, " prefix"):
+		opBase = text[:len(text)-7]
+		opKindCode = "op"
+	case strings.HasSuffix(text, " postfix"):
+		opBase = text[:len(text)-8]
+		opKindCode = "oP"
+	}
+	if opKindCode != "" {
+		encoded := make([]byte, 0, len(opBase))
+		for i := 0; i < len(opBase); i++ {
+			if c, ok := operatorCharEncode[opBase[i]]; ok {
+				encoded = append(encoded, c)
+			} else {
+				encoded = append(encoded, opBase[i])
+			}
+		}
+		fmt.Fprintf(&r.buf, "%d%s%s", len(encoded), encoded, opKindCode)
 		return nil
 	}
 
@@ -543,22 +590,9 @@ func (r *remangler) mangleIdentifierWithWordSubs(text string) {
 		}
 	}
 
-	// Apple's mixed word-ref form only handles all-letter identifiers. If the
-	// identifier contains any non-letter byte (digit, underscore, etc.), the
-	// mixed encoding cannot represent the non-letter chars, so fall back to
-	// plain '<len><text>'. Words extracted above are still kept in r.words.
-	hasNonLetter := false
-	for i := 0; i < len(text); i++ {
-		if !wordIsLetter(text[i]) {
-			hasNonLetter = true
-			break
-		}
-	}
-
-	if len(substWords) == 0 || hasNonLetter {
-		// No word substitutions (or non-letter chars): plain '<len><text>' form.
-		// New words were already added to r.words during the scan above;
-		// they are stored as word TEXT (not buffer positions), so no fix-up needed.
+	if len(substWords) == 0 {
+		// No word substitutions: plain '<len><text>' form.
+		// New words were already added to r.words during the scan above.
 		fmt.Fprintf(&r.buf, "%d", len(text))
 		for i := 0; i < len(text); i++ {
 			ch := text[i]
@@ -670,10 +704,27 @@ func (r *remangler) checkNodeSub(n *demangle.Node) (int, bool) {
 	return -1, false
 }
 
+// stripTypeNode peels a single KindType wrapper from n (if present).
+// KindType is a transparent wrapper in Swift's mangling; the substitution
+// table built during path emission stores bare nominal nodes, while the
+// decoded tree wraps parent contexts in KindType. Stripping before
+// comparison makes nodesEqual handle both representations.
+func stripTypeNode(n *demangle.Node) *demangle.Node {
+	if n != nil && common.NodeKind(n.Kind) == common.KindType && len(n.Children) == 1 {
+		return n.Children[0]
+	}
+	return n
+}
+
 // nodesEqual reports whether two nodes represent the same mangling entry.
 // Leaf nodes (no children) match on Kind+Text.
 // Nodes with children match on Kind + recursive child equality.
+// KindType wrappers are stripped before comparison because the decoded tree
+// wraps parent contexts in KindType while the substitution table stores
+// bare nominal nodes.
 func nodesEqual(a, b *demangle.Node) bool {
+	a = stripTypeNode(a)
+	b = stripTypeNode(b)
 	if a == b {
 		return true
 	}
@@ -694,7 +745,6 @@ func nodesEqual(a, b *demangle.Node) bool {
 			return false
 		}
 	}
-	// Also compare Text for nodes that have both children and text.
 	return a.Text == b.Text
 }
 
@@ -888,12 +938,36 @@ func (r *remangler) mangleGenericSig(s string) bool {
 	return true
 }
 
-// mangleBuiltinTypeName handles KindBuiltinTypeName nodes. The primary case is
-// dependent-member types produced by tryDependentMemberType, e.g. "A.Element"
-// which encodes as <word-sub ident for "Element"> + Qz.
+// builtinTypeTokens maps "Builtin.<Name>" display strings to their 2-byte
+// compact encodings.  Mirrors parseBuiltin's switch (stable.go).
+var builtinTypeTokens = map[string]string{
+	"Builtin.Word":                               "Bw",
+	"Builtin.NativeObject":                       "Bo",
+	"Builtin.UnknownObject":                      "BO",
+	"Builtin.RawPointer":                         "Bp",
+	"Builtin.SILToken":                           "Bt",
+	"Builtin.ImplicitActor":                      "BA",
+	"Builtin.UnsafeValueBuffer":                  "BB",
+	"Builtin.BridgeObject":                       "Bb",
+	"Builtin.DefaultActorStorage":                "BD",
+	"Builtin.NonDefaultDistributedActorStorage":  "Bd",
+	"Builtin.Executor":                           "Be",
+	"Builtin.IntLiteral":                         "BI",
+	"Builtin.Job":                                "Bj",
+	"Builtin.RawUnsafeContinuation":              "Bc",
+	"Builtin.PackIndex":                          "BP",
+}
+
+// mangleBuiltinTypeName handles KindBuiltinTypeName nodes.
+//
+// Three sub-cases:
+//  1. Dependent-member form "A.Element" → assoc-name + Qz/Qy_ etc.
+//  2. Fixed Builtin.* names → 2-byte compact token (e.g. "BB").
+//  3. Builtin.Int<N> / Builtin.FPIEEE<N> → Bi<N>_ / Bf<N>_.
 func (r *remangler) mangleBuiltinTypeName(n *demangle.Node) error {
 	text := n.Text
-	// Direct dependent-member form: "<UpperLetter>.<AssocName>" (no nested dot).
+
+	// Case 1: dependent-member form "<UpperLetter>.<AssocName>" (no nested dot).
 	if len(text) >= 3 && text[0] >= 'A' && text[0] <= 'Z' && text[1] == '.' {
 		assocName := text[2:]
 		if !strings.Contains(assocName, ".") {
@@ -911,6 +985,28 @@ func (r *remangler) mangleBuiltinTypeName(n *demangle.Node) error {
 			return nil
 		}
 	}
+
+	// Case 2: fixed Builtin.* names with compact 2-byte tokens.
+	if tok, ok := builtinTypeTokens[text]; ok {
+		r.buf.WriteString(tok)
+		return nil
+	}
+
+	// Case 3: Builtin.Int<N> → Bi<N>_ and Builtin.FPIEEE<N> → Bf<N>_.
+	const intPfx, fpPfx = "Builtin.Int", "Builtin.FPIEEE"
+	switch {
+	case strings.HasPrefix(text, intPfx):
+		r.buf.WriteString("Bi")
+		r.buf.WriteString(text[len(intPfx):])
+		r.buf.WriteByte('_')
+		return nil
+	case strings.HasPrefix(text, fpPfx):
+		r.buf.WriteString("Bf")
+		r.buf.WriteString(text[len(fpPfx):])
+		r.buf.WriteByte('_')
+		return nil
+	}
+
 	return r.unsupported(common.KindBuiltinTypeName)
 }
 
@@ -1336,6 +1432,7 @@ func (r *remangler) mangleFunctionEntity(n *demangle.Node) error {
 
 	// 2. Emit label list.  When params are non-void:
 	//    - labeled TypeList: emit each label as a length-prefixed identifier.
+	//    - single KindType with swift.label: emit that label.
 	//    - all other cases: emit 'y' (empty label list).
 	// Mirrors Remangler.cpp mangleFunctionEntity step 2 (label-list slot).
 	if !argsEmpty {
@@ -1352,6 +1449,19 @@ func (r *remangler) mangleFunctionEntity(n *demangle.Node) error {
 						return err
 					}
 				}
+			}
+		} else if !argsTypeList {
+			// Single-param: label may be on the Type node itself.
+			lbl := ""
+			if args.Attrs != nil {
+				lbl = args.Attrs["swift.label"]
+			}
+			if lbl != "" {
+				if err := r.mangleIdentifier(common.NewIdentifier(lbl)); err != nil {
+					return err
+				}
+			} else {
+				r.buf.WriteByte('y')
 			}
 		} else {
 			r.buf.WriteByte('y')
@@ -1372,6 +1482,12 @@ func (r *remangler) mangleFunctionEntity(n *demangle.Node) error {
 				r.buf.WriteString(retTok[:len(retTok)-1]) // prefix "S" or "Sc"
 				r.buf.WriteByte('2')
 				r.buf.WriteByte(retTok[len(retTok)-1]) // letter
+				// Emit _t after compact form when the single param is labeled.
+				if args.Attrs != nil {
+					if lbl := args.Attrs["swift.label"]; lbl != "" && lbl != "_" {
+						r.buf.WriteString("_t")
+					}
+				}
 				compactEmitted = true
 			}
 		}
@@ -1384,6 +1500,23 @@ func (r *remangler) mangleFunctionEntity(n *demangle.Node) error {
 		if argsTypeList {
 			if err := r.mangleFunctionTypeParams(args); err != nil {
 				return err
+			}
+		} else if !argsEmpty && common.NodeKind(args.Kind) == common.KindType &&
+			(len(args.Children) == 0 || common.NodeKind(args.Children[0].Kind) != common.KindFunctionType) {
+			// Single param stored as a bare KindType node.
+			// '_t' (tuple form) is only emitted when the param carries an
+			// explicit external label (not anonymous '_'). Unlabeled single
+			// params use the plain form: type + F, no tuple wrapper.
+			if err := r.remangleNode(args); err != nil {
+				return err
+			}
+			if args.Attrs != nil && args.Attrs["swift.inout"] == "true" {
+				r.buf.WriteByte('z')
+			}
+			if args.Attrs != nil {
+				if lbl := args.Attrs["swift.label"]; lbl != "" && lbl != "_" {
+					r.buf.WriteString("_t")
+				}
 			}
 		} else {
 			if err := r.remangleNode(args); err != nil {
@@ -1461,19 +1594,63 @@ func (r *remangler) mangleEntityPath(n *demangle.Node) error {
 // mangleProtocolWitnessTable, etc. All follow: emit inner type + emit suffix bytes.
 // ---------------------------------------------------------------------------
 
+// isPureProtocolSuffix reports whether suffix is one that Apple's Remangler
+// encodes using manglePureProtocol (emitting the protocol's module+identifier
+// WITHOUT the trailing 'P' kind byte).
+// Reference: Remangler.cpp — mangleProtocolDescriptor et al.
+var pureProtocolSuffixes = map[string]bool{
+	"Mp": true, // protocol descriptor
+	"Hr": true, // protocol descriptor record
+	"TL": true, // protocol requirements base descriptor
+	"MS": true, // protocol self-conformance descriptor
+	"WS": true, // protocol self-conformance witness table
+	"Tn": true, "TN": true, "Tb": true,
+	"HP": true, "Hp": true, "HD": true, "HI": true,
+}
+
+func isPureProtocolSuffix(s string) bool { return pureProtocolSuffixes[s] }
+
 // mangleEntitySuffix remangles an entity-suffix wrapper node.
 // The node has Attrs["swift.suffix"] = the raw suffix bytes (e.g. "Ma", "WP")
 // and one child which is the inner nominal type.
 // R21: When Attrs["swift.static"] == "true", the child is the structural
 // entity (FunctionEntity, AllocatingInit, etc.); remangle it then emit 'Z'.
 func (r *remangler) mangleEntitySuffix(n *demangle.Node) error {
-	// Pre-rendered wrapper: delegate to the child (function entity, init/deinit,
-	// or other structural node) so the remangler can reconstruct the symbol.
+	// Pre-rendered wrapper: remangle the structural child then append any
+	// entity-level suffix (e.g. "Ma", "Mn", "Mp", "Mo", "Mu", "WC", "WV",
+	// "fD", "fd") stored in swift.suffix.  Previously this path returned
+	// without emitting the suffix, truncating all such symbols.
 	if n.Attrs != nil && n.Attrs["swift.prerendered"] == "true" {
 		if len(n.Children) == 0 {
 			return r.unsupported(common.KindTypeMangling)
 		}
-		return r.remangleNode(n.Children[0])
+		suffix := n.Attrs["swift.suffix"]
+		// Certain protocol-specific suffixes use Apple's manglePureProtocol
+		// which emits the protocol's module+identifier WITHOUT the trailing 'P'
+		// kind byte.  Detect when the child resolves to a bare Protocol node
+		// and the suffix is one of these pure-protocol descriptor forms.
+		if isPureProtocolSuffix(suffix) {
+			inner := n.Children[0]
+			if common.NodeKind(inner.Kind) == common.KindType && len(inner.Children) == 1 {
+				inner = inner.Children[0]
+			}
+			if common.NodeKind(inner.Kind) == common.KindProtocol {
+				for _, c := range inner.Children {
+					if err := r.remangleNode(c); err != nil {
+						return err
+					}
+				}
+				r.buf.WriteString(suffix)
+				return nil
+			}
+		}
+		if err := r.remangleNode(n.Children[0]); err != nil {
+			return err
+		}
+		if suffix != "" {
+			r.buf.WriteString(suffix)
+		}
+		return nil
 	}
 	if n.Attrs != nil && n.Attrs["swift.static"] == "true" {
 		if len(n.Children) == 0 {
@@ -1492,10 +1669,17 @@ func (r *remangler) mangleEntitySuffix(n *demangle.Node) error {
 			if err := r.remangleNode(n.Children[0]); err != nil { // funcName
 				return err
 			}
+			// Label list: emit 'y' (empty = all-anonymous) when params are present.
+			// Apple always emits the label-list slot before the function signature.
+			extParams := n.Children[1]
+			extParamsEmpty := common.NodeKind(extParams.Kind) == common.KindEmptyList
+			if !extParamsEmpty {
+				r.buf.WriteByte('y')
+			}
 			if err := r.remangleNode(n.Children[2]); err != nil { // result
 				return err
 			}
-			if err := r.remangleNode(n.Children[1]); err != nil { // params
+			if err := r.remangleNode(extParams); err != nil { // params
 				return err
 			}
 			r.buf.WriteByte('F')
@@ -1604,10 +1788,37 @@ func (r *remangler) isOptionalBase(base *demangle.Node) bool {
 	return ok && tok == "Sq"
 }
 
+// boundGenericParentDepth returns the number of nominal-type ancestors (not
+// counting the module) for a bound-generic base node (n.Children[0]).
+//
+// This mirrors Apple's mangleGenericArgs which recurses through the parent
+// context chain, emitting 'y' for the first separator and '_' for each
+// additional nominal ancestor level.
+//
+// Examples (stripped of Type wrappers):
+//   Swift.Array<T>              (Module→Struct)     → depth 0 → 'y'
+//   Combine.Publishers.Map<T>   (Module→Enum→Struct) → depth 1 → 'y_'
+func boundGenericParentDepth(baseNode *demangle.Node) int {
+	n := stripTypeNode(baseNode)
+	if len(n.Children) == 0 {
+		return 0
+	}
+	parent := stripTypeNode(n.Children[0])
+	switch common.NodeKind(parent.Kind) {
+	case common.KindModule:
+		return 0
+	case common.KindStructure, common.KindClass, common.KindEnum, common.KindProtocol:
+		return 1 + boundGenericParentDepth(parent)
+	}
+	return 0
+}
+
 // mangleBoundGenericImpl emits the general bound-generic encoding:
 //
-//	<base> 'y' <args...> 'G'
+//	<base> 'y' '_'×depth <args...> 'G'
 //
+// The separator sequence mirrors Apple's mangleGenericArgs recursion:
+// 'y' for types nested one level below a module, 'y_' for two levels, etc.
 // Used by mangleBoundGeneric and mangleBoundGenericEnum (non-Optional path).
 func (r *remangler) mangleBoundGenericImpl(n *demangle.Node) error {
 	if len(n.Children) < 2 {
@@ -1616,7 +1827,11 @@ func (r *remangler) mangleBoundGenericImpl(n *demangle.Node) error {
 	if err := r.remangleNode(n.Children[0]); err != nil {
 		return err
 	}
+	depth := boundGenericParentDepth(n.Children[0])
 	r.buf.WriteByte('y')
+	for i := 0; i < depth; i++ {
+		r.buf.WriteByte('_')
+	}
 	typeList := n.Children[1]
 	for _, arg := range typeList.Children {
 		if err := r.remangleNode(arg); err != nil {
@@ -1731,6 +1946,9 @@ func (r *remangler) mangleFunctionTypeParams(tl *demangle.Node) error {
 	for i, child := range tl.Children {
 		if err := r.remangleNode(child); err != nil {
 			return err
+		}
+		if child.Attrs != nil && child.Attrs["swift.inout"] == "true" {
+			r.buf.WriteByte('z')
 		}
 		if i == 0 {
 			r.buf.WriteByte('_') // separator after first element only

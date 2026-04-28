@@ -664,10 +664,114 @@ func printBoundGeneric(b *strings.Builder, n *demangle.Node, opts PrintOptions) 
 			}
 		}
 	}
+	// Nested nominal: args belong to root parent, not leaf.
+	// E.g. BoundGeneric(Dictionary.Keys, [A,B]) → [A:B].Keys
+	//      BoundGeneric(SectionedFetchResults.Section, [A,B]) → SectionedFetchResults<A,B>.Section
+	if opts.SynthesizeSugar {
+		if root, trail, ok := findNestedNominal(base); ok {
+			if name, mod, _ := nominalIdent(root); mod == "Swift" && name == "Dictionary" && len(args.Children) == 2 {
+				b.WriteByte('[')
+				printNode(b, args.Children[0], opts)
+				b.WriteString(" : ")
+				printNode(b, args.Children[1], opts)
+				b.WriteByte(']')
+				b.WriteString(trail)
+				return
+			}
+			printNode(b, root, opts)
+			b.WriteByte('<')
+			printNode(b, args, opts)
+			b.WriteByte('>')
+			b.WriteString(trail)
+			return
+		}
+	}
 	printNode(b, base, opts)
 	b.WriteByte('<')
 	printNode(b, args, opts)
 	b.WriteByte('>')
+}
+
+// findNestedNominal returns the outermost struct/class/protocol ancestor and
+// the dotted path suffix when n is a nominal type nested inside one.
+//
+// Rule: walk up through struct/class/protocol parents, tracking the highest
+// (outermost) non-enum nominal seen. Stop when an enum parent is encountered
+// (enums own their own generics) or a module is reached. Return the highest
+// non-enum ancestor as the root for generic args.
+//
+// E.g. Structure(Keys, parent=Structure(Dictionary)) → (Dictionary, ".Keys", true)
+//      Structure(Cadence, parent=Structure(Context, parent=Structure(TimelineView))) → (TimelineView, ".Context.Cadence", true)
+//      Structure(Category, parent=Structure(Label, parent=Enum(Publishers))) → (Label, ".Category", true)
+//      Structure(CombineLatest, parent=Enum(Publishers)) → (nil, "", false)
+func findNestedNominal(n *demangle.Node) (root *demangle.Node, trail string, ok bool) {
+	cur := n
+	if NodeKind(cur.Kind) == KindType && len(cur.Children) > 0 {
+		cur = cur.Children[0]
+	}
+	switch NodeKind(cur.Kind) {
+	case KindStructure, KindClass, KindEnum, KindProtocol:
+	default:
+		return nil, "", false
+	}
+	var nameParts []string
+	var highestNonEnum *demangle.Node
+	emit := func() (root *demangle.Node, trail string, ok bool) {
+		if highestNonEnum == nil {
+			return nil, "", false
+		}
+		var sb strings.Builder
+		for i := len(nameParts) - 1; i >= 0; i-- {
+			sb.WriteByte('.')
+			sb.WriteString(nameParts[i])
+		}
+		return highestNonEnum, sb.String(), true
+	}
+	for {
+		var nameNode *demangle.Node
+		var parentNode *demangle.Node
+		var modNode *demangle.Node
+		for _, c := range cur.Children {
+			switch NodeKind(c.Kind) {
+			case KindModule:
+				modNode = c
+			case KindIdentifier:
+				nameNode = c
+			case KindStructure, KindClass, KindEnum, KindProtocol:
+				parentNode = c
+			case KindType:
+				if len(c.Children) > 0 {
+					switch NodeKind(c.Children[0].Kind) {
+					case KindStructure, KindClass, KindEnum, KindProtocol:
+						parentNode = c.Children[0]
+					}
+				}
+			}
+		}
+		if nameNode == nil {
+			return nil, "", false
+		}
+		if parentNode == nil {
+			// cur is a root nominal (has a module, no parent nominal).
+			if modNode != nil {
+				return emit()
+			}
+			return nil, "", false
+		}
+		// parentNode is the next level up. Decide whether to continue.
+		switch NodeKind(parentNode.Kind) {
+		case KindStructure, KindClass, KindProtocol:
+			// Non-enum parent: update highest non-enum ancestor and continue.
+			highestNonEnum = parentNode
+		case KindEnum:
+			// Enum parent stops traversal; return whatever we found so far.
+			return emit()
+		default:
+			return nil, "", false
+		}
+		nameParts = append(nameParts, nameNode.Text)
+		cur = parentNode
+	}
 }
 
 // printFunctionType renders a KindFunctionType node as:

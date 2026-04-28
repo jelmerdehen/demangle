@@ -197,12 +197,70 @@ func parseBodyWithOpts(schemeName, origin, body string, prefixBytes int, opts de
 	if unmangledSuffix != "" {
 		display += " with unmangled suffix \"" + unmangledSuffix + "\""
 	}
+
+	// Tag the Global node with the original mangling prefix so the Remangler
+	// can reproduce it exactly.  Only "_$s" needs tagging; "$s" is the default.
+	if strings.HasPrefix(origin, "_$s") {
+		if tree.Attrs == nil {
+			tree.Attrs = map[string]string{"swift.prefix": "_$s"}
+		} else {
+			tree.Attrs["swift.prefix"] = "_$s"
+		}
+	}
+
+	// A text-only TypeMangling node (Text set, no children, no structural attrs)
+	// contains only a display string — it cannot be structurally remangled.
+	// Returning Tree=nil signals callers (e.g. round-trip tests) that the symbol
+	// cannot be round-tripped.
+	returnTree := tree
+	if isTextOnlyGlobal(tree) {
+		returnTree = nil
+	}
+
 	return &demangle.Result{
 		Scheme: schemeName,
 		Input:  origin,
 		Output: display,
-		Tree:   tree,
+		Tree:   returnTree,
 	}, nil
+}
+
+// isTextOnlyGlobal reports whether n is a Global node whose sole child is a
+// TypeMangling node that has a pre-rendered display string but no structural
+// children.  Nodes without structural children cannot be remangled; the
+// Attrs field is irrelevant because even if a suffix hint is present, without
+// the nominal-type child the Remangler has nothing to emit.
+//
+// This handles two levels of nesting:
+//  1. Global → TypeMangling[text!="", children=0]              — direct text-only
+//  2. Global → TypeMangling[prerendered=true, 1 child]
+//             → TypeMangling[text!="", children=0]             — nested text-only
+//
+// The second form arises for dispatch thunks (Tj/Tq) and extension wrappers
+// where the outer TypeMangling references an inner text-only entity.
+func isTextOnlyGlobal(n *demangle.Node) bool {
+	if common.NodeKind(n.Kind) != common.KindGlobal {
+		return false
+	}
+	if len(n.Children) != 1 {
+		return false
+	}
+	return hasTextOnlyTypeMangling(n.Children[0])
+}
+
+// hasTextOnlyTypeMangling reports whether a TypeMangling node (or a chain of
+// TypeMangling nodes) bottoms out in a text-only leaf (text!="", children=0).
+func hasTextOnlyTypeMangling(n *demangle.Node) bool {
+	if common.NodeKind(n.Kind) != common.KindTypeMangling {
+		return false
+	}
+	if n.Text != "" && len(n.Children) == 0 {
+		return true
+	}
+	if n.Attrs != nil && n.Attrs["swift.prerendered"] == "true" && len(n.Children) == 1 {
+		return hasTextOnlyTypeMangling(n.Children[0])
+	}
+	return false
 }
 
 func stripPrefix(in string) (string, bool) {
@@ -877,9 +935,11 @@ func (p *parser) tryStdlibProtoConformanceSuffix(inner *demangle.Node) (*demangl
 
 	var moduleName string
 	switch {
-	case p.i+1 < len(p.s) && p.s[p.i] == 'A' && p.s[p.i+1] == 'A':
+	case p.s[p.i] == 'A' && p.i+1 < len(p.s) && p.s[p.i+1] >= 'A' && p.s[p.i+1] <= 'Z':
+		// A<letter> substitution ref: AA=0, AB=1, AC=2, …
+		idx := int(p.s[p.i+1] - 'A')
 		p.i += 2
-		modNode, mok := p.subs.Get(0)
+		modNode, mok := p.subs.Get(idx)
 		if !mok || modNode == nil || common.NodeKind(modNode.Kind) != common.KindModule {
 			revert()
 			return inner, false
@@ -891,6 +951,25 @@ func (p *parser) tryStdlibProtoConformanceSuffix(inner *demangle.Node) (*demangl
 	default:
 		revert()
 		return inner, false
+	}
+
+	// Skip optional conditional-requirements block terminated by 'rl'.
+	// Pattern: <requirements>rl before Mc/WP (conditional conformance).
+	if !p.eof() && p.i+1 < len(p.s) &&
+		!((p.s[p.i] == 'M' && p.s[p.i+1] == 'c') || (p.s[p.i] == 'W' && p.s[p.i+1] == 'P')) {
+		found := false
+		for k := p.i; k+3 < len(p.s); k++ {
+			if p.s[k] == 'r' && p.s[k+1] == 'l' &&
+				((p.s[k+2] == 'M' && p.s[k+3] == 'c') || (p.s[k+2] == 'W' && p.s[k+3] == 'P')) {
+				p.i = k + 2 // skip past 'rl', now points at Mc/WP
+				found = true
+				break
+			}
+		}
+		if !found {
+			revert()
+			return inner, false
+		}
 	}
 
 	if p.i+1 >= len(p.s) {
@@ -982,23 +1061,48 @@ func (p *parser) tryAAConformanceSuffix(inner *demangle.Node) (*demangle.Node, b
 		return inner, false
 	}
 
-	// Consume conformance module: AA or s.
+	// Consume conformance module: A<letter> substitution or s.
 	if p.eof() {
 		revert()
 		return inner, false
 	}
-	sameModule := false
 	conformanceIsSwift := false
+	var conformanceModName string
 	switch {
-	case p.i+1 < len(p.s) && p.s[p.i] == 'A' && p.s[p.i+1] == 'A':
+	case p.s[p.i] == 'A' && p.i+1 < len(p.s) && p.s[p.i+1] >= 'A' && p.s[p.i+1] <= 'Z':
+		// A<letter> back-ref to a module in subs.
+		idx := int(p.s[p.i+1] - 'A')
 		p.i += 2
-		sameModule = true
+		modNode, mok := p.subs.Get(idx)
+		if !mok || modNode == nil || common.NodeKind(modNode.Kind) != common.KindModule {
+			revert()
+			return inner, false
+		}
+		conformanceModName = modNode.Text
 	case p.s[p.i] == 's':
 		p.i++
 		conformanceIsSwift = true
 	default:
 		revert()
 		return inner, false
+	}
+
+	// Skip optional conditional-requirements block terminated by 'rl'.
+	if !p.eof() && p.i+1 < len(p.s) &&
+		!((p.s[p.i] == 'M' && p.s[p.i+1] == 'c') || (p.s[p.i] == 'W' && p.s[p.i+1] == 'P')) {
+		found := false
+		for k := p.i; k+3 < len(p.s); k++ {
+			if p.s[k] == 'r' && p.s[k+1] == 'l' &&
+				((p.s[k+2] == 'M' && p.s[k+3] == 'c') || (p.s[k+2] == 'W' && p.s[k+3] == 'P')) {
+				p.i = k + 2
+				found = true
+				break
+			}
+		}
+		if !found {
+			revert()
+			return inner, false
+		}
 	}
 
 	// Require Mc or WP.
@@ -1020,28 +1124,7 @@ func (p *parser) tryAAConformanceSuffix(inner *demangle.Node) (*demangle.Node, b
 
 	innerStr := common.Print(inner, common.DefaultPrintOptions())
 	var body string
-	if sameModule {
-		modNode, mok := p.subs.Get(0)
-		modText := ""
-		if mok && modNode != nil && common.NodeKind(modNode.Kind) == common.KindModule {
-			modText = modNode.Text
-		}
-		if modText == "Foundation" {
-			// Foundation: full qualified format — "Foundation.X : Module.Proto in Foundation".
-			protoModStr := modText
-			if c == 's' {
-				protoModStr = "Swift"
-			}
-			body = innerStr + " : " + protoModStr + "." + protoName + " in " + modText
-		} else {
-			// All other modules (Combine, UIKit, SwiftUI…): simplified — strip module prefix.
-			if modText != "" {
-				body = strings.TrimPrefix(innerStr, modText+".")
-			} else {
-				body = innerStr
-			}
-		}
-	} else if conformanceIsSwift {
+	if conformanceIsSwift {
 		isConcurrency := common.IsConcurrencyType(inner) || common.HasConcurrencyAncestor(inner) ||
 			swiftConcurrencyRuntimeTypes[common.RootNameOf(inner)]
 		if isConcurrency {
@@ -1049,6 +1132,19 @@ func (p *parser) tryAAConformanceSuffix(inner *demangle.Node) (*demangle.Node, b
 		} else {
 			// Regular stdlib type: full qualified format.
 			body = innerStr + " : Swift." + protoName + " in Swift"
+		}
+	} else if conformanceModName != "" {
+		modText := conformanceModName
+		if modText == "Foundation" {
+			// Foundation: full qualified format — "Foundation.X : ProtoMod.Proto in Foundation".
+			protoModStr := modText
+			if c == 's' {
+				protoModStr = "Swift"
+			}
+			body = innerStr + " : " + protoModStr + "." + protoName + " in " + modText
+		} else {
+			// All other modules (Combine, UIKit, SwiftUI…): simplified — strip module prefix.
+			body = strings.TrimPrefix(innerStr, modText+".")
 		}
 	} else {
 		body = innerStr
@@ -5434,15 +5530,21 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 		return nil, false, nil
 	}
 
-	// Extension module must start with a digit.
-	if p.eof() || !(p.s[p.i] >= '0' && p.s[p.i] <= '9') {
+	// Extension module: digit-led identifier or 's' (Swift stdlib shorthand).
+	var modName string
+	if !p.eof() && p.s[p.i] == 's' && p.i+1 < len(p.s) && p.s[p.i+1] == 'E' {
+		modName = "Swift"
+		p.i++ // consume 's', leave 'E' for the check below
+	} else if p.eof() || !(p.s[p.i] >= '0' && p.s[p.i] <= '9') {
 		restore()
 		return nil, false, nil
-	}
-	modName, err := p.parseIdentifier()
-	if err != nil {
-		restore()
-		return nil, false, nil
+	} else {
+		var err error
+		modName, err = p.parseIdentifier()
+		if err != nil {
+			restore()
+			return nil, false, nil
+		}
 	}
 	p.subs.Push(common.NewModule(modName))
 
@@ -5504,9 +5606,9 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 		hostPath += "." + nt
 	}
 
-	// Entity-suffix terminal (Ma, Mn, N, Mc, etc.) directly after the
-	// nested-type chain — no function signature follows. Build a synthetic
-	// node from the accumulated path and delegate to tryEntitySuffix.
+	// Entity-suffix terminal (Ma, Mn, N, Mc, etc.) or conformance suffix
+	// (SH<mod>Mc, AA<proto>Mc, etc.) directly after the nested-type chain.
+	// Build a synthetic node from the accumulated path and try each handler.
 	{
 		pathText := hostPath
 		if declName != "" {
@@ -5515,6 +5617,15 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 		inner := common.NewNode(common.KindTypeMangling)
 		inner.Text = pathText
 		if wrapped, ok := p.tryEntitySuffix(inner); ok {
+			return wrapped, true, nil
+		}
+		if wrapped, ok := p.tryStdlibProtoConformanceSuffix(inner); ok {
+			return wrapped, true, nil
+		}
+		if wrapped, ok := p.tryAAConformanceSuffix(inner); ok {
+			return wrapped, true, nil
+		}
+		if wrapped, ok := p.tryConformanceDescriptorMc(inner); ok {
 			return wrapped, true, nil
 		}
 	}
@@ -6014,8 +6125,9 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 	for {
 		ident, identErr := p.parseIdentifier()
 		if identErr != nil {
-			restore()
-			return nil, false, nil
+			// Non-digit byte: could be a bare entity/conformance suffix (Mn, Ma, Mc…)
+			// with no decl name. Break here and let the declName=="" path handle it.
+			break
 		}
 		if !p.eof() && (p.s[p.i] == 'V' || p.s[p.i] == 'C' ||
 			p.s[p.i] == 'O' || p.s[p.i] == 'P') {
@@ -6507,6 +6619,28 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 	// Extend hostPath with any nested type levels parsed from after the E marker.
 	for _, nt := range nestedTypesSuffix {
 		hostPath += "." + nt
+	}
+
+	// When there is no decl name (the type path IS the entity itself), try
+	// entity/conformance suffix handlers directly on the accumulated path.
+	if declName == "" {
+		pathText := hostPath + nestedExtMarker
+		inner := common.NewNode(common.KindTypeMangling)
+		inner.Text = pathText
+		if wrapped, ok := p.tryEntitySuffix(inner); ok {
+			return wrapped, true, nil
+		}
+		if wrapped, ok := p.tryStdlibProtoConformanceSuffix(inner); ok {
+			return wrapped, true, nil
+		}
+		if wrapped, ok := p.tryAAConformanceSuffix(inner); ok {
+			return wrapped, true, nil
+		}
+		if wrapped, ok := p.tryConformanceDescriptorMc(inner); ok {
+			return wrapped, true, nil
+		}
+		restore()
+		return nil, false, nil
 	}
 
 	// Property accessor terminals: v<kind> or pMV.
