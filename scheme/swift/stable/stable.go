@@ -5774,7 +5774,7 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 				restore()
 				return nil, false, nil
 			}
-			_ = t
+			retNode = t
 		}
 	}
 
@@ -5793,6 +5793,7 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 		return false
 	}
 	var paramCount int
+	var paramTypes []*demangle.Node
 	ycConvention := !p.eof() && p.s[p.i] == 'y' && p.i+1 < len(p.s) && p.s[p.i+1] == 'c'
 	if p.paramsSlotIsEmpty() || ycConvention {
 		p.i++ // consume 'y'
@@ -5803,7 +5804,7 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 			restore()
 			return nil, false, nil
 		}
-		_ = elem
+		paramTypes = append(paramTypes, elem)
 		paramCount++
 		for !p.eof() && p.s[p.i] != 't' && p.s[p.i] != 'F' && !isPropTerm() {
 			if p.s[p.i] == '_' {
@@ -5820,7 +5821,7 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 				p.subs = elemSubs
 				break
 			}
-			_ = elem2
+			paramTypes = append(paramTypes, elem2)
 			paramCount++
 		}
 		if !p.eof() && p.s[p.i] == 't' {
@@ -5915,6 +5916,53 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 		return "(" + strings.Join(parts, "") + ")"
 	}
 
+	// verbose: true when this is a same-module Swift extension — Apple shows
+	// full "(extension in Swift):Swift.<type>.<decl>(<types>) -> <ret>" format.
+	// Concurrency runtime types (GlobalActor, Clock, etc.) use simplified format.
+	verbose := modName == "Swift" && extHostMod == "Swift" && !swiftConcurrencyRuntimeTypes[hostPath]
+	opts := common.DefaultPrintOptions()
+
+	// verboseRetStr returns " : <type>" for property accessors/descriptors,
+	// or " -> <type>" for functions/inits (pass arrow=true).
+	verboseRetStr := func(arrow bool) string {
+		if retNode == nil || common.NodeKind(retNode.Kind) == common.KindEmptyList {
+			if arrow {
+				return " -> ()"
+			}
+			return ""
+		}
+		s := common.Print(retNode, opts)
+		if strings.HasPrefix(s, "<<") {
+			// Opaque/unknown type — omit rather than emit wrong text.
+			return ""
+		}
+		if arrow {
+			return " -> " + s
+		}
+		return " : " + s
+	}
+
+	// verboseParamStr builds "(label: type, ...)" using preserved paramTypes.
+	verboseParamStr := func(lbls []string) string {
+		if len(paramTypes) == 0 {
+			return "()"
+		}
+		var parts []string
+		for i, pt := range paramTypes {
+			lbl := ""
+			if i < len(lbls) {
+				lbl = lbls[i]
+			}
+			typeStr := common.Print(pt, opts)
+			if lbl != "" && lbl != "_" {
+				parts = append(parts, lbl+": "+typeStr)
+			} else {
+				parts = append(parts, typeStr)
+			}
+		}
+		return "(" + strings.Join(parts, ", ") + ")"
+	}
+
 	// Property accessor and descriptor terminals.
 	if !p.eof() && p.s[p.i] == 'v' && p.i+1 < len(p.s) {
 		switch p.s[p.i+1] {
@@ -5940,7 +5988,11 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 				p.i++
 			}
 			wrap := common.NewNode(common.KindTypeMangling)
-			wrap.Text = staticPfx + hostPath + "." + declName + accessor
+			if verbose {
+				wrap.Text = staticPfx + "(extension in Swift):Swift." + hostPath + "." + declName + accessor + verboseRetStr(false)
+			} else {
+				wrap.Text = staticPfx + hostPath + "." + declName + accessor
+			}
 			return wrap, true, nil
 		case 'p':
 			if p.i+3 < len(p.s) && p.s[p.i+2] == 'M' && p.s[p.i+3] == 'V' {
@@ -5952,7 +6004,11 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 					p.i++
 				}
 				wrap := common.NewNode(common.KindTypeMangling)
-				wrap.Text = "property descriptor for " + staticPfx + hostPath + "." + declName
+				if verbose {
+					wrap.Text = "property descriptor for " + staticPfx + "(extension in Swift):Swift." + hostPath + "." + declName + verboseRetStr(false)
+				} else {
+					wrap.Text = "property descriptor for " + staticPfx + hostPath + "." + declName
+				}
 				return wrap, true, nil
 			}
 			// Plain 'vp' (stored property).
@@ -5986,7 +6042,11 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 				labels = append([]string{declName}, labels...)
 			}
 			wrap := common.NewNode(common.KindTypeMangling)
-			wrap.Text = hostPath + ".init" + makeLabelStr(paramCount)
+			if verbose {
+				wrap.Text = "(extension in Swift):Swift." + hostPath + ".init" + verboseParamStr(labels) + verboseRetStr(true)
+			} else {
+				wrap.Text = hostPath + ".init" + makeLabelStr(paramCount)
+			}
 			return wrap, true, nil
 		}
 		if throwsInit {
@@ -6002,7 +6062,11 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 	p.i++
 
 	wrap := common.NewNode(common.KindTypeMangling)
-	wrap.Text = hostPath + "." + declName + makeLabelStr(paramCount)
+	if verbose {
+		wrap.Text = "(extension in Swift):Swift." + hostPath + "." + declName + verboseParamStr(labels) + verboseRetStr(true)
+	} else {
+		wrap.Text = hostPath + "." + declName + makeLabelStr(paramCount)
+	}
 	return wrap, true, nil
 }
 
