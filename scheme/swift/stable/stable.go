@@ -6668,23 +6668,85 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 	// inside it does not trigger the match.
 	scan := p.i
 	eFound := -1
-	for k := scan; k < len(p.s)-1 && k < scan+80; k++ {
-		if p.s[k] == '0' && !(k > scan && p.s[k-1] >= '1' && p.s[k-1] <= '9') {
-			// Word-sub mode: skip '0' and the following letter run.
-			k++
-			for k < len(p.s) && ((p.s[k] >= 'a' && p.s[k] <= 'z') || (p.s[k] >= 'A' && p.s[k] <= 'Z')) {
-				if p.s[k] >= 'A' && p.s[k] <= 'Z' {
-					break // uppercase letter terminates word-sub letters
-				}
+	for k := scan; k < len(p.s)-1 && k < scan+80; {
+		c := p.s[k]
+		// Skip length-prefixed identifiers (digit 1-9 starts).
+		// Prevents 'E' inside a payload like "EADDRINUSE" from matching as the
+		// extension marker when the preceding digits (e.g. "10E") are length-prefix.
+		if c >= '1' && c <= '9' {
+			lenStart := k
+			for k < len(p.s) && p.s[k] >= '0' && p.s[k] <= '9' {
 				k++
 			}
-			// outer k++ advances past the uppercase terminal (or harmlessly past a non-letter)
+			n := 0
+			for _, d := range []byte(p.s[lenStart:k]) {
+				n = n*10 + int(d-'0')
+			}
+			k += n
+			if k >= len(p.s) {
+				break
+			}
 			continue
 		}
-		if p.s[k] == 'E' && (p.s[k+1] >= '0' && p.s[k+1] <= '9' || p.s[k+1] == '_') {
+		// Skip substitution refs: A<letter> (2 bytes).
+		// Prevents "AE" type-refs from matching 'E' as an extension marker.
+		if c == 'A' && k+1 < len(p.s)-1 {
+			next := p.s[k+1]
+			if (next >= 'a' && next <= 'z') || (next >= 'A' && next <= 'Z') {
+				k += 2
+				continue
+			}
+		}
+		if c == '0' && !(k > scan && p.s[k-1] >= '1' && p.s[k-1] <= '9') {
+			// Word-sub mode start ('0'). Handle only the two patterns that cause
+			// false 'E' matches; leave everything else for the outer per-char loop.
+			//
+			// Pattern A – '0' directly followed by a digit (e.g. "09SchedulerE4Type_"):
+			//   The digit introduces a literal-chunk (<n><chars>). After the chunk
+			//   an uppercase letter is a word-sub reference, NOT an extension marker.
+			//   Skip '0', skip the literal chunk, skip one trailing word-sub-ref
+			//   letter (if present), then hand control back to the outer loop.
+			//
+			// Pattern B – '0' followed by lowercase letters (e.g. "0fooE"):
+			//   Skip the lowercase run and the one uppercase terminal letter.
+			//
+			// In all other cases (e.g. '0' followed by 'C' = word-sub ref with no
+			// prior literal chunk), just skip the '0' byte and let the outer loop
+			// walk the remaining chars individually — this preserves correct
+			// detection of extension markers that appear later in the sequence.
+			k++ // skip '0'
+			if k < len(p.s) && p.s[k] >= '1' && p.s[k] <= '9' {
+				// Pattern A: digit-prefixed literal chunk.
+				chunkStart := k
+				for k < len(p.s) && p.s[k] >= '0' && p.s[k] <= '9' {
+					k++
+				}
+				n := 0
+				for _, d := range []byte(p.s[chunkStart:k]) {
+					n = n*10 + int(d-'0')
+				}
+				k += n
+				// The char after the chunk (if uppercase) is a word-sub reference;
+				// skip it so the outer loop does not mistake it for an extension marker.
+				if k < len(p.s) && p.s[k] >= 'A' && p.s[k] <= 'Z' {
+					k++
+				}
+			} else if k < len(p.s) && p.s[k] >= 'a' && p.s[k] <= 'z' {
+				// Pattern B: lowercase letter run + one uppercase terminal.
+				for k < len(p.s) && p.s[k] >= 'a' && p.s[k] <= 'z' {
+					k++
+				}
+				if k < len(p.s) && p.s[k] >= 'A' && p.s[k] <= 'Z' {
+					k++
+				}
+			}
+			continue
+		}
+		if c == 'E' && (p.s[k+1] >= '0' && p.s[k+1] <= '9' || p.s[k+1] == '_') {
 			eFound = k
 			break
 		}
+		k++
 	}
 	if eFound < 0 {
 		restore()
