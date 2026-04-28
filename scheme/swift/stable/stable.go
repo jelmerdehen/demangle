@@ -316,6 +316,12 @@ type parser struct {
 	// greedily promoted to a function type (Swift.Int) -> A, consuming the
 	// subscript 'c' terminator in the process.
 	inSubscriptTypes bool
+	// inFunctionTypeSlot suppresses tryPostfixFunctionTypeWithParams while
+	// parsing the result or params slot inside parseFunctionType. Without
+	// this, a stdlib result type like 'Sb' followed by params '6OutputQzc'
+	// is greedily merged into a nested FunctionType(Bool,A.Output) that
+	// consumes the 'c' convention byte meant for the outer function type.
+	inFunctionTypeSlot bool
 }
 
 const maxParseDepth = 64
@@ -2217,6 +2223,12 @@ func (p *parser) tryPostfixFunctionTypeWithParams(node *demangle.Node) (*demangl
 	// consumed as function-type convention is actually the subscript
 	// terminator. Allowing it would greedily eat index types + 'c'.
 	if p.inSubscriptTypes {
+		return node, false
+	}
+	// Suppress inside parseFunctionType result/params slots — the
+	// convention byte 'c' belongs to the outer function type, not to
+	// a nested one synthesised from postfix expansion.
+	if p.inFunctionTypeSlot {
 		return node, false
 	}
 	// Only try when the current byte could start a type — conservative.
@@ -11104,6 +11116,12 @@ func (p *parser) parseFunctionType() (*demangle.Node, error) {
 		return nil, p.grammarErr("function-type y")
 	}
 	p.i++
+	// Suppress tryPostfixFunctionTypeWithParams while parsing result/params
+	// slots — the convention byte 'c' belongs to this function type, not to
+	// a nested one built from postfix expansion of the result type.
+	prevSlot := p.inFunctionTypeSlot
+	p.inFunctionTypeSlot = true
+	defer func() { p.inFunctionTypeSlot = prevSlot }()
 	// Result-type.
 	var r *demangle.Node
 	if !p.eof() && p.s[p.i] == 'y' {
@@ -11160,6 +11178,24 @@ func (p *parser) parseFunctionType() (*demangle.Node, error) {
 			a = t
 		}
 	}
+	// Optional function-type annotations between params and convention.
+	// 'K' = throws, 'Ya' = async; each may appear before the convention byte.
+	fnThrows := false
+	fnAsync := false
+	for !p.eof() {
+		switch p.s[p.i] {
+		case 'K':
+			fnThrows = true
+			p.i++
+			continue
+		}
+		if p.i+1 < len(p.s) && p.s[p.i] == 'Y' && p.s[p.i+1] == 'a' {
+			fnAsync = true
+			p.i += 2
+			continue
+		}
+		break
+	}
 	// Function-type marker: 'c' (escaping) or 'X' + convention letter.
 	conv := ""
 	if p.eof() {
@@ -11206,11 +11242,19 @@ func (p *parser) parseFunctionType() (*demangle.Node, error) {
 	// remangler can use it without re-parsing the display string.
 	ft := common.NewNode(common.KindFunctionType)
 	common.AddChildren(ft, r, a)
-	if conv != "" {
+	if conv != "" || fnThrows || fnAsync {
 		if ft.Attrs == nil {
 			ft.Attrs = make(map[string]string)
 		}
-		ft.Attrs["swift.conv"] = conv
+		if conv != "" {
+			ft.Attrs["swift.conv"] = conv
+		}
+		if fnThrows {
+			ft.Attrs["swift.throws"] = "true"
+		}
+		if fnAsync {
+			ft.Attrs["swift.async"] = "true"
+		}
 	}
 	typ := common.NewNode(common.KindType)
 	common.AddChildren(typ, ft)
