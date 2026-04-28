@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 82.45% (52567/63757) — 2026-04-28T21:41:25Z
+**Parity**: 82.45% (52569/63757) — 2026-04-28T22:04:09Z
 **Round-trip**: 63.63% (11468/18023) — 2026-04-28T21:40:59Z
-**Failures**: 10194 parse-errors + 996 mismatches
+**Failures**: 10194 parse-errors + 994 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,6 +29,7 @@
 
 ## Last 10 Commits
 
+- d499a8a swift-tight: Foundation ObjC-ext init + fluent-method self-type return — parity 82.42%→82.45%
 - 9a9981e swift-tight: constraint-scanner A<letter>+A<digit><letter> sub-ref skip — parity 82.19%→82.42%
 - d17c785 swift-tight: WC enum-case return type rescue in tryTypeFirstExtensionEntity — parity 82.18%→82.19%
 - 90b8e1c swift-tight: constraint-scanner So<N><name>C fix — parity 82.13%→82.18%
@@ -38,7 +39,6 @@
 - ecaca81 swift-tight: Qz dependent-member return type in tryPath label loop fix — parity 81.77%→81.85%
 - 85b8a2f swift-tight: nestedExtMarker skip pure sub-refs — parity 81.75%→81.77%
 - 02d61bb swift-tight: protocol witness table conformance module fix — parity 81.71%→81.75%
-- 7b6a4ad swift-tight: protocol witness table 'in' module attribution fix
 
 ## Suggested Next 3 Items
 

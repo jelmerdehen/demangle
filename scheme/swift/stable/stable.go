@@ -7072,31 +7072,71 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 	var foundationSameTypeSig string
 	var foundationSameTypeStr string
 	if modName == "Foundation" {
-		if rsIdx := bytes.Index(constraintBytes, []byte("Rsz")); rsIdx > 0 {
-			subP := &parser{
-				s:     string(constraintBytes[:rsIdx]),
-				subs:  *p.subs.Clone(),
-				words: append([]string(nil), p.words...),
+		// constraintRHSType parses the concrete RHS type from the bytes before
+		// a requirement marker (Rsz for same-type, Rb for conformance).
+		// Strategy 1: single-type parse + bound-generic postfix chain.
+		// Strategy 2: two-type parse — skip LHS sub-ref, parse RHS.
+		// Special case: remaining "yt" after LHS = empty tuple ().
+		constraintRHSType := func(buf []byte) string {
+			if len(buf) == 0 {
+				return ""
 			}
-			if typeNode, terr := subP.parseType(); terr == nil {
-				// Chain nested nominal levels (e.g. DateComponents.ISO8601FormatStyle).
+			mkSub := func() *parser {
+				return &parser{
+					s:     string(buf),
+					subs:  *p.subs.Clone(),
+					words: append([]string(nil), p.words...),
+				}
+			}
+			// Strategy 1: single-type parse + nominal chain + bound-generic.
+			subP := mkSub()
+			if tn, err := subP.parseType(); err == nil {
 				for !subP.eof() {
-					s0 := subP.i
-					ss0 := subP.subs
-					nested, nerr := subP.parseNominalWithModule(typeNode)
+					s0, ss0 := subP.i, subP.subs
+					nested, nerr := subP.parseNominalWithModule(tn)
 					if nerr != nil {
 						subP.i = s0
 						subP.subs = ss0
 						break
 					}
-					typeNode = nested
+					tn = nested
+					if bg, ok, _ := subP.tryBoundGeneric(tn); ok {
+						tn = bg
+						subP.subs.Push(tn)
+					}
+				}
+				if !subP.eof() {
+					if bg, ok, _ := subP.tryBoundGeneric(tn); ok {
+						tn = bg
+					}
 				}
 				if subP.i == len(subP.s) {
-					typeStr := common.Print(typeNode, common.DefaultPrintOptions())
-					if typeStr != "" && !strings.HasPrefix(typeStr, "<<") {
-						foundationSameTypeStr = typeStr
-						foundationSameTypeSig = "< where A == " + typeStr + ">"
+					s := common.Print(tn, common.DefaultPrintOptions())
+					if s != "" && !strings.HasPrefix(s, "<<") {
+						return s
 					}
+				}
+			}
+			// Strategy 2: "AA" + "yt" = A (generic param) == empty tuple ().
+			// Covers patterns like LockedState<A where A == ()>.
+			// Narrow to the "yt" ending only: skip LHS sub-ref, check that
+			// exactly "yt" remains (empty-tuple type encoding).
+			if len(buf) >= 4 && buf[len(buf)-2] == 'y' && buf[len(buf)-1] == 't' {
+				subP2 := mkSub()
+				if _, lerr := subP2.parseType(); lerr == nil && subP2.i == len(buf)-2 {
+					return "()"
+				}
+			}
+			return ""
+		}
+		if rsIdx := bytes.Index(constraintBytes, []byte("Rsz")); rsIdx > 0 {
+			if typeStr := constraintRHSType(constraintBytes[:rsIdx]); typeStr != "" {
+				foundationSameTypeStr = typeStr
+				// Protocols display "< where A == T>"; concrete types display "<A where A == T>".
+				if hostKind == 'P' {
+					foundationSameTypeSig = "< where A == " + typeStr + ">"
+				} else {
+					foundationSameTypeSig = "<A where A == " + typeStr + ">"
 				}
 			}
 		}
