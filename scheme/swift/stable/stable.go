@@ -6608,6 +6608,23 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 	}
 	p.i++
 
+	// WC enum-case rescue: result=void, single param=X.Type metatype, WC follows.
+	// The actual return type is X (the base type without ".Type").
+	if retNode == nil &&
+		len(paramTypes) == 1 &&
+		paramTypes[0] != nil &&
+		common.NodeKind(paramTypes[0].Kind) == common.KindType &&
+		len(paramTypes[0].Children) > 0 &&
+		common.NodeKind(paramTypes[0].Children[0].Kind) == common.KindBuiltinTypeName &&
+		strings.HasSuffix(paramTypes[0].Children[0].Text, ".Type") &&
+		p.i+1 < len(p.s) && p.s[p.i] == 'W' && p.s[p.i+1] == 'C' {
+		baseText := strings.TrimSuffix(paramTypes[0].Children[0].Text, ".Type")
+		tn := common.NewNode(common.KindBuiltinTypeName)
+		tn.Text = baseText
+		retNode = common.NewNode(common.KindType)
+		common.AddChildren(retNode, tn)
+	}
+
 	wrap := common.NewNode(common.KindTypeMangling)
 	genericPart := ""
 	if localGeneric {
