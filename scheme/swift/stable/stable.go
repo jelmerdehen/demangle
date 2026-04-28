@@ -6229,10 +6229,13 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 		}
 	}
 
-	// Skip local generic-sig (type R <kind> ... l).
+	// Local generic-sig (type R <kind> ... l). Track whether 'l' was consumed.
+	localGeneric := false
+	localGenericCount := 1
 	for !p.eof() {
 		c := p.s[p.i]
 		if c == 'l' {
+			localGeneric = true
 			p.i++
 			break
 		}
@@ -6242,6 +6245,11 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 				j++
 			}
 			if j < len(p.s) && p.s[j] == '_' {
+				num := 0
+				for k := p.i + 1; k < j; k++ {
+					num = num*10 + int(p.s[k]-'0')
+				}
+				localGenericCount = num + 2
 				p.i = j + 1
 				continue
 			}
@@ -6457,10 +6465,22 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 	p.i++
 
 	wrap := common.NewNode(common.KindTypeMangling)
+	genericPart := ""
+	if localGeneric {
+		if localGenericCount <= 1 {
+			genericPart = "<A>"
+		} else {
+			gnames := make([]string, localGenericCount)
+			for gi := range gnames {
+				gnames[gi] = string(rune('A' + gi))
+			}
+			genericPart = "<" + strings.Join(gnames, ", ") + ">"
+		}
+	}
 	if verbose {
 		wrap.Text = "(extension in Swift):Swift." + hostPath + "." + declName + verboseParamStr(labels) + verboseRetStr(true)
 	} else {
-		wrap.Text = hostPath + "." + declName + makeLabelStr(paramCount)
+		wrap.Text = hostPath + "." + declName + genericPart + makeLabelStr(paramCount)
 	}
 	return wrap, true, nil
 }
@@ -6893,9 +6913,12 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 	//   <stdlib-type> <ident> R p d__ → "A1.<ident>: <stdlib-type>"
 	//     (positive assoc-type conformance, e.g. A1.Iterator: Swift.Copyable)
 	var localConstraints []string
+	localGeneric := false
+	localGenericCount := 1
 	for !p.eof() {
 		c := p.s[p.i]
 		if c == 'l' {
+			localGeneric = true
 			p.i++
 			break
 		}
@@ -6906,6 +6929,11 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 				j++
 			}
 			if j < len(p.s) && p.s[j] == '_' {
+				num := 0
+				for k := p.i + 1; k < j; k++ {
+					num = num*10 + int(p.s[k]-'0')
+				}
+				localGenericCount = num + 2
 				p.i = j + 1
 				continue
 			}
@@ -7563,10 +7591,18 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 				labelOnlyStr = "(_:)"
 			}
 		}
-		// Generic type params: include if local constraints exist.
+		// Generic type params: include if function is generic (lF suffix) or has constraints.
 		genericPart := ""
-		if len(localConstraints) > 0 {
-			genericPart = "<A>"
+		if localGeneric || len(localConstraints) > 0 {
+			if localGenericCount <= 1 {
+				genericPart = "<A>"
+			} else {
+				gnames := make([]string, localGenericCount)
+				for gi := range gnames {
+					gnames[gi] = string(rune('A' + gi))
+				}
+				genericPart = "<" + strings.Join(gnames, ", ") + ">"
+			}
 		}
 		wrap := common.NewNode(common.KindTypeMangling)
 		wrap.Text = hostPath + nestedExtMarker + "." + declName + genericPart + labelOnlyStr
@@ -7616,8 +7652,16 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 			extMarker = "<>"
 		}
 		genericPart := ""
-		if len(localConstraints) > 0 {
-			genericPart = "<A>"
+		if localGeneric || len(localConstraints) > 0 {
+			if localGenericCount <= 1 {
+				genericPart = "<A>"
+			} else {
+				gnames := make([]string, localGenericCount)
+				for gi := range gnames {
+					gnames[gi] = string(rune('A' + gi))
+				}
+				genericPart = "<" + strings.Join(gnames, ", ") + ">"
+			}
 		}
 		smWrap := common.NewNode(common.KindTypeMangling)
 		smWrap.Text = hostName + extMarker + "." + declName + genericPart + labelOnlyStr
@@ -8191,7 +8235,9 @@ func funcEntityFullParams(args *demangle.Node, opts common.PrintOptions) string 
 		if c.Attrs != nil {
 			lbl = c.Attrs["swift.label"]
 		}
-		if lbl != "" && lbl != "_" {
+		if lbl == "_" {
+			b.WriteString("_: ")
+		} else if lbl != "" {
 			b.WriteString(lbl)
 			b.WriteString(": ")
 		}
