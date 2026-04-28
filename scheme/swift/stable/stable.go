@@ -6852,7 +6852,33 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 		}
 	}
 	// First pass: scan for <digits><chars> identifiers and push them.
+	// Skip So<N><name><kind> ObjC type refs in this pass; second pass handles them.
 	for ci := 0; ci < len(constraintBytes); {
+		// Skip So<N><name><kind> — inner digits are not a standalone length prefix.
+		// Still extract words from the name so word-sub indices stay correct.
+		if constraintBytes[ci] == 'S' && ci+1 < len(constraintBytes) && constraintBytes[ci+1] == 'o' {
+			j := ci + 2
+			lenStart := j
+			for j < len(constraintBytes) && constraintBytes[j] >= '0' && constraintBytes[j] <= '9' {
+				j++
+			}
+			if j > lenStart {
+				n := 0
+				for _, d := range constraintBytes[lenStart:j] {
+					n = n*10 + int(d-'0')
+				}
+				nameStart := j
+				j += n
+				if j <= len(constraintBytes) {
+					addWordsFromConstraintIdent(string(constraintBytes[nameStart:j]))
+				}
+				if j < len(constraintBytes) {
+					j++ // skip kind byte
+				}
+			}
+			ci = j
+			continue
+		}
 		if constraintBytes[ci] >= '0' && constraintBytes[ci] <= '9' {
 			// Parse decimal length prefix.
 			lenStart := ci
@@ -6884,7 +6910,7 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 			ci++
 		}
 	}
-	// Second pass: push A<letter> and S<letter> subs.
+	// Second pass: push A<letter>, S<letter>, and So<N><name><kind> subs.
 	for ci := 0; ci+1 < len(constraintBytes); ci++ {
 		switch constraintBytes[ci] {
 		case 'A':
@@ -6905,10 +6931,47 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 				ci++ // skip letter
 			}
 		case 'S':
-			letter := constraintBytes[ci+1]
-			if n, ok := common.BuildStdlibNominal(letter); ok {
-				p.subs.Push(n)
-				ci++ // skip the letter byte
+			if constraintBytes[ci+1] == 'o' {
+				// ObjC nominal: So<N><name><kind> → push Type(__C.Name)
+				j := ci + 2
+				lenStart := j
+				for j < len(constraintBytes) && constraintBytes[j] >= '0' && constraintBytes[j] <= '9' {
+					j++
+				}
+				if j > lenStart {
+					n := 0
+					for _, d := range constraintBytes[lenStart:j] {
+						n = n*10 + int(d-'0')
+					}
+					nameEnd := j + n
+					if nameEnd < len(constraintBytes) {
+						k := constraintBytes[nameEnd]
+						var nk common.NodeKind
+						switch k {
+						case 'C':
+							nk = common.KindClass
+						case 'V':
+							nk = common.KindStructure
+						case 'O':
+							nk = common.KindEnum
+						}
+						if nk != 0 {
+							name := string(constraintBytes[j:nameEnd])
+							nom := common.NewNode(nk)
+							common.AddChildren(nom, common.NewModule("__C"), common.NewIdentifier(name))
+							tn := common.NewNode(common.KindType)
+							common.AddChildren(tn, nom)
+							p.subs.Push(tn)
+							ci = nameEnd // ci++ in for-loop advances past kind byte
+						}
+					}
+				}
+			} else {
+				letter := constraintBytes[ci+1]
+				if n, ok := common.BuildStdlibNominal(letter); ok {
+					p.subs.Push(n)
+					ci++ // skip the letter byte
+				}
 			}
 		}
 	}
