@@ -925,8 +925,8 @@ func (p *parser) tryConformanceDescriptorMc(inner *demangle.Node) (*demangle.Nod
 		// Swift stdlib type conforming to system/core protocol: "in modName".
 		wrap.Text = termPrefix + sig + innerStr + " : " + modName + "." + protoName + " in " + modName
 	default:
-		// Foundation or other core-module type: "in typeMod" (conformance in type's module).
-		wrap.Text = termPrefix + sig + innerStr + " : " + modName + "." + protoName + " in " + typeMod
+		// Conformance is in the protocol's module (modName), not the conformer's module.
+		wrap.Text = termPrefix + sig + innerStr + " : " + modName + "." + protoName + " in " + modName
 	}
 	return wrap, true
 }
