@@ -1,0 +1,39 @@
+# Item: S<letter>Rz stdlib conformance constraint in extractConstraintSigFullOpts
+# Track: P (Printer parity)
+# Started: 2026-04-28T23:00Z
+# Committed: (pending)
+
+## Root Cause
+
+`extractConstraintSigFullOpts` handles ObjC class requirements (`So<N><name>CRbz`)
+and inverse requirements (`Ri`, `Rj`) in extension entity constraint bytes, but did NOT
+handle stdlib protocol conformance requirements of the form `S<letter>Rz` (e.g. `SHRzrl`
+= "A: Swift.Hashable").
+
+For `CodableConfiguration<A>` with constraint bytes `AASHRzrl`:
+- `SH` = Hashable, `Rz` = conformance on A, `rl` = end
+- `extractConstraintSigFullOpts` returned `"", ""` → no sig emitted
+- Output: `(extension in Foundation):Foundation.CodableConfiguration.hashValue : Swift.Int`
+- Want: `(extension in Foundation):Foundation.CodableConfiguration< where A: Swift.Hashable>.hashValue : Swift.Int`
+
+## Fix
+
+Added a scan loop in `extractConstraintSigFullOpts` (within the `includeObjCRequirements`
+block) that looks for `S<letter>R<subject>` patterns where:
+- `S<letter>` is a known stdlib protocol abbreviation (via `common.StdlibLookup`)
+- `R` immediately follows
+- Subject is `z` (= A, type param 0) or `_` (= B, type param 1)
+
+Collects unique constraints (deduplicates via seen map) and appends to `constraints`.
+
+## Symbols Fixed
+
+- `Foundation.CodableConfiguration< where A: Swift.Hashable>.hashValue : Swift.Int`
+- One additional Foundation extension property with Hashable constraint.
+
+## Delta
+
+Parity 82.59%→82.60% (+2 symbols, 52659→52661).
+Foundation: 12302→12304 (+2).
+Round-trip: 63.63% (unchanged).
+property descriptor: 40→39 (-1).

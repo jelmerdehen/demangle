@@ -8860,6 +8860,45 @@ func extractConstraintSigFullOpts(b []byte, includeObjCRequirements bool) (sig, 
 
 	var constraints []string
 
+	// Scan for S<letter>Rz/R_ stdlib protocol conformance requirements.
+	// Pattern: S<letter> R <subj>  where <letter> is a known stdlib protocol.
+	// E.g. SHRzrl = "A: Swift.Hashable".
+	if includeObjCRequirements {
+		seenStdlib := map[string]bool{}
+		for pos := 0; pos+3 <= len(s); pos++ {
+			if s[pos] != 'S' {
+				continue
+			}
+			letter := s[pos+1]
+			entry, eok := common.StdlibLookup(letter)
+			if !eok {
+				continue
+			}
+			if pos+2 >= len(s) || s[pos+2] != 'R' {
+				continue
+			}
+			j := pos + 3
+			if j >= len(s) {
+				continue
+			}
+			var paramName string
+			switch s[j] {
+			case 'z':
+				paramName = "A"
+			case '_':
+				paramName = "B"
+			}
+			if paramName == "" {
+				continue
+			}
+			key := paramName + ":" + entry.Name
+			if !seenStdlib[key] {
+				seenStdlib[key] = true
+				constraints = append(constraints, paramName+": Swift."+entry.Name)
+			}
+		}
+	}
+
 	// Scan for ObjC class requirements: So<N><Name>C followed by Rb or Rs.
 	// Rb = base class ("A: __C.Name"), Rs = same-type ("A == __C.Name").
 	// Only included for Foundation-module verbose output.
