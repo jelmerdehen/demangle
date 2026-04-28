@@ -6911,6 +6911,38 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 	// hasCondReq: constraint bytes contain "rl" — conditional-extension terminator.
 	// When true, simplified output uses "<>" instead of "<A>" for the host type.
 	hasCondReq := bytes.Contains(constraintBytes, []byte("rl"))
+	// extModName: for cross-module extensions, the actual extension module name.
+	// Nested type components (kind-byte V/C/O/P) precede the module name entry.
+	// Foundation cross-module extensions use verbose output like same-module Foundation.
+	var extModName string
+	if crossModule {
+		cb := string(constraintBytes)
+		for len(cb) > 0 && cb[0] >= '0' && cb[0] <= '9' {
+			i := 0
+			for i < len(cb) && cb[i] >= '0' && cb[i] <= '9' {
+				i++
+			}
+			n := 0
+			for k := 0; k < i; k++ {
+				n = n*10 + int(cb[k]-'0')
+			}
+			end := i + n
+			if end >= len(cb) {
+				if end == len(cb) {
+					extModName = cb[i : i+n]
+				}
+				break
+			}
+			kind := cb[end]
+			if kind == 'V' || kind == 'C' || kind == 'O' || kind == 'P' {
+				cb = cb[end+1:]
+				continue
+			}
+			extModName = cb[i : i+n]
+			break
+		}
+	}
+	isCrossFoundation := extModName == "Foundation"
 
 	// For cross-module extensions the constraint bytes may begin with nested
 	// nominal-type components (len+ident+V/C/O/P) before the extension-module
@@ -6996,12 +7028,16 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 			p.i += 2
 			opts := common.DefaultPrintOptions()
 			var text string
-			if crossModule {
+			if crossModule && !isCrossFoundation {
 				// Simplified: TypeName.propName.getter (no module, no type)
 				text = hostPath + nestedExtMarker + "." + declName + accessor
 			} else {
 				sig, sameTypeConstraint := extractConstraintSigFull(constraintBytes)
-				if sig == "" && modName != "Foundation" {
+				extInMod := modName
+				if isCrossFoundation {
+					extInMod = "Foundation"
+				}
+				if sig == "" && extInMod != "Foundation" {
 					// Same-module, no inverse/same-type constraints: strip module+type.
 					extMarker := ""
 					if hasCondReq {
@@ -7013,7 +7049,7 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 					}
 					text = hostName + extMarker + "." + declName + accessor
 				} else {
-					hostQualified := modName + "." + hostName
+					hostQualified := modName + "." + hostPath
 					if sameTypeConstraint != "" {
 						hostQualified += "<" + sameTypeConstraint + ">"
 					}
@@ -7025,7 +7061,7 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 					if retNode != nil && common.NodeKind(retNode.Kind) != common.KindEmptyList {
 						propTypeStr = " : " + common.Print(retNode, opts)
 					}
-					text = "(extension in " + modName + "):" + hostQualified + sig +
+					text = "(extension in " + extInMod + "):" + hostQualified + sig +
 						"." + declName + localSig + accessor + propTypeStr
 				}
 			}
@@ -7052,14 +7088,18 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 		if retNode != nil && common.NodeKind(retNode.Kind) != common.KindEmptyList {
 			propTypeStr = " : " + common.Print(retNode, opts)
 		}
+		extInModProp := modName
+		if isCrossFoundation {
+			extInModProp = "Foundation"
+		}
 		var text string
 		if isDescriptor {
-			if crossModule {
+			if crossModule && !isCrossFoundation {
 				// Simplified: no type annotation (matches Apple swift-demangle output).
 				text = "property descriptor for " + hostPath + nestedExtMarker + "." + declName
 			} else {
 				sig, sameTypeConstraint := extractConstraintSigFull(constraintBytes)
-				if sig == "" && modName != "Foundation" {
+				if sig == "" && extInModProp != "Foundation" {
 					extMarker := ""
 					if hasCondReq {
 						extMarker = "<>"
@@ -7070,7 +7110,7 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 					}
 					text = "property descriptor for " + hostName + extMarker + "." + declName
 				} else {
-					hostQualified := modName + "." + hostName
+					hostQualified := modName + "." + hostPath
 					if sameTypeConstraint != "" {
 						hostQualified += "<" + sameTypeConstraint + ">"
 					}
@@ -7078,18 +7118,18 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 					if len(localConstraints) > 0 {
 						localSig = "<A where " + strings.Join(localConstraints, ", ") + ">"
 					}
-					text = "property descriptor for (extension in " + modName + "):" +
+					text = "property descriptor for (extension in " + extInModProp + "):" +
 						hostQualified + sig + "." + declName + localSig + propTypeStr
 				}
 			}
 		} else {
 			// Stored property (vp): emit simplified or verbose.
-			if crossModule {
+			if crossModule && !isCrossFoundation {
 				// Drop propTypeStr: Apple shows no type annotation for cross-module stored properties.
 				text = hostPath + nestedExtMarker + "." + declName
 			} else {
 				sig, sameTypeConstraint := extractConstraintSigFull(constraintBytes)
-				if sig == "" && modName != "Foundation" {
+				if sig == "" && extInModProp != "Foundation" {
 					extMarker := ""
 					if hasCondReq {
 						extMarker = "<>"
@@ -7100,7 +7140,7 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 					}
 					text = hostName + extMarker + "." + declName
 				} else {
-					hostQualified := modName + "." + hostName
+					hostQualified := modName + "." + hostPath
 					if sameTypeConstraint != "" {
 						hostQualified += "<" + sameTypeConstraint + ">"
 					}
@@ -7108,7 +7148,7 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 					if len(localConstraints) > 0 {
 						localSig = "<A where " + strings.Join(localConstraints, ", ") + ">"
 					}
-					text = "(extension in " + modName + "):" + hostQualified + sig +
+					text = "(extension in " + extInModProp + "):" + hostQualified + sig +
 						"." + declName + localSig + propTypeStr
 				}
 			}
@@ -7150,12 +7190,16 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 			_ = throwsInit
 			_ = allocating
 			var text string
-			if crossModule {
+			extInModInit := modName
+			if isCrossFoundation {
+				extInModInit = "Foundation"
+			}
+			if crossModule && !isCrossFoundation {
 				text = hostPath + nestedExtMarker + ".init" + labelStr
 			} else {
 				opts := common.DefaultPrintOptions()
 				sig, sameTypeConstraint := extractConstraintSigFull(constraintBytes)
-				if sig == "" && modName != "Foundation" {
+				if sig == "" && extInModInit != "Foundation" {
 					extMarker := ""
 					if hasCondReq {
 						extMarker = "<>"
@@ -7166,7 +7210,7 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 					}
 					text = hostName + extMarker + ".init" + labelStr
 				} else {
-					hostQualified := modName + "." + hostName
+					hostQualified := modName + "." + hostPath
 					if sameTypeConstraint != "" {
 						hostQualified += "<" + sameTypeConstraint + ">"
 					}
@@ -7178,34 +7222,41 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 					if retNode != nil && common.NodeKind(retNode.Kind) != common.KindEmptyList {
 						retStr = " -> " + common.Print(retNode, opts)
 					}
-					// Build verbose params for same-module
-					var paramsStr string
+					// printWithConv prints a type node, prepending any swift.conv prefix.
+					printWithConv := func(n *demangle.Node) string {
+						if n != nil && n.Attrs != nil {
+							if conv := n.Attrs["swift.conv"]; conv != "" && len(n.Children) > 0 {
+								return conv + common.Print(n.Children[0], opts)
+							}
+						}
+						return common.Print(n, opts)
+					}
+					// For inits, declName is the first param label; combine with labels.
+					initLabels := append([]string{declName}, labels...)
+					var initParamsStr string
 					switch {
 					case paramsNode == nil || common.NodeKind(paramsNode.Kind) == common.KindEmptyList:
-						paramsStr = "()"
+						initParamsStr = "()"
 					case common.NodeKind(paramsNode.Kind) == common.KindTypeList:
-						opts2 := common.DefaultPrintOptions()
 						var parts []string
 						for idx, c := range paramsNode.Children {
-							s := common.Print(c, opts2)
-							if idx < len(labels) && labels[idx] != "" {
-								parts = append(parts, labels[idx]+": "+s)
+							s := printWithConv(c)
+							if idx < len(initLabels) && initLabels[idx] != "" && initLabels[idx] != "_" {
+								parts = append(parts, initLabels[idx]+": "+s)
 							} else {
 								parts = append(parts, s)
 							}
 						}
-						paramsStr = "(" + strings.Join(parts, ", ") + ")"
+						initParamsStr = "(" + strings.Join(parts, ", ") + ")"
 					default:
-						opts2 := common.DefaultPrintOptions()
-						s := common.Print(paramsNode, opts2)
-						if len(labels) > 0 && labels[0] != "" {
-							s = labels[0] + ": " + s
+						s := printWithConv(paramsNode)
+						if len(initLabels) > 0 && initLabels[0] != "" && initLabels[0] != "_" {
+							s = initLabels[0] + ": " + s
 						}
-						paramsStr = "(" + s + ")"
+						initParamsStr = "(" + s + ")"
 					}
-					_ = paramsStr
-					text = "(extension in " + modName + "):" + hostQualified + sig +
-						"." + declName + localSig + labelStr + retStr
+					text = "(extension in " + extInModInit + "):" + hostQualified + sig +
+						".init" + localSig + initParamsStr + retStr
 				}
 			}
 			wrap := common.NewNode(common.KindTypeMangling)
@@ -7229,7 +7280,11 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 	// Render.
 	opts := common.DefaultPrintOptions()
 	sig, sameTypeConstraint := extractConstraintSigFull(constraintBytes)
-	hostQualified := modName + "." + hostName
+	extInModF := modName
+	if isCrossFoundation {
+		extInModF = "Foundation"
+	}
+	hostQualified := modName + "." + hostPath
 	if sameTypeConstraint != "" {
 		hostQualified += "<" + sameTypeConstraint + ">"
 	}
@@ -7269,10 +7324,9 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 	if retNode != nil && common.NodeKind(retNode.Kind) != common.KindEmptyList {
 		retStr = common.Print(retNode, opts)
 	}
-	// Emit simplified format for cross-module extensions (digit-start constraints).
-	// Same-module with no inverse/same-type constraints: simplified (no module, no types).
-	// Same-module with sig != "": verbose "(extension in M):" format.
-	if crossModule {
+	// Emit simplified format for non-Foundation cross-module extensions.
+	// Foundation (cross or same) and same-module with sig: verbose "(extension in M):" format.
+	if crossModule && !isCrossFoundation {
 		var labelOnlyStr string
 		switch {
 		case paramsNode == nil || common.NodeKind(paramsNode.Kind) == common.KindEmptyList:
@@ -7315,9 +7369,8 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 		common.AddChildren(wrap, funcIdent, paramsNode, retNode)
 		return wrap, true, nil
 	}
-	// Same-module: simplify when sig == "" (no inverse/same-type constraints).
-	// Foundation module always uses verbose format to match Apple's output.
-	if !crossModule && sig == "" && modName != "Foundation" {
+	// Same-module (or cross-Foundation): simplify when sig == "" and not Foundation.
+	if sig == "" && extInModF != "Foundation" {
 		var labelOnlyStr string
 		switch {
 		case paramsNode == nil || common.NodeKind(paramsNode.Kind) == common.KindEmptyList:
@@ -7368,7 +7421,7 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 		return smWrap, true, nil
 	}
 	wrap := common.NewNode(common.KindTypeMangling)
-	wrap.Text = "(extension in " + modName + "):" + hostQualified + sig +
+	wrap.Text = "(extension in " + extInModF + "):" + hostQualified + sig +
 		"." + declName + localSig + paramsStr + " -> " + retStr
 	// Store raw mangled prefix so the remangler can round-trip without
 	// having to re-derive the length-prefixed identifiers + constraint bytes.
