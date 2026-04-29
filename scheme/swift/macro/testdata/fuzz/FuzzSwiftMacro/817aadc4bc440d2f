@@ -1,0 +1,2 @@
+go test fuzz v1
+string("@__swiftmacro_r0010000000000000_r")
