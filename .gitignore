@@ -13,3 +13,8 @@ coverage.txt
 /demangle
 /demanglegrpc
 /demanglegrpc_trimpath
+/.snapshot-cache
+/snapshot-pass-set
+/check-baselines
+/mangling-coverage
+/breaks-status

@@ -1,0 +1,1 @@
+# bootstrap snapshot — first run; subsequent runs enforce non-regression

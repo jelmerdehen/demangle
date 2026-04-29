@@ -69,6 +69,37 @@ See `docs/writing-a-scheme.md` (Stage 0.5). Checklist:
   interface unless a live caller needs it.
 - `go test -fuzz=.` per native adapter.
 
+## Regression discipline (per-symbol non-regression + escape hatch)
+
+Three layers protect against silent regression:
+
+1. **Per-symbol pass-set**: `passing-parity.txt` + `passing-roundtrip.txt`
+   are committed high-water marks (union-only). `make snapshot-check`
+   fails if any previously-passing symbol no longer passes.
+2. **Aggregate ratchet**: `testdata/baselines.json` records absolute
+   counts (not percentages — corpus growth would silently drop them).
+   `make ratchet` fails on any count drop.
+3. **`BREAK_OK` escape**: foundational refactors that must regress
+   temporarily set `BREAK_OK="reason" RESTORE_BY="2026-05-13"` env.
+   Logged to `breaks.log`; CI tracks deadline.
+
+Smoke gate split:
+- `make smoke` (full): CI on every PR. <30 s. Repopulates
+  `.snapshot-cache`.
+- `make smoke-fast` (pre-commit): cache hit <2 s; falls through to
+  `make smoke` if stale.
+
+Snapshot generator (`cmd/snapshot-pass-set`) is **deterministic by
+construction** — runs the corpus twice in one invocation; exits
+non-zero if pass-sets differ. Catches map-iteration / address-hash
+flap before locking it into the snapshot.
+
+Full operator's guide: `docs/regression-discipline.md`.
+
+Mangling.rst coverage tracker (v1 grep heuristic): `make coverage` →
+`docs/mangling-coverage.md`. v2 will replace with parser-instrumented
+dispatch logging.
+
 ## Licence
 
 Apache 2.0 primary, MIT secondary. Every source file has an SPDX
