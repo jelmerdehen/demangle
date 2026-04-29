@@ -84,6 +84,10 @@ func TestCategoryFixtures(t *testing.T) {
 		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".txt") {
 			continue
 		}
+		// Skip snapshot files written by category bootstrapping.
+		if strings.HasPrefix(entry.Name(), "passing-") {
+			continue
+		}
 		catName := strings.TrimSuffix(entry.Name(), ".txt")
 		pass, fail := runCategoryFile(t, ctx, cat, entry.Name(), catName)
 		totalPass += pass
