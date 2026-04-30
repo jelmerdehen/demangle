@@ -18,3 +18,4 @@ coverage.txt
 /check-baselines
 /mangling-coverage
 /breaks-status
+scheme/swift/stable/testdata/production/production-divergences.txt
