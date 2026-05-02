@@ -385,9 +385,13 @@ func (p *parser) parseIdentChain() ([]string, error) {
 			p.i++
 		}
 		// Multi-digit length (D allows multi-digit prefixes).
+		// Guard against int overflow on pathological digit sequences.
 		length := 0
 		for _, d := range p.s[start:p.i] {
 			length = length*10 + int(d-'0')
+			if length > len(p.s) {
+				return nil, demangle.GrammarViolation("dlang", p.origin, start, "identifier length within bounds")
+			}
 		}
 		if length <= 0 {
 			return nil, demangle.GrammarViolation("dlang", p.origin, p.i, "positive identifier length")

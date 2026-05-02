@@ -58,6 +58,25 @@ func TestDLangNarrow(t *testing.T) {
 	}
 }
 
+// TestDLangIdentOverflow verifies that a pathological digit sequence that
+// would overflow int in the length accumulator returns an error, not a panic.
+// Regression for fuzz seed c27a0b609c89b59b.
+func TestDLangIdentOverflow(t *testing.T) {
+	t.Parallel()
+	cat := newCatalog(t)
+	overflows := []string{
+		"_D119999999999999999999999999999999999999999999999999999999999970",
+		"_D199999999999999999999999999999999999999",
+		"_D1" + strings.Repeat("9", 60) + "0",
+	}
+	for _, in := range overflows {
+		_, err := cat.Demangle(context.Background(), in, nil)
+		if err == nil {
+			t.Errorf("input %q: expected error, got nil", in)
+		}
+	}
+}
+
 func FuzzDLang(f *testing.F) {
 	// Seed from the full fixture corpus so the fuzzer starts from known-good
 	// real-world shapes rather than a handful of hand-picked strings.
