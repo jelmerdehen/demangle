@@ -9166,6 +9166,89 @@ func extractConstraintSigFullOpts(b []byte, includeObjCRequirements bool) (sig, 
 		pos = j + 1
 	}
 
+	// Scan for 's<len><Proto><len><Assoc>[S<letter>]Rp<subj>' — assoc-type
+	// conformance with a Swift-stdlib constraining protocol. Encodes
+	// "<subj-param>.[ParentProto.]AssocName: Swift.ConstrainingProto".
+	// Only handles the self-contained form where the constraining proto is
+	// a Swift-module length-prefixed ident ('s' prefix) and the optional
+	// parent-proto disambiguation is an 'S<letter>' stdlib shorthand.
+	{
+		seenRp := map[string]bool{}
+		for pos := 0; pos+1 < len(s); pos++ {
+			if s[pos] != 's' || !(s[pos+1] >= '1' && s[pos+1] <= '9') {
+				continue
+			}
+			j := pos + 1
+			// Parse constraining-proto length + name.
+			lenStart := j
+			for j < len(s) && s[j] >= '0' && s[j] <= '9' {
+				j++
+			}
+			plen := 0
+			for k := lenStart; k < j; k++ {
+				plen = plen*10 + int(s[k]-'0')
+			}
+			if j+plen > len(s) {
+				continue
+			}
+			protoName := s[j : j+plen]
+			j += plen
+			// Parse assoc-type name length + name.
+			if j >= len(s) || !(s[j] >= '1' && s[j] <= '9') {
+				continue
+			}
+			aLenStart := j
+			for j < len(s) && s[j] >= '0' && s[j] <= '9' {
+				j++
+			}
+			alen := 0
+			for k := aLenStart; k < j; k++ {
+				alen = alen*10 + int(s[k]-'0')
+			}
+			if j+alen > len(s) {
+				continue
+			}
+			assocName := s[j : j+alen]
+			j += alen
+			// Optional parent-proto disambiguation: S<letter> stdlib shorthand.
+			parentProtoName := ""
+			if j+1 < len(s) && s[j] == 'S' {
+				if entry, eok := common.StdlibLookup(s[j+1]); eok {
+					parentProtoName = "Swift." + entry.Name
+					j += 2
+				}
+			}
+			// Must be followed by Rp.
+			if j+1 >= len(s) || s[j] != 'R' || s[j+1] != 'p' {
+				continue
+			}
+			j += 2
+			if j >= len(s) {
+				continue
+			}
+			var paramName string
+			switch s[j] {
+			case 'z':
+				paramName = "A"
+			case '_':
+				paramName = "B"
+			}
+			if paramName == "" {
+				continue
+			}
+			assocPath := paramName
+			if parentProtoName != "" {
+				assocPath += "." + parentProtoName
+			}
+			assocPath += "." + assocName
+			key := assocPath + ": Swift." + protoName
+			if !seenRp[key] {
+				seenRp[key] = true
+				constraints = append(constraints, assocPath+": Swift."+protoName)
+			}
+		}
+	}
+
 	if len(constraints) == 0 {
 		return "", ""
 	}

@@ -13,3 +13,5 @@ _$s10Foundation10POSIXErrorV15ENOTRECOVERABLE6Darwin0B4CodeOvpZMV ---> property 
 _$s10Foundation10POSIXErrorV5E2BIG6Darwin0B4CodeOvpZMV ---> property descriptor for static Foundation.POSIXError.E2BIG : Darwin.POSIXErrorCode
 _$s10Foundation10POSIXErrorV5EPIPE6Darwin0B4CodeOvpZMV ---> property descriptor for static Foundation.POSIXError.EPIPE : Darwin.POSIXErrorCode
 _$s10Foundation10POSIXErrorV5ETIME6Darwin0B4CodeOvpZMV ---> property descriptor for static Foundation.POSIXError.ETIME : Darwin.POSIXErrorCode
+# PA-2: Rp assoc-type conformance constraint in extension sig.
+_$s10Foundation13CustomNSErrorPAASYRzs17FixedWidthInteger8RawValueSYRpzrlE9errorCodeSivpMV ---> property descriptor for (extension in Foundation):Foundation.CustomNSError< where A: Swift.RawRepresentable, A.Swift.RawRepresentable.RawValue: Swift.FixedWidthInteger>.errorCode : Swift.Int
