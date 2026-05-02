@@ -14284,12 +14284,14 @@ func (p *parser) tryDependentMemberType() (*demangle.Node, bool) {
 	if p.eof() || !(p.s[p.i] >= '0' && p.s[p.i] <= '9') {
 		return nil, false
 	}
-	// Scan forward looking for 'Q' ('z' | 'y') within a small window.
+	// Scan forward looking for 'Q' ('z' | 'y' | 'Y') within a small window.
 	// Cheap reject before committing to a full parse.
+	// 'Y' (uppercase) appears in Swift 5.9+ chained dependent member types
+	// (e.g. SchedulerTimeType_StrideQY_) and is semantically equivalent to 'y'.
 	found := false
 	for k := p.i + 1; k < len(p.s) && k-p.i < 80; k++ {
 		if p.s[k] == 'Q' && k+1 < len(p.s) &&
-			(p.s[k+1] == 'z' || p.s[k+1] == 'y') {
+			(p.s[k+1] == 'z' || p.s[k+1] == 'y' || p.s[k+1] == 'Y') {
 			found = true
 			break
 		}
@@ -14304,12 +14306,26 @@ func (p *parser) tryDependentMemberType() (*demangle.Node, bool) {
 	}
 	// Push ident to subs (mirror normal ident handling).
 	p.subs.Push(common.NewIdentifier(assocName))
-	// Direct form: <assocName> 'Q' ('z' | 'y' digits? '_')
-	// No intervening proto-path type — 'Qz' alone encodes A.<assocName>,
-	// 'Qy_' encodes B.<assocName>, etc. Apple emits this when the
-	// associated type is accessed directly on a generic parameter.
+	// Chained form: <assocName> '_' <assocName2> ... 'Q' paramRef
+	// Swift encodes multi-hop dependent member types as a '_'-separated chain:
+	// e.g. SchedulerTimeType_StrideQY_ = B.SchedulerTimeType.Stride
+	chainParts := []string{assocName}
+	for !p.eof() && p.s[p.i] == '_' && p.i+1 < len(p.s) &&
+		p.s[p.i+1] >= '0' && p.s[p.i+1] <= '9' {
+		p.i++ // consume '_'
+		nextName, nextErr := p.parseIdentifier()
+		if nextErr != nil {
+			revert()
+			return nil, false
+		}
+		p.subs.Push(common.NewIdentifier(nextName))
+		chainParts = append(chainParts, nextName)
+	}
+	// Direct form: <assocName(s)> 'Q' ('z' | 'y' | 'Y') digits? '_'
+	// No intervening proto-path type — 'Qz' encodes A.<chain>,
+	// 'Qy_'/'QY_' encodes B.<chain>, etc.
 	if !p.eof() && p.s[p.i] == 'Q' && p.i+1 < len(p.s) &&
-		(p.s[p.i+1] == 'z' || p.s[p.i+1] == 'y') {
+		(p.s[p.i+1] == 'z' || p.s[p.i+1] == 'y' || p.s[p.i+1] == 'Y') {
 		p.i++ // consume 'Q'
 		kind := p.s[p.i]
 		p.i++
@@ -14317,7 +14333,7 @@ func (p *parser) tryDependentMemberType() (*demangle.Node, bool) {
 		switch kind {
 		case 'z':
 			paramName = "A"
-		case 'y':
+		case 'y', 'Y':
 			start := p.i
 			for !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
 				p.i++
@@ -14338,7 +14354,7 @@ func (p *parser) tryDependentMemberType() (*demangle.Node, bool) {
 		}
 		wrap := common.NewNode(common.KindType)
 		tn := common.NewNode(common.KindBuiltinTypeName)
-		tn.Text = paramName + "." + assocName
+		tn.Text = paramName + "." + strings.Join(chainParts, ".")
 		common.AddChildren(wrap, tn)
 		return wrap, true
 	}
@@ -14373,7 +14389,7 @@ func (p *parser) tryDependentMemberType() (*demangle.Node, bool) {
 	switch kind {
 	case 'z':
 		paramName = "A"
-	case 'y':
+	case 'y', 'Y':
 		start := p.i
 		for !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
 			p.i++
@@ -14390,7 +14406,7 @@ func (p *parser) tryDependentMemberType() (*demangle.Node, bool) {
 			n++ // Apple: Qy<digit>_ = idx N+1
 		}
 		p.i++ // '_'
-		// y_ without digit → idx 1 (B). With digit N → idx N+1.
+		// y_/Y_ without digit → idx 1 (B). With digit N → idx N+1.
 		paramName = string(rune('B' + byte(n)))
 	default:
 		revert()
