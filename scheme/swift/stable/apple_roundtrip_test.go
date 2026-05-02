@@ -89,6 +89,13 @@ func TestAppleCorpusRoundTrip(t *testing.T) {
 			continue
 		}
 
+		// Text-only globals (isTextOnlyGlobal path) return Tree=nil by design;
+		// they cannot be round-tripped, so count as rt-unsupported.
+		if result.Tree == nil {
+			rtUnsupport++
+			continue
+		}
+
 		// Attempt remangle; skip if remangler doesn't support the tree yet.
 		remangled, rmErr := stable.Remangle(ctx, result.Tree, demangle.Options{})
 		if rmErr != nil {
