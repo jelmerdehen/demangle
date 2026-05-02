@@ -203,9 +203,10 @@ func TestRemangleUnsupported(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
 
-	// KindBuiltinTypeName is not yet implemented in the remangler.
+	// Use a name that is deliberately absent from builtinTypeTokens and does
+	// not match any Builtin.Int* / Builtin.FPIEEE* prefix pattern.
 	unsupportedNode := common.NewNode(common.KindBuiltinTypeName)
-	unsupportedNode.Text = "Builtin.Word"
+	unsupportedNode.Text = "Builtin.NoSuchThing"
 
 	_, err := stable.Remangle(ctx, unsupportedNode, demangle.Options{})
 	if err == nil {
