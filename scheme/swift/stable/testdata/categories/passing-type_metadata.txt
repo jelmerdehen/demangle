@@ -1,4 +1,4 @@
-# snapshot-pass-set update 2026-05-02T09:45:57Z — union with previous (high-water)
+# snapshot-pass-set update 2026-05-02T10:07:08Z — union with previous (high-water)
 $sBAD
 $sBBD
 $sBoD
@@ -7,3 +7,4 @@ $sBwD
 _$s10Foundation4DateV19RelativeFormatStyleV05UnitsE0VN
 _$s7SwiftUI19MultimodalListStyleV04IconE0ON
 _$s7SwiftUI20TabViewCustomizationV07SectionE0VN
+_$s8Dispatch0A4DataV10FoundationE6RegionVN

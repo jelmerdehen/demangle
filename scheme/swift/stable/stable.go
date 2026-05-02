@@ -1259,9 +1259,13 @@ func (p *parser) tryAAConformanceSuffix(inner *demangle.Node) (*demangle.Node, b
 	if c != 'A' && c != 's' {
 		return inner, false
 	}
-	// Require at least AA or s followed by a digit.
+	// Require at least A<letter> or s followed by a digit.
 	if c == 'A' {
-		if p.i+2 >= len(p.s) || p.s[p.i+1] != 'A' {
+		if p.i+2 >= len(p.s) {
+			return inner, false
+		}
+		next := p.s[p.i+1]
+		if !((next >= 'A' && next <= 'Z') || (next >= 'a' && next <= 'z')) {
 			return inner, false
 		}
 	} else { // 's'
@@ -1274,9 +1278,9 @@ func (p *parser) tryAAConformanceSuffix(inner *demangle.Node) (*demangle.Node, b
 	saveWords := p.words
 	revert := func() { p.i = save; p.subs = saveSubs; p.words = saveWords }
 
-	// Consume proto-module.
+	// Consume proto-module (A<letter> or s).
 	if c == 'A' {
-		p.i += 2 // consume AA
+		p.i += 2 // consume A + letter
 	} else {
 		p.i++ // consume s
 	}
@@ -6188,6 +6192,57 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 		// With zero pushes, subs[0] = Module(extension_module) after the
 		// extension-module push at line 6020, matching Apple's substitution table.
 
+	case !p.eof() && p.s[p.i] >= '1' && p.s[p.i] <= '9':
+		// User-defined module host type: <module-ident> <type-ident> <kind>
+		// Handles extension-in-module nested types on non-stdlib/non-ObjC types,
+		// e.g. (extension in Foundation):Dispatch.DispatchData.Region.
+		// Pushes 3 subs (Module + Identifier + Type) so that A<D+>-style back-refs
+		// inside the suffix (e.g. AD = subs[3] = Module(ext-module)) align correctly.
+		userModName, merr := p.parseIdentifier()
+		if merr != nil {
+			restore()
+			return nil, false, nil
+		}
+		if p.eof() || !(p.s[p.i] >= '0' && p.s[p.i] <= '9') {
+			restore()
+			return nil, false, nil
+		}
+		userTypeName, terr := p.parseIdentifier()
+		if terr != nil {
+			restore()
+			return nil, false, nil
+		}
+		if p.eof() {
+			restore()
+			return nil, false, nil
+		}
+		hostKindByte := p.s[p.i]
+		if hostKindByte != 'V' && hostKindByte != 'C' && hostKindByte != 'O' && hostKindByte != 'P' {
+			restore()
+			return nil, false, nil
+		}
+		p.i++
+		hostPath = userTypeName
+		extHostMod = userModName
+		var hkindUser common.NodeKind
+		switch hostKindByte {
+		case 'V':
+			hkindUser = common.KindStructure
+		case 'C':
+			hkindUser = common.KindClass
+		case 'O':
+			hkindUser = common.KindEnum
+		case 'P':
+			hkindUser = common.KindProtocol
+		}
+		p.subs.Push(common.NewModule(userModName))
+		p.subs.Push(common.NewIdentifier(userTypeName))
+		hUserNom := common.NewNode(hkindUser)
+		common.AddChildren(hUserNom, common.NewModule(userModName), common.NewIdentifier(userTypeName))
+		hUserType := common.NewNode(common.KindType)
+		common.AddChildren(hUserType, hUserNom)
+		p.subs.Push(hUserType)
+
 	default:
 		return nil, false, nil
 	}
@@ -6323,6 +6378,14 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 		if wrapped, ok := p.tryConformanceDescriptorMc(inner); ok {
 			return wrapped, true, nil
 		}
+	}
+
+	// User-module host types only support descriptor/conformance terminals above.
+	// Method entities (F-terminated) use tryExtensionEntity; bail here so we don't
+	// shadow that path with incorrect output.
+	if extHostMod != "" && extHostMod != "Swift" && extHostMod != "__C" {
+		restore()
+		return nil, false, nil
 	}
 
 	// Skip label-parsing when the remaining input ends with a property accessor
