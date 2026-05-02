@@ -162,6 +162,35 @@ func TestCategoryInitConstraint(t *testing.T) {
 	runSingleCategory(t, "init_constraint.txt")
 }
 
+// TestProtocolConformanceDescriptorFixtureStrictGate verifies the PB-3 fix:
+// sADRzrlMc conditional-conformance symbols must all produce the correct
+// "< where A: Swift.Protocol>" prefix.
+func TestProtocolConformanceDescriptorFixtureStrictGate(t *testing.T) {
+	cat := demangle.NewCatalog()
+	cat.Register(stable.Scheme{})
+	ctx := context.Background()
+	cases := []struct{ sym, want string }{
+		{
+			"_$ss18ReversedCollectionVyxGs20LazySequenceProtocolssADRzrlMc",
+			"protocol conformance descriptor for < where A: Swift.LazySequenceProtocol> Swift.ReversedCollection<A> : Swift.LazySequenceProtocol in Swift",
+		},
+		{
+			"_$ss5SliceVyxGs20LazySequenceProtocolssADRzrlMc",
+			"protocol conformance descriptor for < where A: Swift.LazySequenceProtocol> Swift.Slice<A> : Swift.LazySequenceProtocol in Swift",
+		},
+	}
+	for _, tc := range cases {
+		r, err := cat.Demangle(ctx, tc.sym, nil)
+		if err != nil {
+			t.Errorf("Demangle(%q) error: %v", tc.sym, err)
+			continue
+		}
+		if r.Output != tc.want {
+			t.Errorf("Demangle(%q)\n  got:  %q\n  want: %q", tc.sym, r.Output, tc.want)
+		}
+	}
+}
+
 func runSingleCategory(t *testing.T, filename string) {
 	t.Helper()
 	cat := demangle.NewCatalog()

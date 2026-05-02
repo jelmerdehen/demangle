@@ -1427,6 +1427,14 @@ func (p *parser) tryAAConformanceSuffix(inner *demangle.Node) (*demangle.Node, b
 			for k := p.i; k+3 < len(p.s); k++ {
 				if p.s[k] == 'r' && p.s[k+1] == 'l' &&
 					((p.s[k+2] == 'M' && p.s[k+3] == 'c') || (p.s[k+2] == 'W' && p.s[k+3] == 'P')) {
+					// When the bytes before rl contain Rz, param A conforms to
+					// the same protocol already parsed (sADRz = substitution back-ref
+					// to the protocol + conformance requirement on A).
+					window := p.s[reqSave2:k]
+					if strings.Contains(window, "Rz") {
+						parsedAAReqs = []aaReq{{protoName: protoName, subjectIdx: 0}}
+						aaReqParseOK = true
+					}
 					p.i = k + 2
 					found = true
 					foundCondReq = true

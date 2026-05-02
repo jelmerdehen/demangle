@@ -12,3 +12,6 @@ _$s10Foundation16AttributedStringV4RunsV16AttributesSlice2Vy__xq_GSTAAMc ---> pr
 _$s10Foundation16AttributedStringV4RunsV16AttributesSlice2Vy__xq_GSlAAMc ---> protocol conformance descriptor for Foundation.AttributedString.Runs.AttributesSlice2<A, B> : Swift.Collection in Foundation
 _$s10Foundation16AttributedStringV4RunsV16AttributesSlice3V8IteratorVy__xq_q0__GStAAMc ---> protocol conformance descriptor for Foundation.AttributedString.Runs.AttributesSlice3<A, B, C>.Iterator : Swift.IteratorProtocol in Foundation
 _$s10Foundation16AttributedStringV4RunsV16AttributesSlice3Vy__xq_q0_GSKAAMc ---> protocol conformance descriptor for Foundation.AttributedString.Runs.AttributesSlice3<A, B, C> : Swift.BidirectionalCollection in Foundation
+# PB-3: sADRzrlMc conditional-conformance pattern (self-referential Rz).
+_$ss18ReversedCollectionVyxGs20LazySequenceProtocolssADRzrlMc ---> protocol conformance descriptor for < where A: Swift.LazySequenceProtocol> Swift.ReversedCollection<A> : Swift.LazySequenceProtocol in Swift
+_$ss5SliceVyxGs20LazySequenceProtocolssADRzrlMc ---> protocol conformance descriptor for < where A: Swift.LazySequenceProtocol> Swift.Slice<A> : Swift.LazySequenceProtocol in Swift
