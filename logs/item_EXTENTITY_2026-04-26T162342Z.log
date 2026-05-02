@@ -1,0 +1,57 @@
+# P5: extension-entity same-module simplification
+# Date: 2026-04-26
+# Baseline (P4): 21.21% (13526/63757)
+# Result (P5):   32.55% (20754/63757)
+# Gain:          +7228 symbols (+11.34%)
+
+## Changes
+
+### stable.go
+- tryExtensionEntity: 4 same-module simplification paths
+  - Change 1 (accessor vg/vs/vM/vw/vW): sig=="" → hostName+extMarker+"."+declName+accessor
+  - Change 2 (vpMV descriptor + vp stored): sig=="" → simplified, no type annotation
+  - Change 3 (init fC/fc): sig=="" → hostName+extMarker+".init"+labelStr
+  - Change 4 (F entity): sig=="" → new same-module block with label-only format
+  - extMarker logic: Rz→"<A>", len(constraintBytes)>2→"<>", else ""
+  - sig!="" (inverse/same-type constraints) → verbose preserved (corpus symbols)
+
+- tryVariableEntity: module stripping for vg/vs/vM/vw/vW (background agent addition)
+  - Non-Foundation modules: strip module prefix, no type annotation
+  - Static+module+type format preserved for all others
+
+- tryEntitySuffix: M*/W* suffix module stripping (background agent addition)
+  - descriptorPrintOpts(): Foundation/Swift→full-qualified, concurrency/others→simplified
+  - swift.prerendered attr prevents double-printing by printer.go
+
+- tryFunctionEntity: REVERTED background agent's simplified rendering block
+  - Plain functions still use verbose format (module + full types + return type)
+  - Required: Apple corpus expects "example.f() async -> ()" not "f()"
+
+### common/{node,substitution,printer}.go (background agent additions, kept)
+- node.go: ModuleOf() utility for descriptor formatters
+- substitution.go: IsConcurrencyType() + concurrency tag on Sc<X> types
+- printer.go: swift.prerendered attr support
+
+### stable_test.go
+- Updated M/W descriptor tests: "main.Foo" → "Foo" (module stripped)
+- Updated mCases: Sc types now "Actor"/"Task" not "Swift.Actor"/"Swift.Task"
+- Updated varGeneric accessor tests: "Foo.n.getter" not "main.Foo.n.getter : Swift.Int"
+
+### testdata/swiftc/swiftc-oracle-divergences.txt
+- Added 2 Protocols symbols (swiftc oracle still verbose)
+
+## Apple corpus gate
+- 153/153 matched (100%) — unchanged
+
+## ThreeWayParity gate
+- 47/47 pass — unchanged
+
+## Per-file breakdown
+- iphoneos-combine.txt:       883 pass (vs ~644 before)
+- iphoneos-concurrency.txt:   102 pass
+- iphoneos-coredata.txt:      153 pass
+- iphoneos-dispatch.txt:      142 pass (vs ~114 before)
+- iphoneos-foundation.txt:    3666 pass
+- iphoneos-libswiftcore.txt:  1686 pass
+- iphoneos-swiftui.txt:       10195 pass (vs ~7984 before P4+P5)
+- iphoneos-uikit.txt:         3927 pass (vs ~3082 before)

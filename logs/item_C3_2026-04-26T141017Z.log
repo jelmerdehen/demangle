@@ -1,0 +1,52 @@
+item: C3 (coverage CI gate)
+date: 2026-04-26
+commit: f0445b9
+worktree: agent-aa5bb2b5d341a31e9
+
+## Coverage gate added
+
+File: .github/workflows/swift-production.yml
+Job:  coverage-gate
+
+### What the job does
+
+1. Runs: go test -cover -coverprofile=coverage.out ./scheme/swift/stable/...
+2. Reports total statement coverage via go tool cover -func
+3. Lists all 0%-coverage functions in stable.go
+4. Subtracts EXEMPT=2 (known dead-code entries)
+5. Reports non-exempt zero-coverage function count
+6. Uploads coverage.out as artifact (retention 14 days)
+7. Exits 0 (soft gate — will be hardened once C2 remediation is complete for all rules)
+
+### Gate status
+
+SOFT (exit 0 unconditionally)
+
+Rationale: 2 dead-code functions remain at 0% and are exempt; flipping to
+hard gate (exit $live_zero) requires either removing the dead code or
+adding per-function exemption tracking.  Current non-exempt zero count = 0.
+
+### Known dead-code exemptions (documented in coverage.go)
+
+  scheme/swift/stable/stable.go:5003: extractConstraintSig
+  scheme/swift/stable/stable.go:9724: renderIndexSubset
+
+These are tracked in internal/coverage/swift_grammar/coverage.go as
+KnownDeadCode + PrintDeadCodeNote.
+
+### Trigger conditions
+
+Same as existing apple-corpus job:
+  - push to main (paths: scheme/swift/stable/**, .github/workflows/swift-production.yml)
+  - pull_request (same paths)
+  - schedule (nightly 02:00 UTC)
+  - workflow_dispatch
+
+### pr-summary dependency
+
+coverage-gate added to needs: [apple-corpus, production-parity, coverage-gate]
+in the pr-summary job so the summary waits for coverage results.
+
+## Apple corpus gate
+
+153/153 RETAINED

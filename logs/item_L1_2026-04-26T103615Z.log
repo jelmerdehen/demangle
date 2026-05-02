@@ -1,0 +1,40 @@
+item: L1
+task: TC coroutine-continuation-prototype — Apple 150→151
+date: 2026-04-26
+commit: (pending)
+
+symbol: $sxSo8_NSRangeVRlzCRl_Cr0_llySo12ModelRequestCyxq_GIsPetWAlYl_TC
+expected: coroutine continuation prototype for @escaping @convention(thin) @convention(witness_method) @yield_once <A, B where A: AnyObject, B: AnyObject> @substituted <A> (@inout A) -> (@yields @inout __C._NSRange) for <__C.ModelRequest<A, B>>
+got (before): grammar error (tryImplFunctionType reverted on 'R' byte)
+got (after):  coroutine continuation prototype for @escaping @convention(thin) @convention(witness_method) @yield_once <A, B where A: AnyObject, B: AnyObject> @substituted <A> (@inout A) -> (@yields @inout __C._NSRange) for <__C.ModelRequest<A, B>>
+
+root causes fixed:
+1. tryImplFunctionType types loop had no handler for 'R' (pseudogeneric layout-req sig start).
+   Added tryParsePseudogenericSig() method: parses (Rl<subj>C)+ r<N>_l pattern.
+   Also handles bare 'l' after pseudogeneric sig as @substituted 1-param inner sig marker.
+
+2. implFnAttrsModeStart (and buildImplFnDisplay) did not skip 'P' (pseudogeneric marker).
+   Added 'P' skip after 's' skip in both functions.
+
+3. buildImplFnDisplay had wrong ordering: @substituted came before funcConv/coroAttr.
+   Fixed order: calleeConv → funcConv → coroAttr → pseudoSigStr → @substituted.
+
+4. buildImplFnDisplay had no 'Y<conv>' yield result handling.
+   Added Y<conv> loop between params and regular results (renders as "@yields <conv> <type>").
+
+5. implFnTypesNeeded had no 'Y<conv>' counting.
+   Added Y<conv> loop so type count is correct for attrs like "sPetWAlYl".
+
+6. After types loop, if implSigStr empty but innerSubstitutedParamCount > 0, build sigStr.
+   Also if implSubsStr empty but pendingForClause non-empty, use as implSubsStr.
+   This handles the outer @substituted impl-fn case with pseudogeneric sig.
+
+files changed:
+  scheme/swift/stable/stable.go
+  scheme/swift/stable/corpus_test.go  (threshold 149 → 151)
+  scheme/swift/stable/testdata/apple/known-divergences.txt  (removed TC symbol)
+
+test results:
+  before: 150 matched, 3 known-divergences
+  after:  151 matched, 2 known-divergences
+  gate: matched ≥ 151 (was 149)

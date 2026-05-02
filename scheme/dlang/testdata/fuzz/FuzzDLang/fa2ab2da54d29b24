@@ -1,0 +1,2 @@
+go test fuzz v1
+string("_D1AFC10000000000000000000")

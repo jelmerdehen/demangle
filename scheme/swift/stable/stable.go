@@ -151,11 +151,15 @@ func parseBodyWithOpts(schemeName, origin, body string, prefixBytes int, opts de
 			}
 		}
 	}
-	// Optional trailing 'D' — type-mangling end marker. Consume
-	// silently; Apple's demangle doesn't render anything extra for
-	// it.
+	// Optional trailing 'D' — type-mangling end marker. Consume and
+	// tag the Global node so the Remangler can reproduce it exactly.
 	if p.i < len(p.s) && p.s[p.i] == 'D' {
 		p.i++
+		if tree.Attrs == nil {
+			tree.Attrs = map[string]string{"swift.endD": "true"}
+		} else {
+			tree.Attrs["swift.endD"] = "true"
+		}
 	}
 	// Specialization trailer: "<spec-args>_T<letter><digits>?" wraps
 	// the main entity with a KindGenericSpecialization or

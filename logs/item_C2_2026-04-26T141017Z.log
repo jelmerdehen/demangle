@@ -1,0 +1,61 @@
+item: C2 (untested-rule remediation)
+date: 2026-04-26
+commit: f0445b9
+worktree: agent-aa5bb2b5d341a31e9
+
+## Functions found at 0% coverage (before remediation)
+
+stable.go:111   ParseBody          — public API used by v40/v42/embedded/macro; not called
+                                     from stable package's own test suite
+stable.go:5003  extractConstraintSig — DEAD CODE: superseded by extractConstraintSigFull
+                                     (line 5073); has no call sites
+stable.go:7267  truncated          — error-path helper; only fires on truncated inputs,
+                                     never triggered by complete corpus symbols
+stable.go:9325  parseBuiltinVector — inline Bv<N><inner> form; existing tests used postfix
+                                     form ($sBi8_Bv4_) which goes through tryPostfixVector,
+                                     not this function
+stable.go:9724  renderIndexSubset  — DEAD CODE: defined for planned autodiff feature; has
+                                     no call sites
+
+## Classification
+
+Live grammar rules (remediated): 3
+  - ParseBody, truncated, parseBuiltinVector
+
+Dead code (noted, not removed): 2
+  - extractConstraintSig, renderIndexSubset
+
+## Synthetic fixtures added
+
+File: scheme/swift/stable/testdata/fixtures/99_synthetic.txt
+Count: 7 symbols covering parseBuiltinVector (inline Bv form)
+
+  $sBv4Bi8_   ---> Builtin.Vec4xInt8
+  $sBv2Bf32_  ---> Builtin.Vec2xFPIEEE32
+  $sBv8Bi16_  ---> Builtin.Vec8xInt16
+  $sBv4Bf64_  ---> Builtin.Vec4xFPIEEE64
+  $sBv16Bi1_  ---> Builtin.Vec16xInt1
+  $sBv4Bi32_  ---> Builtin.Vec4xInt32
+  $sBv2Bf64_  ---> Builtin.Vec2xFPIEEE64
+
+## Unit tests added
+
+File: scheme/swift/stable/c2_remediation_test.go
+Tests:
+  TestC2ParseBody          — calls stable.ParseBody directly (3 cases)
+  TestC2BuiltinVectorInline — exercises inline Bv path (7 cases)
+  TestC2TruncatedError      — exercises truncated() via $sq and $sQ (2 cases)
+
+## Coverage after remediation
+
+Before: 5 functions at 0.0% in stable.go
+After:  2 functions at 0.0% in stable.go (both confirmed dead code)
+Overall: 77.3% → 77.5% statement coverage
+
+## Apple corpus gate
+
+153/153 RETAINED (TestAppleCorpusStrict PASS)
+
+## Full test suite
+
+go test ./... — 0 FAIL

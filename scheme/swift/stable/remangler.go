@@ -335,6 +335,9 @@ func (r *remangler) mangleGlobal(n *demangle.Node) error {
 			return err
 		}
 	}
+	if n.Attrs != nil && n.Attrs["swift.endD"] == "true" {
+		r.buf.WriteByte('D')
+	}
 	return nil
 }
 

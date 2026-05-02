@@ -1,0 +1,57 @@
+# Item: Foundation.LockedState<A where A == ()> constraint
+# Track: P (Printer parity)
+# Started: 2026-04-28T22:00Z
+# Committed: (pending)
+
+## Root Cause
+
+`tryExtensionEntity` for `Foundation.LockedState<A where A == ()>` had
+constraint bytes `AAytRszl`. The `foundationSameTypeSig` sub-parser looks
+for bytes before `Rsz` and tries to parse ONE type. For this case, the bytes
+are `AAyt`:
+- Single-type parse: `AA` → Module("Foundation"), i=2. Then `yt` remains.
+  `parseNominalWithModule` fails on 'y' (not a digit/letter) → consumes 0
+  bytes. `subP.i=2 ≠ len=4` → no match.
+
+The sub-parser could not parse `yt` (empty tuple = Swift `()` type) because
+`parseType('y')` calls `parseFunctionType` which expects result + params +
+convention, not just a standalone empty-tuple.
+
+## Fix
+
+Two additions in `constraintRHSType` (inline helper in `tryExtensionEntity`):
+
+**1. `tryBoundGeneric` in single-type nominal chain loop**: After each
+`parseNominalWithModule` step, also try `tryBoundGeneric` on the result.
+This enables `Foundation.FloatingPointFormatStyle<Swift.Double>` to be
+parsed by the single-type strategy when the nominal is followed by `ySdG`.
+
+**2. "yt" special case in narrowed strategy-2**: When the bytes after the
+LHS sub-ref (one `parseType()` call) are exactly `yt` (2 bytes), return `()`
+as the constraint RHS. This handles `AAyt` → LHS="AA"=Module("Foundation"),
+remaining="yt"=empty tuple → "()" ✓.
+
+The strategy-2 is intentionally narrow (only `yt` ending) to avoid false
+positives on other inner-extension constraint patterns like
+`AASo17NSUnitTemperatureCRszrl` where the full two-type parse would consume
+`So17NSUnitTemperatureC` as RHS and produce a wrong `<A where A == ...>`
+constraint for nested extension contexts.
+
+**3. Protocol vs. concrete type sig format**: Protocols (hostKind='P') use
+`< where A == T>` (no param name); concrete types use `<A where A == T>`
+(with "A" param name). LockedState is a struct ('V'), so:
+`foundationSameTypeSig = "<A where A == ()>"` ✓.
+
+## Symbols Fixed
+
+- `_$s10Foundation11LockedStateVAAytRszlE4lockyyF`
+  → `(extension in Foundation):Foundation.LockedState<A where A == ()>.lock() -> ()`
+- `_$s10Foundation11LockedStateVAAytRszlE6unlockyyF`
+  → `(extension in Foundation):Foundation.LockedState<A where A == ()>.unlock() -> ()`
+
+## Delta
+
+Parity 82.45%→82.45% (+2 symbols, 52567→52569).
+Foundation: 12222→12224 (+2).
+Round-trip: 63.63% (unchanged).
+Mismatches: 996→994 (-2).

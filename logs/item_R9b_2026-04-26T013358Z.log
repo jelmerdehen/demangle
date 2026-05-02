@@ -1,0 +1,37 @@
+# Item R9b+R9c — FunctionEntity guard refinements
+## Date: 2026-04-26
+
+## Files touched
+- scheme/swift/stable/remangler.go
+
+## What changed
+### R9b (commit 08054db — worktree agent)
+- Removed blanket `!argsEmpty && !retEmpty` guard in mangleFunctionEntity
+- Added targeted guards:
+  - Labeled TypeList args guard (correct — keeps)
+  - Protocol existential guard (correct — keeps)
+  - Non-stdlib nominal guard (too conservative — refined in R9c)
+  - Same-stdlib-type guard (wrong premise but kept — see R9c)
+- Rewrote mangleIdentifierWithWordSubs to mirror ManglingUtils.h algorithm
+- Fixed tuple separator encoding
+- Result: 107→119 round-trips (+12), 0 failures
+
+### R9c (commit 8cf31c2 — direct)
+- Analysis: S2i compact form is real (compiler-specific, Remangler cannot reproduce)
+- Analysis: non-stdlib nominal guard for top-level fns with stdlib ret is safe
+  (Direction fully covered by word refs → "0D0" correct)
+- Analysis: non-stdlib nominal in RET type causes partial-word-ref mismatches
+  (Vec3 → compiler emits "4Vec3", Remangler emits "0C1X3" — different)
+- Fix: restore same-stdlib guard (S2i/S2S forms)
+- Fix: restore ret non-stdlib guard for ALL functions
+- Fix: keep args non-stdlib guard REMOVED for top-level functions (method guard kept)
+- Result: 119→123 round-trips (+4), 0 failures
+
+## Total net gain
+107 → 123 round-trips (+16 from R9b+R9c)
+Apple corpus: 149/153 (unchanged)
+Round-trip failures: 0
+
+## Test commands
+go test ./scheme/swift/stable/ -run "TestThreeWayParity|TestAppleCorpusStrict" -count=1
+go test ./...

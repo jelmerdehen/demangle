@@ -1,0 +1,55 @@
+# Item: Foundation ObjC extension init + fluent-API method return type
+# Track: P (Printer parity)
+# Started: 2026-04-28T21:00Z
+# Committed: (pending)
+
+## Root Cause
+
+`tryTypeFirstExtensionEntity` handles `So<N><name>a<module>E<decl>` patterns
+(ObjC typealias host types, e.g. `So9NSDecimala` = NSDecimal). Two failures:
+
+**1. Init terminal (`cfC`)**: the `_t` trick swaps retNode to paramTypes and
+sets retNode = nil. For Foundation extension inits, retNode = nil caused
+`verboseRetStr(true)` to emit `"-> ()"` instead of the self type. Expected:
+`"-> (extension in Foundation):__C.NSDecimal.FormatStyle"`.
+
+**2. F-terminal fluent-API methods**: methods like `locale(_:)` and
+`sign(strategy:)` that return self (value-type copy) encode as Void at ABI
+level but should display the self type as return. Two sub-cases:
+- `locale(_:)`: speculative y-as-label check fails (F follows), retNode = nil
+- `sign(strategy:)`: `_t` trick fires (trailing `_t`), retNode = nil
+Both produced `"-> ()"` instead of the self FormatStyle type.
+
+## Fix
+
+Two additions in `tryTypeFirstExtensionEntity` in stable.go:
+
+**1. Init terminal** (after F-consuming increment, ~line 6589):
+When `retNode == nil` in a Foundation extension (`modName == "Foundation"` &&
+`extHostMod != ""`), construct self-type node from `extHostMod + "." + hostPath`
+and assign to retNode. This makes verboseRetStr emit the correct return type.
+
+**2. F-terminal** (before `wrap := common.NewNode(common.KindTypeMangling)`,
+~line 6628):
+When `retNode == nil`, Foundation extension, `len(paramTypes) > 0`, and no
+param has `swift.inout == "true"` or `swift.conv != ""` modifier → construct
+self-type node and assign to retNode. The inout/ownership exclusion prevents
+false-positives on `hash(into:)` (HasherVz param has inout modifier).
+
+## Symbols Fixed
+
+NSDecimal FormatStyle (Foundation):
+- `$sSo9NSDecimala10FoundationE11FormatStyleV6localeAeC6LocaleV_tcfC`
+  → `NSDecimal.FormatStyle.init(locale:) -> (extension in Foundation):__C.NSDecimal.FormatStyle`
+- `$sSo9NSDecimala10FoundationE11FormatStyleV6localeyAeC6LocaleVF`
+  → `locale(_:) -> (extension in Foundation):__C.NSDecimal.FormatStyle`
+- `$sSo9NSDecimala10FoundationE11FormatStyleV4sign8strategyAeC06NumbercD13ConfigurationO19SignDisplayStrategyV_tF`
+  → `sign(strategy:) -> (extension in Foundation):__C.NSDecimal.FormatStyle`
+Plus ~20 additional Foundation ObjC-extension method/init variants.
+
+## Delta
+
+Parity 82.42%→82.45% (+20 symbols, 52547→52567).
+Foundation: pass count increased ~20.
+Round-trip: 63.63% (unchanged, 11468/18023).
+Mismatches: 1016→996 (-20).
