@@ -4685,9 +4685,11 @@ func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 	// Label-list: 'y' = empty-list shortcut (no labels); digit-led idents
 	// or 'x'/'_' markers = per-param labels (blank for x/_).
 	var labels []string
+	emptyLabelList := false
 	if !p.eof() && p.s[p.i] == 'y' {
 		// Empty-list shortcut: all params positional, no labels. Consume.
 		p.i++
+		emptyLabelList = true
 	} else {
 		for !p.eof() {
 			c := p.s[p.i]
@@ -4716,18 +4718,32 @@ func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 			labels = append(labels, lbl)
 		}
 	}
-	// Result-type.
+	// Result-type. When the empty-label-list shortcut 'y' was taken, suppress
+	// tryPostfixFunctionTypeWithParams so it cannot greedily consume the param
+	// type + calling-convention 'c' that follows retType.
 	var retType *demangle.Node
 	if !p.eof() && p.s[p.i] == 'y' {
 		p.i++
 		retType = common.NewNode(common.KindEmptyList)
 	} else {
-		t, err := p.parseType()
-		if err != nil {
-			restore()
-			return nil, false, nil
+		if emptyLabelList {
+			prevFuncSlot := p.inFunctionTypeSlot
+			p.inFunctionTypeSlot = true
+			t, err := p.parseType()
+			p.inFunctionTypeSlot = prevFuncSlot
+			if err != nil {
+				restore()
+				return nil, false, nil
+			}
+			retType = t
+		} else {
+			t, err := p.parseType()
+			if err != nil {
+				restore()
+				return nil, false, nil
+			}
+			retType = t
 		}
-		retType = t
 	}
 	// Params-type: may be empty, a single type, or a multi-element tuple
 	// encoded as <type> ('_' <type>)* 't'.
@@ -4801,8 +4817,10 @@ func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 		(p.i+1 >= len(p.s) || p.s[p.i+1] != 'f') {
 		p.i++
 	}
-	// Consume optional generic constraint block (<type> R<kind>)* 'l' before terminal.
-	// This handles 'lufC' / 'lF' style inits with generic where-clauses.
+	// Consume generic constraint block (<type> R<subj>)* 'l' before terminal.
+	// Collects where-clause constraints for ufC init display.
+	var initConstraints []string
+	var lastConProto *demangle.Node
 	for !p.eof() {
 		c := p.s[p.i]
 		if c == 'l' {
@@ -4812,24 +4830,41 @@ func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 		if c == 'u' || c == 'f' || c == 'K' || c == 'Y' {
 			break // terminal or throws/async marker
 		}
+		if c == 'R' {
+			// R<subj> — record constraint if we have a pending protocol.
+			p.i++
+			if p.eof() {
+				break
+			}
+			subj := p.s[p.i]
+			p.i++
+			if lastConProto != nil {
+				var paramName string
+				switch subj {
+				case 'z':
+					paramName = "A"
+				case '_':
+					paramName = "B"
+				}
+				if paramName != "" {
+					protoStr := common.Print(lastConProto, common.DefaultPrintOptions())
+					initConstraints = append(initConstraints, paramName+": "+protoStr)
+				}
+				lastConProto = nil
+			}
+			continue
+		}
 		if c == 'S' || c == 's' || c == 'x' || c == 'q' || c == 'A' ||
-			c == 'B' || (c >= '0' && c <= '9') || c == 'R' {
+			c == 'B' || (c >= '0' && c <= '9') {
 			saveCon := p.i
 			saveConSubs := p.subs
-			if c == 'R' {
-				// Consume R<kind> requirement terminator.
-				p.i++
-				if !p.eof() {
-					p.i++ // kind byte
-				}
-				continue
-			}
-			_, terr := p.parseType()
+			protoNode, terr := p.parseType()
 			if terr != nil {
 				p.i = saveCon
 				p.subs = saveConSubs
 				break
 			}
+			lastConProto = protoNode
 			continue
 		}
 		break
@@ -4951,6 +4986,10 @@ func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 				}
 				sbFull.WriteByte('<')
 				sbFull.WriteString(strings.Join(names, ", "))
+				if len(initConstraints) > 0 {
+					sbFull.WriteString(" where ")
+					sbFull.WriteString(strings.Join(initConstraints, ", "))
+				}
 				sbFull.WriteByte('>')
 			}
 		}

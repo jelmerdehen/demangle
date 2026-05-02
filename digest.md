@@ -1,8 +1,8 @@
 # Swift Production Digest
 
 **Parity**: 82.60% (52661/63757) — 2026-04-28T22:58:52Z
-**Round-trip**: 63.63% (11468/18023) — 2026-04-28T21:40:59Z
-**Failures**: 10189 parse-errors + 907 mismatches
+**Round-trip**: 63.63% (11468/18023) — 2026-04-29T09:06:12Z
+**Failures**: 10189 parse-errors + 908 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,16 +29,16 @@
 
 ## Last 10 Commits
 
-- 4b97cf8 swift-tight: conformance descriptor fixes — ObjC Foundation full-fmt + rl constraint prefix + <A where> form — parity 82.57%→82.59%
-- e59ee36 swift-tight: _forceBridgeFromObjectiveC _: label with hasNamedLabel guard — parity 82.46%→82.57%
-- 9f37db0 swift-tight: _StringProcessing.RegexComponent Foundation-ext same-type constraint — parity 82.45%→82.46%
-- c979f49 swift-tight: LockedState<A where A == ()> constraint + tryBoundGeneric in constraint-RHS chain — parity 82.45%→82.45% (+2)
-- d499a8a swift-tight: Foundation ObjC-ext init + fluent-method self-type return — parity 82.42%→82.45%
-- 9a9981e swift-tight: constraint-scanner A<letter>+A<digit><letter> sub-ref skip — parity 82.19%→82.42%
-- d17c785 swift-tight: WC enum-case return type rescue in tryTypeFirstExtensionEntity — parity 82.18%→82.19%
-- 90b8e1c swift-tight: constraint-scanner So<N><name>C fix — parity 82.13%→82.18%
-- 4be176f digest: parity 82.05%→82.13% — s<n><name>V push fix
-- 07131d2 swift-tight: s<n><name>V push Module+Type (not Module+Ident) — parity 82.05%→82.13%
+- 24a7759 chore: restore fixture files removed by over-broad git rm --cached
+- a136845 chore: gitignore .claude/ and logs/ ; remove accidentally committed worktree refs
+- ffb0732 swift-roundtrip: R3 trailing-D end marker round-trip — parity 82.60%→82.60% / rt 63.63%→63.63% (+5 fixtures)
+- 4e78c70 swift-roundtrip: R2 TestAppleCorpusRoundTrip nil-tree false negatives — parity 82.60%→82.60% / rt 63.63%→63.63% (+0 fixtures)
+- e52087b swift-roundtrip: R1 TestRemangleUnsupported stale builtin name — parity 82.60%→82.60% / rt 63.63%→63.63% (+0 fixtures)
+- bb8669b swift-fuzz: macro tryImplFunctionType unbounded slice — parity 82.60%→82.60% / rt 63.63%→63.63% (+0 fixtures)
+- b0e9f8e swift-fuzz: dlang parseIdentChain int overflow — parity 82.60%→82.60% / rt 63.63%→63.63% (+0 fixtures)
+- 010c402 chore: ignore production-divergences.txt artifact
+- 990dbaa fix(categories): skip passing-*.txt in TestCategoryFixtures iteration
+- 02b8b5e infra: per-symbol non-regression discipline + escape hatch
 
 ## Suggested Next 3 Items
 

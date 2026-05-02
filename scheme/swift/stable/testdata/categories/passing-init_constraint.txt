@@ -1,0 +1,10 @@
+# snapshot-pass-set update 2026-05-02T09:17:52Z — union with previous (high-water)
+_$sSSySSxcs25LosslessStringConvertibleRzlufC
+_$sSdySdxcSzRzlufC
+_$sSfySfSgxcSyRzlufC
+_$sSfySfxcSzRzlufC
+_$ss11AnyHashableVyABxcSHRzlufC
+_$ss6Int128V18truncatingIfNeededABx_tcSzRzlufC
+_$ss7UInt128V18truncatingIfNeededABx_tcSzRzlufC
+_$ss7UInt128V7exactlyABSgx_tcSzRzlufC
+_$ss7UInt128V8clampingABx_tcSzRzlufC

@@ -1,0 +1,14 @@
+# Category: ufC init with own generic where-clause
+# Format: <symbol> ---> <expected>
+# Source: production-divergences.txt (ufC init constraint bucket)
+
+# Swift stdlib verbose (module prefix, full types, where-clause)
+_$ss6Int128V18truncatingIfNeededABx_tcSzRzlufC ---> Swift.Int128.init<A where A: Swift.BinaryInteger>(truncatingIfNeeded: A) -> Swift.Int128
+_$ss7UInt128V18truncatingIfNeededABx_tcSzRzlufC ---> Swift.UInt128.init<A where A: Swift.BinaryInteger>(truncatingIfNeeded: A) -> Swift.UInt128
+_$ss7UInt128V7exactlyABSgx_tcSzRzlufC ---> Swift.UInt128.init<A where A: Swift.BinaryInteger>(exactly: A) -> Swift.UInt128?
+_$ss7UInt128V8clampingABx_tcSzRzlufC ---> Swift.UInt128.init<A where A: Swift.BinaryInteger>(clamping: A) -> Swift.UInt128
+_$sSdySdxcSzRzlufC ---> Swift.Double.init<A where A: Swift.BinaryInteger>(A) -> Swift.Double
+_$sSfySfxcSzRzlufC ---> Swift.Float.init<A where A: Swift.BinaryInteger>(A) -> Swift.Float
+_$sSfySfSgxcSyRzlufC ---> Swift.Float.init<A where A: Swift.StringProtocol>(A) -> Swift.Float?
+_$ss11AnyHashableVyABxcSHRzlufC ---> Swift.AnyHashable.init<A where A: Swift.Hashable>(A) -> Swift.AnyHashable
+_$sSSySSxcs25LosslessStringConvertibleRzlufC ---> Swift.String.init<A where A: Swift.LosslessStringConvertible>(A) -> Swift.String

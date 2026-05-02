@@ -1,4 +1,4 @@
-# snapshot-pass-set update 2026-05-02T08:25:21Z — union with previous (high-water)
+# snapshot-pass-set update 2026-05-02T09:17:52Z — union with previous (high-water)
 _$s10Foreground7SwiftUI18LabelGroupStyle_v0PTl
 _$s10Foundation10CocoaErrorV010formattingC0AC4CodeVvgZ
 _$s10Foundation10CocoaErrorV010formattingC0AC4CodeVvpZMV
@@ -4670,6 +4670,7 @@ _$s10Foundation17AnySortComparatorVMn
 _$s10Foundation17AnySortComparatorVN
 _$s10Foundation17AnySortComparatorVSHAAMc
 _$s10Foundation17AnySortComparatorVSQAAMc
+_$s10Foundation17AnySortComparatorVyACxcAA0cD0RzlufC
 _$s10Foundation17AsyncLineSequenceV04makeB8IteratorAC0bF0Vyx_GyF
 _$s10Foundation17AsyncLineSequenceV0B8IteratorV4nextSSSgyYaKF
 _$s10Foundation17AsyncLineSequenceV0B8IteratorV4nextSSSgyYaKFTu
@@ -5983,6 +5984,7 @@ _$s10Foundation20PredicateExpressionsO0B5RegexVN
 _$s10Foundation20PredicateExpressionsO0B5RegexVSEAAMc
 _$s10Foundation20PredicateExpressionsO0B5RegexVSeAAMc
 _$s10Foundation20PredicateExpressionsO0B5RegexVs23CustomStringConvertibleAAMc
+_$s10Foundation20PredicateExpressionsO0B5RegexVyAESgxc17_StringProcessing0D9ComponentRzlufC
 _$s10Foundation20PredicateExpressionsO0B8EvaluateV11descriptionSSvg
 _$s10Foundation20PredicateExpressionsO0B8EvaluateV11descriptionSSvpMV
 _$s10Foundation20PredicateExpressionsO0B8EvaluateV8evaluateySbAA0B8BindingsVKF
@@ -37379,6 +37381,9 @@ _$sSS10charactersSSvg
 _$sSS10charactersSSvpMV
 _$sSS10charactersSSvs
 _$sSS10describingSSx_tclufC
+_$sSS10describingSSx_tcs20TextOutputStreamableRzlufC
+_$sSS10describingSSx_tcs23CustomStringConvertibleRzlufC
+_$sSS10describingSSx_tcs23CustomStringConvertibleRzs20TextOutputStreamableRzlufC
 _$sSS10lowercasedSSyF
 _$sSS10reflectingSSx_tclufC
 _$sSS10startIndexSS0B0Vvg
@@ -37757,6 +37762,7 @@ _$sSS9UTF16ViewVys6UInt16VSS5IndexVcig
 _$sSS9UTF16ViewVys6UInt16VSS5IndexVcipMV
 _$sSS9_classifys21_StringRepresentationVyF
 _$sSS9_validate_2asSSSgSRy8CodeUnitQzG_xmts16_UnicodeEncodingRzlFZ
+_$sSS9codingKeySSSgx_tcs06CodingB0RzlufC
 _$sSS9codingKeys06CodingB0_pvg
 _$sSS9codingKeys06CodingB0_pvpMV
 _$sSS9hasPrefixySbSSF
@@ -37832,6 +37838,7 @@ _$sSSySSSgSs9UTF16ViewVcfC
 _$sSSySSSs17UnicodeScalarViewVcfC
 _$sSSySSs11_StringGutsVcfC
 _$sSSySSs7UnicodeO6ScalarVcfC
+_$sSSySSxcs25LosslessStringConvertibleRzlufC
 _$sSSySsSnySS5IndexVGcig
 _$sSSySsSnySS5IndexVGcipMV
 _$sST12makeIterator0B0QzyFTj
@@ -37898,10 +37905,13 @@ _$sSVs30_CustomPlaygroundQuickLookablesWP
 _$sSVs8_PointersMc
 _$sSVs8_PointersWP
 _$sSVySVBpcfC
+_$sSVySVSAyxGclufC
+_$sSVySVSPyxGclufC
 _$sSVySVSgSAyxGSgclufC
 _$sSVySVSgSPyxGSgclufC
 _$sSVySVSgSpyxGSgclufC
 _$sSVySVSgSvSgcfC
+_$sSVySVSpyxGclufC
 _$sSVySVSvcfC
 _$sSW10Foundation12DataProtocolAAMc
 _$sSW10Foundation12DataProtocolAAWP
@@ -37962,8 +37972,10 @@ _$sSWs19_HasContiguousBytessMc
 _$sSWs19_HasContiguousBytessWP
 _$sSWs28CustomDebugStringConvertiblesMc
 _$sSWs28CustomDebugStringConvertiblesWP
+_$sSWySWSRyxGclufC
 _$sSWySWSnySiGcig
 _$sSWySWSnySiGcipMV
+_$sSWySWSryxGclufC
 _$sSWySWSwcfC
 _$sSWys5SliceVySWGSnySiGcig
 _$sSWys5SliceVySWGSnySiGcipMV
@@ -38612,8 +38624,10 @@ _$sSds7CVarArgsWP
 _$sSdySdBf64_cfC
 _$sSdySdSfcfC
 _$sSdySdSgSscfC
+_$sSdySdSgxcSyRzlufC
 _$sSdySdSicfC
 _$sSdySds7Float16VcfC
+_$sSdySdxcSzRzlufC
 _$sSeMp
 _$sSeTL
 _$sSf10Foundation18_FormatSpecifiableAAMc
@@ -38898,8 +38912,10 @@ _$sSfs7CVarArgsWP
 _$sSfySfBf32_cfC
 _$sSfySfSdcfC
 _$sSfySfSgSscfC
+_$sSfySfSgxcSyRzlufC
 _$sSfySfSicfC
 _$sSfySfs7Float16VcfC
+_$sSfySfxcSzRzlufC
 _$sSh10FoundationE19_bridgeToObjectiveCSo5NSSetCyF
 _$sSh10FoundationE26_forceBridgeFromObjectiveC_6resultySo5NSSetC_ShyxGSgztFZ
 _$sSh10FoundationE34_conditionallyBridgeFromObjectiveC_6resultSbSo5NSSetC_ShyxGSgztFZ
@@ -39054,6 +39070,7 @@ _$sSi10FoundationEySiSo8NSNumberChcfC
 _$sSi10bitPatternSiSO_tcfC
 _$sSi10bitPatternSiSu_tcfC
 _$sSi10bitPatternSis13OpaquePointerVSg_tcfC
+_$sSi10bitPatternSixSg_tcs8_PointerRzlufC
 _$sSi11byteSwappedSivg
 _$sSi11byteSwappedSivpMV
 _$sSi12SIMD2StorageV11scalarCountSivg
@@ -39211,6 +39228,7 @@ _$sSi8advanced2byS2i_tF
 _$sSi8bitWidthSivgZ
 _$sSi8bitWidthSivpZMV
 _$sSi8distance2toS2i_tF
+_$sSi9codingKeySiSgx_tcs06CodingB0RzlufC
 _$sSi9codingKeys06CodingB0_pvg
 _$sSi9codingKeys06CodingB0_pvpMV
 _$sSi9hashValueSivg
@@ -43624,6 +43642,7 @@ _$sSu10FoundationEySuSo8NSNumberChcfC
 _$sSu10bitPatternSuSO_tcfC
 _$sSu10bitPatternSuSi_tcfC
 _$sSu10bitPatternSus13OpaquePointerVSg_tcfC
+_$sSu10bitPatternSuxSg_tcs8_PointerRzlufC
 _$sSu11byteSwappedSuvg
 _$sSu11byteSwappedSuvpMV
 _$sSu12SIMD2StorageV11scalarCountSivg
@@ -43892,11 +43911,14 @@ _$sSvs30_CustomPlaygroundQuickLookablesWP
 _$sSvs8_PointersMc
 _$sSvs8_PointersWP
 _$sSvySvBpcfC
+_$sSvySvSAyxGclufC
+_$sSvySvSPyxGclufC
 _$sSvySvSVcfC
 _$sSvySvSgSAyxGSgclufC
 _$sSvySvSgSPyxGSgclufC
 _$sSvySvSgSVSgcfC
 _$sSvySvSgSpyxGSgclufC
+_$sSvySvSpyxGclufC
 _$sSw10Foundation15ContiguousBytesAAMc
 _$sSw10Foundation15ContiguousBytesAAWP
 _$sSw10bindMemory2toSryxGxm_tlF
@@ -43953,6 +43975,7 @@ _$sSwySwSnySiGciM
 _$sSwySwSnySiGcig
 _$sSwySwSnySiGcipMV
 _$sSwySwSnySiGcis
+_$sSwySwSryxGclufC
 _$sSwys5SliceVySwGSnySiGciM
 _$sSwys5SliceVySwGSnySiGcig
 _$sSwys5SliceVySwGSnySiGcipMV
@@ -44497,6 +44520,7 @@ _$ss11AnyHashableVs23CustomStringConvertiblesMc
 _$ss11AnyHashableVs23CustomStringConvertiblesWP
 _$ss11AnyHashableVs28CustomDebugStringConvertiblesMc
 _$ss11AnyHashableVs28CustomDebugStringConvertiblesWP
+_$ss11AnyHashableVyABxcSHRzlufC
 _$ss11AnyIteratorV4_boxAByxGs01_aB7BoxBaseCyxG_tcfC
 _$ss11AnyIteratorV4_boxs01_aB7BoxBaseCyxGvg
 _$ss11AnyIteratorV4_boxs01_aB7BoxBaseCyxGvpMV
@@ -45307,11 +45331,13 @@ _$ss13OpaquePointerVs28CustomDebugStringConvertiblesWP
 _$ss13OpaquePointerVs7CVarArgsMc
 _$ss13OpaquePointerVs7CVarArgsWP
 _$ss13OpaquePointerVyABBpcfC
+_$ss13OpaquePointerVyABSPyxGclufC
 _$ss13OpaquePointerVyABSVcfC
 _$ss13OpaquePointerVyABSgSPyxGSgclufC
 _$ss13OpaquePointerVyABSgSVSgcfC
 _$ss13OpaquePointerVyABSgSpyxGSgclufC
 _$ss13OpaquePointerVyABSgSvSgcfC
+_$ss13OpaquePointerVyABSpyxGclufC
 _$ss13OpaquePointerVyABSvcfC
 _$ss13OutputRawSpanV6_countSivM
 _$ss13OutputRawSpanV6_countSivg
@@ -50157,6 +50183,7 @@ _$ss6Int128V12customMirrors0C0VvpMV
 _$ss6Int128V15_truncatingBitsABSu_tcfC
 _$ss6Int128V15nonzeroBitCountSivg
 _$ss6Int128V15nonzeroBitCountSivpMV
+_$ss6Int128V18truncatingIfNeededABx_tcSzRzlufC
 _$ss6Int128V19leadingZeroBitCountSivg
 _$ss6Int128V19leadingZeroBitCountSivpMV
 _$ss6Int128V1loiySbAB_ABtFZ
@@ -50184,10 +50211,13 @@ _$ss6Int128V6_valueBi128_vg
 _$ss6Int128V6_valueBi128_vpMV
 _$ss6Int128V6_valueBi128_vs
 _$ss6Int128V6encode2toys7Encoder_p_tKF
+_$ss6Int128V7exactlyABSgx_tcSBRzlufC
+_$ss6Int128V7exactlyABSgx_tcSzRzlufC
 _$ss6Int128V8_lowWordSuvg
 _$ss6Int128V8_lowWordSuvpMV
 _$ss6Int128V8bitWidthSivgZ
 _$ss6Int128V8bitWidthSivpZMV
+_$ss6Int128V8clampingABx_tcSzRzlufC
 _$ss6Int128V9hashValueSivg
 _$ss6Int128V9hashValueSivpMV
 _$ss6Int128V9magnitudes7UInt128Vvg
@@ -50230,6 +50260,8 @@ _$ss6Int128Vs27ExpressibleByIntegerLiteralsWP
 _$ss6Int128Vs35_ExpressibleByBuiltinIntegerLiteralsMc
 _$ss6Int128Vs35_ExpressibleByBuiltinIntegerLiteralsWP
 _$ss6Int128VyABBi128_cfC
+_$ss6Int128VyABxcSBRzlufC
+_$ss6Int128VyABxcSzRzlufC
 _$ss6MirrorV010superclassA0ABSgvg
 _$ss6MirrorV010superclassA0ABSgvpMV
 _$ss6MirrorV06customA0ABvg
@@ -51392,7 +51424,9 @@ _$ss7Float16VyABBf16_cfC
 _$ss7Float16VyABSdcfC
 _$ss7Float16VyABSfcfC
 _$ss7Float16VyABSgSscfC
+_$ss7Float16VyABSgxcSyRzlufC
 _$ss7Float16VyABSicfC
+_$ss7Float16VyABxcSzRzlufC
 _$ss7Float80V10Foundation18_FormatSpecifiableACMc
 _$ss7Float80V10Foundation18_FormatSpecifiableACWP
 _$ss7Float80V10FoundationE4_argABvg
@@ -51421,6 +51455,7 @@ _$ss7UInt128V12customMirrors0C0VvpMV
 _$ss7UInt128V15_truncatingBitsABSu_tcfC
 _$ss7UInt128V15nonzeroBitCountSivg
 _$ss7UInt128V15nonzeroBitCountSivpMV
+_$ss7UInt128V18truncatingIfNeededABx_tcSzRzlufC
 _$ss7UInt128V19leadingZeroBitCountSivg
 _$ss7UInt128V19leadingZeroBitCountSivpMV
 _$ss7UInt128V1loiySbAB_ABtFZ
@@ -51472,10 +51507,13 @@ _$ss7UInt128V6_valueBi128_vg
 _$ss7UInt128V6_valueBi128_vpMV
 _$ss7UInt128V6_valueBi128_vs
 _$ss7UInt128V6encode2toys7Encoder_p_tKF
+_$ss7UInt128V7exactlyABSgx_tcSBRzlufC
+_$ss7UInt128V7exactlyABSgx_tcSzRzlufC
 _$ss7UInt128V8_lowWordSuvg
 _$ss7UInt128V8_lowWordSuvpMV
 _$ss7UInt128V8bitWidthSivgZ
 _$ss7UInt128V8bitWidthSivpZMV
+_$ss7UInt128V8clampingABx_tcSzRzlufC
 _$ss7UInt128V9hashValueSivg
 _$ss7UInt128V9hashValueSivpMV
 _$ss7UInt128V9magnitudeABvg
@@ -51516,6 +51554,8 @@ _$ss7UInt128Vs27ExpressibleByIntegerLiteralsWP
 _$ss7UInt128Vs35_ExpressibleByBuiltinIntegerLiteralsMc
 _$ss7UInt128Vs35_ExpressibleByBuiltinIntegerLiteralsWP
 _$ss7UInt128VyABBi128_cfC
+_$ss7UInt128VyABxcSBRzlufC
+_$ss7UInt128VyABxcSzRzlufC
 _$ss7UnicodeO11NumericTypeO2eeoiySbAD_ADtFZ
 _$ss7UnicodeO11NumericTypeO4hash4intoys6HasherVz_tF
 _$ss7UnicodeO11NumericTypeO5digityA2DmFWC
@@ -52106,6 +52146,7 @@ _$ss8AnyIndexVSLsMc
 _$ss8AnyIndexVSLsWP
 _$ss8AnyIndexVSQsMc
 _$ss8AnyIndexVSQsWP
+_$ss8AnyIndexVyABxcSLRzlufC
 _$ss8DurationV10FoundationE15TimeFormatStyleV10AttributedV13discreteInput5afterABSgAB_tF
 _$ss8DurationV10FoundationE15TimeFormatStyleV10AttributedV13discreteInput6beforeABSgAB_tF
 _$ss8DurationV10FoundationE15TimeFormatStyleV10AttributedV4hash4intoys6HasherVz_tF

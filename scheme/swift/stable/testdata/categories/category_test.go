@@ -157,6 +157,11 @@ func TestCategoryTypeMetadata(t *testing.T) {
 	runSingleCategory(t, "type_metadata.txt")
 }
 
+// TestCategoryInitConstraint targets ufC init own-generic-where-clause symbols.
+func TestCategoryInitConstraint(t *testing.T) {
+	runSingleCategory(t, "init_constraint.txt")
+}
+
 func runSingleCategory(t *testing.T, filename string) {
 	t.Helper()
 	cat := demangle.NewCatalog()
