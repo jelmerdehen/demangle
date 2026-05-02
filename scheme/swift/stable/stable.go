@@ -10659,7 +10659,7 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 	isConcurrencyEntity := swiftConcurrencyRuntimeTypes[rootName] ||
 		common.IsConcurrencyType(lastNomCtx) || common.HasConcurrencyAncestor(lastNomCtx)
 	isSwiftVerbose := mod == "Swift" && !isConcurrencyEntity
-	if mod == "Foundation" || (isWC && mod == "Swift") {
+	if mod == "Foundation" || (isWC && mod == "Swift" && !genericSig) {
 		var sbFull strings.Builder
 		for i, step := range pathSteps {
 			if i > 0 {
@@ -10694,7 +10694,7 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 		common.AddChildren(wrap, entity)
 		return wrap, true, nil
 	}
-	if isSwiftVerbose {
+	if isSwiftVerbose && !(isWC && genericSig) {
 		// Swift stdlib (non-concurrency) entities: use printFunctionEntity which
 		// includes generic constraints (swift.generic attr) and full module-qualified
 		// path with param types and return type.

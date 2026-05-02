@@ -1,1 +1,8 @@
-# snapshot-pass-set update 2026-05-02T10:07:08Z — union with previous (high-water)
+# snapshot-pass-set update 2026-05-02T10:13:42Z — union with previous (high-water)
+_$sScS12ContinuationV11TerminationO8finishedyADyx__GAFmlFWC
+_$sScS12ContinuationV11TerminationO9cancelledyADyx__GAFmlFWC
+_$sScS12ContinuationV11YieldResultO10terminatedyADyx__GAFmlFWC
+_$sScS12ContinuationV15BufferingPolicyO9unboundedyADyx__GAFmlFWC
+_$sScs12ContinuationV11TerminationO9cancelledyADyxq___GAFms5ErrorR_r0_lFWC
+_$sScs12ContinuationV11YieldResultO10terminatedyADyxq___GAFms5ErrorR_r0_lFWC
+_$sScs12ContinuationV15BufferingPolicyO9unboundedyADyxq___GAFms5ErrorR_r0_lFWC
