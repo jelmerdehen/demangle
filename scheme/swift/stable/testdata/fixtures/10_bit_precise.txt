@@ -1,0 +1,57 @@
+// Swift bit-precise / wide-integer corpus
+// Generated: 2026-04-26
+// Source: scheme/swift/stable/src_extra/10_bit_precise.swift
+// Toolchain: Swift version 6.3 (swift-6.3-RELEASE) x86_64-unknown-linux-gnu
+// Method: compiled with swiftc, symbols extracted via nm, oracle via swift-demangle
+// Parser results: 29 pass, 4 mismatch (grammar gaps — excluded), 11 error (grammar gaps — excluded)
+//
+// Only symbols where our parser output == swift-demangle output are included.
+//
+// Grammar gaps (MISMATCH — excluded):
+//   D0/s0D0: addUInt128/addInt128 — Int128/UInt128 decoded as Int/UInt (not yet a named type in parser)
+//   Mf suffix: "metaclass for" vs "full type metadata for"
+//   MF suffix: "reflection-class descriptor" vs "reflection metadata field descriptor"
+//
+// Grammar gaps (FAIL — excluded):
+//   3big4ubigAC init: multi-label memberwise init with Int128+UInt128 params
+//   wCP/wet/wst/WV: value witness table / value witness entries
+//   MXM: module descriptor
+//   got.$ relocs: linker GOT stubs (not mangled symbols)
+
+// ── Free functions ────────────────────────────────────────────────────────────
+
+$s10BitPrecise10negateWideys6Int128VADF ---> BitPrecise.negateWide(Swift.Int128) -> Swift.Int128
+$s10BitPrecise11compareWideySbs6Int128V_ADtF ---> BitPrecise.compareWide(Swift.Int128, Swift.Int128) -> Swift.Bool
+$s10BitPrecise11processWideyxxs17FixedWidthIntegerRzlF ---> BitPrecise.processWide<A where A: Swift.FixedWidthInteger>(A) -> A
+$s10BitPrecise11wideFromIntys6Int128VSiF ---> BitPrecise.wideFromInt(Swift.Int) -> Swift.Int128
+$s10BitPrecise12multiplyWideys7UInt128VAD_ADtF ---> BitPrecise.multiplyWide(Swift.UInt128, Swift.UInt128) -> Swift.UInt128
+$s10BitPrecise12subtractWideys6Int128VAD_ADtF ---> BitPrecise.subtractWide(Swift.Int128, Swift.Int128) -> Swift.Int128
+$s10BitPrecise12wideOptionalys6Int128VADSgF ---> BitPrecise.wideOptional(Swift.Int128?) -> Swift.Int128
+$s10BitPrecise8wideDictSDys6Int128Vs7UInt128VGyF ---> BitPrecise.wideDict() -> [Swift.Int128 : Swift.UInt128]
+$s10BitPrecise9wideArraySays6Int128VGyF ---> BitPrecise.wideArray() -> [Swift.Int128]
+$s10BitPrecise9wideToIntySis6Int128VF ---> BitPrecise.wideToInt(Swift.Int128) -> Swift.Int
+
+// ── WideIntContainer struct ───────────────────────────────────────────────────
+
+$s10BitPrecise16WideIntContainerV10toUnsigneds7UInt128VyF ---> BitPrecise.WideIntContainer.toUnsigned() -> Swift.UInt128
+$s10BitPrecise16WideIntContainerV3bigs6Int128Vvg ---> BitPrecise.WideIntContainer.big.getter : Swift.Int128
+$s10BitPrecise16WideIntContainerV3bigs6Int128VvM ---> BitPrecise.WideIntContainer.big.modify : Swift.Int128
+$s10BitPrecise16WideIntContainerV3bigs6Int128VvM.resume.0 ---> BitPrecise.WideIntContainer.big.modify : Swift.Int128 with unmangled suffix ".resume.0"
+$s10BitPrecise16WideIntContainerV3bigs6Int128Vvs ---> BitPrecise.WideIntContainer.big.setter : Swift.Int128
+$s10BitPrecise16WideIntContainerV3sums6Int128VyF ---> BitPrecise.WideIntContainer.sum() -> Swift.Int128
+$s10BitPrecise16WideIntContainerV4ubigs7UInt128Vvg ---> BitPrecise.WideIntContainer.ubig.getter : Swift.UInt128
+$s10BitPrecise16WideIntContainerV4ubigs7UInt128VvM ---> BitPrecise.WideIntContainer.ubig.modify : Swift.UInt128
+$s10BitPrecise16WideIntContainerV4ubigs7UInt128VvM.resume.0 ---> BitPrecise.WideIntContainer.ubig.modify : Swift.UInt128 with unmangled suffix ".resume.0"
+$s10BitPrecise16WideIntContainerV4ubigs7UInt128Vvs ---> BitPrecise.WideIntContainer.ubig.setter : Swift.UInt128
+$s10BitPrecise16WideIntContainerV4zeros6Int128VyFZ ---> static BitPrecise.WideIntContainer.zero() -> Swift.Int128
+$s10BitPrecise16WideIntContainerV7doubleds6Int128VyF ---> BitPrecise.WideIntContainer.doubled() -> Swift.Int128
+$s10BitPrecise16WideIntContainerVMa ---> type metadata accessor for BitPrecise.WideIntContainer
+$s10BitPrecise16WideIntContainerVMn ---> nominal type descriptor for BitPrecise.WideIntContainer
+$s10BitPrecise16WideIntContainerVN ---> type metadata for BitPrecise.WideIntContainer
+
+// ── Swift stdlib Int128 / UInt128 descriptors ─────────────────────────────────
+
+$ss6Int128VMn ---> nominal type descriptor for Swift.Int128
+$ss6Int128VN ---> type metadata for Swift.Int128
+$ss7UInt128VMn ---> nominal type descriptor for Swift.UInt128
+$ss7UInt128VN ---> type metadata for Swift.UInt128

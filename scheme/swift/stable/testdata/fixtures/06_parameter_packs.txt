@@ -1,0 +1,57 @@
+// Swift parameter pack (variadic generics) corpus
+// Generated: 2026-04-26
+// Source: scheme/swift/stable/src_extra/06_parameter_packs.swift
+// Toolchain: Swift version 6.3 (swift-6.3-RELEASE) x86_64-unknown-linux-gnu
+// Method: compiled with swiftc, symbols extracted via nm -D, oracle via swift-demangle
+// Parser results: 22 pass, mismatch/fail excluded (see grammar gaps below)
+//
+// Grammar gaps (FAIL — excluded):
+//   xxQp_tvg/vM/vs: stored property getters/setters with pack expansion type
+//     e.g. $s14ParameterPacks5TupleV6valuesxxQp_tvg
+//     — parser hits "xxQp_t" continuation bytes for pack expansion stored prop
+//   yACyxxQp_QPGxxQpcfC: pack struct initialiser with pack-typed args
+//     — QP folding inside bound-generic arg list not yet complete for init sigs
+//   Functions with pack-constraint generic sigs (Rvz, Rv_r0_ markers):
+//     $s14ParameterPacks8identityyxxQp_txxQpRvzlF
+//     $s14ParameterPacks5firstyxx_q_q_QptRv_r0_lF
+//     $s14ParameterPacks17combineHashValuesySixxQpRvzSHRzlF
+//     $s14ParameterPacks8allEqual3lhs3rhsSbxxQp_xxQptRvzSQRzlF
+//     $s14ParameterPacks13makeOptionalsyxSgxQp_txxQpRvzlF
+//     $s14ParameterPacks7mapPack9transform6valuesq_xQp_tq_xXExQp_xxQptRvzRv_q_Rhzr0_lF
+//     $s14ParameterPacks15processSendableySbxxQpYaRvzs0D0RzlF
+//
+// Grammar gaps (MISMATCH — excluded):
+//   getter/setter format: "getter for X.prop" vs "X.prop.getter"
+//     affects non-pack scalar properties of pack structs
+//     e.g. $s14ParameterPacks11IndexedPackV5indexSivg
+
+// ── Unconstrained pack struct metadata accessors ───────────────────────────────
+
+$s14ParameterPacks5TupleVMa ---> type metadata accessor for ParameterPacks.Tuple
+$s14ParameterPacks11LabeledPackVMa ---> type metadata accessor for ParameterPacks.LabeledPack
+$s14ParameterPacks10NestedPackVMa ---> type metadata accessor for ParameterPacks.NestedPack
+$s14ParameterPacks11IndexedPackVMa ---> type metadata accessor for ParameterPacks.IndexedPack
+$s14ParameterPacks9NamedPackVMa ---> type metadata accessor for ParameterPacks.NamedPack
+$s14ParameterPacks13VersionedPackVMa ---> type metadata accessor for ParameterPacks.VersionedPack
+$s14ParameterPacks10TaggedPackVMa ---> type metadata accessor for ParameterPacks.TaggedPack
+$s14ParameterPacks11CountedPackVMa ---> type metadata accessor for ParameterPacks.CountedPack
+
+// ── Constrained pack struct metadata accessors ────────────────────────────────
+
+$s14ParameterPacks13EquatablePackVMa ---> type metadata accessor for ParameterPacks.EquatablePack
+$s14ParameterPacks12HashablePackVMa ---> type metadata accessor for ParameterPacks.HashablePack
+$s14ParameterPacks11CodablePackVMa ---> type metadata accessor for ParameterPacks.CodablePack
+$s14ParameterPacks11SendableBoxVMa ---> type metadata accessor for ParameterPacks.SendableBox
+$s14ParameterPacks15DescribablePackVMa ---> type metadata accessor for ParameterPacks.DescribablePack
+$s14ParameterPacks14ComparablePackVMa ---> type metadata accessor for ParameterPacks.ComparablePack
+$s14ParameterPacks13EncodablePackVMa ---> type metadata accessor for ParameterPacks.EncodablePack
+$s14ParameterPacks13DecodablePackVMa ---> type metadata accessor for ParameterPacks.DecodablePack
+$s14ParameterPacks11NumericPackVMa ---> type metadata accessor for ParameterPacks.NumericPack
+
+// ── Pack class metadata accessors ─────────────────────────────────────────────
+
+$s14ParameterPacks9PackClassCMa ---> type metadata accessor for ParameterPacks.PackClass
+$s14ParameterPacks18EquatablePackClassCMa ---> type metadata accessor for ParameterPacks.EquatablePackClass
+$s14ParameterPacks17SendablePackClassCMa ---> type metadata accessor for ParameterPacks.SendablePackClass
+$s14ParameterPacks17HashablePackClassCMa ---> type metadata accessor for ParameterPacks.HashablePackClass
+$s14ParameterPacks16CodablePackClassCMa ---> type metadata accessor for ParameterPacks.CodablePackClass

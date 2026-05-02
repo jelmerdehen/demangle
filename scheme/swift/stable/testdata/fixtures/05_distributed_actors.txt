@@ -1,0 +1,68 @@
+// Swift distributed actor corpus
+// Generated: 2026-04-26
+// Source: scheme/swift/stable/src_extra/05_distributed_actors.swift
+// Toolchain: Swift version 6.3 (swift-6.3-RELEASE) x86_64-unknown-linux-gnu
+// Method: compiled with swiftc, symbols extracted via nm -D, oracle via swift-demangle
+// Parser results: 36 pass, 30 mismatch (grammar gaps — excluded), 8 error (grammar gaps — excluded)
+//
+// Only symbols where our parser output == swift-demangle output are included.
+//
+// Grammar gaps (MISMATCH — excluded):
+//   getter format: "getter for X.prop : T" vs "X.prop.getter : T"
+//   _tcfc init:    "__nonallocating_init" vs plain "init"
+//   fd deinit:     "__destroying_deinit X" vs "X.deinit"
+//   fD deinit:     "__deallocating_deinit X" vs "X.__deallocating_deinit"
+//   hashValue vg:  getter format mismatch
+//   withdraw with label: argument label elision for external=internal params
+//
+// Grammar gaps (FAIL — excluded):
+//   LL private-discriminated stored properties (33_<hash>LL prefix)
+//   resolve(id:using:) with negative-index substitutions (-AG0...)
+
+// ── WorkerNode ───────────────────────────────────────────────────────────────
+
+$s17DistributedActors10WorkerNodeC11actorSystemAC0A0012LocalTestinga5ActorF0C_tcfC ---> DistributedActors.WorkerNode.__allocating_init(actorSystem: Distributed.LocalTestingDistributedActorSystem) -> DistributedActors.WorkerNode
+$s17DistributedActors10WorkerNodeC12processItems5itemsSaySSGAF_tYaKF ---> DistributedActors.WorkerNode.processItems(items: [Swift.String]) async throws -> [Swift.String]
+$s17DistributedActors10WorkerNodeC12processItems5itemsSaySSGAF_tYaKFTE ---> distributed thunk DistributedActors.WorkerNode.processItems(items: [Swift.String]) async throws -> [Swift.String]
+$s17DistributedActors10WorkerNodeC4pingSbyYaKF ---> DistributedActors.WorkerNode.ping() async throws -> Swift.Bool
+$s17DistributedActors10WorkerNodeC4pingSbyYaKFTE ---> distributed thunk DistributedActors.WorkerNode.ping() async throws -> Swift.Bool
+$s17DistributedActors10WorkerNodeCMa ---> type metadata accessor for DistributedActors.WorkerNode
+
+// ── BankAccount ───────────────────────────────────────────────────────────────
+
+$s17DistributedActors11BankAccountC10getBalanceSdyYaKF ---> DistributedActors.BankAccount.getBalance() async throws -> Swift.Double
+$s17DistributedActors11BankAccountC10getBalanceSdyYaKFTE ---> distributed thunk DistributedActors.BankAccount.getBalance() async throws -> Swift.Double
+$s17DistributedActors11BankAccountC11actorSystemAC0A0012LocalTestinga5ActorF0C_tcfC ---> DistributedActors.BankAccount.__allocating_init(actorSystem: Distributed.LocalTestingDistributedActorSystem) -> DistributedActors.BankAccount
+$s17DistributedActors11BankAccountC7deposit6amountySd_tYaKF ---> DistributedActors.BankAccount.deposit(amount: Swift.Double) async throws -> ()
+$s17DistributedActors11BankAccountC7deposit6amountySd_tYaKFTE ---> distributed thunk DistributedActors.BankAccount.deposit(amount: Swift.Double) async throws -> ()
+$s17DistributedActors11BankAccountC8getOwnerSSyYaKF ---> DistributedActors.BankAccount.getOwner() async throws -> Swift.String
+$s17DistributedActors11BankAccountC8getOwnerSSyYaKFTE ---> distributed thunk DistributedActors.BankAccount.getOwner() async throws -> Swift.String
+$s17DistributedActors11BankAccountC8setOwneryySSYaKF ---> DistributedActors.BankAccount.setOwner(Swift.String) async throws -> ()
+$s17DistributedActors11BankAccountC8setOwneryySSYaKFTE ---> distributed thunk DistributedActors.BankAccount.setOwner(Swift.String) async throws -> ()
+$s17DistributedActors11BankAccountCMa ---> type metadata accessor for DistributedActors.BankAccount
+
+// ── Counter ───────────────────────────────────────────────────────────────────
+
+$s17DistributedActors7CounterC11actorSystemAC0A0012LocalTestinga5ActorE0C_tcfC ---> DistributedActors.Counter.__allocating_init(actorSystem: Distributed.LocalTestingDistributedActorSystem) -> DistributedActors.Counter
+$s17DistributedActors7CounterC5resetyyYaKF ---> DistributedActors.Counter.reset() async throws -> ()
+$s17DistributedActors7CounterC5resetyyYaKFTE ---> distributed thunk DistributedActors.Counter.reset() async throws -> ()
+$s17DistributedActors7CounterC5valueSiyYaKF ---> DistributedActors.Counter.value() async throws -> Swift.Int
+$s17DistributedActors7CounterC5valueSiyYaKFTE ---> distributed thunk DistributedActors.Counter.value() async throws -> Swift.Int
+$s17DistributedActors7CounterC9decrementyyYaKF ---> DistributedActors.Counter.decrement() async throws -> ()
+$s17DistributedActors7CounterC9decrementyyYaKFTE ---> distributed thunk DistributedActors.Counter.decrement() async throws -> ()
+$s17DistributedActors7CounterC9incrementyyYaKF ---> DistributedActors.Counter.increment() async throws -> ()
+$s17DistributedActors7CounterC9incrementyyYaKFTE ---> distributed thunk DistributedActors.Counter.increment() async throws -> ()
+$s17DistributedActors7CounterCMa ---> type metadata accessor for DistributedActors.Counter
+
+// ── DataStore ─────────────────────────────────────────────────────────────────
+
+$s17DistributedActors9DataStoreC11actorSystemAC0A0012LocalTestinga5ActorF0C_tcfC ---> DistributedActors.DataStore.__allocating_init(actorSystem: Distributed.LocalTestingDistributedActorSystem) -> DistributedActors.DataStore
+$s17DistributedActors9DataStoreC3get3keySSSgSS_tYaKF ---> DistributedActors.DataStore.get(key: Swift.String) async throws -> Swift.String?
+$s17DistributedActors9DataStoreC3get3keySSSgSS_tYaKFTE ---> distributed thunk DistributedActors.DataStore.get(key: Swift.String) async throws -> Swift.String?
+$s17DistributedActors9DataStoreC3set3key5valueySS_SStYaKF ---> DistributedActors.DataStore.set(key: Swift.String, value: Swift.String) async throws -> ()
+$s17DistributedActors9DataStoreC3set3key5valueySS_SStYaKFTE ---> distributed thunk DistributedActors.DataStore.set(key: Swift.String, value: Swift.String) async throws -> ()
+$s17DistributedActors9DataStoreC4keysSaySSGyYaKF ---> DistributedActors.DataStore.keys() async throws -> [Swift.String]
+$s17DistributedActors9DataStoreC4keysSaySSGyYaKFTE ---> distributed thunk DistributedActors.DataStore.keys() async throws -> [Swift.String]
+$s17DistributedActors9DataStoreC6delete3keySbSS_tYaKF ---> DistributedActors.DataStore.delete(key: Swift.String) async throws -> Swift.Bool
+$s17DistributedActors9DataStoreC6delete3keySbSS_tYaKFTE ---> distributed thunk DistributedActors.DataStore.delete(key: Swift.String) async throws -> Swift.Bool
+$s17DistributedActors9DataStoreCMa ---> type metadata accessor for DistributedActors.DataStore

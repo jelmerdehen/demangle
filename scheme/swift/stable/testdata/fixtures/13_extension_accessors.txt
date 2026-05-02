@@ -1,0 +1,52 @@
+// P1 fixture corpus — extension entity accessors, property descriptors,
+// associated-type descriptors, and cross-module simplified output.
+//
+// Fix P1: three patterns added to stable.go
+//   1. tryAssocTypeDescriptor: <assocName><module><protoName>PTl
+//   2. tryExtensionEntity (property accessors): vg/vs/vM/vW/vW + vpMV
+//   3. tryExtensionEntity (cross-module functions): simplified output
+//
+// All expected outputs verified against Apple swift-demangle 6.3.
+
+// ── Associated-type descriptors (PTl suffix) ─────────────────────────────────
+
+// Simple assoc-type name (10 chars) + protocol in SwiftUI
+$s10Foreground7SwiftUI18LabelGroupStyle_v0PTl ---> associated type descriptor for LabelGroupStyle_v0.Foreground
+
+// Word-substitution protocol name: 0A = words[0]="UIView" from "UIViewType"
+$s10UIViewType7SwiftUI0A13RepresentablePTl ---> associated type descriptor for UIViewRepresentable.UIViewType
+
+// Foundation protocol assoc-types include "Foundation." qualifier (matches Apple oracle)
+$s10ParseInput10Foundation0A8StrategyPTl ---> associated type descriptor for Foundation.ParseStrategy.ParseInput
+
+$s4Code10Foundation21_BridgedStoredNSErrorPTl ---> associated type descriptor for Foundation._BridgedStoredNSError.Code
+
+$s5Value10Foundation19AttributedStringKeyPTl ---> associated type descriptor for Foundation.AttributedStringKey.Value
+
+// ── Cross-module extension: property accessors (digit-start constraints) ─────
+
+// getter: IndexPath (Foundation struct) extended in SwiftUI
+$s10Foundation9IndexPathV7SwiftUIE04flatB0Sivg ---> IndexPath.flatIndex.getter
+
+// property descriptor for cross-module extension
+$s10Foundation9IndexPathV7SwiftUIE04flatB0SivpMV ---> property descriptor for IndexPath.flatIndex
+
+// ── Cross-module extension: functions (simplified output) ────────────────────
+
+// Function with label: isAncestor(of:)
+$s10Foundation9IndexPathV7SwiftUIE10isAncestor2ofSbAC_tF ---> IndexPath.isAncestor(of:)
+
+// Function with label: isSiblingOf(of:)
+$s10Foundation9IndexPathV7SwiftUIE11isSiblingOf2ofSbAC_tF ---> IndexPath.isSiblingOf(of:)
+
+// Function with label: isDescendant(of:)
+$s10Foundation9IndexPathV7SwiftUIE12isDescendant2ofSbAC_tF ---> IndexPath.isDescendant(of:)
+
+// Function with label: isChild(of:)
+$s10Foundation9IndexPathV7SwiftUIE7isChild2ofSbAC_tF ---> IndexPath.isChild(of:)
+
+// Function with two labels: sibling(atOffset:)
+$s10Foundation9IndexPathV7SwiftUIE7sibling8atOffsetACSi_tF ---> IndexPath.sibling(atOffset:)
+
+// Function with label: isParent(of:)
+$s10Foundation9IndexPathV7SwiftUIE8isParent2ofSbAC_tF ---> IndexPath.isParent(of:)

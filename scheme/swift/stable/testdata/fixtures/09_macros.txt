@@ -1,0 +1,48 @@
+// Swift 5.9+ macro-expansion synthetic names corpus
+// Generated: 2026-04-26
+// Source: scheme/swift/stable/src_extra/09_macros.swift (declarations only; expansions synthesised)
+// Toolchain: Swift version 6.3 (swift-6.3-RELEASE) x86_64-unknown-linux-gnu
+// Method: symbols from Apple swift/test/Macros/ + grammar-derived synthetic fixtures,
+//         oracle via swift-demangle, parser verified via demangle CLI
+// Parser results: 13 pass, 0 mismatch, 162 error/fail (grammar gaps — excluded)
+//
+// Only symbols where our parser output == swift-demangle output are included.
+//
+// Macro symbol anatomy:
+//   @__swiftmacro_ <module-ident> <file-ident> fMX <line>_ <col>_ <macro-ident> fM<role> <disc>_
+//
+//   fMX = MacroExpansionLoc — top-level freestanding macro expansion with source location
+//   fMf = freestanding expansion role (only role valid in fMX context)
+//   disc = expansion discriminator (absent = #1, "0" = #2, "1" = #3, …)
+//   file-ident encoded as 00<len><Apple-punycode> where '.' → punycode non-basic char
+//
+// Grammar gaps (FAIL — excluded):
+//   fMp_ (peer attachment):         attached macro patterns without fMX loc
+//   fMm_ (member attachment):       attached macro patterns without fMX loc
+//   fMr_ (memberAttribute):         attached macro patterns without fMX loc
+//   fMe_ (extension/conformance):   attached macro patterns without fMX loc
+//   fMa_ (accessor attachment):     attached macro patterns without fMX loc
+//   fMX...fMf_ with _33_ private discriminator in macro name (anonymousTypes variant)
+//   nested fMX (macro expansion inside macro expansion)
+
+// ── Freestanding #stringify expansions — diags.swift ─────────────────────
+
+@__swiftmacro_9MacroUser0016diagsswift_eCJAcfMX10_10_11coerceToIntfMf_ ---> freestanding macro expansion #1 of coerceToInt in module MacroUser file diags.swift line 11 column 11
+@__swiftmacro_9MacroUser0016diagsswift_eCJAcfMX11_10_11coerceToIntfMf0_ ---> freestanding macro expansion #2 of coerceToInt in module MacroUser file diags.swift line 12 column 11
+@__swiftmacro_9MacroUser0016diagsswift_eCJAcfMX12_10_9stringifyfMf_ ---> freestanding macro expansion #1 of stringify in module MacroUser file diags.swift line 13 column 11
+@__swiftmacro_9MacroUser0016diagsswift_eCJAcfMX1_5_9stringifyfMf_ ---> freestanding macro expansion #1 of stringify in module MacroUser file diags.swift line 2 column 6
+@__swiftmacro_9MacroUser0016diagsswift_eCJAcfMX5_2_6addOnefMf_ ---> freestanding macro expansion #1 of addOne in module MacroUser file diags.swift line 6 column 3
+@__swiftmacro_9MacroUser0016diagsswift_eCJAcfMX9_0_13coerceToInt32fMf_ ---> freestanding macro expansion #1 of coerceToInt32 in module MacroUser file diags.swift line 10 column 1
+
+// ── Freestanding #stringify expansions — macro_basic.swift ───────────────
+
+@__swiftmacro_9MacroUser0022macro_basicswift_tiAIefMX3_6_9stringifyfMf_ ---> freestanding macro expansion #1 of stringify in module MacroUser file macro_basic.swift line 4 column 7
+@__swiftmacro_9MacroUser0022macro_basicswift_tiAIefMX9_4_9stringifyfMf_ ---> freestanding macro expansion #1 of stringify in module MacroUser file macro_basic.swift line 10 column 5
+@__swiftmacro_9MacroUser0022macro_basicswift_tiAIefMX9_4_9stringifyfMf0_ ---> freestanding macro expansion #2 of stringify in module MacroUser file macro_basic.swift line 10 column 5
+@__swiftmacro_9MacroUser0022macro_basicswift_tiAIefMX20_0_15bitwidthNumbersfMf_ ---> freestanding macro expansion #1 of bitwidthNumbers in module MacroUser file macro_basic.swift line 21 column 1
+
+// ── Freestanding expansions — macro_expand_closure.swift ─────────────────
+
+@__swiftmacro_9MacroUser0031macro_expand_closureswift_yFFIifMX16_2_14multiStatementfMf_ ---> freestanding macro expansion #1 of multiStatement in module MacroUser file macro_expand_closure.swift line 17 column 3
+@__swiftmacro_9MacroUser0031macro_expand_closureswift_yFFIifMX10_4_14multiStatementfMf_ ---> freestanding macro expansion #1 of multiStatement in module MacroUser file macro_expand_closure.swift line 11 column 5
+@__swiftmacro_9MacroUser0031macro_expand_closureswift_yFFIifMX4_2_9stringifyfMf_ ---> freestanding macro expansion #1 of stringify in module MacroUser file macro_expand_closure.swift line 5 column 3
