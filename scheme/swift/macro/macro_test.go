@@ -87,6 +87,24 @@ func TestMacroMangleRoundTrip(t *testing.T) {
 	}
 }
 
+// TestMacroImplParamOverflow verifies that a @__swiftmacro_ symbol with an
+// absurdly large r<N>_ substituted-param count returns an error instead of
+// OOM-allocating. Regression for fuzz seed 817aadc4bc440d2f.
+func TestMacroImplParamOverflow(t *testing.T) {
+	t.Parallel()
+	cat := demangle.NewCatalog()
+	cat.Register(macro.Scheme{})
+	inputs := []string{
+		"@__swiftmacro_r0010000000000000_r",
+		"@__swiftmacro_r9999999999999999_",
+	}
+	for _, in := range inputs {
+		_, err := cat.Demangle(context.Background(), in, nil)
+		// Must not panic; error or no-match both acceptable.
+		_ = err
+	}
+}
+
 func FuzzSwiftMacro(f *testing.F) {
 	seeds := []string{
 		"@__swiftmacro_Bi32_",

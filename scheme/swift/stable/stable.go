@@ -3729,6 +3729,10 @@ func (p *parser) tryImplFunctionType() (*demangle.Node, bool) {
 				num := 0
 				for k := p.i + 1; k < j; k++ {
 					num = num*10 + int(p.s[k]-'0')
+					if num > 254 { // cap at 256 total params
+						revert()
+						return nil, false
+					}
 				}
 				innerSubstitutedParamCount = num + 2
 				p.i = j + 1
