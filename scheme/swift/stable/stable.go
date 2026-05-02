@@ -14655,31 +14655,41 @@ func (p *parser) tryParameterizedExistentialTail(inner *demangle.Node) (*demangl
 			revert()
 			return inner, false
 		}
-		// Optional proto-path-ref: anything up to 'Rts'. We accept
-		// a narrow form: zero-or-one 'A<letter>...P' sub-ref-with-kind.
-		protoPath := ""
-		for !p.eof() && !(p.i+2 < len(p.s) &&
+		// Optional proto-path-ref: bytes between name and 'Rts' encode
+		// the constraining protocol. Try parsing as a type speculatively;
+		// fall back to blind scan when parseType fails or leaves non-Rts.
+		var protoQualifier *demangle.Node
+		if !p.eof() && !(p.i+2 < len(p.s) &&
 			p.s[p.i] == 'R' && p.s[p.i+1] == 't' && p.s[p.i+2] == 's') {
-			// Scan up to 6 bytes for the path; give up beyond.
-			if p.i-entrySave > 60 {
-				revert()
-				return inner, false
+			protoSave := p.i
+			protoSubsSave := p.subs
+			protoNode, protoErr := p.parseType()
+			if protoErr == nil && !p.eof() && p.i+2 < len(p.s) &&
+				p.s[p.i] == 'R' && p.s[p.i+1] == 't' && p.s[p.i+2] == 's' {
+				protoQualifier = protoNode
+			} else {
+				p.i = protoSave
+				p.subs = protoSubsSave
+				for !p.eof() && !(p.i+2 < len(p.s) &&
+					p.s[p.i] == 'R' && p.s[p.i+1] == 't' && p.s[p.i+2] == 's') {
+					if p.i-entrySave > 60 {
+						revert()
+						return inner, false
+					}
+					p.i++
+				}
 			}
-			p.i++
 		}
 		if p.eof() || !(p.i+2 < len(p.s) && p.s[p.i] == 'R' &&
 			p.s[p.i+1] == 't' && p.s[p.i+2] == 's') {
 			revert()
 			return inner, false
 		}
-		_ = protoPath
 		p.i += 3 // consume 'Rts'
 		selfPrefix := "Self"
-		// If we skipped bytes for a proto-path-ref (any non-Rts bytes
-		// between name and Rts), emit the inner proto's qualified
-		// name as the Self qualifier (matches Apple's rendering for
-		// the sub-ref'd-proto form).
-		if p.i-3-entrySave-len(name)-lenDigits(name) > 2 {
+		if protoQualifier != nil {
+			selfPrefix = "Self." + common.Print(protoQualifier, common.DefaultPrintOptions())
+		} else if p.i-3-entrySave-len(name)-lenDigits(name) > 2 {
 			innerText := common.Print(inner, common.DefaultPrintOptions())
 			selfPrefix = "Self." + innerText
 		}

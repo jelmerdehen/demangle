@@ -243,6 +243,11 @@ func TestAssociatedTypeDescriptorFixtureStrictGate(t *testing.T) {
 	runStrictGateFile(t, "associated_type_descriptor.txt")
 }
 
+// TestPropertyDescriptorFixtureStrictGate verifies all property_descriptor.txt entries pass.
+func TestPropertyDescriptorFixtureStrictGate(t *testing.T) {
+	runStrictGateFile(t, "property_descriptor.txt")
+}
+
 func runSingleCategory(t *testing.T, filename string) {
 	t.Helper()
 	cat := demangle.NewCatalog()
