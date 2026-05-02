@@ -191,6 +191,58 @@ func TestProtocolConformanceDescriptorFixtureStrictGate(t *testing.T) {
 	}
 }
 
+// runStrictGateFile reads a category fixture file and requires every entry to pass.
+// Use for buckets where 100% of entries are expected to demangle correctly.
+func runStrictGateFile(t *testing.T, filename string) {
+	t.Helper()
+	cat := demangle.NewCatalog()
+	cat.Register(stable.Scheme{})
+	ctx := context.Background()
+	f, err := os.Open(filepath.Join(".", filename))
+	if err != nil {
+		t.Fatalf("open %s: %v", filename, err)
+	}
+	defer f.Close()
+	scanner := bufio.NewScanner(f)
+	scanner.Buffer(make([]byte, 256*1024), 256*1024)
+	lineNum, pass, fail := 0, 0, 0
+	for scanner.Scan() {
+		line := scanner.Text()
+		lineNum++
+		if strings.HasPrefix(line, "#") || strings.TrimSpace(line) == "" {
+			continue
+		}
+		parts := strings.SplitN(line, " ---> ", 2)
+		if len(parts) != 2 {
+			continue
+		}
+		sym, want := strings.TrimSpace(parts[0]), strings.TrimSpace(parts[1])
+		r, err2 := cat.Demangle(ctx, sym, nil)
+		if err2 != nil {
+			t.Errorf("%s:%d: Demangle(%q) error: %v", filename, lineNum, sym, err2)
+			fail++
+			continue
+		}
+		if r.Output != want {
+			t.Errorf("%s:%d: Demangle(%q)\n  got:  %q\n  want: %q", filename, lineNum, sym, r.Output, want)
+			fail++
+			continue
+		}
+		pass++
+	}
+	t.Logf("strict gate %s: %d/%d pass", filename, pass, pass+fail)
+}
+
+// TestInitConstraintFixtureStrictGate verifies all init_constraint.txt entries pass.
+func TestInitConstraintFixtureStrictGate(t *testing.T) {
+	runStrictGateFile(t, "init_constraint.txt")
+}
+
+// TestAssociatedTypeDescriptorFixtureStrictGate verifies all associated_type_descriptor.txt entries pass.
+func TestAssociatedTypeDescriptorFixtureStrictGate(t *testing.T) {
+	runStrictGateFile(t, "associated_type_descriptor.txt")
+}
+
 func runSingleCategory(t *testing.T, filename string) {
 	t.Helper()
 	cat := demangle.NewCatalog()
