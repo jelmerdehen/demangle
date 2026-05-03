@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 83.0% (52899/63757) — 2026-05-03T14:43:51Z
-**Round-trip**: 63.63% (11468/18023) — 2026-04-29T09:06:12Z
-**Failures**: ~10090 parse-errors + ~769 mismatches (production-divergences.txt stale; counts approximate)
+**Parity**: 83.0% (52907/63757) — 2026-05-03T15:30Z
+**Round-trip**: 63.69% (11478/18023) — 2026-05-03T15:30Z
+**Failures**: ~10082 parse-errors + ~761 mismatches (production-divergences.txt stale; counts approximate)
 
 ## Top-20 Mismatch Categories
 
@@ -29,7 +29,8 @@
 
 ## Last 10 Commits
 
-- (pending) swift-parity: PG self-return multi-sub result fix — parity 52867→52899 (+32 production, +7 fixtures)
+- (pending) swift-parity: PE function-type params-first fix — parity 52899→52907 (+8 production)
+- a44d773 swift-parity: PG self-return multi-sub result fix — parity 52867→52899 (+32 production, +7 fixtures)
 - d69421f swift-parity: WE enum-case compact-tuple double-paren fix — parity 52865→52867 (+2 production)
 - 43e1cb5 swift-parity: PC nested-extension double-prefix — parity 52830→52865 (+8 fixtures, +35 production)
 - 3440ed3 swift-parity: PB-2 QP pack-expansion scalar separation — parity 52824→52830 (+6 production, +1 strict gate)
@@ -45,4 +46,4 @@
 
 1. investigate: (extension in Foundation):(extension in Foundation… — 36 mismatches
 2. P1: property descriptor fix — 33 mismatches
-3. investigate: dispatch thunk — 17 mismatches
+3. substitution-ref bug: _CalendarProtocol.date + NSKeyValueObservingCustomization (2 dispatch-thunk + 2 method-descriptor failures)

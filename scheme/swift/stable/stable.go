@@ -13136,7 +13136,12 @@ func (p *parser) parseFunctionType() (*demangle.Node, error) {
 	p.inFunctionTypeSlot = true
 	defer func() { p.inFunctionTypeSlot = prevSlot }()
 	// Result-type.
+	// Apple omits the explicit void-result 'y' when the result is void and there is
+	// exactly one type before the convention marker (tuple-element compact form). Detect
+	// this by peeking: if a real type was parsed and convention follows immediately
+	// (possibly after K/Ya annotations), the type is actually PARAMS and result is void.
 	var r *demangle.Node
+	resultIsActuallyParams := false
 	if !p.eof() && p.s[p.i] == 'y' {
 		p.i++
 		r = common.NewNode(common.KindEmptyList)
@@ -13148,12 +13153,32 @@ func (p *parser) parseFunctionType() (*demangle.Node, error) {
 			return nil, err
 		}
 		r = t
+		// Peek past any K/Ya annotations to find the convention marker.
+		peekI := p.i
+		for peekI < len(p.s) {
+			if p.s[peekI] == 'K' {
+				peekI++
+				continue
+			}
+			if peekI+1 < len(p.s) && p.s[peekI] == 'Y' && p.s[peekI+1] == 'a' {
+				peekI += 2
+				continue
+			}
+			break
+		}
+		if peekI < len(p.s) && (p.s[peekI] == 'c' || p.s[peekI] == 'X') {
+			resultIsActuallyParams = true
+		}
 	}
 	// Params-type. If next byte is a marker ('c' escaping or 'X'
 	// convention), params is implicitly empty (the two 'y's ate
 	// result+params already, per Apple's push order).
 	var a *demangle.Node
-	if !p.eof() && (p.s[p.i] == 'c' || p.s[p.i] == 'X') {
+	if resultIsActuallyParams {
+		// Single type before convention: it was params, result is void.
+		a = r
+		r = common.NewNode(common.KindEmptyList)
+	} else if !p.eof() && (p.s[p.i] == 'c' || p.s[p.i] == 'X') {
 		a = common.NewNode(common.KindEmptyList)
 	} else if !p.eof() && p.s[p.i] == 'y' {
 		p.i++

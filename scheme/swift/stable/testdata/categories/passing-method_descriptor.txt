@@ -1,4 +1,5 @@
-# snapshot-pass-set update 2026-05-03T14:43:51Z — union with previous (high-water)
+# snapshot-pass-set update 2026-05-03T15:22:26Z — union with previous (high-water)
+_$s10Foundation16RecoverableErrorP15attemptRecovery11optionIndex13resultHandlerySi_ySbctFTq
 _$s10Foundation17_TimeZoneProtocolP018nextDaylightSavingB10Transition5afterAA4DateVSgAG_tFTq
 _$s10Foundation28DecodableAttributedStringKeyP6decode4from5ValueQzs7Decoder_p_tKFZTq
 _$s10Foundation36MarkdownDecodableAttributedStringKeyP06decodeB04from5ValueQzs7Decoder_p_tKFZTq
