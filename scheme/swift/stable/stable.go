@@ -11700,11 +11700,18 @@ func (p *parser) tryBoundGeneric(base *demangle.Node) (*demangle.Node, bool, err
 	p.i++
 	var args []*demangle.Node
 	var conformanceBuf strings.Builder
+	// currentLevel tracks how many '_' bytes have been seen so far in
+	// the y...G arg stream. Each '_' means "no generic params at this
+	// chain level; advance to the next level." Recording the level for
+	// each real arg lets the printer distribute args to the correct
+	// chain segment (root vs. inner nominal components).
+	currentLevel := 0
+	var argLevels []int
 	for !p.eof() && p.s[p.i] != 'G' {
-		// Skip '_' separators between args (used when the list mixes
-		// integer literals / generic params with nominals).
+		// '_' = positional null: no generic params at currentLevel; advance.
 		if p.s[p.i] == '_' {
 			p.i++
+			currentLevel++
 			continue
 		}
 		// QP — Swift 5.9+ parameter pack: wrap all currently-accumulated
@@ -11755,6 +11762,7 @@ func (p *parser) tryBoundGeneric(base *demangle.Node) (*demangle.Node, bool, err
 			err = fmt.Errorf("bare identifier not a type arg")
 		}
 		if err == nil {
+			argLevels = append(argLevels, currentLevel)
 			args = append(args, arg)
 			// Peek ahead for immediately-following conformance-ref
 			// metadata blocks (each ends with 'g<digits>?_').
@@ -11816,11 +11824,23 @@ func (p *parser) tryBoundGeneric(base *demangle.Node) (*demangle.Node, bool, err
 
 	bound := common.NewNode(bKind)
 	common.AddChildren(bound, base, typeList)
-	if conformanceBuf.Len() > 0 {
+	if conformanceBuf.Len() > 0 || len(argLevels) > 0 {
 		if bound.Attrs == nil {
 			bound.Attrs = map[string]string{}
 		}
-		bound.Attrs["swift.conformance_tail"] = conformanceBuf.String()
+		if conformanceBuf.Len() > 0 {
+			bound.Attrs["swift.conformance_tail"] = conformanceBuf.String()
+		}
+		if len(argLevels) > 0 {
+			var sb strings.Builder
+			for i, l := range argLevels {
+				if i > 0 {
+					sb.WriteByte(',')
+				}
+				sb.WriteString(strconv.Itoa(l))
+			}
+			bound.Attrs["swift.bg.arg_levels"] = sb.String()
+		}
 	}
 
 	typ := common.NewNode(common.KindType)

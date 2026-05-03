@@ -717,16 +717,94 @@ func printBoundGeneric(b *strings.Builder, n *demangle.Node, opts PrintOptions) 
 				b.WriteString(trail)
 				return
 			}
-			// Only apply root-args placement for single-level nesting
-			// (trail has exactly one dot-component). For deeper nesting the
-			// generic args belong to the leaf type, not the root ancestor.
-			if strings.Count(trail, ".") == 1 {
-				printNode(b, root, opts)
-				b.WriteByte('<')
-				printNode(b, args, opts)
-				b.WriteByte('>')
-				b.WriteString(trail)
-				return
+			// Distribute generic args among root and trail components using
+			// the per-arg level recorded during BG parsing ('_' bytes in
+			// the y…G stream each advance the level counter; a real arg is
+			// recorded at the current level). The level counter starts at 0
+			// for the outermost ancestor in the full chain, which may be an
+			// enum above root (findNestedNominal stops at enum parents).
+			// Compute `offset` = number of nominal ancestors above root so
+			// that root maps to encoding level `offset` and trail comp i
+			// maps to encoding level `offset + 1 + i`.
+			if strings.Count(trail, ".") >= 1 {
+				var argLevels []int
+				if n.Attrs != nil {
+					if ls := n.Attrs["swift.bg.arg_levels"]; ls != "" {
+						for _, s := range strings.Split(ls, ",") {
+							if v, err := strconv.Atoi(s); err == nil {
+								argLevels = append(argLevels, v)
+							}
+						}
+					}
+				}
+				if len(argLevels) == len(args.Children) {
+					// Walk root's parent chain to count nominal ancestors
+					// above it (enum levels that findNestedNominal skipped).
+					offset := 0
+					for cur := root; ; {
+						var par *demangle.Node
+						for _, c := range cur.Children {
+							switch NodeKind(c.Kind) {
+							case KindStructure, KindClass, KindEnum, KindProtocol:
+								par = c
+							case KindType:
+								if len(c.Children) > 0 {
+									switch NodeKind(c.Children[0].Kind) {
+									case KindStructure, KindClass, KindEnum, KindProtocol:
+										par = c.Children[0]
+									}
+								}
+							}
+						}
+						if par == nil {
+							break
+						}
+						offset++
+						cur = par
+					}
+					trailComps := strings.Split(trail[1:], ".")
+					// Collect root args (encoding level == offset).
+					var rootArgs []*demangle.Node
+					for i, l := range argLevels {
+						if l == offset {
+							rootArgs = append(rootArgs, args.Children[i])
+						}
+					}
+					printNode(b, root, opts)
+					if len(rootArgs) > 0 {
+						b.WriteByte('<')
+						for i, a := range rootArgs {
+							if i > 0 {
+								b.WriteString(", ")
+							}
+							printNode(b, a, opts)
+						}
+						b.WriteByte('>')
+					}
+					// Trail component i is at encoding level offset + 1 + i.
+					for compIdx, comp := range trailComps {
+						b.WriteByte('.')
+						b.WriteString(comp)
+						compLevel := offset + 1 + compIdx
+						var compArgs []*demangle.Node
+						for i, l := range argLevels {
+							if l == compLevel {
+								compArgs = append(compArgs, args.Children[i])
+							}
+						}
+						if len(compArgs) > 0 {
+							b.WriteByte('<')
+							for i, a := range compArgs {
+								if i > 0 {
+									b.WriteString(", ")
+								}
+								printNode(b, a, opts)
+							}
+							b.WriteByte('>')
+						}
+					}
+					return
+				}
 			}
 		}
 	}
