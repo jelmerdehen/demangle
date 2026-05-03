@@ -9,8 +9,8 @@
 #   regenerate        — clean compile extract oracle
 #   check-reproducible — regenerate twice, diff the results
 
-SWIFTC          := /usr/bin/swiftc
-SWIFT_DEMANGLE  := /usr/lib/swift/bin/swift-demangle
+SWIFTC          ?= swiftc
+SWIFT_DEMANGLE  ?= swift-demangle
 SWIFT_FLAGS     := -emit-library -target x86_64-unknown-linux-gnu -O
 
 SRC_DIR   := src

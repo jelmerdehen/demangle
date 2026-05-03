@@ -7053,6 +7053,10 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 			n := 0
 			for _, d := range []byte(p.s[lenStart:k]) {
 				n = n*10 + int(d-'0')
+				if n < 0 || n > len(p.s) {
+					n = len(p.s) // overflow guard: force bounds check below to fire
+					break
+				}
 			}
 			k += n
 			if k >= len(p.s) {
@@ -7107,6 +7111,10 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 				n := 0
 				for _, d := range []byte(p.s[chunkStart:k]) {
 					n = n*10 + int(d-'0')
+					if n < 0 || n > len(p.s) {
+						n = len(p.s) // overflow guard
+						break
+					}
 				}
 				k += n
 				// The char after the chunk (if uppercase) is a word-sub reference;
@@ -7206,6 +7214,10 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 				n := 0
 				for _, d := range constraintBytes[lenStart:j] {
 					n = n*10 + int(d-'0')
+					if n < 0 || n > len(constraintBytes) {
+						n = len(constraintBytes) // overflow guard
+						break
+					}
 				}
 				nameStart := j
 				j += n
@@ -7310,6 +7322,10 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 					n := 0
 					for _, d := range constraintBytes[lenStart:j] {
 						n = n*10 + int(d-'0')
+						if n < 0 || n > len(constraintBytes) {
+							n = len(constraintBytes) // overflow guard
+							break
+						}
 					}
 					nameEnd := j + n
 					if nameEnd < len(constraintBytes) {
