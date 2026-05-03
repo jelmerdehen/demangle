@@ -30,21 +30,6 @@ BenchmarkSchemesAll/android-dex/method-16                    	27188624	       13
 BenchmarkSchemesAll/android-dex/array-16                     	26110324	       140.4 ns/op	     280 B/op	       4 allocs/op
 BenchmarkSchemesAll/js-minified/terser-16                    	15702103	       231.8 ns/op	     576 B/op	       4 allocs/op
 BenchmarkSchemesAll/js-minified/obf-hex-16                   	13698540	       260.0 ns/op	     576 B/op	       4 allocs/op
-BenchmarkBatch-16                                            	    6170	    605725 ns/op	    369805 names/sec	 1014369 B/op	    6475 allocs/op
-BenchmarkDemangleBatch_1M-16                                 	       3	1277067819 ns/op	   0.78 MB/s	    783047 symbols/sec	7783829272 B/op	133763772 allocs/op
---- BENCH: BenchmarkDemangleBatch_1M-16
-    swift_batch_test.go:53: workers: 16  parsed: 54008  million: 1000000
-    swift_batch_test.go:70: WARNING: throughput 781288 symbols/sec < 1M/sec gate
-    swift_batch_test.go:53: workers: 16  parsed: 54008  million: 1000000
-    swift_batch_test.go:70: WARNING: throughput 796945 symbols/sec < 1M/sec gate
-    swift_batch_test.go:53: workers: 16  parsed: 54008  million: 1000000
-    swift_batch_test.go:70: WARNING: throughput 783047 symbols/sec < 1M/sec gate
-BenchmarkDemangleBatch_Workers/workers=1-16                  	       3	1235483366 ns/op	   0.16 MB/s	    161880 symbols/sec	1566743450 B/op	26924152 allocs/op
-BenchmarkDemangleBatch_Workers/workers=2-16                  	       5	 656108885 ns/op	   0.30 MB/s	    304828 symbols/sec	1566762080 B/op	26924450 allocs/op
-BenchmarkDemangleBatch_Workers/workers=4-16                  	       8	 412900736 ns/op	   0.48 MB/s	    484378 symbols/sec	1566801814 B/op	26925001 allocs/op
-BenchmarkDemangleBatch_Workers/workers=8-16                  	      12	 291352812 ns/op	   0.69 MB/s	    686453 symbols/sec	1566829940 B/op	26925610 allocs/op
-BenchmarkDemangle_1M-16                                      	       1	10343998055 ns/op	   0.10 MB/s	    153419 fail	    846581 ok	     96674 symbols/sec	13228877840 B/op	243405606 allocs/op
-BenchmarkDemangle_1M_Parsed-16                               	       1	6057843579 ns/op	   0.17 MB/s	    165075 symbols/sec	7736628768 B/op	133765240 allocs/op
 BenchmarkDemangle_BaselineSlice-16                           	       5	 688431773 ns/op	     63757 symbols/iter	     92612 symbols/sec	844380640 B/op	15478679 allocs/op
 PASS
 ok  	github.com/jelmerdehen/demangle/internal/bench	176.508s
