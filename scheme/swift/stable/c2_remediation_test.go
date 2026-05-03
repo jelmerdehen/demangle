@@ -140,12 +140,7 @@ func asError(err error, target **demangle.Error) bool {
 	if err == nil {
 		return false
 	}
-	type asInterface interface {
-		As(interface{}) bool
-	}
-	// Use errors.As via type assertion to avoid importing "errors" in a test
-	// file that already has many imports.  In practice we just do a direct
-	// type assertion since *demangle.Error is a concrete type.
+	// Direct type assertion since *demangle.Error is a concrete type.
 	if de, ok := err.(*demangle.Error); ok {
 		*target = de
 		return true

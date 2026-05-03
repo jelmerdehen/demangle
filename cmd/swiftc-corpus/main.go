@@ -10,7 +10,6 @@
 //	swiftc-corpus --check               assert committed corpus matches regeneration output
 //	swiftc-corpus --diff <symbol>       print demangle / remangle / oracle output for one symbol
 //	swiftc-corpus --feature <NN>        restrict --check or --diff to symbols from src/NN_*.swift
-//	swiftc-corpus --divergences <path>  path to divergences file (used with --check)
 package main
 
 import (
@@ -31,7 +30,6 @@ import (
 const (
 	oracleBin     = "/usr/lib/swift/bin/swift-demangle"
 	corpusRelPath = "scheme/swift/stable/testdata/swiftc/corpus.txt"
-	divRelPath    = "scheme/swift/stable/testdata/swiftc/swiftc-oracle-divergences.txt"
 	testdataDir   = "scheme/swift/stable/testdata/swiftc"
 	moduleName    = "github.com/jelmerdehen/demangle"
 )
@@ -39,7 +37,6 @@ const (
 func main() {
 	fs := flag.NewFlagSet("swiftc-corpus", flag.ExitOnError)
 	corpusFlag := fs.String("corpus", "", "path to corpus.txt (default: auto-located relative to repo root)")
-	divergencesFlag := fs.String("divergences", "", "path to swiftc-oracle-divergences.txt")
 	regenerate := fs.Bool("regenerate", false, "wipe + rebuild corpus: run 'make regenerate' in testdata dir")
 	check := fs.Bool("check", false, "assert committed corpus matches current regeneration output")
 	diff := fs.String("diff", "", "print demangle/remangle/oracle output for one symbol")
@@ -55,11 +52,6 @@ func main() {
 	corpusPath := *corpusFlag
 	if corpusPath == "" {
 		corpusPath = filepath.Join(repoRoot, corpusRelPath)
-	}
-
-	divPath := *divergencesFlag
-	if divPath == "" {
-		divPath = filepath.Join(repoRoot, divRelPath)
 	}
 
 	testdata := filepath.Join(repoRoot, testdataDir)

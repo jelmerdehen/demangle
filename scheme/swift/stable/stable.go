@@ -372,36 +372,66 @@ func (p *parser) parseGlobal() (*demangle.Node, error) {
 	// Must be tried before tryAssocTypeDescriptor which also starts digit-led.
 	var inner *demangle.Node
 	if tlNode, tlOk := p.tryProtoRequirementsBaseDescriptor(); tlOk {
+		if p.origin == "_$s10Foundation20PredicateExpressionsO7KeyPathV06CommondE4KindOMn" {
+			fmt.Printf("DEBUG tryProtoRequirementsBaseDescriptor matched\n")
+		}
 		inner = tlNode
 	} else if atdNode, atdOk := p.tryAssocTypeDescriptor(); atdOk {
+		if p.origin == "_$s10Foundation20PredicateExpressionsO7KeyPathV06CommondE4KindOMn" {
+			fmt.Printf("DEBUG tryAssocTypeDescriptor matched\n")
+		}
 		inner = atdNode
 	} else if extEntity, ok, err := p.tryTypeFirstExtensionEntity(); err != nil {
 		return nil, err
 	} else if ok {
+		if p.origin == "_$s10Foundation20PredicateExpressionsO7KeyPathV06CommondE4KindOMn" {
+			fmt.Printf("DEBUG tryTypeFirstExtensionEntity matched kind=%d text=%q\n", extEntity.Kind, extEntity.Text)
+		}
 		inner = extEntity
 	} else if extEntity, ok, err := p.tryExtensionEntity(); err != nil {
 		return nil, err
 	} else if ok {
+		if p.origin == "_$s10Foundation20PredicateExpressionsO7KeyPathV06CommondE4KindOMn" {
+			fmt.Printf("DEBUG tryExtensionEntity matched kind=%d text=%q\n", extEntity.Kind, extEntity.Text)
+		}
 		inner = extEntity
 	} else if entity, ok, err := p.tryFunctionEntity(); err != nil {
 		return nil, err
 	} else if ok {
+		if p.origin == "_$s10Foundation20PredicateExpressionsO7KeyPathV06CommondE4KindOMn" {
+			fmt.Printf("DEBUG tryFunctionEntity matched\n")
+		}
 		inner = entity
 	} else if varEntity, ok, err := p.tryVariableEntity(); err != nil {
 		return nil, err
 	} else if ok {
+		if p.origin == "_$s10Foundation20PredicateExpressionsO7KeyPathV06CommondE4KindOMn" {
+			fmt.Printf("DEBUG tryVariableEntity matched\n")
+		}
 		inner = varEntity
 	} else if initCompact, ok, err := p.tryCompactStdlibInitEntity(); err != nil {
 		return nil, err
 	} else if ok {
+		if p.origin == "_$s10Foundation20PredicateExpressionsO7KeyPathV06CommondE4KindOMn" {
+			fmt.Printf("DEBUG tryCompactStdlibInitEntity matched\n")
+		}
 		inner = initCompact
 	} else if initEntity, ok, err := p.tryInitDeinitEntity(); err != nil {
 		return nil, err
 	} else if ok {
+		if p.origin == "_$s10Foundation20PredicateExpressionsO7KeyPathV06CommondE4KindOMn" {
+			fmt.Printf("DEBUG tryInitDeinitEntity matched\n")
+		}
 		inner = initEntity
 	} else if implFn, ok := p.tryImplFunctionType(); ok {
+		if p.origin == "_$s10Foundation20PredicateExpressionsO7KeyPathV06CommondE4KindOMn" {
+			fmt.Printf("DEBUG tryImplFunctionType matched\n")
+		}
 		inner = implFn
 	} else {
+		if p.origin == "_$s10Foundation20PredicateExpressionsO7KeyPathV06CommondE4KindOMn" {
+			fmt.Printf("DEBUG falling through to parseType\n")
+		}
 		saveFallback := p.i
 		saveSubsFallback := p.subs
 		t, err := p.parseType()
@@ -418,6 +448,23 @@ func (p *parser) parseGlobal() (*demangle.Node, error) {
 		}
 	}
 
+	// DEBUG
+	if p.origin == "_$s10Foundation20PredicateExpressionsO7KeyPathV06CommondE4KindOMn" {
+		fmt.Printf("DEBUG inner kind=%d text=%q children=%d\n", inner.Kind, inner.Text, len(inner.Children))
+		if len(inner.Children) > 0 {
+			c0 := inner.Children[0]
+			fmt.Printf("  child[0] kind=%d text=%q children=%d\n", c0.Kind, c0.Text, len(c0.Children))
+			if len(c0.Children) > 0 {
+				c00 := c0.Children[0]
+				fmt.Printf("    child[0][0] kind=%d text=%q children=%d\n", c00.Kind, c00.Text, len(c00.Children))
+			}
+			if len(c0.Children) > 1 {
+				c01 := c0.Children[1]
+				fmt.Printf("    child[0][1] kind=%d text=%q\n", c01.Kind, c01.Text)
+			}
+		}
+	}
+	// END DEBUG
 	// Protocol-conformance shape: <Type> <Protocol> <SourceModule> Hc
 	// (or Hp for retroactive). Runs BEFORE the generic entity suffix
 	// check because the shape consumes multiple types.
@@ -3706,7 +3753,8 @@ func (p *parser) tryParsePseudogenericSig() (sigStr string, consumedBareL bool, 
 func (p *parser) tryImplFunctionType() (*demangle.Node, bool) {
 	save := p.i
 	saveSubs := p.subs
-	revert := func() { p.i = save; p.subs = saveSubs }
+	saveWords := p.words
+	revert := func() { p.i = save; p.subs = saveSubs; p.words = saveWords }
 	// Parse 0-or-more leading types. Inside this loop we also
 	// recognise 'S<digits><letter>' multi-count stdlib shortcut and
 	// expand inline as N copies of the letter-typed stdlib sub.
@@ -4145,15 +4193,17 @@ func (p *parser) tryImplFunctionType() (*demangle.Node, bool) {
 func (p *parser) tryVariableEntity() (*demangle.Node, bool, error) {
 	save := p.i
 	saveSubs := p.subs
+	saveWords := p.words
 	restore := func() {
 		p.i = save
 		p.subs = saveSubs
+		p.words = saveWords
 	}
 	// Accept 's' (Swift module shorthand), 'S<letter>' (stdlib substitution
 	// type as context), or digit-led module identifier.
 	var mod string
 	var pathSteps []*demangle.Node
-	moduleNode := common.NewModule("Swift") // default; overwritten for non-Swift
+	var moduleNode *demangle.Node
 	var accParent *demangle.Node
 	var accType *demangle.Node
 	if !p.eof() && p.s[p.i] == 'S' && p.i+1 < len(p.s) {
@@ -4542,7 +4592,8 @@ func (p *parser) tryCompactStdlibInitEntity() (*demangle.Node, bool, error) {
 func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 	save := p.i
 	saveSubs := p.subs
-	restore := func() { p.i = save; p.subs = saveSubs }
+	saveWords := p.words
+	restore := func() { p.i = save; p.subs = saveSubs; p.words = saveWords }
 	// Accept 's' (Swift module shorthand), 'So'/'SC' (Obj-C importer),
 	// 'S<letter>' (stdlib known-type abbreviation), or digit-led module.
 	var mod string
@@ -9052,85 +9103,7 @@ func (p *parser) tryAssocTypeDescriptor() (*demangle.Node, bool) {
 	return wrap, true
 }
 
-// extractConstraintSig turns a byte slice containing an Apple-style
-// generic-sig segment (Rj<idx>_<subj> etc.) into a human-readable
-// '< where ...>' clause. Narrow: only 'Rj_' (assoc-type subject) +
-// a leading '<N><name>' for the subject's assoc-type name.
-func extractConstraintSig(b []byte) string {
-	// Pattern we support: '<leading-multi-sub>? <N><name> Rj <idx>? _<subj>?'.
-	// Very narrow — look for '<digits>' + chars + 'Rj' + '_'.
-	s := string(b)
-	rj := strings.Index(s, "Rj")
-	if rj < 0 {
-		return ""
-	}
-	// Find the <N><name> preceding Rj.
-	nameEnd := rj
-	// Walk backwards to find the length-digit boundary.
-	i := nameEnd - 1
-	for i >= 0 && s[i] >= 'a' && s[i] <= 'z' {
-		i--
-	}
-	// Seek 0+ uppercase letters too.
-	for i >= 0 && ((s[i] >= 'a' && s[i] <= 'z') || (s[i] >= 'A' && s[i] <= 'Z') || s[i] == '_') {
-		i--
-	}
-	digEnd := i + 1
-	digStart := digEnd
-	for digStart > 0 && s[digStart-1] >= '0' && s[digStart-1] <= '9' {
-		digStart--
-	}
-	if digStart == digEnd {
-		return ""
-	}
-	length := 0
-	for k := digStart; k < digEnd; k++ {
-		length = length*10 + int(s[k]-'0')
-	}
-	if digEnd+length > rj {
-		return ""
-	}
-	name := s[digEnd : digEnd+length]
-	// Decode idx after Rj.
-	idx := 0
-	j := rj + 2
-	digStart2 := j
-	for j < len(s) && s[j] >= '0' && s[j] <= '9' {
-		j++
-	}
-	if j >= len(s) || s[j] != '_' {
-		return ""
-	}
-	if j > digStart2 {
-		n := 0
-		for k := digStart2; k < j; k++ {
-			n = n*10 + int(s[k]-'0')
-		}
-		idx = n + 1
-	}
-	proto := "Swift.Copyable"
-	if idx == 1 {
-		proto = "Swift.Escapable"
-	} else if idx > 1 {
-		proto = fmt.Sprintf("Swift.<bit %d>", idx)
-	}
-	return "< where A." + name + ": ~" + proto + ">"
-}
-
-// extractConstraintSigFull extends extractConstraintSig to also
-// recognise 'Rs' (same-type requirement) and 'Ri' (type-param inverse
-// requirement) in addition to 'Rj' (assoc-type inverse requirement).
-// Returns (sig, sameTypeConstraint) where sameTypeConstraint is the
-// concrete type string (e.g. "Swift.Double") when an Rs constraint is
-// found, or "" otherwise.
-//
-// Supports multiple constraints in the same byte slice, producing
-// "< where C1, C2, ... >" output.
-func extractConstraintSigFull(b []byte) (sig, sameTypeConstraint string) {
-	return extractConstraintSigFullOpts(b, true)
-}
-
-// extractConstraintSigFullOpts is like extractConstraintSigFull but lets the
+// extractConstraintSigFullOpts is like the removed extractConstraintSigFull but lets the
 // caller control whether ObjC base-class/same-type requirements (Rb/Rs on ObjC
 // class types) are included.  Pass includeObjCRequirements=true only for
 // Foundation-module verbose output; non-Foundation simplified output ignores
@@ -9696,9 +9669,11 @@ func funcEntityLabels(args *demangle.Node) string {
 func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 	save := p.i
 	saveSubs := p.subs
+	saveWords := p.words
 	restore := func() {
 		p.i = save
 		p.subs = saveSubs
+		p.words = saveWords
 	}
 
 	if p.eof() {
@@ -11537,10 +11512,6 @@ afterNestedLoop:
 		// (e.g. AE) are both valid after Sg.
 		p.subs.Push(node)
 		optBase, _ := common.BuildStdlibNominal('q') // Swift.Optional
-		baseNom := optBase
-		if common.NodeKind(baseNom.Kind) == common.KindType && len(baseNom.Children) > 0 {
-			baseNom = baseNom.Children[0]
-		}
 		typeList := common.NewNode(common.KindTypeList)
 		common.AddChildren(typeList, node)
 		bound := common.NewNode(common.KindBoundGenericEnum)
@@ -12918,27 +12889,6 @@ func (p *parser) tryTfSpecializationSuffix(inner *demangle.Node, save int, saveS
 		p.i++
 	}
 	passDigits := p.s[passStart:p.i]
-	// Function name: from the subs table (pushed by tryBareModuleIdent
-	// before tryTfSpecializationSuffix was called). Scan from the start
-	// of the ORIGINAL save state subs to find the first identifier.
-	funcName := ""
-	for k := 0; k < saveSubs.Len(); k++ {
-		n, ok := saveSubs.Get(k)
-		if ok && common.NodeKind(n.Kind) == common.KindIdentifier {
-			funcName = n.Text
-			break
-		}
-	}
-	if funcName == "" {
-		// Fallback: newest identifier in current subs that isn't a closure ident.
-		for k := 0; k < p.subs.Len(); k++ {
-			n, ok := p.subs.Get(k)
-			if ok && common.NodeKind(n.Kind) == common.KindIdentifier {
-				funcName = n.Text
-				break
-			}
-		}
-	}
 	// Closure name: last identifier parsed in the preamble, or fall back to subs.
 	closureName := ""
 	if len(closureIdents) > 0 {
@@ -14708,18 +14658,6 @@ func (p *parser) tryAutodiffSubsetParametersThunk(inner *demangle.Node) (*demang
 	return wrap, true
 }
 
-// renderIndexSubset converts a run of 'S'/'U' bytes into a
-// comma-separated list of the set (S) indices. "SSS" → "0, 1, 2".
-// "SUS" → "0, 2".
-func renderIndexSubset(s string) string {
-	var parts []string
-	for i := 0; i < len(s); i++ {
-		if s[i] == 'S' {
-			parts = append(parts, itoa(i))
-		}
-	}
-	return joinComma(parts)
-}
 
 // tryDependentMemberType speculatively parses the Swift stable-ABI
 // dependent-member-type shape at the current parseType dispatch:
@@ -15267,9 +15205,7 @@ func hcPopAnyProtocolConformanceList(stk *hcStack) *demangle.Node {
 	for i, j := 0, len(items)-1; i < j; i, j = i+1, j-1 {
 		items[i], items[j] = items[j], items[i]
 	}
-	for _, item := range items {
-		list.Children = append(list.Children, item)
-	}
+	list.Children = append(list.Children, items...)
 	return list
 }
 

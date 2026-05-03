@@ -4,6 +4,7 @@
 package demangle_test
 
 import (
+	"context"
 	"io"
 	"strings"
 	"testing"
@@ -217,7 +218,7 @@ func TestAmbiguousErrorMessage(t *testing.T) {
 	cat := demangle.NewCatalog()
 	cat.Register(prefixScheme{name: "alpha", prefix: "P", conf: 80})
 	cat.Register(prefixScheme{name: "beta", prefix: "P", conf: 79})
-	_, err := cat.Demangle(nil, "Phello", nil)
+	_, err := cat.Demangle(context.TODO(), "Phello", nil)
 	if err == nil {
 		t.Fatal("expected ambiguous error")
 	}

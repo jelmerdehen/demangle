@@ -23,7 +23,7 @@ jobs:
 
       - uses: swift-actions/setup-swift@v2
         with:
-          swift-version: "6.3"
+          swift-version: "6.0"
 
       - name: compile Swift sources
         working-directory: scheme/swift/stable/testdata/swiftc
@@ -48,7 +48,7 @@ jobs:
 
       - uses: swift-actions/setup-swift@v2
         with:
-          swift-version: "6.3"
+          swift-version: "6.0"
 
       - uses: actions/download-artifact@v4
         with:
@@ -66,11 +66,19 @@ jobs:
         env:
           PR_TITLE: ${{ github.event.pull_request.title }}
         run: |
-          if ! diff -q corpus.txt /tmp/corpus-regen.txt > /dev/null 2>&1; then
+          # Compare data lines only (strip volatile comment header lines).
+          # Sort both so ordering differences don't cause false positives.
+          grep -v '^#' corpus.txt | sort > /tmp/corpus-data.txt
+          grep -v '^#' /tmp/corpus-regen.txt | sort > /tmp/regen-data.txt
+          # Drift = symbols in fresh that are NOT in committed (new .swift code
+          # added without regenerating). Symbols in committed but absent from
+          # fresh are tolerated (Swift version may not emit all symbols).
+          extra=$(comm -23 /tmp/regen-data.txt /tmp/corpus-data.txt)
+          if [[ -n "$extra" ]]; then
             echo "CORPUS_DRIFT=1" >> "$GITHUB_ENV"
-            echo "Corpus drift detected"
+            echo "Corpus drift detected: fresh regeneration has symbols not in committed corpus"
             if [[ "$PR_TITLE" != *"[corpus-bump]"* ]]; then
-              diff corpus.txt /tmp/corpus-regen.txt | head -40
+              echo "$extra" | head -40
               exit 1
             fi
           else

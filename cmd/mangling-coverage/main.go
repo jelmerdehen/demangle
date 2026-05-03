@@ -185,16 +185,6 @@ type coverage struct {
 	printer    bool // mentioned in printer.go
 }
 
-func (c coverage) status() string {
-	switch {
-	case c.parser && c.remangler && c.printer:
-		return "✓ covered"
-	case c.parser || c.remangler || c.printer:
-		return "~ partial"
-	default:
-		return "✗ missing"
-	}
-}
 
 func main() {
 	repoRoot := flag.String("repo", "/data/p/demangle", "demangle repository root")
