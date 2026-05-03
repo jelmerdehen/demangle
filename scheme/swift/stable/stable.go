@@ -12168,6 +12168,7 @@ func (p *parser) p_i_isS_digit() bool {
 // expects a type — our parser double-pushes identifier + type into
 // subs but Apple tracks types only.
 func (p *parser) findTypeForIdent(name string) (*demangle.Node, bool) {
+	suffix := "." + name
 	for i := p.subs.Len() - 1; i >= 0; i-- {
 		n, _ := p.subs.Get(i)
 		if n == nil || common.NodeKind(n.Kind) != common.KindType {
@@ -12177,6 +12178,13 @@ func (p *parser) findTypeForIdent(name string) (*demangle.Node, bool) {
 			continue
 		}
 		leaf := n.Children[0]
+		// Dependent-member-type nodes are stored as KindBuiltinTypeName with
+		// text "A.AssocName" (or "B.AssocName" etc.). Match on suffix so that
+		// an Identifier back-ref to "Index" promotes to KindType("A.Index").
+		if common.NodeKind(leaf.Kind) == common.KindBuiltinTypeName &&
+			strings.HasSuffix(leaf.Text, suffix) {
+			return n, true
+		}
 		for _, c := range leaf.Children {
 			if common.NodeKind(c.Kind) == common.KindIdentifier && c.Text == name {
 				return n, true

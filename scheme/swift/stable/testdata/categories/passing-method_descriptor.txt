@@ -1,4 +1,4 @@
-# snapshot-pass-set update 2026-05-03T21:40:08Z — union with previous (high-water)
+# snapshot-pass-set update 2026-05-03T23:05:38Z — union with previous (high-water)
 _$s10Foundation16RecoverableErrorP15attemptRecovery11optionIndex13resultHandlerySi_ySbctFTq
 _$s10Foundation17_TimeZoneProtocolP018nextDaylightSavingB10Transition5afterAA4DateVSgAG_tFTq
 _$s10Foundation28DecodableAttributedStringKeyP6decode4from5ValueQzs7Decoder_p_tKFZTq
@@ -8,3 +8,5 @@ _$s10Foundation40ObjectiveCConvertibleAttributedStringKeyP15objectiveCValue3for0
 _$s10Foundation40ObjectiveCConvertibleAttributedStringKeyP5value3for5ValueQz0B6CValueQz_tKFZTq
 _$sSK5index6before5IndexQzAD_tFTq
 _$sSK5index_8offsetBy07limitedC05IndexQzSgAE_SiAEtFTq
+_$sSM6swapAtyy5IndexQz_ACtFTq
+_$ss5ErrorP19_getEmbeddedNSErroryXlSgyFTq

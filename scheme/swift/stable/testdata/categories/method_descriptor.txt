@@ -14,4 +14,6 @@ _$sSK5index6before5IndexQzAD_tFTq ---> method descriptor for Swift.Bidirectional
 _$sSK5index_8offsetBy07limitedC05IndexQzSgAE_SiAEtFTq ---> method descriptor for Swift.BidirectionalCollection.index(_: A.Index, offsetBy: Swift.Int, limitedBy: A.Index) -> A.Index?
 # Bug 1: Swift.AnyObject (not bare AnyObject) in return-type position
 _$ss5ErrorP19_getEmbeddedNSErroryXlSgyFTq ---> method descriptor for Swift.Error._getEmbeddedNSError() -> Swift.AnyObject?
+# findTypeForIdent: dependent-member back-ref (AC=A.Index) via KindBuiltinTypeName suffix match
+_$sSM6swapAtyy5IndexQz_ACtFTq ---> method descriptor for Swift.MutableCollection.swapAt(A.Index, A.Index) -> ()
 _$ss15WritableKeyPathC22_projectMutableAddress4fromSpyq_G7pointer_yXlSg5ownertSPyxG_tFTq ---> method descriptor for Swift.WritableKeyPath._projectMutableAddress(from: Swift.UnsafePointer<A>) -> (pointer: Swift.UnsafeMutablePointer<B>, owner: Swift.AnyObject?)
