@@ -922,12 +922,25 @@ func printFunctionType(b *strings.Builder, n *demangle.Node, opts PrintOptions) 
 		b.WriteString(") ")
 	}
 
-	// Emit (params).
-	b.WriteByte('(')
-	if NodeKind(params.Kind) != KindEmptyList {
-		printNode(b, params, opts)
+	// Emit (params). If params is a pre-rendered tuple "(A, B, C)" stored as
+	// KindType{KindBuiltinTypeName{text}}, write the text as-is — the parens
+	// are already in the text and we must not add another set.
+	paramsInline := false
+	if NodeKind(params.Kind) == KindType && len(params.Children) > 0 &&
+		NodeKind(params.Children[0].Kind) == KindBuiltinTypeName {
+		t := params.Children[0].Text
+		if strings.HasPrefix(t, "(") && strings.HasSuffix(t, ")") {
+			b.WriteString(t)
+			paramsInline = true
+		}
 	}
-	b.WriteByte(')')
+	if !paramsInline {
+		b.WriteByte('(')
+		if NodeKind(params.Kind) != KindEmptyList {
+			printNode(b, params, opts)
+		}
+		b.WriteByte(')')
+	}
 
 	// Post-params annotations: async and/or throws.
 	if n.Attrs != nil {

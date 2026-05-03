@@ -10835,7 +10835,6 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 			return nil, false, nil
 		}
 	}
-
 	// WC enum-case rescue: when tryPath(false) parsed `y`→void, `A<n>Em`→metatype,
 	// the actual signature is result=BaseType, params=BaseType.Type.
 	// Detect: result=void, params=X.Type metatype, and WC follows in input.
