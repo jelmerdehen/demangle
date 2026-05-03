@@ -137,6 +137,11 @@ func TestCategoryProtocolWitnessTable(t *testing.T) {
 	runSingleCategory(t, "protocol_witness_table.txt")
 }
 
+// TestProtocolWitnessTableFixtureStrictGate verifies all protocol_witness_table.txt entries pass.
+func TestProtocolWitnessTableFixtureStrictGate(t *testing.T) {
+	runStrictGateFile(t, "protocol_witness_table.txt")
+}
+
 // TestCategoryOpaqueTypeDescriptor targets opaque type descriptor symbols.
 func TestCategoryOpaqueTypeDescriptor(t *testing.T) {
 	runSingleCategory(t, "opaque_type_descriptor.txt")

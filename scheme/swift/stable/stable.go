@@ -11714,18 +11714,38 @@ func (p *parser) tryBoundGeneric(base *demangle.Node) (*demangle.Node, bool, err
 			currentLevel++
 			continue
 		}
-		// QP — Swift 5.9+ parameter pack: wrap all currently-accumulated
-		// args in a Pack node (mirrors Apple's popPack). After wrapping,
-		// args becomes a single Pack element and parsing continues (more
-		// args or 'G' may follow).
+		// QP — Swift 5.9+ parameter pack: wrap only PackExpansion args into
+		// a Pack node; scalar (non-expansion) args remain outside.
+		// E.g. [A, repeat B] → [A, Pack{repeat B}], not Pack{A, repeat B}.
 		if p.s[p.i] == 'Q' && p.i+1 < len(p.s) && p.s[p.i+1] == 'P' {
 			p.i += 2 // consume 'QP'
 			if len(args) > 0 {
-				pack := common.NewNode(common.KindPack)
-				pack.Children = args
-				packType := common.NewNode(common.KindType)
-				common.AddChildren(packType, pack)
-				args = []*demangle.Node{packType}
+				var scalars, packExpansions []*demangle.Node
+				for _, arg := range args {
+					inner := arg
+					if common.NodeKind(inner.Kind) == common.KindType && len(inner.Children) > 0 {
+						inner = inner.Children[0]
+					}
+					if common.NodeKind(inner.Kind) == common.KindPackExpansion {
+						packExpansions = append(packExpansions, arg)
+					} else {
+						scalars = append(scalars, arg)
+					}
+				}
+				if len(packExpansions) > 0 {
+					pack := common.NewNode(common.KindPack)
+					pack.Children = packExpansions
+					packType := common.NewNode(common.KindType)
+					common.AddChildren(packType, pack)
+					args = append(scalars, packType)
+				} else {
+					// No expansions — wrap everything (degenerate pack).
+					pack := common.NewNode(common.KindPack)
+					pack.Children = args
+					packType := common.NewNode(common.KindType)
+					common.AddChildren(packType, pack)
+					args = []*demangle.Node{packType}
+				}
 			}
 			continue
 		}
