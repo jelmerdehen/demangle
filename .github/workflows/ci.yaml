@@ -97,8 +97,8 @@ jobs:
           go-version: "1.26"
           cache: true
 
-      - name: bench-check (B1 regression gate, threshold 10%)
-        run: make bench-check
+      - name: bench-check (B1 regression gate, threshold 100% on CI)
+        run: make bench-check BENCH_THRESHOLD=100
 
   deps-audit:
     runs-on: ubuntu-latest

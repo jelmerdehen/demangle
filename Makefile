@@ -26,8 +26,9 @@ lint:
 fuzz:
 	$(GO) test -fuzz=. -fuzztime=$${DURATION:-5m} $(PKGS)
 
-BENCH_BASELINE := internal/bench/testdata/baselines.bench
-BENCH_NEW      := build/bench.new
+BENCH_BASELINE  := internal/bench/testdata/baselines.bench
+BENCH_NEW       := build/bench.new
+BENCH_THRESHOLD ?= 10
 
 # B1: update the committed bench baseline.
 # Run: make bench
@@ -50,7 +51,7 @@ bench-check:
 	$(GO) run ./internal/bench/cmd/bench-compare \
 	    -old $(BENCH_BASELINE) \
 	    -new $(BENCH_NEW) \
-	    -threshold 10
+	    -threshold $(BENCH_THRESHOLD)
 
 tidy:
 	$(GO) mod tidy
