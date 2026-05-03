@@ -1,0 +1,11 @@
+# self_return_attributed — self-return multi-sub encoding for FormatStyle.Attributed builder methods
+# Pattern: yA<lower>...<upper><params>F where the first lowercase sub == enclosing nominal context
+# Apple encodes these as implicit self-return (builder pattern): result = entity context type.
+
+_$s10Foundation4DateV11FormatStyleV10AttributedV3dayyAgE6SymbolV3DayVF ---> Foundation.Date.FormatStyle.Attributed.day(Foundation.Date.FormatStyle.Symbol.Day) -> Foundation.Date.FormatStyle.Attributed
+_$s10Foundation4DateV11FormatStyleV10AttributedV4houryAgE6SymbolV4HourVF ---> Foundation.Date.FormatStyle.Attributed.hour(Foundation.Date.FormatStyle.Symbol.Hour) -> Foundation.Date.FormatStyle.Attributed
+_$s10Foundation4DateV11FormatStyleV10AttributedV4yearyAgE6SymbolV4YearVF ---> Foundation.Date.FormatStyle.Attributed.year(Foundation.Date.FormatStyle.Symbol.Year) -> Foundation.Date.FormatStyle.Attributed
+_$s10Foundation4DateV11FormatStyleV10AttributedV5monthyAgE6SymbolV5MonthVF ---> Foundation.Date.FormatStyle.Attributed.month(Foundation.Date.FormatStyle.Symbol.Month) -> Foundation.Date.FormatStyle.Attributed
+_$s10Foundation4DateV11FormatStyleV10AttributedV6localeyAgA6LocaleVF ---> Foundation.Date.FormatStyle.Attributed.locale(Foundation.Locale) -> Foundation.Date.FormatStyle.Attributed
+_$s10Foundation20ByteCountFormatStyleV10AttributedV6localeyAeA6LocaleVF ---> Foundation.ByteCountFormatStyle.Attributed.locale(Foundation.Locale) -> Foundation.ByteCountFormatStyle.Attributed
+_$s10Foundation14IntFormatStyleV10AttributedV6localeyAEyx_GAA6LocaleVF ---> Foundation.IntFormatStyle.Attributed.locale(Foundation.Locale) -> Foundation.IntFormatStyle<A>.Attributed

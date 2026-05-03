@@ -172,6 +172,16 @@ func TestCategoryExtensionInExtension(t *testing.T) {
 	runSingleCategory(t, "extension_in_extension.txt")
 }
 
+// TestCategorySelfReturnAttributed targets FormatStyle.Attributed builder-pattern symbols.
+func TestCategorySelfReturnAttributed(t *testing.T) {
+	runSingleCategory(t, "self_return_attributed.txt")
+}
+
+// TestSelfReturnAttributedFixtureStrictGate verifies all self_return_attributed.txt entries pass.
+func TestSelfReturnAttributedFixtureStrictGate(t *testing.T) {
+	runStrictGateFile(t, "self_return_attributed.txt")
+}
+
 // TestExtensionInExtensionFixtureStrictGate verifies the PC fix:
 // (extension in Foundation):(extension in Foundation):... double-prefix symbols.
 func TestExtensionInExtensionFixtureStrictGate(t *testing.T) {

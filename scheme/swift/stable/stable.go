@@ -10222,6 +10222,31 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 			p.i = saveACompact
 			p.subs = saveASubsCompact
 		}
+		// Self-return multi-sub: 'A<lower>...' where the first lowercase sub
+		// equals the entity's enclosing nominal → Apple's implicit result
+		// optimisation. Parse the full 'A<lower>...' as params; result = ctx.
+		if assumeLabelList && !p.eof() && p.s[p.i] == 'A' &&
+			p.i+1 < len(p.s) && p.s[p.i+1] >= 'a' && p.s[p.i+1] <= 'z' {
+			firstLowerIdx := int(p.s[p.i+1] - 'a')
+			if selfRetNode, ok2 := p.subs.Get(firstLowerIdx); ok2 && lastNomCtx != nil && selfRetNode == lastNomCtx {
+				saveSR := p.i
+				saveSubsSR := p.subs
+				paramsT, ptErr := p.parseType()
+				if ptErr == nil && !p.eof() && p.s[p.i] == 'F' {
+					r = selfRetNode
+					a = paramsT
+					if len(pathLabels) == 1 && pathLabels[0] != "" {
+						if a.Attrs == nil {
+							a.Attrs = map[string]string{}
+						}
+						a.Attrs["swift.label"] = pathLabels[0]
+					}
+					goto afterSigSlots
+				}
+				p.i = saveSR
+				p.subs = saveSubsSR
+			}
+		}
 		if p.s[p.i] == 'y' && !(p.i+1 < len(p.s) && p.s[p.i+1] == 'p') {
 			p.i++
 			r = common.NewNode(common.KindEmptyList)
