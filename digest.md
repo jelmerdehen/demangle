@@ -29,16 +29,16 @@
 
 ## Last 10 Commits
 
+- e83a4eb swift-parity: PK Swift.AnyObject type + UIViewInvalidating + propDesc AnyObject? — parity 53373→53408 (+35 production)
+- ddcb6a5 bench: drop topology-dependent benchmarks from CI baseline
+- d345bae swift-parity: PJ doubly-nested vpMV/vp outerExtPfx — parity 53360→53373 (+13 production)
+- c4ac86e ci: make bench-threshold configurable, set 100% on CI runners
+- 5e85f3a chore: update digest.md for PI commit (parity 53257→53360)
 - b662709 chore: update digest.md for PI commit (parity 53257→53360)
 - d55f1eb swift-parity: PI revert outer word-saves + tryExtensionEntity lowercase skip — parity 53257→53360 (+103 production, +2 round-trip)
 - 5d8aa1d bench: refresh baselines after Swift grammar expansion
 - d5addfa ci: fix staticcheck failures + swiftc-corpus drift check
 - 522ecd3 ci: fix coverage gate + swiftc Swift version mismatch
-- e02028d ci: fix swiftc hard-coded path + tryExtensionEntity overflow panic
-- 627ee7c swift-parity: PH-2 Xl AnyObject + fC tuple/fn-param fixes — parity 53050→53257 (+207 production, +106 round-trip)
-- cc1bbd2 swift-parity: PF subs-layout entity/type-context split — parity 52907→53050 (+143 production, +41 round-trip)
-- bc07e68 swift-hardening: PH runHCMiniStack repeat-count overflow cap
-- 43bf89b Merge remote-tracking branch 'origin/main'
 
 ## Suggested Next 3 Items
 
