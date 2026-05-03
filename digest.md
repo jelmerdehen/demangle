@@ -29,7 +29,8 @@
 
 ## Last 10 Commits
 
-- (pending) swift-parity: PE function-type params-first fix — parity 52899→52907 (+8 production)
+- (pending) swift-hardening: PH runHCMiniStack repeat-count overflow cap — parity 52907 (no change; security fix only)
+- 10ad39f swift-parity: PE function-type params-first fix — parity 52899→52907 (+8 production)
 - a44d773 swift-parity: PG self-return multi-sub result fix — parity 52867→52899 (+32 production, +7 fixtures)
 - d69421f swift-parity: WE enum-case compact-tuple double-paren fix — parity 52865→52867 (+2 production)
 - 43e1cb5 swift-parity: PC nested-extension double-prefix — parity 52830→52865 (+8 fixtures, +35 production)
@@ -46,4 +47,4 @@
 
 1. investigate: (extension in Foundation):(extension in Foundation… — 36 mismatches
 2. P1: property descriptor fix — 33 mismatches
-3. substitution-ref bug: _CalendarProtocol.date + NSKeyValueObservingCustomization (2 dispatch-thunk + 2 method-descriptor failures)
+3. NSKeyValueObservingCustomization dispatch thunk — subs[6] off-by-one; AG_=Set<AnyKeyPath> instead of AnyKeyPath; needs +1 push before inner type but both parsedRawStdlib-removal and Module-push approaches cause regressions

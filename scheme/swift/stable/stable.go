@@ -15296,8 +15296,16 @@ func (p *parser) runHCMiniStack(typeNode *demangle.Node) (*demangle.Node, bool) 
 						p.i++
 					}
 					num := 0
+					overflow := false
 					for _, d := range p.s[start:p.i] {
 						num = num*10 + int(d-'0')
+						if num > 512 {
+							overflow = true
+							break
+						}
+					}
+					if overflow {
+						return nil, false
 					}
 					if p.i < len(p.s) && p.s[p.i] == '_' {
 						// Large substitution index: num + 27.
