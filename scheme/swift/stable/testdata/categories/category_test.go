@@ -167,6 +167,17 @@ func TestCategoryInitConstraint(t *testing.T) {
 	runSingleCategory(t, "init_constraint.txt")
 }
 
+// TestCategoryExtensionInExtension targets nested Foundation extension symbols.
+func TestCategoryExtensionInExtension(t *testing.T) {
+	runSingleCategory(t, "extension_in_extension.txt")
+}
+
+// TestExtensionInExtensionFixtureStrictGate verifies the PC fix:
+// (extension in Foundation):(extension in Foundation):... double-prefix symbols.
+func TestExtensionInExtensionFixtureStrictGate(t *testing.T) {
+	runStrictGateFile(t, "extension_in_extension.txt")
+}
+
 // TestProtocolConformanceDescriptorFixtureStrictGate verifies the PB-3 fix:
 // sADRzrlMc conditional-conformance symbols must all produce the correct
 // "< where A: Swift.Protocol>" prefix.

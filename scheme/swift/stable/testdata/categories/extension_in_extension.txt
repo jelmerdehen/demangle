@@ -1,0 +1,16 @@
+# Category: extension in extension
+# Format: <symbol> ---> <expected>
+# Source: production-divergences.txt (parity run 2026-05-03T12:17:54Z)
+# Pattern: (extension in M):(extension in M):M.Host<outer-sig>.Nested<inner-sig>.decl.accessor
+
+# Measurement.FormatStyle — NSUnitTemperature (2-level nesting)
+_$s10Foundation11MeasurementVAASo11NSDimensionCRbzrlE11FormatStyleVAASo17NSUnitTemperatureCRszrlE14hidesScaleNameSbvg ---> (extension in Foundation):(extension in Foundation):Foundation.Measurement< where A: __C.NSDimension>.FormatStyle< where A == __C.NSUnitTemperature>.hidesScaleName.getter : Swift.Bool
+_$s10Foundation11MeasurementVAASo11NSDimensionCRbzrlE11FormatStyleVAASo17NSUnitTemperatureCRszrlE14hidesScaleNameSbvs ---> (extension in Foundation):(extension in Foundation):Foundation.Measurement< where A: __C.NSDimension>.FormatStyle< where A == __C.NSUnitTemperature>.hidesScaleName.setter : Swift.Bool
+_$s10Foundation11MeasurementVAASo11NSDimensionCRbzrlE11FormatStyleVAASo17NSUnitTemperatureCRszrlE14hidesScaleNameSbvM ---> (extension in Foundation):(extension in Foundation):Foundation.Measurement< where A: __C.NSDimension>.FormatStyle< where A == __C.NSUnitTemperature>.hidesScaleName.modify : Swift.Bool
+
+# Measurement.FormatStyle.ByteCount — NSUnitInformationStorage (3-level nesting)
+_$s10Foundation11MeasurementVAASo11NSDimensionCRbzrlE11FormatStyleVAASo24NSUnitInformationStorageCRszrlE9ByteCountV014includesActualiJ0Sbvg ---> (extension in Foundation):(extension in Foundation):Foundation.Measurement< where A: __C.NSDimension>.FormatStyle< where A == __C.NSUnitInformationStorage>.ByteCount.includesActualByteCount.getter : Swift.Bool
+_$s10Foundation11MeasurementVAASo11NSDimensionCRbzrlE11FormatStyleVAASo24NSUnitInformationStorageCRszrlE9ByteCountV014includesActualiJ0Sbvs ---> (extension in Foundation):(extension in Foundation):Foundation.Measurement< where A: __C.NSDimension>.FormatStyle< where A == __C.NSUnitInformationStorage>.ByteCount.includesActualByteCount.setter : Swift.Bool
+_$s10Foundation11MeasurementVAASo11NSDimensionCRbzrlE11FormatStyleVAASo24NSUnitInformationStorageCRszrlE9ByteCountV13spellsOutZeroSbvg ---> (extension in Foundation):(extension in Foundation):Foundation.Measurement< where A: __C.NSDimension>.FormatStyle< where A == __C.NSUnitInformationStorage>.ByteCount.spellsOutZero.getter : Swift.Bool
+_$s10Foundation11MeasurementVAASo11NSDimensionCRbzrlE11FormatStyleVAASo24NSUnitInformationStorageCRszrlE9ByteCountV12allowedUnitsAA0ijdE0V0L0Vvg ---> (extension in Foundation):(extension in Foundation):Foundation.Measurement< where A: __C.NSDimension>.FormatStyle< where A == __C.NSUnitInformationStorage>.ByteCount.allowedUnits.getter : Foundation.ByteCountFormatStyle.Units
+_$s10Foundation11MeasurementVAASo11NSDimensionCRbzrlE11FormatStyleVAASo24NSUnitInformationStorageCRszrlE9ByteCountV5styleAA0ijdE0V0E0Ovg ---> (extension in Foundation):(extension in Foundation):Foundation.Measurement< where A: __C.NSDimension>.FormatStyle< where A == __C.NSUnitInformationStorage>.ByteCount.style.getter : Foundation.ByteCountFormatStyle.Style

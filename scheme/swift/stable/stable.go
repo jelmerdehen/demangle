@@ -7465,6 +7465,145 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 			break
 		}
 	}
+	// Inner-extension detection: when the nested-type loop exits with no declName
+	// but there is another extension context encoded before the actual decl name
+	// (e.g. FormatStyle nested inside Measurement with its own constraint sig),
+	// scan for the second E<digit> marker, extract the inner constraint bytes,
+	// append the resulting sig to the last nested-type suffix, and parse declName
+	// from after the second E.
+	var hasNestedExtension bool
+	if declName == "" && !p.eof() && len(nestedTypesSuffix) > 0 {
+		scan2 := p.i
+		eFound2 := -1
+		for k := scan2; k < len(p.s)-1 && k < scan2+80; {
+			c := p.s[k]
+			if c >= '1' && c <= '9' {
+				lenStart2 := k
+				for k < len(p.s) && p.s[k] >= '0' && p.s[k] <= '9' {
+					k++
+				}
+				n2 := 0
+				for _, d := range []byte(p.s[lenStart2:k]) {
+					n2 = n2*10 + int(d-'0')
+				}
+				k += n2
+				if k >= len(p.s) {
+					break
+				}
+				continue
+			}
+			if c == 'A' && k+1 < len(p.s)-1 {
+				next2 := p.s[k+1]
+				if (next2 >= 'a' && next2 <= 'z') || (next2 >= 'A' && next2 <= 'Z') {
+					k += 2
+					continue
+				}
+				if next2 >= '0' && next2 <= '9' {
+					k++
+					for k < len(p.s)-1 && p.s[k] >= '0' && p.s[k] <= '9' {
+						k++
+					}
+					if k < len(p.s)-1 && ((p.s[k] >= 'A' && p.s[k] <= 'Z') || (p.s[k] >= 'a' && p.s[k] <= 'z')) {
+						k++
+					}
+					continue
+				}
+			}
+			if c == 'E' && (p.s[k+1] >= '0' && p.s[k+1] <= '9' || p.s[k+1] == '_') {
+				eFound2 = k
+				break
+			}
+			k++
+		}
+		if eFound2 >= 0 {
+			innerCB := []byte(p.s[scan2:eFound2])
+			p.i = eFound2 + 1
+			innerSig, _ := extractConstraintSigFullOpts(innerCB, modName == "Foundation")
+			if innerSig != "" {
+				nestedTypesSuffix[len(nestedTypesSuffix)-1] += innerSig
+			}
+			// Extract words from inner constraint bytes so word-sub sequences in
+			// the decl name (parsed after E2) can resolve correctly.
+			for ci2 := 0; ci2 < len(innerCB); {
+				if innerCB[ci2] == 'S' && ci2+1 < len(innerCB) && innerCB[ci2+1] == 'o' {
+					j2 := ci2 + 2
+					lenStart2 := j2
+					for j2 < len(innerCB) && innerCB[j2] >= '0' && innerCB[j2] <= '9' {
+						j2++
+					}
+					if j2 > lenStart2 {
+						n2 := 0
+						for _, d := range innerCB[lenStart2:j2] {
+							n2 = n2*10 + int(d-'0')
+						}
+						nameEnd2 := j2 + n2
+						if nameEnd2 <= len(innerCB) {
+							addWordsFromConstraintIdent(string(innerCB[j2:nameEnd2]))
+						}
+						if nameEnd2 < len(innerCB) {
+							j2 = nameEnd2 + 1
+						} else {
+							j2 = nameEnd2
+						}
+					}
+					ci2 = j2
+					continue
+				}
+				if innerCB[ci2] == 'A' && ci2+1 < len(innerCB) {
+					next2 := innerCB[ci2+1]
+					if (next2 >= 'a' && next2 <= 'z') || (next2 >= 'A' && next2 <= 'Z') {
+						ci2 += 2
+						continue
+					}
+					if next2 >= '0' && next2 <= '9' {
+						ci2++
+						for ci2 < len(innerCB) && innerCB[ci2] >= '0' && innerCB[ci2] <= '9' {
+							ci2++
+						}
+						if ci2 < len(innerCB) {
+							ci2++
+						}
+						continue
+					}
+				}
+				if innerCB[ci2] >= '1' && innerCB[ci2] <= '9' {
+					lenStart2 := ci2
+					for ci2 < len(innerCB) && innerCB[ci2] >= '0' && innerCB[ci2] <= '9' {
+						ci2++
+					}
+					length2 := 0
+					for _, d := range innerCB[lenStart2:ci2] {
+						length2 = length2*10 + int(d-'0')
+					}
+					end2 := ci2 + length2
+					if end2 <= len(innerCB) && length2 > 0 {
+						addWordsFromConstraintIdent(string(innerCB[ci2:end2]))
+						ci2 = end2
+					} else {
+						break
+					}
+					continue
+				}
+				ci2++
+			}
+			hasNestedExtension = true
+			for !p.eof() {
+				ident2, err2 := p.parseIdentifier()
+				if err2 != nil {
+					break
+				}
+				if !p.eof() && (p.s[p.i] == 'V' || p.s[p.i] == 'C' ||
+					p.s[p.i] == 'O' || p.s[p.i] == 'P') {
+					p.subs.Push(common.NewIdentifier(ident2))
+					p.i++
+					nestedTypesSuffix = append(nestedTypesSuffix, ident2)
+				} else {
+					declName = ident2
+					break
+				}
+			}
+		}
+	}
 	// Early exit: no explicit decl name means the entity is a runtime record
 	// (Ma, Mn, Mc, etc.) directly on the accumulated type path.  Skip the
 	// function-entity sections (labels, ret, params, local sig) — they don't
@@ -8242,7 +8381,11 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 					if foundationSameTypeStr != "" {
 						propTypeStr = " : " + foundationSameTypeStr
 					}
-					text = "(extension in " + extInMod + "):" + hostQualified + sig +
+					outerExtPfx := ""
+					if hasNestedExtension {
+						outerExtPfx = "(extension in " + modName + "):"
+					}
+					text = outerExtPfx + "(extension in " + extInMod + "):" + hostQualified + sig +
 						"." + declName + localSig + accessor + propTypeStr
 				}
 			}
