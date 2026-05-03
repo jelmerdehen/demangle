@@ -24,3 +24,6 @@ _$s5UIKit18UIViewInvalidatingPAASo0B0CAAE13InvalidationsO11ConstraintsVRszrlE11c
 _$sSo10CFErrorRefa10FoundationE9_userInfoyXlSgvpMV ---> property descriptor for (extension in Foundation):__C.CFErrorRef._userInfo : Swift.AnyObject?
 _$sSo7NSErrorC10FoundationE9_userInfoyXlSgvpMV ---> property descriptor for (extension in Foundation):__C.NSError._userInfo : Swift.AnyObject?
 _$ss5ErrorPsE9_userInfoyXlSgvpMV ---> property descriptor for (extension in Swift):Swift.Error._userInfo : Swift.AnyObject?
+# PM: <ident>Qz label-loop break — tryExtensionEntity treats 4CodeQz as A.Code dependent-member type
+_$s10Foundation21_BridgedStoredNSErrorPAAE4code4CodeQzvg ---> (extension in Foundation):Foundation._BridgedStoredNSError.code.getter : A.Code
+_$s10Foundation21_BridgedStoredNSErrorPAAE4code4CodeQzvpMV ---> property descriptor for (extension in Foundation):Foundation._BridgedStoredNSError.code : A.Code

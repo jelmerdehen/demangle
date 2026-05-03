@@ -7767,6 +7767,14 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 				p.subs = lblSubs
 				break
 			}
+			// If 'Q' + 'z'/'y'/'Y' follows, the identifier is the start of a
+			// dependent-member type (<ident>Qz = A.<ident>), not a label.
+			if !p.eof() && p.s[p.i] == 'Q' && p.i+1 < len(p.s) &&
+				(p.s[p.i+1] == 'z' || p.s[p.i+1] == 'y' || p.s[p.i+1] == 'Y') {
+				p.i = lblSave
+				p.subs = lblSubs
+				break
+			}
 			labels = append(labels, lbl)
 		} else if c == 'y' && p.i+1 < len(p.s) && p.s[p.i+1] == 'y' {
 			// 'yy' prefix: first y is label-list-empty marker.
