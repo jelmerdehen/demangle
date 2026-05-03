@@ -158,3 +158,82 @@ func TestDemangleBatch_DropPolicy(t *testing.T) {
 		t.Fatalf("Unrecognised = %d want 1", summary.Unrecognised)
 	}
 }
+
+func TestDemangleBatchSlice_Basic(t *testing.T) {
+	t.Parallel()
+	cat := newBatchCatalog(t)
+	symbols := []string{"B:alpha", "nope", "B:beta"}
+	results := cat.DemangleBatchSlice(context.Background(), symbols, 2)
+	if len(results) != 3 {
+		t.Fatalf("len = %d want 3", len(results))
+	}
+	if results[0].Output != "alpha" || results[0].Err != nil {
+		t.Errorf("results[0] = %+v", results[0])
+	}
+	if results[1].Err == nil {
+		t.Errorf("results[1] expected error for unrecognised symbol")
+	}
+	if results[2].Output != "beta" || results[2].Err != nil {
+		t.Errorf("results[2] = %+v", results[2])
+	}
+}
+
+func TestDemangleBatchSlice_Empty(t *testing.T) {
+	t.Parallel()
+	cat := newBatchCatalog(t)
+	results := cat.DemangleBatchSlice(context.Background(), nil, 1)
+	if len(results) != 0 {
+		t.Fatalf("len = %d want 0", len(results))
+	}
+}
+
+func TestDemangleBatchSlice_DefaultWorkers(t *testing.T) {
+	t.Parallel()
+	cat := newBatchCatalog(t)
+	results := cat.DemangleBatchSlice(context.Background(), []string{"B:x"}, 0)
+	if len(results) != 1 || results[0].Output != "x" {
+		t.Fatalf("results = %+v", results)
+	}
+}
+
+func TestDemangleBatchSliceScheme_Pinned(t *testing.T) {
+	t.Parallel()
+	cat := newBatchCatalog(t)
+	symbols := []string{"B:one", "B:two"}
+	results := cat.DemangleBatchSliceScheme(context.Background(), symbols, 1, "batchtest")
+	if len(results) != 2 {
+		t.Fatalf("len = %d want 2", len(results))
+	}
+	if results[0].Output != "one" {
+		t.Errorf("results[0].Output = %q want %q", results[0].Output, "one")
+	}
+	if results[0].Scheme != "batchtest" {
+		t.Errorf("results[0].Scheme = %q want %q", results[0].Scheme, "batchtest")
+	}
+}
+
+func TestDemangleBatchSliceScheme_UnknownScheme(t *testing.T) {
+	t.Parallel()
+	cat := newBatchCatalog(t)
+	symbols := []string{"B:one", "B:two"}
+	results := cat.DemangleBatchSliceScheme(context.Background(), symbols, 1, "no-such-scheme")
+	if len(results) != 2 {
+		t.Fatalf("len = %d want 2", len(results))
+	}
+	for i, r := range results {
+		if r.Err == nil {
+			t.Errorf("results[%d]: expected ErrInternal for unknown scheme", i)
+		}
+	}
+}
+
+func TestDemangleBatchSlice_CtxCancel(t *testing.T) {
+	t.Parallel()
+	cat := newBatchCatalog(t)
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	results := cat.DemangleBatchSlice(ctx, []string{"B:x", "B:y"}, 1)
+	if len(results) != 2 {
+		t.Fatalf("len = %d want 2", len(results))
+	}
+}
