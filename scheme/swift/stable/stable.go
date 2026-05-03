@@ -372,66 +372,36 @@ func (p *parser) parseGlobal() (*demangle.Node, error) {
 	// Must be tried before tryAssocTypeDescriptor which also starts digit-led.
 	var inner *demangle.Node
 	if tlNode, tlOk := p.tryProtoRequirementsBaseDescriptor(); tlOk {
-		if p.origin == "_$s10Foundation20PredicateExpressionsO7KeyPathV06CommondE4KindOMn" {
-			fmt.Printf("DEBUG tryProtoRequirementsBaseDescriptor matched\n")
-		}
 		inner = tlNode
 	} else if atdNode, atdOk := p.tryAssocTypeDescriptor(); atdOk {
-		if p.origin == "_$s10Foundation20PredicateExpressionsO7KeyPathV06CommondE4KindOMn" {
-			fmt.Printf("DEBUG tryAssocTypeDescriptor matched\n")
-		}
 		inner = atdNode
 	} else if extEntity, ok, err := p.tryTypeFirstExtensionEntity(); err != nil {
 		return nil, err
 	} else if ok {
-		if p.origin == "_$s10Foundation20PredicateExpressionsO7KeyPathV06CommondE4KindOMn" {
-			fmt.Printf("DEBUG tryTypeFirstExtensionEntity matched kind=%d text=%q\n", extEntity.Kind, extEntity.Text)
-		}
 		inner = extEntity
 	} else if extEntity, ok, err := p.tryExtensionEntity(); err != nil {
 		return nil, err
 	} else if ok {
-		if p.origin == "_$s10Foundation20PredicateExpressionsO7KeyPathV06CommondE4KindOMn" {
-			fmt.Printf("DEBUG tryExtensionEntity matched kind=%d text=%q\n", extEntity.Kind, extEntity.Text)
-		}
 		inner = extEntity
 	} else if entity, ok, err := p.tryFunctionEntity(); err != nil {
 		return nil, err
 	} else if ok {
-		if p.origin == "_$s10Foundation20PredicateExpressionsO7KeyPathV06CommondE4KindOMn" {
-			fmt.Printf("DEBUG tryFunctionEntity matched\n")
-		}
 		inner = entity
 	} else if varEntity, ok, err := p.tryVariableEntity(); err != nil {
 		return nil, err
 	} else if ok {
-		if p.origin == "_$s10Foundation20PredicateExpressionsO7KeyPathV06CommondE4KindOMn" {
-			fmt.Printf("DEBUG tryVariableEntity matched\n")
-		}
 		inner = varEntity
 	} else if initCompact, ok, err := p.tryCompactStdlibInitEntity(); err != nil {
 		return nil, err
 	} else if ok {
-		if p.origin == "_$s10Foundation20PredicateExpressionsO7KeyPathV06CommondE4KindOMn" {
-			fmt.Printf("DEBUG tryCompactStdlibInitEntity matched\n")
-		}
 		inner = initCompact
 	} else if initEntity, ok, err := p.tryInitDeinitEntity(); err != nil {
 		return nil, err
 	} else if ok {
-		if p.origin == "_$s10Foundation20PredicateExpressionsO7KeyPathV06CommondE4KindOMn" {
-			fmt.Printf("DEBUG tryInitDeinitEntity matched\n")
-		}
 		inner = initEntity
 	} else if implFn, ok := p.tryImplFunctionType(); ok {
-		if p.origin == "_$s10Foundation20PredicateExpressionsO7KeyPathV06CommondE4KindOMn" {
-			fmt.Printf("DEBUG tryImplFunctionType matched\n")
-		}
 		inner = implFn
 	} else {
-		if p.origin == "_$s10Foundation20PredicateExpressionsO7KeyPathV06CommondE4KindOMn" {
-			fmt.Printf("DEBUG falling through to parseType\n")
-		}
 		saveFallback := p.i
 		saveSubsFallback := p.subs
 		t, err := p.parseType()
@@ -448,23 +418,6 @@ func (p *parser) parseGlobal() (*demangle.Node, error) {
 		}
 	}
 
-	// DEBUG
-	if p.origin == "_$s10Foundation20PredicateExpressionsO7KeyPathV06CommondE4KindOMn" {
-		fmt.Printf("DEBUG inner kind=%d text=%q children=%d\n", inner.Kind, inner.Text, len(inner.Children))
-		if len(inner.Children) > 0 {
-			c0 := inner.Children[0]
-			fmt.Printf("  child[0] kind=%d text=%q children=%d\n", c0.Kind, c0.Text, len(c0.Children))
-			if len(c0.Children) > 0 {
-				c00 := c0.Children[0]
-				fmt.Printf("    child[0][0] kind=%d text=%q children=%d\n", c00.Kind, c00.Text, len(c00.Children))
-			}
-			if len(c0.Children) > 1 {
-				c01 := c0.Children[1]
-				fmt.Printf("    child[0][1] kind=%d text=%q\n", c01.Kind, c01.Text)
-			}
-		}
-	}
-	// END DEBUG
 	// Protocol-conformance shape: <Type> <Protocol> <SourceModule> Hc
 	// (or Hp for retroactive). Runs BEFORE the generic entity suffix
 	// check because the shape consumes multiple types.
@@ -3753,8 +3706,7 @@ func (p *parser) tryParsePseudogenericSig() (sigStr string, consumedBareL bool, 
 func (p *parser) tryImplFunctionType() (*demangle.Node, bool) {
 	save := p.i
 	saveSubs := p.subs
-	saveWords := p.words
-	revert := func() { p.i = save; p.subs = saveSubs; p.words = saveWords }
+	revert := func() { p.i = save; p.subs = saveSubs }
 	// Parse 0-or-more leading types. Inside this loop we also
 	// recognise 'S<digits><letter>' multi-count stdlib shortcut and
 	// expand inline as N copies of the letter-typed stdlib sub.
@@ -4193,11 +4145,9 @@ func (p *parser) tryImplFunctionType() (*demangle.Node, bool) {
 func (p *parser) tryVariableEntity() (*demangle.Node, bool, error) {
 	save := p.i
 	saveSubs := p.subs
-	saveWords := p.words
 	restore := func() {
 		p.i = save
 		p.subs = saveSubs
-		p.words = saveWords
 	}
 	// Accept 's' (Swift module shorthand), 'S<letter>' (stdlib substitution
 	// type as context), or digit-led module identifier.
@@ -4592,8 +4542,7 @@ func (p *parser) tryCompactStdlibInitEntity() (*demangle.Node, bool, error) {
 func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 	save := p.i
 	saveSubs := p.subs
-	saveWords := p.words
-	restore := func() { p.i = save; p.subs = saveSubs; p.words = saveWords }
+	restore := func() { p.i = save; p.subs = saveSubs }
 	// Accept 's' (Swift module shorthand), 'So'/'SC' (Obj-C importer),
 	// 'S<letter>' (stdlib known-type abbreviation), or digit-led module.
 	var mod string
@@ -7168,10 +7117,16 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 					}
 				}
 				k += n
-				// The char after the chunk (if uppercase) is a word-sub reference;
-				// skip it so the outer loop does not mistake it for an extension marker.
+				// After the literal chunk, skip lowercase word-sub refs (they stay
+				// in word-sub mode) and then the optional uppercase terminal ref
+				// (which exits word-sub mode). Without this, '06CommondE4Kind'
+				// (lowercase 'd' ref before uppercase terminal 'E') would cause 'E'
+				// to be mistaken for the extension marker.
+				for k < len(p.s) && p.s[k] >= 'a' && p.s[k] <= 'z' {
+					k++ // skip lowercase word-sub ref (stays in mode)
+				}
 				if k < len(p.s) && p.s[k] >= 'A' && p.s[k] <= 'Z' {
-					k++
+					k++ // skip uppercase word-sub terminal ref (exits mode)
 				}
 			} else if k < len(p.s) && p.s[k] >= 'a' && p.s[k] <= 'z' {
 				// Pattern B: lowercase letter run + one uppercase terminal.
@@ -9669,11 +9624,9 @@ func funcEntityLabels(args *demangle.Node) string {
 func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 	save := p.i
 	saveSubs := p.subs
-	saveWords := p.words
 	restore := func() {
 		p.i = save
 		p.subs = saveSubs
-		p.words = saveWords
 	}
 
 	if p.eof() {
