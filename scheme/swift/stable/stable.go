@@ -8498,7 +8498,11 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 					if len(localConstraints) > 0 {
 						localSig = "<A where " + strings.Join(localConstraints, ", ") + ">"
 					}
-					text = "property descriptor for (extension in " + extInModProp + "):" +
+					outerExtPfxProp := ""
+					if hasNestedExtension {
+						outerExtPfxProp = "(extension in " + modName + "):"
+					}
+					text = "property descriptor for " + outerExtPfxProp + "(extension in " + extInModProp + "):" +
 						hostQualified + sig + "." + declName + localSig + propTypeStr
 				}
 			}
@@ -8537,7 +8541,11 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 					if len(localConstraints) > 0 {
 						localSig = "<A where " + strings.Join(localConstraints, ", ") + ">"
 					}
-					text = "(extension in " + extInModProp + "):" + hostQualified + sig +
+					outerExtPfxVp := ""
+					if hasNestedExtension {
+						outerExtPfxVp = "(extension in " + modName + "):"
+					}
+					text = outerExtPfxVp + "(extension in " + extInModProp + "):" + hostQualified + sig +
 						"." + declName + localSig + propTypeStr
 				}
 			}
