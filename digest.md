@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 83.53% (53257/63757) — 2026-05-03T19:27Z
-**Round-trip**: 63.49% (11625/18311) — 2026-05-03T19:27Z
-**Failures**: ~9731 parse-errors + ~769 mismatches (production-divergences.txt stale; counts approximate)
+**Parity**: 83.69% (53360/63757) — 2026-05-03T21:26Z
+**Round-trip**: 63.50% (11627/18311) — 2026-05-03T21:26Z
+**Failures**: ~9631 parse-errors + ~766 mismatches (production-divergences.txt stale; counts approximate)
 
 ## Top-20 Mismatch Categories
 
@@ -29,7 +29,12 @@
 
 ## Last 10 Commits
 
-- (pending) swift-parity: PH-2 Xl AnyObject + fC tuple/fn-param fixes — parity 53050→53257 (+207 production, +106 round-trip)
+- d55f1eb swift-parity: PI revert outer word-saves + tryExtensionEntity lowercase skip — parity 53257→53360 (+103 production, +2 round-trip)
+- 5d8aa1d bench: refresh baselines after Swift grammar expansion
+- d5addfa ci: fix staticcheck failures + swiftc-corpus drift check
+- 522ecd3 ci: fix coverage gate + swiftc Swift version mismatch
+- e02028d ci: fix swiftc hard-coded path + tryExtensionEntity overflow panic
+- 627ee7c swift-parity: PH-2 Xl AnyObject + fC tuple/fn-param fixes — parity 53050→53257 (+207 production, +106 round-trip)
 - bc07e68 swift-hardening: PH runHCMiniStack repeat-count overflow cap — parity 52907 (no change; security fix only)
 - 10ad39f swift-parity: PE function-type params-first fix — parity 52899→52907 (+8 production)
 - a44d773 swift-parity: PG self-return multi-sub result fix — parity 52867→52899 (+32 production, +7 fixtures)
@@ -47,5 +52,5 @@
 ## Suggested Next 3 Items
 
 1. investigate: (extension in Foundation):(extension in Foundation… — 36 mismatches (68 production failures remain)
-2. P1: _CalendarProtocol.date(byAdding:to:wrappingComponents:) — `AA0jI0V` subs collision (to: DateComponents instead of Date)
-3. investigate: dispatch thunk / method descriptor Swift.Swift symbols (_AnyIndexBox family) — likely still failing for sAA_ back-ref edge cases
+2. investigate: Swift.Mirror.init word-sub regression — `D0O`/`F0O` decode "Displaychildren"/"AncestorStyle" instead of "DisplayStyle"/"AncestorRepresentation"; needs correct multi-chunk word-sub tracing
+3. P1: _CalendarProtocol.date(byAdding:to:wrappingComponents:) — `AA0jI0V` subs collision (to: DateComponents instead of Date)
