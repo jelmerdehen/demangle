@@ -6464,7 +6464,7 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 	if len(labels) == 0 && !p.eof() && p.s[p.i] == 'y' && p.i+1 < len(p.s) {
 		next := p.s[p.i+1]
 		typeStart := next == 'A' || next == 'S' || next == 's' || next == 'B' ||
-			next == 'x' || next == 'q' || next == 'Q' || (next >= '0' && next <= '9')
+			next == 'x' || next == 'q' || next == 'Q' || next == 'X' || (next >= '0' && next <= '9')
 		if typeStart {
 			specSave := p.i
 			specSubs := p.subs
@@ -6473,8 +6473,10 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 			specResult, serr := p.parseType()
 			if serr == nil && !p.eof() {
 				nc := p.s[p.i]
-				if nc != 'F' && nc != 'l' && nc != 'K' && nc != 'Y' &&
-					nc != 'v' && nc != 'r' && nc != 'u' {
+				// Allow nc=='v' when propTermAtEnd: the 'v' is the property terminal, not a type modifier.
+				notTypeEnd := nc == 'F' || nc == 'l' || nc == 'K' || nc == 'Y' ||
+					nc == 'r' || nc == 'u' || (nc == 'v' && !propTermAtEnd)
+				if !notTypeEnd {
 					labels = append(labels, "_")
 					retNode = specResult
 				}
@@ -7630,20 +7632,44 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 				}
 				ci2++
 			}
-			hasNestedExtension = true
-			for !p.eof() {
-				ident2, err2 := p.parseIdentifier()
-				if err2 != nil {
-					break
+			// innerCB starting with 'Rs' means the nested types already parsed into
+			// nestedTypesSuffix are the VALUE of a same-type constraint (A == T), not
+			// actual nested host types. Clear the suffix so it doesn't pollute the host path.
+			if len(innerCB) >= 2 && innerCB[0] == 'R' && innerCB[1] == 's' {
+				nestedTypesSuffix = nestedTypesSuffix[:0]
+				// Not a doubly-nested extension — skip hasNestedExtension and inner loop.
+				// Still parse declName from after the second E.
+				for !p.eof() {
+					ident2, err2 := p.parseIdentifier()
+					if err2 != nil {
+						break
+					}
+					if !p.eof() && (p.s[p.i] == 'V' || p.s[p.i] == 'C' ||
+						p.s[p.i] == 'O' || p.s[p.i] == 'P') {
+						p.subs.Push(common.NewIdentifier(ident2))
+						p.i++
+						nestedTypesSuffix = append(nestedTypesSuffix, ident2)
+					} else {
+						declName = ident2
+						break
+					}
 				}
-				if !p.eof() && (p.s[p.i] == 'V' || p.s[p.i] == 'C' ||
-					p.s[p.i] == 'O' || p.s[p.i] == 'P') {
-					p.subs.Push(common.NewIdentifier(ident2))
-					p.i++
-					nestedTypesSuffix = append(nestedTypesSuffix, ident2)
-				} else {
-					declName = ident2
-					break
+			} else {
+				hasNestedExtension = true
+				for !p.eof() {
+					ident2, err2 := p.parseIdentifier()
+					if err2 != nil {
+						break
+					}
+					if !p.eof() && (p.s[p.i] == 'V' || p.s[p.i] == 'C' ||
+						p.s[p.i] == 'O' || p.s[p.i] == 'P') {
+						p.subs.Push(common.NewIdentifier(ident2))
+						p.i++
+						nestedTypesSuffix = append(nestedTypesSuffix, ident2)
+					} else {
+						declName = ident2
+						break
+					}
 				}
 			}
 		}
@@ -11268,7 +11294,7 @@ func (p *parser) parseType() (*demangle.Node, error) {
 		switch xc {
 		case 'l':
 			nom := common.NewNode(common.KindBuiltinTypeName)
-			nom.Text = "AnyObject"
+			nom.Text = "Swift.AnyObject"
 			typ := common.NewNode(common.KindType)
 			common.AddChildren(typ, nom)
 			node = typ
