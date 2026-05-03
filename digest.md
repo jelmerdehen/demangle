@@ -1,18 +1,18 @@
 # Swift Production Digest
 
-**Parity**: 83.67% (53343/63757) — 2026-05-03T20:36:29Z
-**Round-trip**: 63.09% (11553/18311) — 2026-05-03T21:04:43Z
-**Failures**: 9749 parse-errors + 666 mismatches
+**Parity**: 83.80% (53410/63757) — 2026-05-03T23:00:00Z
+**Round-trip**: 63.50% (11627/18311) — 2026-05-03T22:55:42Z
+**Failures**: 9744 parse-errors + 603 mismatches
 
 ## Top-20 Mismatch Categories
 
-- property descriptor                        41
+- property descriptor                        18
 - static (extension                          11
 - opaque type descriptor                     10
 - protocol conformance descriptor            10
-- dispatch thunk                             9
-- method descriptor                          9
 - (extension in Foundation):Foundation.DiscreteForma… 8
+- dispatch thunk                             8
+- method descriptor                          8
 - enum case                                  6
 - (extension in Foundation):Foundation.Measurement< … 4
 - (extension in Foundation):Swift.String.Localizatio… 4
@@ -29,6 +29,8 @@
 
 ## Last 10 Commits
 
+- 0d08e82 swift-parity: PL findTypeForIdent KindBuiltinTypeName suffix — parity 53408→53410 (+2 production)
+- 40d5c65 chore: update digest.md for PK commit (parity 53373→53408)
 - e83a4eb swift-parity: PK Swift.AnyObject type + UIViewInvalidating + propDesc AnyObject? — parity 53373→53408 (+35 production)
 - ddcb6a5 bench: drop topology-dependent benchmarks from CI baseline
 - d345bae swift-parity: PJ doubly-nested vpMV/vp outerExtPfx — parity 53360→53373 (+13 production)
@@ -38,10 +40,9 @@
 - d55f1eb swift-parity: PI revert outer word-saves + tryExtensionEntity lowercase skip — parity 53257→53360 (+103 production, +2 round-trip)
 - 5d8aa1d bench: refresh baselines after Swift grammar expansion
 - d5addfa ci: fix staticcheck failures + swiftc-corpus drift check
-- 522ecd3 ci: fix coverage gate + swiftc Swift version mismatch
 
 ## Suggested Next 3 Items
 
-1. P1: property descriptor fix — 41 mismatches
+1. P1: property descriptor fix — 18 mismatches
 2. investigate: static (extension — 11 mismatches
 3. P10: opaque type descriptor — 10 mismatches
