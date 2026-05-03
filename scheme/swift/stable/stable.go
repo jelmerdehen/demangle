@@ -326,6 +326,10 @@ type parser struct {
 	// is greedily merged into a nested FunctionType(Bool,A.Output) that
 	// consumes the 'c' convention byte meant for the outer function type.
 	inFunctionTypeSlot bool
+	// inBoundGenericArgs is true while tryBoundGeneric is parsing its 'y…G'
+	// argument list. Apple pushes Module("Swift") to subs for 's<ident><kind>'
+	// types in this context but not in other type positions.
+	inBoundGenericArgs bool
 }
 
 const maxParseDepth = 64
@@ -9742,8 +9746,12 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 	if lastNomCtx == nil {
 		moduleNode := common.NewModule(mod)
 		pathSteps = append(pathSteps, moduleNode)
-		// Push module to subs so subsequent A<idx>_ can resolve to it.
-		p.subs.Push(moduleNode)
+		// Apple does NOT push Module("Swift") to subs in entity context —
+		// only Identifier + Type are pushed per nominal step. User modules
+		// (Foundation, Bar, etc.) ARE pushed so A<idx> can refer back to them.
+		if mod != "Swift" {
+			p.subs.Push(moduleNode)
+		}
 		// lastNomCtx is the most recently built nominal-type node, used as
 		// the parent context for the next nested nominal so that paths like
 		// Foundation.Morphology.PronounType are fully qualified in subs.
@@ -11046,7 +11054,15 @@ func (p *parser) parseType() (*demangle.Node, error) {
 		parsedRawStdlib = err == nil && !p.eof() && p.s[p.i] == 'y'
 	case c == 's':
 		p.i++
-		node, err = p.parseNominalWithModule(common.NewModule("Swift"))
+		swiftMod := common.NewModule("Swift")
+		// Apple pushes Module("Swift") to subs when parsing a Swift-module
+		// type in bound-generic argument position (e.g. Set<Swift.AnyKeyPath>).
+		// In other type positions (protocol existentials, function params)
+		// Apple does NOT push the module — only Identifier + Type are pushed.
+		if p.inBoundGenericArgs {
+			p.subs.Push(swiftMod)
+		}
+		node, err = p.parseNominalWithModule(swiftMod)
 	case c == 'A':
 		p.i++
 		sub, subErr := p.parseNumericSubstitution()
@@ -11936,7 +11952,10 @@ func (p *parser) tryBoundGeneric(base *demangle.Node) (*demangle.Node, bool, err
 		// skipping a retroactive-conformance-ref metadata block.
 		argSave := p.i
 		argSubs := p.subs
+		prevInBG := p.inBoundGenericArgs
+		p.inBoundGenericArgs = true
 		arg, err := p.parseType()
+		p.inBoundGenericArgs = prevInBG
 		// A bare KindIdentifier returned by parseType is not a valid
 		// bound-generic type argument — it indicates the multi-sub
 		// back-reference bytes are part of a conformance-ref block,

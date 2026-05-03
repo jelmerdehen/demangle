@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 83.0% (52907/63757) — 2026-05-03T15:30Z
-**Round-trip**: 63.69% (11478/18023) — 2026-05-03T15:30Z
-**Failures**: ~10082 parse-errors + ~761 mismatches (production-divergences.txt stale; counts approximate)
+**Parity**: 83.2% (53050/63757) — 2026-05-03T18:10Z
+**Round-trip**: 63.92% (11519/18023) — 2026-05-03T18:10Z
+**Failures**: ~9938 parse-errors + ~769 mismatches (production-divergences.txt stale; counts approximate)
 
 ## Top-20 Mismatch Categories
 
@@ -29,7 +29,8 @@
 
 ## Last 10 Commits
 
-- (pending) swift-hardening: PH runHCMiniStack repeat-count overflow cap — parity 52907 (no change; security fix only)
+- (pending) swift-parity: PF subs-layout fix — parity 52907→53050 (+143 production, +41 round-trip)
+- bc07e68 swift-hardening: PH runHCMiniStack repeat-count overflow cap — parity 52907 (no change; security fix only)
 - 10ad39f swift-parity: PE function-type params-first fix — parity 52899→52907 (+8 production)
 - a44d773 swift-parity: PG self-return multi-sub result fix — parity 52867→52899 (+32 production, +7 fixtures)
 - d69421f swift-parity: WE enum-case compact-tuple double-paren fix — parity 52865→52867 (+2 production)
@@ -45,6 +46,6 @@
 
 ## Suggested Next 3 Items
 
-1. investigate: (extension in Foundation):(extension in Foundation… — 36 mismatches
-2. P1: property descriptor fix — 33 mismatches
-3. NSKeyValueObservingCustomization dispatch thunk — subs[6] off-by-one; AG_=Set<AnyKeyPath> instead of AnyKeyPath; needs +1 push before inner type but both parsedRawStdlib-removal and Module-push approaches cause regressions
+1. investigate: (extension in Foundation):(extension in Foundation… — 36 mismatches (68 production failures remain)
+2. P1: _CalendarProtocol.date(byAdding:to:wrappingComponents:) — `AA0jI0V` subs collision (to: DateComponents instead of Date)
+3. investigate: dispatch thunk / method descriptor Swift.Swift symbols (_AnyIndexBox family) — likely still failing for sAA_ back-ref edge cases
