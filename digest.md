@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 83.2% (53050/63757) — 2026-05-03T18:10Z
-**Round-trip**: 63.92% (11519/18023) — 2026-05-03T18:10Z
-**Failures**: ~9938 parse-errors + ~769 mismatches (production-divergences.txt stale; counts approximate)
+**Parity**: 83.53% (53257/63757) — 2026-05-03T19:27Z
+**Round-trip**: 63.49% (11625/18311) — 2026-05-03T19:27Z
+**Failures**: ~9731 parse-errors + ~769 mismatches (production-divergences.txt stale; counts approximate)
 
 ## Top-20 Mismatch Categories
 
@@ -29,7 +29,7 @@
 
 ## Last 10 Commits
 
-- (pending) swift-parity: PF subs-layout fix — parity 52907→53050 (+143 production, +41 round-trip)
+- (pending) swift-parity: PH-2 Xl AnyObject + fC tuple/fn-param fixes — parity 53050→53257 (+207 production, +106 round-trip)
 - bc07e68 swift-hardening: PH runHCMiniStack repeat-count overflow cap — parity 52907 (no change; security fix only)
 - 10ad39f swift-parity: PE function-type params-first fix — parity 52899→52907 (+8 production)
 - a44d773 swift-parity: PG self-return multi-sub result fix — parity 52867→52899 (+32 production, +7 fixtures)

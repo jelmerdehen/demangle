@@ -4761,12 +4761,21 @@ func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 			retType = t
 		}
 	}
-	// Params-type: may be empty, a single type, or a multi-element tuple
-	// encoded as <type> ('_' <type>)* 't'.
+	// Params-type: may be empty, a single type, a function type, or a
+	// multi-element tuple encoded as <el0> '_' <el1> <el2>... 't'.
 	var paramsType *demangle.Node
 	if !p.eof() && p.s[p.i] == 'y' {
-		p.i++
-		paramsType = common.NewNode(common.KindEmptyList)
+		// 'y' can be either: empty-params marker, or start of a function-type
+		// argument (e.g. yXlc = (AnyObject) -> ()). Try parseType() which
+		// calls parseFunctionType; fall back to empty-list on failure.
+		saveY := p.i
+		pt, yErr := p.parseType()
+		if yErr == nil {
+			paramsType = pt
+		} else {
+			p.i = saveY + 1 // consume 'y' as empty-params marker
+			paramsType = common.NewNode(common.KindEmptyList)
+		}
 	} else {
 		firstParam, err := p.parseType()
 		if err != nil {
@@ -4775,20 +4784,23 @@ func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 		}
 		var paramTypes []*demangle.Node
 		paramTypes = append(paramTypes, firstParam)
-		// Multi-element tuple: collect additional '_' <type> elements until 't'.
-		// '_t' (single-labeled tuple marker) is handled by the terminator check below.
-		for !p.eof() && p.s[p.i] == '_' && p.i+1 < len(p.s) && p.s[p.i+1] != 't' {
-			p.i++ // skip '_' separator
-			elem, eerr := p.parseType()
-			if eerr != nil {
-				p.i-- // undo '_'
-				break
+		// Multi-element tuple: one '_' FirstElementMarker after element 0,
+		// then remaining elements are contiguous (no further '_' separators).
+		// '_t' (single-labeled-arg marker) is handled by the check below.
+		if !p.eof() && p.s[p.i] == '_' && p.i+1 < len(p.s) && p.s[p.i+1] != 't' {
+			p.i++ // consume FirstElementMarker '_'
+			for !p.eof() && p.s[p.i] != 't' {
+				elem, eerr := p.parseType()
+				if eerr != nil {
+					break
+				}
+				paramTypes = append(paramTypes, elem)
 			}
-			paramTypes = append(paramTypes, elem)
-		}
-		// Consume tuple terminator 't' (present when >1 elements).
-		if !p.eof() && p.s[p.i] == 't' {
-			p.i++
+			if !p.eof() && p.s[p.i] == 't' {
+				p.i++ // consume tuple terminator
+			}
+		} else if !p.eof() && p.s[p.i] == 't' {
+			p.i++ // consume 't' for 2-element tuple without FirstElementMarker
 		}
 		if len(paramTypes) == 1 {
 			paramsType = paramTypes[0]
@@ -4912,6 +4924,12 @@ func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 	} else if p.i+2 < len(p.s) && p.s[p.i] == 'c' && p.s[p.i+1] == 'f' {
 		kindByte = p.s[p.i+2]
 		p.i += 3
+	} else if p.i+1 < len(p.s) && p.s[p.i] == 'f' &&
+		(p.s[p.i+1] == 'C' || p.s[p.i+1] == 'c' || p.s[p.i+1] == 'D' || p.s[p.i+1] == 'd') {
+		// 'fX' without leading 'c': the 'c' was consumed as part of a
+		// function-type parameter (e.g. parseFunctionType consumed 'yXlc').
+		kindByte = p.s[p.i+1]
+		p.i += 2
 	} else {
 		restore()
 		return nil, false, nil
@@ -11288,6 +11306,23 @@ func (p *parser) parseType() (*demangle.Node, error) {
 			break
 		}
 		node, err = p.parseNominalPath()
+	case c == 'X':
+		p.i++
+		if p.eof() {
+			return nil, p.grammarErr("X type second byte")
+		}
+		xc := p.s[p.i]
+		p.i++
+		switch xc {
+		case 'l':
+			nom := common.NewNode(common.KindBuiltinTypeName)
+			nom.Text = "AnyObject"
+			typ := common.NewNode(common.KindType)
+			common.AddChildren(typ, nom)
+			node = typ
+		default:
+			return nil, p.grammarErr("X type second byte")
+		}
 	default:
 		return nil, p.grammarErr("type start")
 	}
