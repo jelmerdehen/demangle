@@ -29,17 +29,16 @@
 
 ## Last 10 Commits
 
-- (pending) swift-parity: QT S<N><letter> compact params in tryExtensionEntity — parity 84.85%→84.86% (+4 production, +3 fixtures)
+- da71e61 chore: lock snapshot after QT commit (parity 54098→54102)
+- aad61c1 swift-parity: QT S<N><letter> compact params in tryExtensionEntity — parity 84.85%→84.86% (+4 production, +3 fixtures)
+- 915af29 chore: lock snapshot after QS commit (parity 54098→54098)
+- 465634a chore: update digest.md for QS commit (parity 54085→54098)
 - 3d088a6 swift-parity: QS Rp assoc-type subs push — A.Element back-refs in extension params — parity 84.83%→84.85% (+13 production, +6 fixtures)
 - bdb2a06 chore: lock snapshot after QR commit (parity 54085→54085)
 - a0460a4 chore: update digest.md for QR commit (parity 54072→54085)
 - 04976d0 swift-parity: QR self-same-type constraints A == A.<Ident> in extension sigs — parity 84.81%→84.83% (+13 production, +9 fixtures)
 - af688a4 chore: update digest.md for QF commit (parity 54072→54072)
 - 56a0cc1 chore: lock snapshot after QF commit (parity 54072→54072)
-- 04292a6 swift-parity: QF A→Module→Sg 3rd-push subs alignment — parity 84.80%→84.81% (+9 production, +2 fixtures)
-- c235269 chore: update digest.md for QE commit (parity 54032→54063)
-- 8c6ea9e swift-parity: QE QZ dependent-member-type chain — parity 84.75%→84.80% (+31 production, +2 fixtures)
-- 746ed3e chore: update digest.md for QD commit (parity 54020→54032)
 
 ## Suggested Next 3 Items
 
