@@ -63,3 +63,11 @@ _$ss5ErrorPsSYRzs17FixedWidthInteger8RawValueSYRpzrlE5_codeSivpMV ---> property 
 _$sSnsSxRzSZ6StrideRpzrlE10startIndexxvpMV ---> property descriptor for (extension in Swift):Swift.Range< where A: Swift.Strideable, A.Stride: Swift.SignedInteger>.startIndex : A
 _$ss16PartialRangeFromVsSxRzSZ6StrideRpzrlE8IteratorV8_currentxvpMV ---> property descriptor for (extension in Swift):Swift.PartialRangeFrom< where A: Swift.Strideable, A.Stride: Swift.SignedInteger>.Iterator._current : A
 _$ss6ResultOsSHRzSHR_rlE9hashValueSivpMV ---> property descriptor for (extension in Swift):Swift.Result< where A: Swift.Hashable, B: Swift.Hashable>.hashValue : Swift.Int
+# PU: <A where> format for l-terminated constraints + subscript compact encoding + s<N>VRs same-type
+_$sSasSHRzlE9hashValueSivpMV ---> property descriptor for (extension in Swift):Swift.Array<A where A: Swift.Hashable>.hashValue : Swift.Int
+_$sSqsSHRzlE9hashValueSivpMV ---> property descriptor for (extension in Swift):Swift.Optional<A where A: Swift.Hashable>.hashValue : Swift.Int
+_$ss10ArraySliceVsSHRzlE9hashValueSivpMV ---> property descriptor for (extension in Swift):Swift.ArraySlice<A where A: Swift.Hashable>.hashValue : Swift.Int
+_$ss15ContiguousArrayVsSHRzlE9hashValueSivpMV ---> property descriptor for (extension in Swift):Swift.ContiguousArray<A where A: Swift.Hashable>.hashValue : Swift.Int
+_$sSPss5UInt8VRszlE8_asCCharSPys4Int8VGvpMV ---> property descriptor for (extension in Swift):Swift.UnsafePointer<A where A == Swift.UInt8>._asCChar : Swift.UnsafePointer<Swift.Int8>
+_$sSi12SIMD2StorageVyS2icipMV ---> property descriptor for Swift.Int.SIMD2Storage.subscript(Swift.Int) -> Swift.Int
+_$sSi12SIMD4StorageVyS2icipMV ---> property descriptor for Swift.Int.SIMD4Storage.subscript(Swift.Int) -> Swift.Int

@@ -1623,15 +1623,43 @@ func (p *parser) trySubscriptEntityTyped(inner *demangle.Node) (*demangle.Node, 
 	p.inSubscriptTypes = true
 	defer func() { p.inSubscriptTypes = false }()
 
-	// Parse result type.
-	resultNode, err := p.parseType()
-	if err != nil {
-		revert()
-		return inner, false
+	// Compact subscript encoding: S<N><letter>c where N >= 2 means
+	// N copies of the same stdlib type — first is result, N-1 are index params.
+	var resultNode *demangle.Node
+	var indexNodes []*demangle.Node
+	if !p.eof() && p.s[p.i] == 'S' && p.i+1 < len(p.s) &&
+		p.s[p.i+1] >= '1' && p.s[p.i+1] <= '9' {
+		j := p.i + 1
+		for j < len(p.s) && p.s[j] >= '0' && p.s[j] <= '9' {
+			j++
+		}
+		if j < len(p.s) {
+			letter := p.s[j]
+			if baseNode, ok := common.BuildStdlibNominal(letter); ok {
+				n := 0
+				for _, d := range []byte(p.s[p.i+1 : j]) {
+					n = n*10 + int(d-'0')
+				}
+				if n >= 2 && j+1 < len(p.s) && p.s[j+1] == 'c' {
+					p.i = j + 1 // advance past S<N><letter>
+					resultNode = baseNode
+					for k := 1; k < n; k++ {
+						indexNodes = append(indexNodes, baseNode)
+					}
+				}
+			}
+		}
+	}
+	if resultNode == nil {
+		var err error
+		resultNode, err = p.parseType()
+		if err != nil {
+			revert()
+			return inner, false
+		}
 	}
 
-	// Parse index types until 'c' (not a valid type-start, so parseType errors).
-	var indexNodes []*demangle.Node
+	// Parse additional index types until 'c' (not a valid type-start, so parseType errors).
 	for !p.eof() && p.s[p.i] != 'c' {
 		idxSave := p.i
 		idxSubs := p.subs
@@ -9914,6 +9942,60 @@ func extractConstraintSigFullOpts(b []byte, includeObjCRequirements bool) (sig, 
 		}
 	}
 
+	// Scan for s<N><name><kind>Rs<subj> — Swift-module type same-type constraint.
+	// Pattern: 's' digits name kind 'Rs' ('z'=A | '_'=B).
+	// E.g. s5UInt8VRszl = "A == Swift.UInt8".
+	// Guarded same as s<N>Rz above.
+	if includeObjCRequirements {
+		seenSwiftRs := map[string]bool{}
+		for pos := 0; pos+1 < len(s); pos++ {
+			if s[pos] != 's' || !(s[pos+1] >= '1' && s[pos+1] <= '9') {
+				continue
+			}
+			j := pos + 1
+			lenStart := j
+			for j < len(s) && s[j] >= '0' && s[j] <= '9' {
+				j++
+			}
+			n := 0
+			for k := lenStart; k < j; k++ {
+				n = n*10 + int(s[k]-'0')
+			}
+			nameEnd := j + n
+			if nameEnd >= len(s) {
+				continue
+			}
+			typeName := s[j:nameEnd]
+			kind := s[nameEnd]
+			if kind != 'V' && kind != 'C' && kind != 'O' {
+				continue
+			}
+			j = nameEnd + 1
+			if j+1 >= len(s) || s[j] != 'R' || s[j+1] != 's' {
+				continue
+			}
+			j += 2
+			if j >= len(s) {
+				continue
+			}
+			var paramName string
+			switch s[j] {
+			case 'z':
+				paramName = "A"
+			case '_':
+				paramName = "B"
+			}
+			if paramName == "" {
+				continue
+			}
+			key := paramName + " == Swift." + typeName
+			if !seenSwiftRs[key] {
+				seenSwiftRs[key] = true
+				constraints = append(constraints, key)
+			}
+		}
+	}
+
 	// Scan for S<letter><N><assoc>Rp<subj> — assoc-type conformance where the
 	// constraining protocol is an S<letter> stdlib shorthand.
 	// E.g. SZ6StrideRpz = "A.Stride: Swift.SignedInteger".
@@ -9997,7 +10079,15 @@ func extractConstraintSigFullOpts(b []byte, includeObjCRequirements bool) (sig, 
 	if len(constraints) == 0 {
 		return "", ""
 	}
-	return "< where " + strings.Join(constraints, ", ") + ">", ""
+	// Constraint bytes ending with bare 'l' (not preceded by 'r') use the
+	// generic-param-list form "<A where ...>" instead of "< where ...>".
+	// The 'r' before 'l' signals a standard extension sig (0 new type params);
+	// without it, the sig introduces one explicit generic parameter.
+	prefix := "< where "
+	if len(s) >= 2 && s[len(s)-1] == 'l' && s[len(s)-2] != 'r' {
+		prefix = "<A where "
+	}
+	return prefix + strings.Join(constraints, ", ") + ">", ""
 }
 
 // funcEntityModule returns the module name from a KindFunctionEntity node's
