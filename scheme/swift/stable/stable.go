@@ -6730,6 +6730,36 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 				p.i+1 < len(p.s) && p.s[p.i+1] == 't' {
 				p.i += 2
 			}
+			// tryPostfixCompactTuple may have merged Sf_S<N>f...t into a single
+			// "(T1, T2, ...)" KindBuiltinTypeName node. Recover the true element
+			// count so makeLabelStr emits all labels, not just the first.
+			if paramCount == 1 && len(paramTypes) == 1 {
+				pt := paramTypes[0]
+				if pt != nil && common.NodeKind(pt.Kind) == common.KindType &&
+					len(pt.Children) == 1 &&
+					common.NodeKind(pt.Children[0].Kind) == common.KindBuiltinTypeName {
+					text := pt.Children[0].Text
+					if len(text) >= 2 && text[0] == '(' && text[len(text)-1] == ')' {
+						inner := text[1 : len(text)-1]
+						depth, n := 0, 1
+						for _, ch := range inner {
+							switch ch {
+							case '(', '<', '[':
+								depth++
+							case ')', '>', ']':
+								depth--
+							case ',':
+								if depth == 0 {
+									n++
+								}
+							}
+						}
+						if n > 1 {
+							paramCount = n
+						}
+					}
+				}
+			}
 		}
 	}
 
@@ -10902,6 +10932,41 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 				// the element is labeled or otherwise needs the
 				// explicit tuple wrapper).
 				elements := []*demangle.Node{x}
+				// sCompactExpand: if current position is S<N><letter>,
+				// expand to N copies in elements and return true.
+				// Handles ObjC-init compact param runs like S3f (3×Float).
+				sCompactExpand := func() bool {
+					if p.eof() || p.s[p.i] != 'S' || p.i+1 >= len(p.s) ||
+						p.s[p.i+1] < '0' || p.s[p.i+1] > '9' {
+						return false
+					}
+					j := p.i + 1
+					for j < len(p.s) && p.s[j] >= '0' && p.s[j] <= '9' {
+						j++
+					}
+					if j >= len(p.s) {
+						return false
+					}
+					one, ok := common.BuildStdlibNominal(p.s[j])
+					if !ok {
+						return false
+					}
+					n := 0
+					for _, d := range p.s[p.i+1 : j] {
+						n = n*10 + int(d-'0')
+						if n > 512 {
+							return false
+						}
+					}
+					if n < 1 {
+						return false
+					}
+					p.i = j + 1 // consume S<digits><letter>
+					for k := 0; k < n; k++ {
+						elements = append(elements, one)
+					}
+					return true
+				}
 				for !p.eof() && p.s[p.i] == '_' {
 					// '_t' — direct tuple closer for the elements
 					// collected so far. Consume both bytes + break.
@@ -10910,6 +10975,9 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 						goto tupleClosed
 					}
 					p.i++
+					if sCompactExpand() {
+						continue
+					}
 					y, err := p.parseType()
 					if err != nil {
 						revert()
@@ -10924,6 +10992,9 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 				// elements while the current byte can begin a type and
 				// we haven't reached the closing 't'.
 				for !p.eof() && p.s[p.i] != 't' && p.s[p.i] != '_' {
+					if sCompactExpand() {
+						continue
+					}
 					saveTuple := p.i
 					saveTupleSubs := p.subs
 					y, err := p.parseType()
