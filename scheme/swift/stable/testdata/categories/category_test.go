@@ -265,6 +265,13 @@ func TestSwiftStdlibExtensionFixtureStrictGate(t *testing.T) {
 	runStrictGateFile(t, "swift_stdlib_extension.txt")
 }
 
+// TestDecodeGenericConstraintFixtureStrictGate verifies the PQ fix:
+// xm_t function type (result=T, params=T.Type) + Rd__ depth-indexed
+// constraint subject in generic where clauses.
+func TestDecodeGenericConstraintFixtureStrictGate(t *testing.T) {
+	runStrictGateFile(t, "decode_generic_constraint.txt")
+}
+
 // TestInitConstraintFixtureStrictGate verifies all init_constraint.txt entries pass.
 func TestInitConstraintFixtureStrictGate(t *testing.T) {
 	runStrictGateFile(t, "init_constraint.txt")

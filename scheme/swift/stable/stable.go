@@ -10365,15 +10365,17 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 			if p.s[p.i] == 'y' {
 				// Empty-list shortcut. Consume.
 				p.i++
-			} else if p.s[p.i] >= '0' && p.s[p.i] <= '9' || p.s[p.i] == 'x' || p.s[p.i] == '_' {
+			} else if p.s[p.i] >= '0' && p.s[p.i] <= '9' || p.s[p.i] == '_' {
 				for {
 					if p.eof() {
 						revert()
 						return false
 					}
 					// Labels end where a non-digit-non-blank-marker byte appears
-					// (that's the result-type slot starting).
-					if p.s[p.i] == 'x' || p.s[p.i] == '_' {
+					// (that's the result-type slot starting). Note: 'x' is NOT a
+					// label marker — it is the generic type-param shorthand (T) and
+					// must be left for the result-type slot.
+					if p.s[p.i] == '_' {
 						labels = append(labels, "_")
 						p.i++
 						continue
@@ -10473,6 +10475,19 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 			ok := false
 			if _, match := readOne(); match {
 				ok = true
+				// 'm' after S<N><letter>: metatype modifier on the LAST compact
+				// element (e.g. S2im → result=Int, params=Int.Type). Consume 'm'
+				// and convert the last compactType to its metatype form.
+				if !p.eof() && p.s[p.i] == 'm' && len(compactTypes) > 0 {
+					p.i++
+					last := compactTypes[len(compactTypes)-1]
+					lastStr := common.Print(last, common.DefaultPrintOptions())
+					metaWrap := common.NewNode(common.KindType)
+					metaTN := common.NewNode(common.KindBuiltinTypeName)
+					metaTN.Text = lastStr + ".Type"
+					common.AddChildren(metaWrap, metaTN)
+					compactTypes[len(compactTypes)-1] = metaWrap
+				}
 				// Apple's mangling emits '_' as the FirstElementMarker
 				// before a tuple's elements, then each element is
 				// self-delimiting, and 't' closes. When we see '_' after
@@ -11240,6 +11255,41 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 					subjIdx := num + 2 // R0_ → idx 2 = C, R1_ → idx 3 = D, ...
 					if subjIdx < 26 {
 						subj := string(rune('A' + subjIdx))
+						cstr := common.Print(constraint, common.DefaultPrintOptions())
+						localConstraints = append(localConstraints, subj+": "+cstr)
+					}
+				} else if reqKind == 'd' {
+					// 'Rd<depth-idx><param-idx>' — depth-indexed generic param.
+					// Each index uses demangleIndex format: '_'→0, 'N_'→N+1.
+					// Subject name mirrors genericParam(depth, index):
+					//   depth=1, index=0 → "A1"; depth=1, index=1 → "B1"; etc.
+					readDemIdx := func() int {
+						if p.eof() {
+							return 0
+						}
+						if p.s[p.i] == '_' {
+							p.i++
+							return 0
+						}
+						if p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+							num := int(p.s[p.i] - '0')
+							p.i++
+							for !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+								num = num*10 + int(p.s[p.i]-'0')
+								p.i++
+							}
+							if !p.eof() && p.s[p.i] == '_' {
+								p.i++
+							}
+							return num + 1
+						}
+						return 0
+					}
+					depthIdx := readDemIdx() // 0→depth=1, 1→depth=2, etc.
+					paramIdx := readDemIdx() // param index within that depth
+					actualDepth := depthIdx + 1
+					if paramIdx < 26 {
+						subj := string(rune('A'+paramIdx)) + itoa(actualDepth)
 						cstr := common.Print(constraint, common.DefaultPrintOptions())
 						localConstraints = append(localConstraints, subj+": "+cstr)
 					}

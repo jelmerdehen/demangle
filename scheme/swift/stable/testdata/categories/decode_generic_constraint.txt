@@ -1,0 +1,6 @@
+# PQ fix: xm_t function-type + Rd__ depth-indexed constraint subject
+# xm_t: result=T, params=(T.Type,K) — label 'x' is NOT a label marker
+# Rd__: depth-1 index-0 generic param (method-level) in where clause
+_$ss22KeyedDecodingContainerV6decode_6forKeyqd__qd__m_xtKSeRd__lF ---> Swift.KeyedDecodingContainer.decode<A where A1: Swift.Decodable>(_: A1.Type, forKey: A) throws -> A1
+_$ss22KeyedDecodingContainerV15decodeIfPresent_6forKeyqd__Sgqd__m_xtKSeRd__lF ---> Swift.KeyedDecodingContainer.decodeIfPresent<A where A1: Swift.Decodable>(_: A1.Type, forKey: A) throws -> A1?
+_$ss24UnkeyedDecodingContainerP6decodeyqd__qd__mKSeRd__lFTj ---> dispatch thunk of Swift.UnkeyedDecodingContainer.decode<A where A1: Swift.Decodable>(A1.Type) throws -> A1
