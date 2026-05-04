@@ -11660,14 +11660,40 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 						(p.s[p.i] == 'V' || p.s[p.i] == 'C' ||
 							p.s[p.i] == 'O' || p.s[p.i] == 'P' ||
 							(p.s[p.i] == 'Q' && p.i+1 < len(p.s) &&
-								(p.s[p.i+1] == 'z' || p.s[p.i+1] == 'y'))) {
-						// 'Qz'/'Qy' after an identifier means the identifier
+								(p.s[p.i+1] == 'z' || p.s[p.i+1] == 'y' ||
+									p.s[p.i+1] == 'Z' || p.s[p.i+1] == 'Y'))) {
+						// 'Qz'/'Qy'/'QZ'/'QY' after an identifier means the identifier
 						// is the associated-type name in a dependent-member-type
 						// (e.g. '7ElementQz' = A.Element). Treat it as the start
 						// of the result-type slot, not a label.
 						p.i = savePosL
 						p.subs = saveSubsL
 						break
+					}
+					// Lookahead: if '_' + digit-led ident + Q(z|y|Z|Y) follows, this
+					// identifier and the chain are a chained dependent-member-type
+					// result (e.g. '8Encoding_07EncodedC0QZ' = A.Encoding.EncodedScalar).
+					// Don't consume this identifier as a label.
+					if !p.eof() && p.s[p.i] == '_' {
+						saveLook := p.i
+						saveSubsLook := p.subs
+						saveWordsLook := p.words
+						for !p.eof() && p.s[p.i] == '_' && p.i+1 < len(p.s) && p.s[p.i+1] >= '0' && p.s[p.i+1] <= '9' {
+							p.i++ // consume '_'
+							if _, lookErr := p.parseIdentifier(); lookErr != nil {
+								break
+							}
+						}
+						chainTerminatesWithQ := !p.eof() && p.s[p.i] == 'Q' && p.i+1 < len(p.s) &&
+							(p.s[p.i+1] == 'z' || p.s[p.i+1] == 'y' || p.s[p.i+1] == 'Z' || p.s[p.i+1] == 'Y')
+						p.i = saveLook
+						p.subs = saveSubsLook
+						p.words = saveWordsLook
+						if chainTerminatesWithQ {
+							p.i = savePosL
+							p.subs = saveSubsL
+							break
+						}
 					}
 					labels = append(labels, lbl)
 				}
@@ -16600,14 +16626,15 @@ func (p *parser) tryDependentMemberType() (*demangle.Node, bool) {
 	if p.eof() || !(p.s[p.i] >= '0' && p.s[p.i] <= '9') {
 		return nil, false
 	}
-	// Scan forward looking for 'Q' ('z' | 'y' | 'Y') within a small window.
+	// Scan forward looking for 'Q' ('z' | 'y' | 'Y' | 'Z') within a small window.
 	// Cheap reject before committing to a full parse.
 	// 'Y' (uppercase) appears in Swift 5.9+ chained dependent member types
 	// (e.g. SchedulerTimeType_StrideQY_) and is semantically equivalent to 'y'.
+	// 'Z' (uppercase) is the chained-form equivalent of 'z' (Self/first generic param).
 	found := false
 	for k := p.i + 1; k < len(p.s) && k-p.i < 80; k++ {
 		if p.s[k] == 'Q' && k+1 < len(p.s) &&
-			(p.s[k+1] == 'z' || p.s[k+1] == 'y' || p.s[k+1] == 'Y') {
+			(p.s[k+1] == 'z' || p.s[k+1] == 'y' || p.s[k+1] == 'Y' || p.s[k+1] == 'Z') {
 			found = true
 			break
 		}
@@ -16637,17 +16664,18 @@ func (p *parser) tryDependentMemberType() (*demangle.Node, bool) {
 		p.subs.Push(common.NewIdentifier(nextName))
 		chainParts = append(chainParts, nextName)
 	}
-	// Direct form: <assocName(s)> 'Q' ('z' | 'y' | 'Y') digits? '_'
-	// No intervening proto-path type — 'Qz' encodes A.<chain>,
+	// Direct form: <assocName(s)> 'Q' ('z' | 'y' | 'Y' | 'Z') digits? '_'
+	// No intervening proto-path type — 'Qz'/'QZ' encodes A.<chain>,
 	// 'Qy_'/'QY_' encodes B.<chain>, etc.
+	// 'Z' (uppercase) is the chained-form equivalent of 'z': Self/first generic param.
 	if !p.eof() && p.s[p.i] == 'Q' && p.i+1 < len(p.s) &&
-		(p.s[p.i+1] == 'z' || p.s[p.i+1] == 'y' || p.s[p.i+1] == 'Y') {
+		(p.s[p.i+1] == 'z' || p.s[p.i+1] == 'y' || p.s[p.i+1] == 'Y' || p.s[p.i+1] == 'Z') {
 		p.i++ // consume 'Q'
 		kind := p.s[p.i]
 		p.i++
 		var paramName string
 		switch kind {
-		case 'z':
+		case 'z', 'Z':
 			paramName = "A"
 		case 'y', 'Y':
 			start := p.i

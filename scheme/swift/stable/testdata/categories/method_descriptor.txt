@@ -16,4 +16,5 @@ _$sSK5index_8offsetBy07limitedC05IndexQzSgAE_SiAEtFTq ---> method descriptor for
 _$ss5ErrorP19_getEmbeddedNSErroryXlSgyFTq ---> method descriptor for Swift.Error._getEmbeddedNSError() -> Swift.AnyObject?
 # findTypeForIdent: dependent-member back-ref (AC=A.Index) via KindBuiltinTypeName suffix match
 _$sSM6swapAtyy5IndexQz_ACtFTq ---> method descriptor for Swift.MutableCollection.swapAt(A.Index, A.Index) -> ()
+_$ss10_UTFParserP15_bufferedScalar8bitCount8Encoding_07EncodedC0QZs5UInt8V_tFTq ---> method descriptor for Swift._UTFParser._bufferedScalar(bitCount: Swift.UInt8) -> A.Encoding.EncodedScalar
 _$ss15WritableKeyPathC22_projectMutableAddress4fromSpyq_G7pointer_yXlSg5ownertSPyxG_tFTq ---> method descriptor for Swift.WritableKeyPath._projectMutableAddress(from: Swift.UnsafePointer<A>) -> (pointer: Swift.UnsafeMutablePointer<B>, owner: Swift.AnyObject?)
