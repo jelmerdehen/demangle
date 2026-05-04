@@ -1,4 +1,4 @@
-# snapshot-pass-set update 2026-05-04T06:50:09Z — union with previous (high-water)
+# snapshot-pass-set update 2026-05-04T07:08:53Z — union with previous (high-water)
 _$s10Foreground7SwiftUI18LabelGroupStyle_v0PTl
 _$s10Foundation10CocoaErrorV010formattingC0AC4CodeVvgZ
 _$s10Foundation10CocoaErrorV010formattingC0AC4CodeVvpZMV
@@ -11488,6 +11488,10 @@ _$s10Foundation9IndexPathVyACSnySiGciM
 _$s10Foundation9IndexPathVyACSnySiGcig
 _$s10Foundation9IndexPathVyACSnySiGcipMV
 _$s10Foundation9IndexPathVyACSnySiGcis
+_$s10Foundation9IndexPathVyS2iciM
+_$s10Foundation9IndexPathVyS2icig
+_$s10Foundation9IndexPathVyS2icipMV
+_$s10Foundation9IndexPathVyS2icis
 _$s10Foundation9MachErrorV03_nsC0ACSo7NSErrorC_tcfC
 _$s10Foundation9MachErrorV03_nsC0So7NSErrorCvg
 _$s10Foundation9MachErrorV03_nsC0So7NSErrorCvpMV
@@ -37677,6 +37681,8 @@ _$sSP9hashValueSivg
 _$sSP9hashValueSivpMV
 _$sSPMa
 _$sSPMn
+_$sSPss5UInt8VRszlE8_asCCharSPys4Int8VGvg
+_$sSPss5UInt8VRszlE8_asCCharSPys4Int8VGvpMV
 _$sSPySPyxGBpcfC
 _$sSPyxGSHsMc
 _$sSPyxGSHsWP
@@ -38668,6 +38674,10 @@ _$sSa9removeAll15keepingCapacityySb_tF
 _$sSa9repeating5countSayxGx_SitcfC
 _$sSaMa
 _$sSaMn
+_$sSasSHRzlE20_toCustomAnyHashables0cD0VSgyF
+_$sSasSHRzlE4hash4intoys6HasherVz_tF
+_$sSasSHRzlE9hashValueSivg
+_$sSasSHRzlE9hashValueSivpMV
 _$sSays10ArraySliceVyxGSnySiGciM
 _$sSays10ArraySliceVyxGSnySiGcig
 _$sSays10ArraySliceVyxGSnySiGcipMV
@@ -39718,6 +39728,10 @@ _$sSi12SIMD2StorageVMn
 _$sSi12SIMD2StorageVN
 _$sSi12SIMD2StorageVs11SIMDStoragesMc
 _$sSi12SIMD2StorageVs11SIMDStoragesWP
+_$sSi12SIMD2StorageVyS2iciM
+_$sSi12SIMD2StorageVyS2icig
+_$sSi12SIMD2StorageVyS2icipMV
+_$sSi12SIMD2StorageVyS2icis
 _$sSi12SIMD4StorageV11scalarCountSivg
 _$sSi12SIMD4StorageV11scalarCountSivpMV
 _$sSi12SIMD4StorageV6_valueBi64_Bv4_vM
@@ -39729,6 +39743,10 @@ _$sSi12SIMD4StorageVMn
 _$sSi12SIMD4StorageVN
 _$sSi12SIMD4StorageVs11SIMDStoragesMc
 _$sSi12SIMD4StorageVs11SIMDStoragesWP
+_$sSi12SIMD4StorageVyS2iciM
+_$sSi12SIMD4StorageVyS2icig
+_$sSi12SIMD4StorageVyS2icipMV
+_$sSi12SIMD4StorageVyS2icis
 _$sSi12SIMD8StorageV11scalarCountSivg
 _$sSi12SIMD8StorageV11scalarCountSivpMV
 _$sSi12SIMD8StorageV6_valueBi64_Bv8_vM
@@ -39740,6 +39758,10 @@ _$sSi12SIMD8StorageVMn
 _$sSi12SIMD8StorageVN
 _$sSi12SIMD8StorageVs11SIMDStoragesMc
 _$sSi12SIMD8StorageVs11SIMDStoragesWP
+_$sSi12SIMD8StorageVyS2iciM
+_$sSi12SIMD8StorageVyS2icig
+_$sSi12SIMD8StorageVyS2icipMV
+_$sSi12SIMD8StorageVyS2icis
 _$sSi12customMirrors0B0Vvg
 _$sSi12customMirrors0B0VvpMV
 _$sSi13SIMD16StorageV11scalarCountSivg
@@ -39753,6 +39775,10 @@ _$sSi13SIMD16StorageVMn
 _$sSi13SIMD16StorageVN
 _$sSi13SIMD16StorageVs11SIMDStoragesMc
 _$sSi13SIMD16StorageVs11SIMDStoragesWP
+_$sSi13SIMD16StorageVyS2iciM
+_$sSi13SIMD16StorageVyS2icig
+_$sSi13SIMD16StorageVyS2icipMV
+_$sSi13SIMD16StorageVyS2icis
 _$sSi13SIMD32StorageV11scalarCountSivg
 _$sSi13SIMD32StorageV11scalarCountSivpMV
 _$sSi13SIMD32StorageV6_valueBi64_Bv32_vM
@@ -39764,6 +39790,10 @@ _$sSi13SIMD32StorageVMn
 _$sSi13SIMD32StorageVN
 _$sSi13SIMD32StorageVs11SIMDStoragesMc
 _$sSi13SIMD32StorageVs11SIMDStoragesWP
+_$sSi13SIMD32StorageVyS2iciM
+_$sSi13SIMD32StorageVyS2icig
+_$sSi13SIMD32StorageVyS2icipMV
+_$sSi13SIMD32StorageVyS2icis
 _$sSi13SIMD64StorageV11scalarCountSivg
 _$sSi13SIMD64StorageV11scalarCountSivpMV
 _$sSi13SIMD64StorageV6_valueBi64_Bv64_vM
@@ -39775,6 +39805,10 @@ _$sSi13SIMD64StorageVMn
 _$sSi13SIMD64StorageVN
 _$sSi13SIMD64StorageVs11SIMDStoragesMc
 _$sSi13SIMD64StorageVs11SIMDStoragesWP
+_$sSi13SIMD64StorageVyS2iciM
+_$sSi13SIMD64StorageVyS2icig
+_$sSi13SIMD64StorageVyS2icipMV
+_$sSi13SIMD64StorageVyS2icis
 _$sSi13_rawHashValue4seedS2i_tF
 _$sSi15_truncatingBitsSiSu_tcfC
 _$sSi15nonzeroBitCountSivg
@@ -44063,6 +44097,9 @@ _$sSq7CombineE9PublisherVMn
 _$sSq7CombineE9PublisherVyACyx_GxSgcfC
 _$sSqMa
 _$sSqMn
+_$sSqsSHRzlE4hash4intoys6HasherVz_tF
+_$sSqsSHRzlE9hashValueSivg
+_$sSqsSHRzlE9hashValueSivpMV
 _$sSqyxSgxcfC
 _$sSr10deallocateyyF
 _$sSr10initialize9repeatingyx_tF
@@ -44938,6 +44975,9 @@ _$ss10ArraySliceV9repeating5countAByxGx_SitcfC
 _$ss10ArraySliceVAByxGycfC
 _$ss10ArraySliceVMa
 _$ss10ArraySliceVMn
+_$ss10ArraySliceVsSHRzlE4hash4intoys6HasherVz_tF
+_$ss10ArraySliceVsSHRzlE9hashValueSivg
+_$ss10ArraySliceVsSHRzlE9hashValueSivpMV
 _$ss10ArraySliceVyAByxGSnySiGciM
 _$ss10ArraySliceVyAByxGSnySiGcig
 _$ss10ArraySliceVyAByxGSnySiGcipMV
@@ -46685,6 +46725,9 @@ _$ss15ContiguousArrayV9repeating5countAByxGx_SitcfC
 _$ss15ContiguousArrayVAByxGycfC
 _$ss15ContiguousArrayVMa
 _$ss15ContiguousArrayVMn
+_$ss15ContiguousArrayVsSHRzlE4hash4intoys6HasherVz_tF
+_$ss15ContiguousArrayVsSHRzlE9hashValueSivg
+_$ss15ContiguousArrayVsSHRzlE9hashValueSivpMV
 _$ss15ContiguousArrayVys0B5SliceVyxGSnySiGciM
 _$ss15ContiguousArrayVys0B5SliceVyxGSnySiGcig
 _$ss15ContiguousArrayVys0B5SliceVyxGSnySiGcipMV
@@ -48002,6 +48045,10 @@ _$ss20CollectionDifferenceV8removalsSayAB6ChangeOyx_GGvpMV
 _$ss20CollectionDifferenceV9formIndex_8offsetByyAB0D0Vyx_Gz_SitF
 _$ss20CollectionDifferenceVMa
 _$ss20CollectionDifferenceVMn
+_$ss20CollectionDifferenceVsSHRzlE14inferringMovesAByxGyF
+_$ss20CollectionDifferenceVsSHRzlE4hash4intoys6HasherVz_tF
+_$ss20CollectionDifferenceVsSHRzlE9hashValueSivg
+_$ss20CollectionDifferenceVsSHRzlE9hashValueSivpMV
 _$ss20CollectionDifferenceVyAB6ChangeOyx_GAB5IndexVyx_Gcig
 _$ss20CollectionDifferenceVyAB6ChangeOyx_GAB5IndexVyx_GcipMV
 _$ss20CollectionDifferenceVyxGSEsSeRzSERzlMc
