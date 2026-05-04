@@ -11012,6 +11012,72 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 				}
 				p.i++ // consume 't'
 			tupleClosed:
+				// Recovery: when parseType's postfix-nominal step greedily
+				// extends a substitution-ref element with an adjacent nested
+				// nominal (e.g. A2E + 19AnimationParametersV → one nested
+				// type), the element count falls short of the label count.
+				// Split any Type(NominalKind(nominalParent, ident)) element
+				// by inserting the parent as a standalone KindType element
+				// before the nested type, until counts match or no more
+				// splittable elements remain.
+				for len(elements) < len(pathLabels) {
+					splitIdx := -1
+					for i, el := range elements {
+						if common.NodeKind(el.Kind) != common.KindType || len(el.Children) == 0 {
+							continue
+						}
+						inner := el.Children[0]
+						switch common.NodeKind(inner.Kind) {
+						case common.KindStructure, common.KindClass, common.KindEnum, common.KindProtocol:
+						default:
+							continue
+						}
+						if len(inner.Children) < 2 {
+							continue
+						}
+						parentNode := inner.Children[0]
+						switch common.NodeKind(parentNode.Kind) {
+						case common.KindType:
+							// Already-wrapped parent — split.
+							splitIdx = i
+						case common.KindStructure, common.KindClass, common.KindEnum, common.KindProtocol:
+							// Raw nominal — only split when the parent itself has a
+							// KindType child, distinguishing a deeply nested type
+							// (e.g. ReplacementTextEffect whose first child is
+							// Type(Class(UITextEffectView))) from a flat module-
+							// qualified type (e.g. __C.UITraitCollection whose
+							// first child is a bare Module node).
+							for _, ch := range parentNode.Children {
+								if common.NodeKind(ch.Kind) == common.KindType {
+									splitIdx = i
+									break
+								}
+							}
+						}
+						if splitIdx >= 0 {
+							break
+						}
+					}
+					if splitIdx < 0 {
+						break
+					}
+					// Wrap the raw parent context in KindType if needed
+					// (the postfix-nominal step unwraps KindType before
+					// using the context as a child of the nested nominal).
+					rawParent := elements[splitIdx].Children[0].Children[0]
+					var parentType *demangle.Node
+					if common.NodeKind(rawParent.Kind) == common.KindType {
+						parentType = rawParent
+					} else {
+						parentType = common.NewNode(common.KindType)
+						common.AddChildren(parentType, rawParent)
+					}
+					newElems := make([]*demangle.Node, 0, len(elements)+1)
+					newElems = append(newElems, elements[:splitIdx]...)
+					newElems = append(newElems, parentType)
+					newElems = append(newElems, elements[splitIdx:]...)
+					elements = newElems
+				}
 				// Apply label-list labels in order to each tuple element.
 				// Clone nodes before labeling: two params of the same type
 				// may alias the same substitution-table entry, and mutating
