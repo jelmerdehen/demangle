@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 84.85% (54098/63757) — 2026-05-04T14:55:26Z
+**Parity**: 84.86% (54102/63757) — 2026-05-04T15:24:18Z
 **Round-trip**: 63.09% (11553/18311) — 2026-05-03T21:04:43Z
-**Failures**: 9046 parse-errors + 613 mismatches
+**Failures**: 9042 parse-errors + 613 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,6 +29,7 @@
 
 ## Last 10 Commits
 
+- (pending) swift-parity: QT S<N><letter> compact params in tryExtensionEntity — parity 84.85%→84.86% (+4 production, +3 fixtures)
 - 3d088a6 swift-parity: QS Rp assoc-type subs push — A.Element back-refs in extension params — parity 84.83%→84.85% (+13 production, +6 fixtures)
 - bdb2a06 chore: lock snapshot after QR commit (parity 54085→54085)
 - a0460a4 chore: update digest.md for QR commit (parity 54072→54085)

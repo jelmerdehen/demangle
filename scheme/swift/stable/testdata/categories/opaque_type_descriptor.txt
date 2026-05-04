@@ -7,6 +7,9 @@ _$s10Foundation8CalendarV14RecurrenceRuleV11recurrences2of2inQrAA4DateV_s16Parti
 _$s10Foundation8CalendarV14RecurrenceRuleV11recurrences2of2inQrAA4DateV_s19PartialRangeThroughVyAJGtFQOMQ ---> opaque type descriptor for <<opaque return type of Foundation.Calendar.RecurrenceRule.recurrences(of: Foundation.Date, in: Swift.PartialRangeThrough<Foundation.Date>) -> some>>
 _$s7SwiftUI10TabSectionVA2A4ViewRzAA0C7ContentR_AaDR0_0C5ValueQy_Rs1_rlE011_identifiedE0QrvpQOMQ ---> opaque type descriptor for <<opaque return type of TabSection<>._identifiedView>>
 _$s7SwiftUI16PlainButtonStyleV06buttonE14RepresentationQrvpQOMQ ---> opaque type descriptor for <<opaque return type of PlainButtonStyle.buttonStyleRepresentation>>
+# QT fix: S<N><letter> compact type expansion in tryExtensionEntity params loop
+_$s7SwiftUI4ViewPAAE22containerRelativeFrame_5count4span7spacing9alignmentQrAA4AxisO3SetV_S2i12CoreGraphics7CGFloatVAA9AlignmentVtFMQ ---> opaque type descriptor for View.containerRelativeFrame(_:count:span:spacing:alignment:)
+_$s7SwiftUI4ViewPAAE22containerRelativeFrame_5count4span7spacing9alignmentQrAA4AxisO3SetV_S2i12CoreGraphics7CGFloatVAA9AlignmentVtFQOMQ ---> opaque type descriptor for <<opaque return type of View.containerRelativeFrame(_:count:span:spacing:alignment:)>>
 _$s7SwiftUI17CustomHoverEffectPAAE8ornament16attachmentAnchor16contentAlignmentADQrAA018OrnamentAttachmentH0V_AA0J0Vqd__yXEtAA4ViewRd__lFQOMQ ---> opaque type descriptor for <<opaque return type of CustomHoverEffect.ornament<A>(attachmentAnchor:contentAlignment:ornament:)>>
 _$s7SwiftUI18DisclosureTableRowV05tableE4BodyQrvpQOMQ ---> opaque type descriptor for <<opaque return type of DisclosureTableRow.tableRowBody>>
 _$s7SwiftUI19BorderedButtonStyleV06buttonE14RepresentationQrvpQOMQ ---> opaque type descriptor for <<opaque return type of BorderedButtonStyle.buttonStyleRepresentation>>

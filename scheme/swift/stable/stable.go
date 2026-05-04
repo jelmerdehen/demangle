@@ -6967,6 +6967,30 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 						break
 					}
 				}
+				// S<N><letter> compact expansion: e.g. S2i → 2×Swift.Int.
+				// Mirrors sCompactExpand in tryFunctionEntity.
+				if p.s[p.i] == 'S' && p.i+1 < len(p.s) && p.s[p.i+1] >= '0' && p.s[p.i+1] <= '9' {
+					j := p.i + 1
+					for j < len(p.s) && p.s[j] >= '0' && p.s[j] <= '9' {
+						j++
+					}
+					if j < len(p.s) {
+						if one, ok := common.BuildStdlibNominal(p.s[j]); ok {
+							n := 0
+							for _, d := range p.s[p.i+1 : j] {
+								n = n*10 + int(d-'0')
+							}
+							if n >= 1 && n <= 512 {
+								p.i = j + 1
+								for k := 0; k < n; k++ {
+									paramTypes = append(paramTypes, one)
+									paramCount++
+								}
+								continue
+							}
+						}
+					}
+				}
 				elemSave := p.i
 				elemSubs := p.subs
 				elem2, eerr2 := p.parseType()
@@ -9249,6 +9273,28 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 				p.i++
 				if p.eof() || p.s[p.i] == 't' {
 					break
+				}
+			}
+			// S<N><letter> compact expansion: e.g. S2i → 2×Swift.Int.
+			if p.s[p.i] == 'S' && p.i+1 < len(p.s) && p.s[p.i+1] >= '0' && p.s[p.i+1] <= '9' {
+				j := p.i + 1
+				for j < len(p.s) && p.s[j] >= '0' && p.s[j] <= '9' {
+					j++
+				}
+				if j < len(p.s) {
+					if one, ok := common.BuildStdlibNominal(p.s[j]); ok {
+						n := 0
+						for _, d := range p.s[p.i+1 : j] {
+							n = n*10 + int(d-'0')
+						}
+						if n >= 1 && n <= 512 {
+							p.i = j + 1
+							for k := 0; k < n; k++ {
+								paramTypes = append(paramTypes, one)
+							}
+							continue
+						}
+					}
 				}
 			}
 			elemSave := p.i
