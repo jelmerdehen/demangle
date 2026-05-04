@@ -7929,9 +7929,12 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 				n2 := 0
 				for _, d := range []byte(p.s[lenStart2:k]) {
 					n2 = n2*10 + int(d-'0')
+					if n2 > len(p.s) {
+						break
+					}
 				}
 				k += n2
-				if k >= len(p.s) {
+				if k < 0 || k >= len(p.s) {
 					break
 				}
 				continue
@@ -10763,6 +10766,36 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 				p.subs = tupSubs
 			}
 		}
+		// Metatype-compact: 'xm_t' encodes result=T, params=(T.Type). When
+		// parseType consumed 'm' as a metatype postfix on the result, but '_t'
+		// follows with no intervening type, the params slot cannot be parsed.
+		// Unwrap: result=base(T), params=T.Type in a single-element labeled tuple.
+		// Pattern: applies when r is a metatype AND '_t' is the next two bytes.
+		if r != nil && !p.eof() && p.s[p.i] == '_' &&
+			p.i+1 < len(p.s) && p.s[p.i+1] == 't' &&
+			common.NodeKind(r.Kind) == common.KindType &&
+			len(r.Children) == 1 &&
+			common.NodeKind(r.Children[0].Kind) == common.KindBuiltinTypeName &&
+			strings.HasSuffix(r.Children[0].Text, ".Type") {
+			baseText := strings.TrimSuffix(r.Children[0].Text, ".Type")
+			baseNode := common.NewNode(common.KindType)
+			bt := common.NewNode(common.KindBuiltinTypeName)
+			bt.Text = baseText
+			common.AddChildren(baseNode, bt)
+			aNode := r
+			r = baseNode
+			p.i += 2 // consume '_t'
+			if len(pathLabels) == 1 && pathLabels[0] != "" {
+				if aNode.Attrs == nil {
+					aNode.Attrs = map[string]string{}
+				}
+				aNode.Attrs["swift.label"] = pathLabels[0]
+			}
+			tup := common.NewNode(common.KindTypeList)
+			common.AddChildren(tup, aNode)
+			a = tup
+			goto afterSigSlots
+		}
 		// Params-type — may be a tuple for multi-param functions:
 		//
 		//   params-type ::= tuple-element-list 't'
@@ -11445,6 +11478,22 @@ func (p *parser) parseType() (*demangle.Node, error) {
 		if fn, ok := p.tryStdlibCompactFunctionType(); ok {
 			node = fn
 			break
+		}
+		// S<digit(s)><letter>: tryStdlibCompactFunctionType reverted (no X<conv>
+		// suffix). The digit(s) are a metatype multiplicity marker — skip them
+		// and parse S<letter> as a plain stdlib substitution (e.g. S2im → Sim
+		// = Swift.Int.Type, S2Sm → Sm = Swift.String.Type).
+		if p.i+2 <= len(p.s) && p.s[p.i+1] >= '0' && p.s[p.i+1] <= '9' {
+			j := p.i + 1
+			for j < len(p.s) && p.s[j] >= '0' && p.s[j] <= '9' {
+				j++
+			}
+			if j < len(p.s) {
+				p.i = j
+				node, err = p.parseStdlibSubstitution()
+				parsedRawStdlib = err == nil && !p.eof() && p.s[p.i] == 'y'
+				break
+			}
 		}
 		p.i++
 		node, err = p.parseStdlibSubstitution()
