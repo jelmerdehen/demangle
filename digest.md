@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 84.81% (54072/63757) — 2026-05-04T14:02:58Z
-**Round-trip**: 63.09% (11650/18311) — 2026-05-04T14:02:58Z
-**Failures**: 9084 parse-errors + 601 mismatches
+**Parity**: 84.83% (54085/63757) — 2026-05-04T14:42:50Z
+**Round-trip**: 63.09% (11650/18311) — 2026-05-04T14:42:50Z
+**Failures**: ~9071 parse-errors + ~601 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,7 +29,8 @@
 
 ## Last 10 Commits
 
-- (current) chore: lock snapshot after QF commit (parity 54072→54072)
+- (current) swift-parity: QR self-same-type constraints A == A.<Ident> — parity 84.81%→84.83% (+13 production, +9 fixtures)
+- chore: lock snapshot after QF commit (parity 54072→54072)
 - 04292a6 swift-parity: QF A→Module→Sg 3rd-push subs alignment — parity 84.80%→84.81% (+9 production, +2 fixtures)
 - 8c6ea9e swift-parity: QE QZ dependent-member-type chain — parity 84.75%→84.80% (+31 production, +2 fixtures)
 - 746ed3e chore: update digest.md for QD commit (parity 54020→54032)
@@ -43,6 +44,6 @@
 
 ## Suggested Next 3 Items
 
-1. P1: property descriptor fix — 19 mismatches
-2. P10: opaque type descriptor — 12 mismatches
-3. QG: WritableKeyPath._projectMutableAddress named-return-tuple — parse error at `_project` ident (named-return-tuple not yet supported)
+1. P1: property descriptor fix — 17+ mismatches (Measurement/DispatchData/Range/Collection type issues)
+2. P10: opaque type descriptor — 12 mismatches (PartialRange subs, Color.transferRepresentation static OTD)
+3. QS: OptionSet.insert + Sm/Sx compound-constraint methods — named-tuple return + compound QzRsz constraints (5 remaining)
