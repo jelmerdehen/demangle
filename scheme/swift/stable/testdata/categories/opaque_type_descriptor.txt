@@ -15,3 +15,6 @@ _$s7SwiftUI18DisclosureTableRowV05tableE4BodyQrvpQOMQ ---> opaque type descripto
 _$s7SwiftUI19BorderedButtonStyleV06buttonE14RepresentationQrvpQOMQ ---> opaque type descriptor for <<opaque return type of BorderedButtonStyle.buttonStyleRepresentation>>
 _$s7SwiftUI21BorderlessButtonStyleV06buttonE14RepresentationQrvpQOMQ ---> opaque type descriptor for <<opaque return type of BorderlessButtonStyle.buttonStyleRepresentation>>
 _$s7SwiftUI21TableHeaderRowContentV05tableE4BodyQrvpQOMQ ---> opaque type descriptor for <<opaque return type of TableHeaderRowContent.tableRowBody>>
+# QU fix: consume 'd' variadic marker in applyParamConvention
+_$s7SwiftUI10TabContentPAAE10visibility_3forQrAA10VisibilityO_AA0C9PlacementVdtFQOMQ ---> opaque type descriptor for <<opaque return type of TabContent.visibility(_:for:)>>
+_$s7SwiftUI10TabContentPAAE10visibility_3forQrAA10VisibilityO_AA0C9PlacementVdtFMQ ---> opaque type descriptor for TabContent.visibility(_:for:)

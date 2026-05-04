@@ -9205,9 +9205,10 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 		}
 		return false
 	}
-	// consumeParamConvention eats an optional h/H/T ownership convention modifier
-	// after a param type and records a "__shared"/"__owned"/"__consuming" prefix.
-	// Returns the (possibly wrapped) node and the prefix string.
+	// consumeParamConvention eats an optional h/H/T/d ownership/variadic convention
+	// modifier after a param type and records a "__shared"/"__owned"/"__consuming"
+	// prefix. 'd' (variadic marker) is consumed silently. Returns the (possibly
+	// wrapped) node and the prefix string.
 	applyParamConvention := func(n *demangle.Node) *demangle.Node {
 		if p.eof() {
 			return n
@@ -9223,6 +9224,9 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 		case 'T':
 			conv = "__consuming "
 			p.i++
+		case 'd':
+			p.i++ // variadic marker — consumed silently
+			return n
 		default:
 			return n
 		}

@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 84.86% (54102/63757) — 2026-05-04T15:24:18Z
-**Round-trip**: 63.09% (11553/18311) — 2026-05-03T21:04:43Z
-**Failures**: 9042 parse-errors + 613 mismatches
+**Parity**: 84.92% (54142/63757) — 2026-05-04T15:55:00Z
+**Round-trip**: 63.62% (11650/18311) — 2026-05-04T15:55:00Z
+**Failures**: ~9006 parse-errors + ~609 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,6 +29,8 @@
 
 ## Last 10 Commits
 
+- (pending) swift-parity: QU variadic 'd' marker in applyParamConvention — parity 84.86%→84.92% (+40 production, +3 fixtures)
+- 42ba64c chore: update digest.md for QT commit (parity 54098→54102)
 - da71e61 chore: lock snapshot after QT commit (parity 54098→54102)
 - aad61c1 swift-parity: QT S<N><letter> compact params in tryExtensionEntity — parity 84.85%→84.86% (+4 production, +3 fixtures)
 - 915af29 chore: lock snapshot after QS commit (parity 54098→54098)
@@ -37,8 +39,6 @@
 - bdb2a06 chore: lock snapshot after QR commit (parity 54085→54085)
 - a0460a4 chore: update digest.md for QR commit (parity 54072→54085)
 - 04976d0 swift-parity: QR self-same-type constraints A == A.<Ident> in extension sigs — parity 84.81%→84.83% (+13 production, +9 fixtures)
-- af688a4 chore: update digest.md for QF commit (parity 54072→54072)
-- 56a0cc1 chore: lock snapshot after QF commit (parity 54072→54072)
 
 ## Suggested Next 3 Items
 

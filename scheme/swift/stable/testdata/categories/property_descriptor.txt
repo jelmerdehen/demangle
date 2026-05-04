@@ -89,3 +89,5 @@ _$s10Foundation20ParseableFormatStylePAASo9NSDecimalaAAE0cD0VRszrlE6numberAGvgZ 
 _$s10Foundation20ParseableFormatStylePAASo9NSDecimalaAAE0cD0V7PercentVRszrlE7percentAIvgZ ---> static (extension in Foundation):Foundation.ParseableFormatStyle< where A == (extension in Foundation):__C.NSDecimal.FormatStyle.Percent>.percent.getter : (extension in Foundation):__C.NSDecimal.FormatStyle.Percent
 # QT fix: S<N><letter> compact type expansion in tryExtensionEntity params loop
 _$s7SwiftUI4ViewPAAE22containerRelativeFrame_5count4span7spacing9alignmentQrAA4AxisO3SetV_S2i12CoreGraphics7CGFloatVAA9AlignmentVtFMV ---> property descriptor for View.containerRelativeFrame(_:count:span:spacing:alignment:)
+# QU fix: consume d variadic marker in applyParamConvention
+_$s7SwiftUI10TabContentPAAE10visibility_3forQrAA10VisibilityO_AA0C9PlacementVdtFMV ---> property descriptor for TabContent.visibility(_:for:)
