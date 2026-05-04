@@ -7321,6 +7321,10 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 		case 'S':
 			if constraintBytes[ci+1] == 'o' {
 				// ObjC nominal: So<N><name><kind> → push Type(__C.Name)
+				// Also handles kind='a' (struct alias, e.g. NSDecimala) as KindStructure.
+				// IMPORTANT: always advance ci past the full So payload (including name bytes)
+				// to prevent byte-by-byte scan from treating letters in the ObjC name
+				// (e.g. 'SD' in "NSDecimal") as stdlib-type abbreviations.
 				j := ci + 2
 				lenStart := j
 				for j < len(constraintBytes) && constraintBytes[j] >= '0' && constraintBytes[j] <= '9' {
@@ -7346,6 +7350,9 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 							nk = common.KindStructure
 						case 'O':
 							nk = common.KindEnum
+						case 'a':
+							// Struct alias (e.g. NSDecimal typedef): treat as structure.
+							nk = common.KindStructure
 						}
 						if nk != 0 {
 							name := string(constraintBytes[j:nameEnd])
@@ -7354,8 +7361,10 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 							tn := common.NewNode(common.KindType)
 							common.AddChildren(tn, nom)
 							p.subs.Push(tn)
-							ci = nameEnd // ci++ in for-loop advances past kind byte
 						}
+						// Always advance ci past nameEnd (kind byte) — even when nk==0 —
+						// so name bytes are not rescanned as standalone S<letter> refs.
+						ci = nameEnd // ci++ in for-loop advances past kind byte
 					}
 				}
 			} else {
@@ -7363,6 +7372,116 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 				if n, ok := common.BuildStdlibNominal(letter); ok {
 					p.subs.Push(n)
 					ci++ // skip the letter byte
+				}
+			}
+		case 'E':
+			// ObjC-extension entity in constraint context:
+			// So<N><name><kind> A<mod> E A<letter><kind> <n><name><kind>...
+			// After So + module are pushed to subs, 'E' starts the extension nominal chain.
+			// Parse A<letter><kind> or <n><name><kind> pairs and push the full extension type
+			// as a TypeMangling node, so that subsequent A<idx> back-refs resolve correctly.
+			//
+			// Find the most-recently-pushed __C Type and Module to build the extension type.
+			objcName2 := ""
+			extMod2 := ""
+			for k := p.subs.Len() - 1; k >= 0; k-- {
+				if n, ok2 := p.subs.Get(k); ok2 {
+					nk2 := common.NodeKind(n.Kind)
+					if nk2 == common.KindType && len(n.Children) > 0 {
+						nom2 := n.Children[0]
+						// Find the Identifier child of the __C type.
+						for _, ch := range nom2.Children {
+							if common.NodeKind(ch.Kind) == common.KindIdentifier {
+								objcName2 = ch.Text
+							}
+						}
+						if objcName2 != "" {
+							break
+						}
+					}
+				}
+			}
+			for k := p.subs.Len() - 1; k >= 0; k-- {
+				if n, ok2 := p.subs.Get(k); ok2 && common.NodeKind(n.Kind) == common.KindModule {
+					extMod2 = n.Text
+					break
+				}
+			}
+			if objcName2 != "" && extMod2 != "" {
+				// Parse nominal chain after E: A<letter><kind> or <n><name><kind> pairs.
+				j := ci + 1
+				var extNestedParts []string
+				for j+1 < len(constraintBytes) {
+					if constraintBytes[j] == 'A' {
+						letter2 := constraintBytes[j+1]
+						var idx2 int
+						if letter2 >= 'A' && letter2 <= 'Z' {
+							idx2 = int(letter2 - 'A')
+						} else if letter2 >= 'a' && letter2 <= 'z' {
+							idx2 = int(letter2 - 'a')
+						} else {
+							break
+						}
+						n2, ok2 := p.subs.Get(idx2)
+						if !ok2 {
+							break
+						}
+						var partName string
+						if common.NodeKind(n2.Kind) == common.KindIdentifier {
+							partName = n2.Text
+						} else {
+							break
+						}
+						j += 2 // skip A<letter>
+						// Consume kind byte (V/C/O/P) — nominal type level.
+						if j < len(constraintBytes) &&
+							(constraintBytes[j] == 'V' || constraintBytes[j] == 'C' ||
+								constraintBytes[j] == 'O' || constraintBytes[j] == 'P') {
+							j++
+							extNestedParts = append(extNestedParts, partName)
+						} else {
+							break
+						}
+					} else if constraintBytes[j] >= '1' && constraintBytes[j] <= '9' {
+						lenStart2 := j
+						for j < len(constraintBytes) && constraintBytes[j] >= '0' && constraintBytes[j] <= '9' {
+							j++
+						}
+						n2 := 0
+						for _, d := range constraintBytes[lenStart2:j] {
+							n2 = n2*10 + int(d-'0')
+						}
+						nameEnd2 := j + n2
+						if nameEnd2 >= len(constraintBytes) {
+							break
+						}
+						partName := string(constraintBytes[j:nameEnd2])
+						j = nameEnd2
+						if j < len(constraintBytes) &&
+							(constraintBytes[j] == 'V' || constraintBytes[j] == 'C' ||
+								constraintBytes[j] == 'O' || constraintBytes[j] == 'P') {
+							j++
+							extNestedParts = append(extNestedParts, partName)
+						} else {
+							break
+						}
+					} else {
+						break
+					}
+				}
+				if len(extNestedParts) > 0 {
+					// Push the full extension type as a single TypeMangling node.
+					// This is placed at the next subs index so that A<idx> back-refs
+					// in the entity suffix (e.g. AH for return type) resolve to the
+					// complete extension type string rather than an intermediate step.
+					typeStr := "(extension in " + extMod2 + "):__C." + objcName2
+					for _, part := range extNestedParts {
+						typeStr += "." + part
+					}
+					extTn := common.NewNode(common.KindTypeMangling)
+					extTn.Text = typeStr
+					p.subs.Push(extTn)
+					ci = j - 1 // for-loop ci++ takes us to j
 				}
 			}
 		}
@@ -7428,6 +7547,142 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 				if _, lerr := subP2.parseType(); lerr == nil && subP2.i == len(buf)-2 {
 					return "()"
 				}
+			}
+			// Strategy 3: ObjC-bridged extension type — A<letter> So<N><name><kind> A<letter> E <nominal-chain>
+			// Encodes "(extension in <extMod>):__C.<objcName>.<nested>..."
+			// Skip leading A-ref (LHS generic param), parse ObjC type, extension module, E,
+			// then the nested nominal chain.  Handles kind='a' (struct alias) for ObjC types.
+			if s3 := func() string {
+				bi := 0
+				// Skip leading A<letter> (LHS substitution ref).
+				if bi+1 >= len(buf) || buf[bi] != 'A' ||
+					!((buf[bi+1] >= 'A' && buf[bi+1] <= 'Z') || (buf[bi+1] >= 'a' && buf[bi+1] <= 'z')) {
+					return ""
+				}
+				bi += 2
+				// Parse So<N><name><kind> ObjC type.
+				if bi+1 >= len(buf) || buf[bi] != 'S' || buf[bi+1] != 'o' {
+					return ""
+				}
+				bi += 2 // skip 'S','o'
+				// Parse length.
+				lenStart := bi
+				for bi < len(buf) && buf[bi] >= '0' && buf[bi] <= '9' {
+					bi++
+				}
+				if bi == lenStart {
+					return ""
+				}
+				soLen := 0
+				for _, d := range buf[lenStart:bi] {
+					soLen = soLen*10 + int(d-'0')
+				}
+				soNameEnd := bi + soLen
+				if soNameEnd >= len(buf) {
+					return ""
+				}
+				objcTypeName := string(buf[bi:soNameEnd])
+				bi = soNameEnd
+				// ObjC kind byte: accept C, V, O, P, a (struct alias).
+				soKind := buf[bi]
+				if soKind != 'C' && soKind != 'V' && soKind != 'O' && soKind != 'P' && soKind != 'a' {
+					return ""
+				}
+				bi++ // skip kind byte
+				// Parse A<letter> extension module ref.
+				if bi+1 >= len(buf) || buf[bi] != 'A' ||
+					!((buf[bi+1] >= 'A' && buf[bi+1] <= 'Z') || (buf[bi+1] >= 'a' && buf[bi+1] <= 'z')) {
+					return ""
+				}
+				extModLetter := buf[bi+1]
+				extModIdx := 0
+				if extModLetter >= 'A' && extModLetter <= 'Z' {
+					extModIdx = int(extModLetter - 'A')
+				} else {
+					extModIdx = int(extModLetter - 'a')
+				}
+				extModNode, extModOk := p.subs.Get(extModIdx)
+				if !extModOk || common.NodeKind(extModNode.Kind) != common.KindModule {
+					return ""
+				}
+				extModName := extModNode.Text
+				bi += 2 // skip A<letter>
+				// Expect E (extension marker).
+				if bi >= len(buf) || buf[bi] != 'E' {
+					return ""
+				}
+				bi++ // skip 'E'
+				// Parse nominal chain: A<letter><kind> or <n><name><kind> pairs.
+				var nestedParts []string
+				for bi < len(buf) {
+					if buf[bi] == 'A' && bi+1 < len(buf) {
+						letter2 := buf[bi+1]
+						var idx2 int
+						if letter2 >= 'A' && letter2 <= 'Z' {
+							idx2 = int(letter2 - 'A')
+						} else if letter2 >= 'a' && letter2 <= 'z' {
+							idx2 = int(letter2 - 'a')
+						} else {
+							break
+						}
+						n2, ok2 := p.subs.Get(idx2)
+						if !ok2 {
+							break
+						}
+						var partName string
+						if common.NodeKind(n2.Kind) == common.KindIdentifier {
+							partName = n2.Text
+						} else if common.NodeKind(n2.Kind) == common.KindModule {
+							partName = n2.Text
+						} else {
+							break
+						}
+						bi += 2 // skip A<letter>
+						// Consume kind byte — this is a nominal type level (not a decl name).
+						if bi < len(buf) && (buf[bi] == 'V' || buf[bi] == 'C' || buf[bi] == 'O' || buf[bi] == 'P') {
+							bi++
+							nestedParts = append(nestedParts, partName)
+						} else {
+							// No kind byte: not a type — stop.
+							break
+						}
+					} else if buf[bi] >= '1' && buf[bi] <= '9' {
+						// Length-prefixed identifier.
+						lenStart2 := bi
+						for bi < len(buf) && buf[bi] >= '0' && buf[bi] <= '9' {
+							bi++
+						}
+						n2 := 0
+						for _, d := range buf[lenStart2:bi] {
+							n2 = n2*10 + int(d-'0')
+						}
+						nameEnd2 := bi + n2
+						if nameEnd2 >= len(buf) {
+							break
+						}
+						partName := string(buf[bi:nameEnd2])
+						bi = nameEnd2
+						// Consume kind byte.
+						if buf[bi] == 'V' || buf[bi] == 'C' || buf[bi] == 'O' || buf[bi] == 'P' {
+							bi++
+							nestedParts = append(nestedParts, partName)
+						} else {
+							break
+						}
+					} else {
+						break
+					}
+				}
+				if bi == len(buf) && len(nestedParts) > 0 {
+					typeStr3 := "(extension in " + extModName + "):__C." + objcTypeName
+					for _, part := range nestedParts {
+						typeStr3 += "." + part
+					}
+					return typeStr3
+				}
+				return ""
+			}(); s3 != "" {
+				return s3
 			}
 			return ""
 		}
@@ -7890,7 +8145,7 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 			p.i++
 			retNode = common.NewNode(common.KindEmptyList)
 		} else {
-			t, terr := p.parseType()
+				t, terr := p.parseType()
 			if terr != nil {
 				// Fallback: when return-type parse fails but a property accessor
 				// terminal is at the very end of the remaining input, skip to the
