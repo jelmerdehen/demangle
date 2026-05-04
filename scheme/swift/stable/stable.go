@@ -12302,6 +12302,22 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 				p.subs = tupSubs
 			}
 		}
+		// Apple's demangler pushes the opaque-return-type node twice —
+		// inner DependentGenericParamType("some") + outer Type wrapper —
+		// when 'Qr' is the result type of a function entity. This means
+		// A<letter> back-refs in subsequent params are offset by 2 relative
+		// to what they would be without the push. Symbols like
+		// Calendar.RecurrenceRule.recurrences(of:in:) use AJ to reference
+		// Foundation.Date in the PartialRangeFrom bound-generic arg; without
+		// these 2 subs entries AJ resolves to Swift.PartialRangeFrom instead.
+		if r != nil &&
+			common.NodeKind(r.Kind) == common.KindType &&
+			len(r.Children) == 1 &&
+			common.NodeKind(r.Children[0].Kind) == common.KindDependentGenericParamType &&
+			r.Children[0].Text == "some" {
+			p.subs.Push(r.Children[0])
+			p.subs.Push(r)
+		}
 		// Metatype-compact: 'xm_t' encodes result=T, params=(T.Type). When
 		// parseType consumed 'm' as a metatype postfix on the result, but '_t'
 		// follows with no intervening type, the params slot cannot be parsed.
