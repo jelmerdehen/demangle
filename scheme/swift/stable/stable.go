@@ -6279,9 +6279,128 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 
 	// Extension module: digit-led identifier or 's' (Swift stdlib shorthand).
 	var modName string
-	if !p.eof() && p.s[p.i] == 's' && p.i+1 < len(p.s) && p.s[p.i+1] == 'E' {
+	var constraintBytes []byte // non-nil when S<letter>+constraint pattern
+	eAlreadyConsumed := false
+	moduleAlreadyPushed := false
+	if !p.eof() && p.s[p.i] == 's' {
 		modName = "Swift"
-		p.i++ // consume 's', leave 'E' for the check below
+		p.i++ // consume 's'
+		if !p.eof() && p.s[p.i] != 'E' {
+			// Constraint bytes between the 's' module marker and the 'E' entity
+			// marker (e.g. SBss17FixedWidthInteger14RawSignificandRpzrlE).
+			// Only valid when the extension host is an S<letter> stdlib type.
+			if extHostMod != "Swift" {
+				restore()
+				return nil, false, nil
+			}
+			// Push module first (before constraint types, matching Apple's subs order).
+			p.subs.Push(common.NewModule("Swift"))
+			moduleAlreadyPushed = true
+			// Scan for 'E' followed by digit or '_' within a bounded window.
+			scan := p.i
+			eFound := -1
+			for k := scan; k < len(p.s)-1 && k < scan+80; {
+				c := p.s[k]
+				if c >= '1' && c <= '9' {
+					lenStart := k
+					for k < len(p.s) && p.s[k] >= '0' && p.s[k] <= '9' {
+						k++
+					}
+					n := 0
+					for _, d := range []byte(p.s[lenStart:k]) {
+						n = n*10 + int(d-'0')
+						if n < 0 || n > len(p.s) {
+							n = len(p.s)
+							break
+						}
+					}
+					k += n
+					if k >= len(p.s) {
+						break
+					}
+					continue
+				}
+				if c == 'A' && k+1 < len(p.s)-1 {
+					next := p.s[k+1]
+					if (next >= 'a' && next <= 'z') || (next >= 'A' && next <= 'Z') {
+						k += 2
+						continue
+					}
+					if next >= '0' && next <= '9' {
+						k++
+						for k < len(p.s)-1 && p.s[k] >= '0' && p.s[k] <= '9' {
+							k++
+						}
+						if k < len(p.s)-1 && ((p.s[k] >= 'A' && p.s[k] <= 'Z') || (p.s[k] >= 'a' && p.s[k] <= 'z')) {
+							k++
+						}
+						continue
+					}
+				}
+				if c == 'E' && (p.s[k+1] >= '0' && p.s[k+1] <= '9' || p.s[k+1] == '_') {
+					eFound = k
+					break
+				}
+				k++
+			}
+			if eFound < 0 {
+				restore()
+				return nil, false, nil
+			}
+			constraintBytes = []byte(p.s[scan:eFound])
+			p.i = eFound + 1 // past 'E'
+			eAlreadyConsumed = true
+			// First pass: push length-prefixed identifiers from constraint bytes to subs.
+			// Mirrors Apple's generic-sig demangling which pushes each identifier encountered.
+			for ci := 0; ci < len(constraintBytes); {
+				if constraintBytes[ci] >= '1' && constraintBytes[ci] <= '9' {
+					lenStart := ci
+					for ci < len(constraintBytes) && constraintBytes[ci] >= '0' && constraintBytes[ci] <= '9' {
+						ci++
+					}
+					length := 0
+					for _, d := range constraintBytes[lenStart:ci] {
+						length = length*10 + int(d-'0')
+					}
+					end := ci + length
+					if end <= len(constraintBytes) && length > 0 {
+						p.subs.Push(common.NewIdentifier(string(constraintBytes[ci:end])))
+						ci = end
+					} else {
+						ci++
+					}
+				} else if constraintBytes[ci] == 'A' && ci+1 < len(constraintBytes) {
+					next := constraintBytes[ci+1]
+					if (next >= 'A' && next <= 'Z') || (next >= 'a' && next <= 'z') {
+						ci += 2
+						continue
+					}
+					if next >= '0' && next <= '9' {
+						ci++
+						for ci < len(constraintBytes) && constraintBytes[ci] >= '0' && constraintBytes[ci] <= '9' {
+							ci++
+						}
+						if ci < len(constraintBytes) && ((constraintBytes[ci] >= 'A' && constraintBytes[ci] <= 'Z') || (constraintBytes[ci] >= 'a' && constraintBytes[ci] <= 'z')) {
+							ci++
+						}
+						continue
+					}
+					ci++
+				} else {
+					ci++
+				}
+			}
+			// Second pass: push S<letter> stdlib nominal types from constraint bytes.
+			for ci := 0; ci+1 < len(constraintBytes); ci++ {
+				if constraintBytes[ci] == 'S' {
+					letter := constraintBytes[ci+1]
+					if n, ok := common.BuildStdlibNominal(letter); ok {
+						p.subs.Push(n)
+						ci++
+					}
+				}
+			}
+		}
 	} else if p.eof() || !(p.s[p.i] >= '0' && p.s[p.i] <= '9') {
 		restore()
 		return nil, false, nil
@@ -6293,14 +6412,18 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 			return nil, false, nil
 		}
 	}
-	p.subs.Push(common.NewModule(modName))
+	if !moduleAlreadyPushed {
+		p.subs.Push(common.NewModule(modName))
+	}
 
 	// Immediately followed by 'E'.
-	if p.eof() || p.s[p.i] != 'E' {
-		restore()
-		return nil, false, nil
+	if !eAlreadyConsumed {
+		if p.eof() || p.s[p.i] != 'E' {
+			restore()
+			return nil, false, nil
+		}
+		p.i++ // consume 'E'
 	}
-	p.i++ // consume 'E'
 
 	// Parse nested type chain + final decl name.
 	// Zero or more <n><ident><kind-byte> pairs (nested types), then one
@@ -6445,6 +6568,14 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 				lblSubs := p.subs
 				lbl, lerr := p.parseIdentifier()
 				if lerr != nil {
+					p.i = lblSave
+					p.subs = lblSubs
+					break
+				}
+				// Digit-led identifier followed by 'Q'+'z'/'y'/'Y' is the start of a
+				// dependent-member return type (e.g. 5IndexQz = A.Index), not a label.
+				if !p.eof() && p.s[p.i] == 'Q' && p.i+1 < len(p.s) &&
+					(p.s[p.i+1] == 'z' || p.s[p.i+1] == 'y' || p.s[p.i+1] == 'Y') {
 					p.i = lblSave
 					p.subs = lblSubs
 					break
@@ -6953,7 +7084,11 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 		}
 	}
 	if verbose {
-		wrap.Text = "(extension in Swift):Swift." + hostPath + "." + declName + verboseParamStr(labels) + verboseRetStr(true)
+		extSig := ""
+		if len(constraintBytes) > 0 {
+			extSig, _ = extractConstraintSigFullOpts(constraintBytes, true)
+		}
+		wrap.Text = "(extension in Swift):Swift." + hostPath + extSig + "." + declName + verboseParamStr(labels) + verboseRetStr(true)
 	} else if modName == "Foundation" && extHostMod != "" {
 		wrap.Text = "(extension in Foundation):" + extHostMod + "." + hostPath + "." + declName + genericPart + verboseParamStr(labels) + verboseRetStr(true)
 	} else {

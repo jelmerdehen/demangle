@@ -1,4 +1,4 @@
-# snapshot-pass-set update 2026-05-04T01:43:39Z — union with previous (high-water)
+# snapshot-pass-set update 2026-05-04T02:20:36Z — union with previous (high-water)
 _$s10Foreground7SwiftUI18LabelGroupStyle_v0PTl
 _$s10Foundation10CocoaErrorV010formattingC0AC4CodeVvgZ
 _$s10Foundation10CocoaErrorV010formattingC0AC4CodeVvpZMV
@@ -36978,6 +36978,8 @@ _$sSBsE5radixSivgZ
 _$sSBsE5radixSivpZMV
 _$sSBsE6signOf09magnitudeB0xx_xtcfC
 _$sSBsEyxqd__cSBRd__lufC
+_$sSBss17FixedWidthInteger14RawSignificandRpzrlE6random2inxSNyxG_tFZ
+_$sSBss17FixedWidthInteger14RawSignificandRpzrlE6random2inxSnyxG_tFZ
 _$sSByxSdcfCTj
 _$sSByxSdcfCTq
 _$sSByxSfcfCTj
@@ -37175,6 +37177,8 @@ _$sSD9formIndex5afterySD0B0Vyxq__Gz_tF
 _$sSD9removeAll15keepingCapacityySb_tF
 _$sSDMa
 _$sSDMn
+_$sSDsSHR_rlE20_toCustomAnyHashables0cD0VSgyF
+_$sSDsSHR_rlE4hash4intoys6HasherVz_tF
 _$sSDyq_SgxciM
 _$sSDyq_Sgxcig
 _$sSDyq_SgxcipMV
@@ -37336,6 +37340,8 @@ _$sSI9_endIndex0B0Qzvs
 _$sSI9formIndex5aftery0B0Qzz_tF
 _$sSIMa
 _$sSIMn
+_$sSIsSKRzrlE5index6before5IndexQzAD_tF
+_$sSIsSKRzrlE9formIndex6beforey0B0Qzz_tF
 _$sSIy5IndexQzABcig
 _$sSIy5IndexQzABcipMV
 _$sSIySIyxGSny5IndexQzGcig
@@ -37463,6 +37469,10 @@ _$sSKMp
 _$sSKTL
 _$sSKsE4last7ElementQzSgvg
 _$sSKsE4last7ElementQzSgvpMV
+_$sSKsE5index_8offsetBy07limitedC05IndexQzSgAE_SiAEtF
+_$sSKsE5index_8offsetBy5IndexQzAD_SitF
+_$sSKsE6_index_8offsetBy07limitedC05IndexQzSgAE_SiAEtF
+_$sSKsE6_index_8offsetBy5IndexQzAD_SitF
 _$sSKsE6suffixy11SubSequenceQzSiF
 _$sSKsE8distance4from2toSi5IndexQz_AEtF
 _$sSKsE8dropLasty11SubSequenceQzSiF
@@ -37484,6 +37494,10 @@ _$sSM6swapAtyy5IndexQz_ACtFTq
 _$sSMMp
 _$sSMTL
 _$sSMsE13moveSubranges_2toSny5IndexQzGs8RangeSetVyADG_ADtF
+_$sSMsSKRzrlE7reverseyyF
+_$sSMsSKRzrlE8_reverse6withinySny5IndexSlQzG_tF
+_$sSMsSkRzrlE7shuffleyyF
+_$sSMsSmRzrlE15removeSubrangesyys8RangeSetVy5IndexSlQzGF
 _$sSMy11SubSequenceQzSny5IndexQzGciMTj
 _$sSMy11SubSequenceQzSny5IndexQzGciMTq
 _$sSMy11SubSequenceQzSny5IndexQzGcisTj
@@ -37510,6 +37524,7 @@ _$sSN8overlapsySbSNyxGF
 _$sSN8overlapsySbSnyxGF
 _$sSNMa
 _$sSNMn
+_$sSNsSHRzrlE4hash4intoys6HasherVz_tF
 _$sSNyxGSEsSERzrlMc
 _$sSNyxGSHsSHRzrlMc
 _$sSNyxGSKsSxRzSZ6StrideRpzrlMc
@@ -39789,6 +39804,7 @@ _$sSk8distance4from2toSi5IndexQz_AEtFTj
 _$sSk8distance4from2toSi5IndexQz_AEtFTq
 _$sSkMp
 _$sSkTL
+_$sSksE5index_8offsetBy07limitedC05IndexQzSgAE_SiAEtF
 _$sSl10FoundationE13_defaultCountSivpMV
 _$sSl10startIndex0B0QzvgTj
 _$sSl10startIndex0B0QzvgTq
@@ -39818,6 +39834,9 @@ _$sSl9formIndex5aftery0B0Qzz_tFTj
 _$sSl9formIndex5aftery0B0Qzz_tFTq
 _$sSlMp
 _$sSlTL
+_$sSlsE13randomElement0B0QzSgyF
+_$sSlsE15_advanceForward_2by5IndexQzAD_SitF
+_$sSlsE15_advanceForward_2by9limitedBy5IndexQzSgAE_SiAEtF
 _$sSlsE17removingSubrangesys18DiscontiguousSliceVyxGs8RangeSetVy5IndexQzGF
 _$sSlsE19underestimatedCountSivg
 _$sSlsE19underestimatedCountSivpMV
@@ -39829,7 +39848,12 @@ _$sSlsE5countSivg
 _$sSlsE5countSivpMV
 _$sSlsE5first7ElementQzSgvg
 _$sSlsE5first7ElementQzSgvpMV
+_$sSlsE5index_8offsetBy07limitedC05IndexQzSgAE_SiAEtF
+_$sSlsE5index_8offsetBy5IndexQzAD_SitF
+_$sSlsE6prefix4upTo11SubSequenceQz5IndexQz_tF
+_$sSlsE6prefix7through11SubSequenceQz5IndexQz_tF
 _$sSlsE6prefixy11SubSequenceQzSiF
+_$sSlsE6suffix4from11SubSequenceQz5IndexQz_tF
 _$sSlsE6suffixy11SubSequenceQzSiF
 _$sSlsE7isEmptySbvg
 _$sSlsE7isEmptySbvpMV
@@ -39862,15 +39886,19 @@ _$sSm9removeAll15keepingCapacityySb_tFTj
 _$sSm9removeAll15keepingCapacityySb_tFTq
 _$sSmMp
 _$sSmTL
+_$sSmsE11removeFirst7ElementQzyF
 _$sSmsE11removeFirstyySiF
 _$sSmsE14removeSubrangeyySny5IndexQzGF
 _$sSmsE15removeSubrangesyys8RangeSetVy5IndexQzGF
 _$sSmsE15reserveCapacityyySiF
+_$sSmsE17_customRemoveLast7ElementQzSgyF
 _$sSmsE17_customRemoveLastySbSiF
 _$sSmsE6insert_2aty7ElementQzn_5IndexQztF
+_$sSmsE6remove2at7ElementQz5IndexQz_tF
 _$sSmsE8applyingyxSgs20CollectionDifferenceVy7ElementQzGF
 _$sSmsE9removeAll15keepingCapacityySb_tF
 _$sSmsE9repeating5countx7ElementQz_SitcfC
+_$sSmsSKRzrlE10removeLastyySiF
 _$sSn10_contains_ySbSnyxGF
 _$sSn10lowerBoundxvg
 _$sSn10lowerBoundxvpMV
@@ -39890,6 +39918,7 @@ _$sSn8overlapsySbSNyxGF
 _$sSn8overlapsySbSnyxGF
 _$sSnMa
 _$sSnMn
+_$sSnsSHRzrlE4hash4intoys6HasherVz_tF
 _$sSnyxGSEsSERzrlMc
 _$sSnyxGSHsSHRzrlMc
 _$sSnyxGSKsSxRzSZ6StrideRpzrlMc
@@ -45367,6 +45396,11 @@ _$ss12LazySequenceV8elementsxvg
 _$ss12LazySequenceV8elementsxvpMV
 _$ss12LazySequenceVMa
 _$ss12LazySequenceVMn
+_$ss12LazySequenceVsSKRzrlE5index6before5IndexQzAF_tF
+_$ss12LazySequenceVsSlRzrlE5index5after5IndexQzAF_tF
+_$ss12LazySequenceVsSlRzrlE5index_8offsetBy07limitedE05IndexQzSgAG_SiAGtF
+_$ss12LazySequenceVsSlRzrlE5index_8offsetBy5IndexQzAF_SitF
+_$ss12LazySequenceVsSlRzrlE8distance4from2toSi5IndexQz_AGtF
 _$ss12LazySequenceVyxGSKsSKRzrlMc
 _$ss12LazySequenceVyxGSTsMc
 _$ss12LazySequenceVyxGSksSkRzrlMc
@@ -46595,6 +46629,13 @@ _$ss15LazyMapSequenceV8IteratorVyxq__GSTsMc
 _$ss15LazyMapSequenceV8IteratorVyxq__GStsMc
 _$ss15LazyMapSequenceVMa
 _$ss15LazyMapSequenceVMn
+_$ss15LazyMapSequenceVsSKRzrlE5index6before5IndexQzAF_tF
+_$ss15LazyMapSequenceVsSKRzrlE9formIndex6beforey0E0Qzz_tF
+_$ss15LazyMapSequenceVsSlRzrlE5index5after5IndexQzAF_tF
+_$ss15LazyMapSequenceVsSlRzrlE5index_8offsetBy07limitedF05IndexQzSgAG_SiAGtF
+_$ss15LazyMapSequenceVsSlRzrlE5index_8offsetBy5IndexQzAF_SitF
+_$ss15LazyMapSequenceVsSlRzrlE8distance4from2toSi5IndexQz_AGtF
+_$ss15LazyMapSequenceVsSlRzrlE9formIndex5aftery0E0Qzz_tF
 _$ss15LazyMapSequenceVyxq_GSKsSKRzrlMc
 _$ss15LazyMapSequenceVyxq_GSTsMc
 _$ss15LazyMapSequenceVyxq_GSksSkRzrlMc
@@ -47257,6 +47298,8 @@ _$ss17_NativeDictionaryV9removeAll8isUniqueySb_tF
 _$ss17_NativeDictionaryVAByxq_GycfC
 _$ss17_NativeDictionaryVMa
 _$ss17_NativeDictionaryVMn
+_$ss17_NativeDictionaryVsSQR_rlE7isEqual2toSbAByxq_G_tF
+_$ss17_NativeDictionaryVsSQR_rlE7isEqual2toSbs07__CocoaB0V_tF
 _$ss17_NativeDictionaryVyxq_GSTsMc
 _$ss17_NativeDictionaryVyxq_Gs18_HashTableDelegatesMc
 _$ss17_NativeDictionaryVyxq_Gs18_HashTableDelegatesWP
@@ -47427,6 +47470,16 @@ _$ss18LazyFilterSequenceV8IteratorVyx_GSTsMc
 _$ss18LazyFilterSequenceV8IteratorVyx_GStsMc
 _$ss18LazyFilterSequenceVMa
 _$ss18LazyFilterSequenceVMn
+_$ss18LazyFilterSequenceVsSKRzrlE5index6before5IndexQzAF_tF
+_$ss18LazyFilterSequenceVsSKRzrlE9formIndex6beforey0E0Qzz_tF
+_$ss18LazyFilterSequenceVsSlRzrlE13_advanceIndex_4stepy0E0Qzz_SitF
+_$ss18LazyFilterSequenceVsSlRzrlE20_ensureBidirectional4stepySi_tF
+_$ss18LazyFilterSequenceVsSlRzrlE5index5after5IndexQzAF_tF
+_$ss18LazyFilterSequenceVsSlRzrlE5index_8offsetBy07limitedF05IndexQzSgAG_SiAGtF
+_$ss18LazyFilterSequenceVsSlRzrlE5index_8offsetBy5IndexQzAF_SitF
+_$ss18LazyFilterSequenceVsSlRzrlE8distance4from2toSi5IndexQz_AGtF
+_$ss18LazyFilterSequenceVsSlRzrlE9formIndex5aftery0E0Qzz_tF
+_$ss18LazyFilterSequenceVsSlRzrlE9formIndex_8offsetByy0E0Qzz_SitF
 _$ss18LazyFilterSequenceVyxGSKsSKRzrlMc
 _$ss18LazyFilterSequenceVyxGSTsMc
 _$ss18LazyFilterSequenceVyxGSlsSlRzrlMc
@@ -47859,6 +47912,8 @@ _$ss21LazyDropWhileSequenceV8IteratorVMn
 _$ss21LazyDropWhileSequenceV8IteratorVyx_GStsMc
 _$ss21LazyDropWhileSequenceVMa
 _$ss21LazyDropWhileSequenceVMn
+_$ss21LazyDropWhileSequenceVsSKRzrlE5index6before5IndexQzAF_tF
+_$ss21LazyDropWhileSequenceVsSlRzrlE5index5after5IndexQzAF_tF
 _$ss21LazyDropWhileSequenceVyxGSKsSKRzrlMc
 _$ss21LazyDropWhileSequenceVyxGSTsMc
 _$ss21LazyDropWhileSequenceVyxGSlsSlRzrlMc
@@ -50549,6 +50604,13 @@ _$ss5SliceV9_endIndex0C0Qzvs
 _$ss5SliceV9formIndex5aftery0C0Qzz_tF
 _$ss5SliceVMa
 _$ss5SliceVMn
+_$ss5SliceVsSKRzSmRzrlE14removeSubrangeyySny5IndexSlQzGF
+_$ss5SliceVsSKRzSmRzrlE6insert_2aty7ElementSTQz_5IndexSlQztF
+_$ss5SliceVsSKRzrlE5index6before5IndexQzAF_tF
+_$ss5SliceVsSKRzrlE9formIndex6beforey0C0Qzz_tF
+_$ss5SliceVsSmRzrlE14removeSubrangeyySny5IndexQzGF
+_$ss5SliceVsSmRzrlE6insert_2aty7ElementQz_5IndexQztF
+_$ss5SliceVsSmRzrlE6remove2at7ElementQz5IndexQz_tF
 _$ss5SliceVy7ElementQz5IndexQzcig
 _$ss5SliceVy7ElementQz5IndexQzcipMV
 _$ss5SliceVyAByxGSny5IndexQzGcig
@@ -50997,6 +51059,7 @@ _$ss6ResultO7CombineE9PublisherVyAEyxq__Gq_cfC
 _$ss6ResultO7CombineE9PublisherVyAEyxq__GxcfC
 _$ss6ResultOMa
 _$ss6ResultOMn
+_$ss6ResultOsSHRzSHR_rlE4hash4intoys6HasherVz_tF
 _$ss6ResultOyxq_GSHsSHRzSHR_rlMc
 _$ss6ResultOyxq_GSQsSQRzSQR_rlMc
 _$ss6SIMD16V11scalarCountSivg
@@ -53211,6 +53274,7 @@ _$ss8RangeSetV9formUnionyyAByxGnF
 _$ss8RangeSetVAByxGycfC
 _$ss8RangeSetVMa
 _$ss8RangeSetVMn
+_$ss8RangeSetVsSHRzrlE4hash4intoys6HasherVz_tF
 _$ss8RangeSetVyAByxGSnyxGcfC
 _$ss8RangeSetVyxGSHsSHRzrlMc
 _$ss8RangeSetVyxGSQsMc
@@ -53381,6 +53445,9 @@ _$ss9OptionSetMp
 _$ss9OptionSetPsE12intersectionyxxF
 _$ss9OptionSetPsE19symmetricDifferenceyxxF
 _$ss9OptionSetPsE5unionyxxF
+_$ss9OptionSetPss17FixedWidthInteger8RawValueRpzrlE16formIntersectionyyxF
+_$ss9OptionSetPss17FixedWidthInteger8RawValueRpzrlE23formSymmetricDifferenceyyxF
+_$ss9OptionSetPss17FixedWidthInteger8RawValueRpzrlE9formUnionyyxF
 _$ss9OptionSetTL
 _$ss9TaskLocalC11descriptionSSvg
 _$ss9TaskLocalC11descriptionSSvpMV

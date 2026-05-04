@@ -259,6 +259,12 @@ func runStrictGateFile(t *testing.T, filename string) {
 	t.Logf("strict gate %s: %d/%d pass", filename, pass, pass+fail)
 }
 
+// TestSwiftStdlibExtensionFixtureStrictGate verifies the PP fix:
+// S<letter>+constraint extension entities (e.g. SBss17...E, SIsSKRzrlE).
+func TestSwiftStdlibExtensionFixtureStrictGate(t *testing.T) {
+	runStrictGateFile(t, "swift_stdlib_extension.txt")
+}
+
 // TestInitConstraintFixtureStrictGate verifies all init_constraint.txt entries pass.
 func TestInitConstraintFixtureStrictGate(t *testing.T) {
 	runStrictGateFile(t, "init_constraint.txt")

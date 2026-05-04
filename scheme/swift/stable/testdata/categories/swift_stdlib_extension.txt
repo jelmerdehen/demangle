@@ -1,0 +1,6 @@
+# S<letter>+constraint extension entities — PP fix
+# Pattern: _$sS<letter>s<constraintBytes>E<decl><labels><rettype><params>F
+_$sSBss17FixedWidthInteger14RawSignificandRpzrlE6random2inxSNyxG_tFZ ---> static (extension in Swift):Swift.BinaryFloatingPoint< where A.RawSignificand: Swift.FixedWidthInteger>.random(in: Swift.ClosedRange<A>) -> A
+_$sSBss17FixedWidthInteger14RawSignificandRpzrlE6random2inxSnyxG_tFZ ---> static (extension in Swift):Swift.BinaryFloatingPoint< where A.RawSignificand: Swift.FixedWidthInteger>.random(in: Swift.Range<A>) -> A
+_$sSIsSKRzrlE5index6before5IndexQzAD_tF ---> (extension in Swift):Swift.DefaultIndices< where A: Swift.BidirectionalCollection>.index(before: A.Index) -> A.Index
+_$sSIsSKRzrlE9formIndex6beforey0B0Qzz_tF ---> (extension in Swift):Swift.DefaultIndices< where A: Swift.BidirectionalCollection>.formIndex(before: inout A.Index) -> ()
