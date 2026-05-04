@@ -6392,7 +6392,26 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 					}
 					end := ci + length
 					if end <= len(constraintBytes) && length > 0 {
-						p.subs.Push(common.NewIdentifier(string(constraintBytes[ci:end])))
+						name := string(constraintBytes[ci:end])
+						// If the identifier is followed by Rm<subj>C (member-type class =
+						// AnyObject constraint, e.g. 8RawValueRmzC), it is an associated-type
+						// name. Push TypeMangling("A.<name>") so that A<idx> back-refs in
+						// entity params resolve to the dependent-member type (A.RawValue),
+						// not a bare identifier (RawValue). Subject 'z' = param A, '_' = param B.
+						if end+3 < len(constraintBytes) &&
+							constraintBytes[end] == 'R' && constraintBytes[end+1] == 'm' &&
+							(constraintBytes[end+2] == 'z' || constraintBytes[end+2] == '_') &&
+							constraintBytes[end+3] == 'C' {
+							paramName := "A"
+							if constraintBytes[end+2] == '_' {
+								paramName = "B"
+							}
+							dm := common.NewNode(common.KindTypeMangling)
+							dm.Text = paramName + "." + name
+							p.subs.Push(dm)
+						} else {
+							p.subs.Push(common.NewIdentifier(name))
+						}
 						ci = end
 					} else {
 						ci++
