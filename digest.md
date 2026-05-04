@@ -29,7 +29,7 @@
 
 ## Last 10 Commits
 
-- (pending) swift-parity: QU variadic 'd' marker in applyParamConvention — parity 84.86%→84.92% (+40 production, +3 fixtures)
+- 05cbc9e swift-parity: QU consume 'd' variadic marker in applyParamConvention — parity 84.86%→84.92% (+40 production, +3 fixtures)
 - 42ba64c chore: update digest.md for QT commit (parity 54098→54102)
 - da71e61 chore: lock snapshot after QT commit (parity 54098→54102)
 - aad61c1 swift-parity: QT S<N><letter> compact params in tryExtensionEntity — parity 84.85%→84.86% (+4 production, +3 fixtures)
