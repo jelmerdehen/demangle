@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 85.37% (54428/63757) — 2026-05-04T21:42:47Z
+**Parity**: 85.79% (54696/63757) — 2026-05-04T22:34:56Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 8770 parse-errors + 559 mismatches
+**Failures**: 8498 parse-errors + 563 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,6 +29,8 @@
 
 ## Last 10 Commits
 
+- 5f194db chore: lock snapshot after RV commit (parity 54411→54428)
+- c3c0d9a swift-parity: RV operator-on-type subs fix — SIMDMask<A> params — parity 85.34%→85.37% (+17 production)
 - 482a9e2 chore: lock snapshot after RU commit (parity 54409→54411)
 - 664d838 swift-parity: RU SlsSIyxG bound-generic pre-push fixes Collection.indices return type — parity 85.34%→85.34% (+2 production, +1 fixture)
 - f889090 chore: update digest.md for RT commit (parity 54335→54409)
@@ -37,8 +39,6 @@
 - f3f260c swift-parity: RS vpZQOMQ static stored-property opaque-type descriptor — parity 85.46%→85.47% (+2 production, +2 fixtures)
 - f288500 chore: update digest.md for QR commit (parity 54328→54333)
 - 8920f92 swift-parity: QR SS5IndexVRsz nested-stdlib same-type + sAA self-ref constraint — parity 85.45%→85.46% (+5 production, +3 fixtures)
-- 220148e chore: lock snapshot after QZ commit (parity 54314→54328)
-- e88df79 swift-parity: QZ Sc<letter> protocol name in tryStdlibProtoConformanceSuffix — parity 85.43%→85.45% (+14 production, +8 fixtures)
 
 ## Suggested Next 3 Items
 
