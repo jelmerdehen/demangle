@@ -6458,14 +6458,25 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 					if end <= len(constraintBytes) && length > 0 {
 						name := string(constraintBytes[ci:end])
 						// If the identifier is followed by Rm<subj>C (member-type class =
-						// AnyObject constraint, e.g. 8RawValueRmzC), it is an associated-type
-						// name. Push TypeMangling("A.<name>") so that A<idx> back-refs in
-						// entity params resolve to the dependent-member type (A.RawValue),
-						// not a bare identifier (RawValue). Subject 'z' = param A, '_' = param B.
+						// AnyObject constraint, e.g. 8RawValueRmzC) or Rp<subj> (conformance
+						// constraint, e.g. 7ElementRpz), it is an associated-type name. Push
+						// TypeMangling("A.<name>") so that A<idx> back-refs in entity params
+						// resolve to the dependent-member type (A.RawValue / A.Element),
+						// not a bare identifier. Subject 'z' = param A, '_' = param B.
 						if end+3 < len(constraintBytes) &&
 							constraintBytes[end] == 'R' && constraintBytes[end+1] == 'm' &&
 							(constraintBytes[end+2] == 'z' || constraintBytes[end+2] == '_') &&
 							constraintBytes[end+3] == 'C' {
+							paramName := "A"
+							if constraintBytes[end+2] == '_' {
+								paramName = "B"
+							}
+							dm := common.NewNode(common.KindTypeMangling)
+							dm.Text = paramName + "." + name
+							p.subs.Push(dm)
+						} else if end+2 < len(constraintBytes) &&
+							constraintBytes[end] == 'R' && constraintBytes[end+1] == 'p' &&
+							(constraintBytes[end+2] == 'z' || constraintBytes[end+2] == '_') {
 							paramName := "A"
 							if constraintBytes[end+2] == '_' {
 								paramName = "B"
@@ -7872,9 +7883,35 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 			end := ci + length
 			if end <= len(constraintBytes) && length > 0 {
 				ident := string(constraintBytes[ci:end])
-				// Push Identifier node to subs (mirrors Apple's demangleIdentifier
-				// adding to Substitutions when parsing constraint sig ops).
-				p.subs.Push(common.NewIdentifier(ident))
+				// If followed by Rp<subj> (conformance) or Rm<subj>C (class), it is an
+				// associated-type name — push TypeMangling("A.<ident>") so back-refs
+				// in entity params resolve to the dependent-member type.
+				if end+2 < len(constraintBytes) &&
+					constraintBytes[end] == 'R' && constraintBytes[end+1] == 'p' &&
+					(constraintBytes[end+2] == 'z' || constraintBytes[end+2] == '_') {
+					paramName := "A"
+					if constraintBytes[end+2] == '_' {
+						paramName = "B"
+					}
+					dm := common.NewNode(common.KindTypeMangling)
+					dm.Text = paramName + "." + ident
+					p.subs.Push(dm)
+				} else if end+3 < len(constraintBytes) &&
+					constraintBytes[end] == 'R' && constraintBytes[end+1] == 'm' &&
+					(constraintBytes[end+2] == 'z' || constraintBytes[end+2] == '_') &&
+					constraintBytes[end+3] == 'C' {
+					paramName := "A"
+					if constraintBytes[end+2] == '_' {
+						paramName = "B"
+					}
+					dm := common.NewNode(common.KindTypeMangling)
+					dm.Text = paramName + "." + ident
+					p.subs.Push(dm)
+				} else {
+					// Push Identifier node to subs (mirrors Apple's demangleIdentifier
+					// adding to Substitutions when parsing constraint sig ops).
+					p.subs.Push(common.NewIdentifier(ident))
+				}
 				// Also populate words table for later word-substitution decoding.
 				addWordsFromConstraintIdent(ident)
 				ci = end

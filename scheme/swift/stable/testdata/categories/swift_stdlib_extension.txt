@@ -14,6 +14,13 @@ _$ss9OptionSetPs7ElementQzRszrlE6removeyxSgxF ---> (extension in Swift):Swift.Op
 _$ss9OptionSetPs7ElementQzRszrlE6update4withxSgx_tF ---> (extension in Swift):Swift.OptionSet< where A == A.Element>.update(with: A) -> A?
 _$ss9OptionSetPs7ElementQzRszrlE8containsySbxF ---> (extension in Swift):Swift.OptionSet< where A == A.Element>.contains(A) -> Swift.Bool
 _$ss20LazySequenceProtocolPs8ElementsQzRszrlE8elementsxvg ---> (extension in Swift):Swift.LazySequenceProtocol< where A == A.Elements>.elements.getter : A
+# QS fix: Rp<subj> assoc-type subs push — A.Element back-refs in extension entity params
+_$sSTsSL7ElementRpzrlE3maxABSgyF ---> (extension in Swift):Swift.Sequence< where A.Element: Swift.Comparable>.max() -> A.Element?
+_$sSTsSL7ElementRpzrlE3minABSgyF ---> (extension in Swift):Swift.Sequence< where A.Element: Swift.Comparable>.min() -> A.Element?
+_$sSTsSQ7ElementRpzrlE8containsySbABF ---> (extension in Swift):Swift.Sequence< where A.Element: Swift.Equatable>.contains(A.Element) -> Swift.Bool
+_$sSlsSQ7ElementRpzrlE5index2of5IndexQzSgAB_tF ---> (extension in Swift):Swift.Collection< where A.Element: Swift.Equatable>.index(of: A.Element) -> A.Index?
+_$sSlsSQ7ElementRpzrlE5split9separator9maxSplits25omittingEmptySubsequencesSay11SubSequenceQzGAB_SiSbtF ---> (extension in Swift):Swift.Collection< where A.Element: Swift.Equatable>.split(separator: A.Element, maxSplits: Swift.Int, omittingEmptySubsequences: Swift.Bool) -> [A.SubSequence]
+_$sSlsSQ7ElementRpzrlE7indices2ofs8RangeSetVy5IndexQzGAB_tF ---> (extension in Swift):Swift.Collection< where A.Element: Swift.Equatable>.indices(of: A.Element) -> Swift.RangeSet<A.Index>
 # PY fix: E0-scanner look-ahead + Strategy 4 (Swift-stdlib extension host in constraintRHSType)
 # AASSAAE0C0VRszrl: A=generic-param, SS=Swift.String, AA=Foundation, E0C0V=word-sub "Comparator"V, Rsz=same-type
 _$s10Foundation14SortComparatorPAASSAAE0C0VRszrlE9localizedAEvgZ ---> static (extension in Foundation):Foundation.SortComparator< where A == (extension in Foundation):Swift.String.Comparator>.localized.getter : (extension in Foundation):Swift.String.Comparator

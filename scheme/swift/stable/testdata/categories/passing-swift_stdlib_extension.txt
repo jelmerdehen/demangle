@@ -1,4 +1,4 @@
-# snapshot-pass-set update 2026-05-04T14:42:24Z — union with previous (high-water)
+# snapshot-pass-set update 2026-05-04T15:03:01Z — union with previous (high-water)
 _$s10Foundation14SortComparatorPAASSAAE0C0VRszrlE17localizedStandardAEvgZ
 _$s10Foundation14SortComparatorPAASSAAE0C0VRszrlE9localizedAEvgZ
 _$sSBss17FixedWidthInteger14RawSignificandRpzrlE6random2inxSNyxG_tFZ
@@ -7,8 +7,14 @@ _$sSIsSKRzrlE5index6before5IndexQzAD_tF
 _$sSIsSKRzrlE9formIndex6beforey0B0Qzz_tF
 _$sSKs11SubSequenceQzRszrlE10removeLast7ElementQzyF
 _$sSKs11SubSequenceQzRszrlE7popLast7ElementQzSgyF
+_$sSTsSL7ElementRpzrlE3maxABSgyF
+_$sSTsSL7ElementRpzrlE3minABSgyF
+_$sSTsSQ7ElementRpzrlE8containsySbABF
 _$sSls11SubSequenceQzRszrlE11removeFirst7ElementQzyF
 _$sSls11SubSequenceQzRszrlE8popFirst7ElementQzSgyF
+_$sSlsSQ7ElementRpzrlE5index2of5IndexQzSgAB_tF
+_$sSlsSQ7ElementRpzrlE5split9separator9maxSplits25omittingEmptySubsequencesSay11SubSequenceQzGAB_SiSbtF
+_$sSlsSQ7ElementRpzrlE7indices2ofs8RangeSetVy5IndexQzGAB_tF
 _$sSms11SubSequenceQzRszrlE11removeFirst7ElementQzyF
 _$ss20LazySequenceProtocolPs8ElementsQzRszrlE8elementsxvg
 _$ss9OptionSetPs7ElementQzRszrlE6removeyxSgxF
