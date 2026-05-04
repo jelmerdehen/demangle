@@ -12852,6 +12852,33 @@ func (p *parser) tryBoundGeneric(base *demangle.Node) (*demangle.Node, bool, err
 			}
 			continue
 		}
+		// S<N><letter> compact encoding: N copies of the same stdlib type.
+		// Only expand when the byte after <letter> is 'G' to avoid
+		// false positives with metatype postfix 'm' (e.g. S2im = Int.Type).
+		if p.s[p.i] == 'S' && p.i+1 < len(p.s) &&
+			p.s[p.i+1] >= '1' && p.s[p.i+1] <= '9' {
+			j := p.i + 1
+			for j < len(p.s) && p.s[j] >= '0' && p.s[j] <= '9' {
+				j++
+			}
+			if j < len(p.s) {
+				letter := p.s[j]
+				if baseNode, ok := common.BuildStdlibNominal(letter); ok {
+					n := 0
+					for _, d := range []byte(p.s[p.i+1 : j]) {
+						n = n*10 + int(d-'0')
+					}
+					if n >= 2 && j+1 < len(p.s) && p.s[j+1] == 'G' {
+						p.i = j + 1
+						for k := 0; k < n; k++ {
+							args = append(args, baseNode)
+							argLevels = append(argLevels, currentLevel)
+						}
+						continue
+					}
+				}
+			}
+		}
 		// Try parsing a type arg first. On failure, fall back to
 		// skipping a retroactive-conformance-ref metadata block.
 		argSave := p.i
