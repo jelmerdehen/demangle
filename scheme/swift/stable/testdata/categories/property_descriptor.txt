@@ -78,3 +78,8 @@ _$s10Foundation8TimeZoneV22abbreviationDictionarySDyS2SGvpZMV ---> property desc
 _$ss8SIMDMaskVss5SIMD2VySiGRszrlE7allTrueAByAEGvpZMV ---> property descriptor for static (extension in Swift):Swift.SIMDMask< where A == Swift.SIMD2<Swift.Int>>.allTrue : Swift.SIMDMask<Swift.SIMD2<Swift.Int>>
 _$ss8SIMDMaskVss5SIMD4VySiGRszrlE7allTrueAByAEGvpZMV ---> property descriptor for static (extension in Swift):Swift.SIMDMask< where A == Swift.SIMD4<Swift.Int>>.allTrue : Swift.SIMDMask<Swift.SIMD4<Swift.Int>>
 _$ss8SIMDMaskVss6SIMD64VySiGRszrlE7allTrueAByAEGvpZMV ---> property descriptor for static (extension in Swift):Swift.SIMDMask< where A == Swift.SIMD64<Swift.Int>>.allTrue : Swift.SIMDMask<Swift.SIMD64<Swift.Int>>
+# PX: s<N>Vy<s<N>V>GRs<subj> bound-generic same-type with named inner struct (SIMDMask non-Int family)
+_$ss8SIMDMaskVss5SIMD2Vys4Int8VGRszrlE7allTrueAByAGGvpZMV ---> property descriptor for static (extension in Swift):Swift.SIMDMask< where A == Swift.SIMD2<Swift.Int8>>.allTrue : Swift.SIMDMask<Swift.SIMD2<Swift.Int8>>
+_$ss8SIMDMaskVss5SIMD2Vys5Int16VGRszrlE7allTrueAByAGGvpZMV ---> property descriptor for static (extension in Swift):Swift.SIMDMask< where A == Swift.SIMD2<Swift.Int16>>.allTrue : Swift.SIMDMask<Swift.SIMD2<Swift.Int16>>
+_$ss8SIMDMaskVss5SIMD2Vys5Int32VGRszrlE7allTrueAByAGGvpZMV ---> property descriptor for static (extension in Swift):Swift.SIMDMask< where A == Swift.SIMD2<Swift.Int32>>.allTrue : Swift.SIMDMask<Swift.SIMD2<Swift.Int32>>
+_$ss8SIMDMaskVss5SIMD2Vys5Int64VGRszrlE7allTrueAByAGGvpZMV ---> property descriptor for static (extension in Swift):Swift.SIMDMask< where A == Swift.SIMD2<Swift.Int64>>.allTrue : Swift.SIMDMask<Swift.SIMD2<Swift.Int64>>

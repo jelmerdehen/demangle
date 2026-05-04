@@ -6457,7 +6457,7 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 						kind := constraintBytes[nameEnd]
 						name := string(constraintBytes[j:nameEnd])
 						j = nameEnd + 1
-						// Check for y<S<letter>>G (single stdlib type arg, bound generic).
+						// Check for y<S<letter>>G or y<s<N>V>G (bound generic with stdlib/named type arg).
 						if j+2 < len(constraintBytes) && constraintBytes[j] == 'y' {
 							j++ // consume 'y'
 							if constraintBytes[j] == 'S' && j+2 < len(constraintBytes) {
@@ -6492,6 +6492,55 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 										ci = j + 3 // advance past 'y', 'S', letter, 'G'
 										continue
 									}
+								}
+							} else if constraintBytes[j] == 's' && j+1 < len(constraintBytes) && constraintBytes[j+1] >= '1' && constraintBytes[j+1] <= '9' {
+								// y<s<N>V>G — plain Swift struct type as bound-generic arg.
+								// First pass already pushed Identifier(innerName); we push
+								// Type(InnerName) + Type(Outer<Inner>) to keep sub indices
+								// aligned with the A-refs in the return type.
+								j2 := j + 1
+								j2Start := j2
+								for j2 < len(constraintBytes) && constraintBytes[j2] >= '0' && constraintBytes[j2] <= '9' {
+									j2++
+								}
+								innerLen := 0
+								for kk := j2Start; kk < j2; kk++ {
+									innerLen = innerLen*10 + int(constraintBytes[kk]-'0')
+								}
+								innerNameEnd := j2 + innerLen
+								if innerLen > 0 && innerNameEnd < len(constraintBytes) && constraintBytes[innerNameEnd] == 'V' &&
+									innerNameEnd+1 < len(constraintBytes) && constraintBytes[innerNameEnd+1] == 'G' {
+									innerName := string(constraintBytes[j2:innerNameEnd])
+									innerStructNom := common.NewNode(common.KindStructure)
+									common.AddChildren(innerStructNom, common.NewModule("Swift"), common.NewIdentifier(innerName))
+									innerType := common.NewNode(common.KindType)
+									common.AddChildren(innerType, innerStructNom)
+									p.subs.Push(innerType)
+									var nk, bgKind common.NodeKind
+									switch kind {
+									case 'V':
+										nk = common.KindStructure
+										bgKind = common.KindBoundGenericStructure
+									case 'C':
+										nk = common.KindClass
+										bgKind = common.KindBoundGenericClass
+									case 'O':
+										nk = common.KindEnum
+										bgKind = common.KindBoundGenericEnum
+									}
+									outerNom := common.NewNode(nk)
+									common.AddChildren(outerNom, common.NewModule("Swift"), common.NewIdentifier(name))
+									outerNomType := common.NewNode(common.KindType)
+									common.AddChildren(outerNomType, outerNom)
+									typeList := common.NewNode(common.KindTypeList)
+									common.AddChildren(typeList, innerType)
+									bg := common.NewNode(bgKind)
+									common.AddChildren(bg, outerNomType, typeList)
+									bgType := common.NewNode(common.KindType)
+									common.AddChildren(bgType, bg)
+									p.subs.Push(bgType)
+									ci = innerNameEnd + 2 // past inner 'V' and 'G'
+									continue
 								}
 							}
 						}
@@ -10050,7 +10099,7 @@ func extractConstraintSigFullOpts(b []byte, includeObjCRequirements bool) (sig, 
 				continue
 			}
 			j = nameEnd + 1
-			// Optional y<S<letter>>G — bound-generic type arg list with one stdlib type.
+			// Optional y<S<letter>>G or y<s<N>V>G — bound-generic type arg (stdlib letter or named struct).
 			typeArgStr := ""
 			if j+3 < len(s) && s[j] == 'y' && s[j+1] == 'S' {
 				argLetter := s[j+2]
@@ -10059,6 +10108,22 @@ func extractConstraintSigFullOpts(b []byte, includeObjCRequirements bool) (sig, 
 						typeArgStr = "<" + common.Print(argNode2, common.DefaultPrintOptions()) + ">"
 						j += 4
 					}
+				}
+			} else if j+3 < len(s) && s[j] == 'y' && s[j+1] == 's' && s[j+2] >= '1' && s[j+2] <= '9' {
+				k2 := j + 2
+				k2Start := k2
+				for k2 < len(s) && s[k2] >= '0' && s[k2] <= '9' {
+					k2++
+				}
+				argLen := 0
+				for kk := k2Start; kk < k2; kk++ {
+					argLen = argLen*10 + int(s[kk]-'0')
+				}
+				argNameEnd := k2 + argLen
+				if argLen > 0 && argNameEnd < len(s) && s[argNameEnd] == 'V' &&
+					argNameEnd+1 < len(s) && s[argNameEnd+1] == 'G' {
+					typeArgStr = "<Swift." + s[k2:argNameEnd] + ">"
+					j = argNameEnd + 2
 				}
 			}
 			if j+1 >= len(s) || s[j] != 'R' || s[j+1] != 's' {
