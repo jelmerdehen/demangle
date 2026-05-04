@@ -11987,6 +11987,7 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 		// addSubstitution-on-every-Identifier pattern; keeps our sub
 		// indices aligned with Apple so A<idx>_ resolves the same way).
 		identNode := common.NewIdentifier(ident)
+		prePushLen := p.subs.Len()
 		p.subs.Push(identNode)
 		peek := p.s[p.i]
 		if peek == 'V' || peek == 'C' || peek == 'O' || peek == 'P' {
@@ -12032,6 +12033,14 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 					kindStr = " postfix"
 				}
 				identNode = common.NewIdentifier(decoded + kindStr)
+				// When the operator is a static/instance method on a type (lastNomCtx
+				// is a Type, not a Module), Apple's demangler does not add the raw
+				// operator identifier to subs — only type-chain identifiers (those
+				// followed by V/C/O/P) are pushed. For module-level free-function
+				// operators (lastNomCtx is a Module), the identifier IS pushed.
+				if lastNomCtx != nil && common.NodeKind(lastNomCtx.Kind) == common.KindType {
+					p.subs = p.subs.TruncateTo(prePushLen)
+				}
 			}
 		}
 		pathSteps = append(pathSteps, identNode)
