@@ -335,6 +335,7 @@ type parser struct {
 const maxParseDepth = 64
 const maxParseOps = 65536
 
+
 func (p *parser) eof() bool { return p.i >= len(p.s) }
 
 func (p *parser) peek() byte {
@@ -12916,9 +12917,10 @@ func (p *parser) parseType() (*demangle.Node, error) {
 	}
 	c := p.s[p.i]
 	var (
-		node            *demangle.Node
-		err             error
-		parsedRawStdlib bool
+		node             *demangle.Node
+		err              error
+		parsedRawStdlib  bool
+		fromNominalModule bool // set when 'A'→Module→parseNominalWithModule fires
 	)
 	switch {
 	case c == 'B':
@@ -13072,6 +13074,8 @@ func (p *parser) parseType() (*demangle.Node, error) {
 					p.subs = saveSubsMod
 					node = sub
 					err = nil
+				} else {
+					fromNominalModule = true
 				}
 			} else {
 				node = sub
@@ -13405,15 +13409,24 @@ afterNestedLoop:
 		// Apple pushes the inner type again before the Optional wrapper:
 		// a back-ref to the inner type (e.g. AD) and to the Optional
 		// (e.g. AE) are both valid after Sg.
-		p.subs.Push(node)
+		inner := node
+		p.subs.Push(inner)
 		optBase, _ := common.BuildStdlibNominal('q') // Swift.Optional
 		typeList := common.NewNode(common.KindTypeList)
-		common.AddChildren(typeList, node)
+		common.AddChildren(typeList, inner)
 		bound := common.NewNode(common.KindBoundGenericEnum)
 		common.AddChildren(bound, optBase, typeList)
 		wrap := common.NewNode(common.KindType)
 		common.AddChildren(wrap, bound)
 		p.subs.Push(wrap)
+		// When the inner type was built via A→Module→parseNominalWithModule,
+		// Apple's model pushes the inner type a third time after the Optional.
+		// This aligns subs indices so that A<n> refs to the inner type in
+		// subsequent params resolve correctly (e.g. AI = Foundation.Date in
+		// _CalendarProtocol.date rather than Foundation.DateComponents).
+		if fromNominalModule {
+			p.subs.Push(inner)
+		}
 		node = wrap
 	}
 	// Metatype postfix: 'm' = Metatype (renders as "<type>.Type").

@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 84.80% (54063/63757) — 2026-05-04T12:25:16Z
-**Round-trip**: 63.09% (11553/18311) — 2026-05-03T21:04:43Z
-**Failures**: 9093 parse-errors + 601 mismatches
+**Parity**: 84.81% (54072/63757) — 2026-05-04T13:08:01Z
+**Round-trip**: 63.09% (11650/18311) — 2026-05-04T13:08:01Z
+**Failures**: 9084 parse-errors + 601 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,6 +29,7 @@
 
 ## Last 10 Commits
 
+- (current) swift-parity: QF A→Module→Sg 3rd-push subs alignment — parity 84.80%→84.81% (+9 production, +2 fixtures)
 - 8c6ea9e swift-parity: QE QZ dependent-member-type chain — parity 84.75%→84.80% (+31 production, +2 fixtures)
 - 746ed3e chore: update digest.md for QD commit (parity 54020→54032)
 - c9f427e chore: lock snapshot after QD commit (parity 54020→54032)
@@ -38,10 +39,9 @@
 - a27a202 swift-parity: QC enum-case WC generic-sig + .Type param fix — parity 84.72%→84.73% (+6 production, +5 fixtures)
 - f1d57f1 chore: lock snapshot after QB commit (parity 54007→54014)
 - 15534b3 chore: update digest.md for QB commit (parity 54007→54014)
-- d9bed05 swift-parity: QB conformance-descriptor constraint prefix — parity 84.71%→84.72% (+7 production)
 
 ## Suggested Next 3 Items
 
 1. P1: property descriptor fix — 19 mismatches
 2. P10: opaque type descriptor — 12 mismatches
-3. QF: _CalendarProtocol.date to/byAdding substitution alignment — 4 mismatches
+3. QG: WritableKeyPath._projectMutableAddress named-return-tuple — parse error at _project ident
