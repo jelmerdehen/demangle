@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 85.34% (54411/63757) — 2026-05-04T21:23:08Z
+**Parity**: 85.37% (54428/63757) — 2026-05-04T21:42:47Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 8770 parse-errors + 576 mismatches
+**Failures**: 8770 parse-errors + 559 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -23,12 +23,14 @@
 - Preview.init<A>(_:traits:body:arguments:)  3
 - dispatch thunk                             3
 - method descriptor                          3
-- static Swift.SIMDMask..&                   3
-- static Swift.SIMDMask..^                   3
-- static Swift.SIMDMask..|                   3
+- (extension in Foundation):Foundation.DataProtocol.… 2
+- (extension in Foundation):Foundation.DiscreteForma… 2
+- (extension in Foundation):Swift.StringProtocol.com… 2
 
 ## Last 10 Commits
 
+- 482a9e2 chore: lock snapshot after RU commit (parity 54409→54411)
+- 664d838 swift-parity: RU SlsSIyxG bound-generic pre-push fixes Collection.indices return type — parity 85.34%→85.34% (+2 production, +1 fixture)
 - f889090 chore: update digest.md for RT commit (parity 54335→54409)
 - 65af2df swift-parity: RT A<letter>Qz dependent-member type back-ref in extension entity — parity 85.22%→85.33% (+74 production, +4 fixtures)
 - 97b52b6 chore: update digest.md for RS commit (parity 54333→54335)
@@ -37,8 +39,6 @@
 - 8920f92 swift-parity: QR SS5IndexVRsz nested-stdlib same-type + sAA self-ref constraint — parity 85.45%→85.46% (+5 production, +3 fixtures)
 - 220148e chore: lock snapshot after QZ commit (parity 54314→54328)
 - e88df79 swift-parity: QZ Sc<letter> protocol name in tryStdlibProtoConformanceSuffix — parity 85.43%→85.45% (+14 production, +8 fixtures)
-- 1c08027 chore: restore digest.md after make digest overwrote with stale data
-- e52aa73 chore: lock snapshot after QY commit (parity 54306→54314)
 
 ## Suggested Next 3 Items
 
