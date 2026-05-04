@@ -29,7 +29,7 @@
 
 ## Last 10 Commits
 
-- (pending) swift-parity: QV Sc<X> concurrency types in tryVariableEntity — parity 84.92%→85.08% (+103 production, +4 fixtures)
+- 0230e18 swift-parity: QV Sc<X> concurrency types in tryVariableEntity — parity 84.92%→85.08% (+103 production, +4 fixtures)
 - 05cbc9e swift-parity: QU consume 'd' variadic marker in applyParamConvention — parity 84.86%→84.92% (+40 production, +3 fixtures)
 - 42ba64c chore: update digest.md for QT commit (parity 54098→54102)
 - da71e61 chore: lock snapshot after QT commit (parity 54098→54102)
