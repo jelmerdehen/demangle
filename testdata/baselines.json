@@ -6,6 +6,6 @@
   "production_parity_pass": 53950,
   "production_roundtrip_pass": 11644,
   "fuzz_crashers": 0,
-  "snapshot_commit": "",
+  "snapshot_commit": "4379904e3e7f93bb266a4bcccd9fcb37d15fccc0",
   "snapshot_ts": "2026-05-04T07:16:10.920052375Z"
 }
