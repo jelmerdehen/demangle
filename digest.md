@@ -29,7 +29,7 @@
 
 ## Last 10 Commits
 
-- (pending) swift-parity: PO parseNominalWithModule KindType — parity 83.79%→83.87% (+50 production, +8 fixtures)
+- d0295ae swift-parity: PO parseNominalWithModule KindType — parity 83.79%→83.87% (+50 production, +8 fixtures)
 - 6e78eb5 swift-parity: PN ObjC-ext return-type subs alignment — parity 83.77%→83.78% (+5 production, +5 fixtures)
 - 37abac3 chore: update digest.md for PM commit (parity 53410→53415)
 - 386119f swift-parity: PM tryExtensionEntity label-loop Qz break — parity 83.77%→83.78% (+5 production, +2 fixtures)
