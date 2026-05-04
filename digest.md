@@ -1,6 +1,6 @@
 # Swift Production Digest
 
-**Parity**: 84.70% (54003/63757) — 2026-05-04T10:54:03Z
+**Parity**: 84.70% (54003/63757) — 2026-05-04T11:11:49Z
 **Round-trip**: 63.09% (11553/18311) — 2026-05-03T21:04:43Z
 **Failures**: 9093 parse-errors + 661 mismatches
 
@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- ea48e5a swift-parity: QA _SwiftNewtypeWrapper assoc-type RawValue in tryTypeFirstExtensionEntity — parity 84.70%→84.71% (+4 production)
+- 31f9b89 chore: lock snapshot after PZ commit (parity 53993→54003)
+- 61c8a26 chore: update digest.md for PZ commit (parity 53993→54003)
 - d09463f swift-parity: PZ word-sub assoc-type pre-scan in tryExtensionEntity — parity 84.69%→84.70% (+10 production, +2 fixtures)
 - 7fff564 chore: lock snapshot after PY commit (parity 53985→53993)
 - ff1d82a chore: update digest.md for PY commit (parity 53985→53993)
@@ -36,9 +39,6 @@
 - 5081666 chore: update digest.md for PX commit (parity 53957→53985)
 - bcc8f0a chore: lock snapshot after PX commit (parity 53957→53985)
 - 2ad3cf1 swift-parity: PX s<N>Vy<s<N>V>GRs<subj> named inner struct bound-generic — parity 84.62%→84.66% (+28 production)
-- b1a51ef chore: update digest.md for PW commit (parity 53950→53957)
-- 1265b88 chore: lock snapshot after PW commit (parity 53950→53957)
-- 64d8b0e swift-parity: PW s<N>Vy<SxG>Rs<subj> bound-generic same-type + constraint bytes fix — parity 84.61%→84.62% (+7 production)
 
 ## Suggested Next 3 Items
 
