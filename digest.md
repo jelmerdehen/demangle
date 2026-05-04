@@ -1,49 +1,47 @@
 # Swift Production Digest
 
-**Parity**: 84.83% (54085/63757) — 2026-05-04T14:42:50Z
-**Round-trip**: 63.09% (11650/18311) — 2026-05-04T14:42:50Z
-**Failures**: ~9071 parse-errors + ~601 mismatches
+**Parity**: 84.85% (54098/63757) — 2026-05-04T14:55:26Z
+**Round-trip**: 63.09% (11553/18311) — 2026-05-03T21:04:43Z
+**Failures**: 9046 parse-errors + 613 mismatches
 
 ## Top-20 Mismatch Categories
 
-- property descriptor                        19
+- property descriptor                        18
 - opaque type descriptor                     12
-- (extension in Swift):Swift.BidirectionalCollection… 5
-- dispatch thunk                             5
-- method descriptor                          5
+- static (extension                          9
 - protocol conformance descriptor            5
 - (extension in Foundation):Foundation.Measurement< … 4
 - (extension in Foundation):Swift.String.Localizatio… 4
 - (extension in Foundation):Swift.StringProtocol.sub… 4
 - (extension in Foundation):__C.NSFileHandle.Connect… 4
-- (extension in Swift):Swift.Collection< where A.Ele… 4
 - (extension in Swift):Swift.RandomAccessCollection<… 4
-- (extension in Swift):Swift.RangeReplaceableCollect… 4
-- (extension in Swift):Swift.Sequence< where A.Eleme… 4
 - Foundation.AttributedString.init(localized: (exten… 4
-- static (extension                          4
 - (extension in Foundation):(extension in Foundation… 3
 - (extension in Foundation):Swift.StringProtocol.ran… 3
-- (extension in Swift):Swift.Collection< where A == … 3
-- (extension in Swift):Swift.OptionSet< where A == A… 3
+- Foundation.Calendar.RecurrenceRule.recurrences(of:… 3
+- ObjC resilient class stub                  3
+- Preview.init(_:traits:body:)               3
+- Preview.init<A>(_:traits:arguments:body:)  3
+- Preview.init<A>(_:traits:body:arguments:)  3
+- dispatch thunk                             3
+- method descriptor                          3
+- static Swift.SIMDMask..&                   3
 
 ## Last 10 Commits
 
-- (current) swift-parity: QR self-same-type constraints A == A.<Ident> — parity 84.81%→84.83% (+13 production, +9 fixtures)
-- chore: lock snapshot after QF commit (parity 54072→54072)
+- 3d088a6 swift-parity: QS Rp assoc-type subs push — A.Element back-refs in extension params — parity 84.83%→84.85% (+13 production, +6 fixtures)
+- bdb2a06 chore: lock snapshot after QR commit (parity 54085→54085)
+- a0460a4 chore: update digest.md for QR commit (parity 54072→54085)
+- 04976d0 swift-parity: QR self-same-type constraints A == A.<Ident> in extension sigs — parity 84.81%→84.83% (+13 production, +9 fixtures)
+- af688a4 chore: update digest.md for QF commit (parity 54072→54072)
+- 56a0cc1 chore: lock snapshot after QF commit (parity 54072→54072)
 - 04292a6 swift-parity: QF A→Module→Sg 3rd-push subs alignment — parity 84.80%→84.81% (+9 production, +2 fixtures)
+- c235269 chore: update digest.md for QE commit (parity 54032→54063)
 - 8c6ea9e swift-parity: QE QZ dependent-member-type chain — parity 84.75%→84.80% (+31 production, +2 fixtures)
 - 746ed3e chore: update digest.md for QD commit (parity 54020→54032)
-- c9f427e chore: lock snapshot after QD commit (parity 54020→54032)
-- a2f81a1 swift-parity: QD Swift-on-Swift extension descriptor full-form — parity 84.73%→84.75% (+12 production, +12 fixtures)
-- 9048e0a chore: update digest.md for QC commit (parity 54014→54020)
-- 74a6a7b chore: lock snapshot after QC commit (parity 54014→54020)
-- a27a202 swift-parity: QC enum-case WC generic-sig + .Type param fix — parity 84.72%→84.73% (+6 production, +5 fixtures)
-- f1d57f1 chore: lock snapshot after QB commit (parity 54007→54014)
-- 15534b3 chore: update digest.md for QB commit (parity 54007→54014)
 
 ## Suggested Next 3 Items
 
-1. P1: property descriptor fix — 17+ mismatches (Measurement/DispatchData/Range/Collection type issues)
-2. P10: opaque type descriptor — 12 mismatches (PartialRange subs, Color.transferRepresentation static OTD)
-3. QS: OptionSet.insert + Sm/Sx compound-constraint methods — named-tuple return + compound QzRsz constraints (5 remaining)
+1. P1: property descriptor fix — 18 mismatches
+2. P10: opaque type descriptor — 12 mismatches
+3. P2: protocol conformance descriptor — 5 mismatches
