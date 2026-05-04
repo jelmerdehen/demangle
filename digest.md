@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 84.32% (53756/63757) — 2026-05-04 (ratchet)
+**Parity**: 84.33% (53765/63757) — 2026-05-04 (ratchet)
 **Round-trip**: 63.59% (11644/18311) — 2026-05-04 (ratchet)
-**Failures**: ~9477 parse-errors + ~524 mismatches (est; divergences ts 2026-05-03T22:21:40Z — stale)
+**Failures**: ~9477 parse-errors + ~515 mismatches (est; divergences ts 2026-05-03T22:21:40Z — stale)
 
 ## Top-20 Mismatch Categories
 
@@ -29,7 +29,10 @@
 
 ## Last 10 Commits
 
-- (pending) swift-parity: PR ObjC init compact-label truncation — parity 84.31%→84.32% (+6 production)
+- (pending) swift-parity: PS UIKit tuple-split recovery for A<N> postfix-nominal — parity 84.32%→84.33% (+9 production)
+- 4d1f5ff chore: lock snapshot after PR commit (parity 53750→53756)
+- 1957d91 chore: update digest.md for PR commit (parity 53750→53756)
+- 5357206 swift-parity: PR ObjC init compact-label truncation — parity 84.31%→84.32% (+6 production)
 - 2b8e7cf chore: lock snapshot after PQ commit (parity 53537→53750)
 - 27eb662 chore: update digest.md for PQ commit (parity 53537→53750)
 - 4969cd0 swift-parity: PQ xm_t function-type + Rd__ constraint subject — parity 83.97%→84.31% (+213 production, +3 fixtures)
@@ -47,4 +50,4 @@
 
 1. investigate: static (extension — ~11 mismatches (PD-1 track)
 2. PB-4: protocol conformance descriptor residual — ~10 mismatches
-3. PE-1/PE-2: dispatch thunk + method descriptor back-ref edge cases — ~17+17
+3. PA-3/PA-4: property descriptor residual — ~18+15 mismatches
