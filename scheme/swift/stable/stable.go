@@ -12781,8 +12781,15 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 			}
 			sbFull.WriteString(step.Text)
 		}
+		// WC enum cases with generic constraints: include sig after case name and
+		// use the return type (which carries correct bound-generic params) for .Type param.
+		if isWC && genericSig && genericSigStr != "" {
+			sbFull.WriteString(genericSigStr)
+		}
 		sbFull.WriteByte('(')
-		if args != nil && common.NodeKind(args.Kind) != common.KindEmptyList {
+		if isWC && genericSig && ret != nil && common.NodeKind(ret.Kind) != common.KindEmptyList {
+			sbFull.WriteString(common.Print(ret, opts) + ".Type")
+		} else if args != nil && common.NodeKind(args.Kind) != common.KindEmptyList {
 			sbFull.WriteString(funcEntityFullParams(args, opts))
 		}
 		sbFull.WriteByte(')')
