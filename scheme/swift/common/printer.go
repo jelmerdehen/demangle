@@ -500,6 +500,9 @@ func printVariableAccessorEntity(b *strings.Builder, n *demangle.Node, opts Prin
 	if len(n.Children) < 2 {
 		return
 	}
+	if n.Attrs != nil && n.Attrs["swift.static"] == "true" {
+		b.WriteString("static ")
+	}
 	last := len(n.Children) - 1
 	typeNode := n.Children[last]
 	pathNodes := n.Children[:last]

@@ -18,3 +18,6 @@ _$s7SwiftUI21TableHeaderRowContentV05tableE4BodyQrvpQOMQ ---> opaque type descri
 # QU fix: consume 'd' variadic marker in applyParamConvention
 _$s7SwiftUI10TabContentPAAE10visibility_3forQrAA10VisibilityO_AA0C9PlacementVdtFQOMQ ---> opaque type descriptor for <<opaque return type of TabContent.visibility(_:for:)>>
 _$s7SwiftUI10TabContentPAAE10visibility_3forQrAA10VisibilityO_AA0C9PlacementVdtFMQ ---> opaque type descriptor for TabContent.visibility(_:for:)
+# RS fix: vpZQOMQ static stored-property opaque-type descriptor strips module + ": some"
+_$s7SwiftUI5ColorV22transferRepresentationQrvpZQOMQ ---> opaque type descriptor for <<opaque return type of static Color.transferRepresentation>>
+_$s7SwiftUI5ImageV22transferRepresentationQrvpZQOMQ ---> opaque type descriptor for <<opaque return type of static Image.transferRepresentation>>

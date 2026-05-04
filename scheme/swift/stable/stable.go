@@ -460,6 +460,10 @@ func (p *parser) parseGlobal() (*demangle.Node, error) {
 			path := common.NewNode(common.KindEntityPath)
 			common.AddChildren(path, inner.Children[1:nc-1]...)
 			innerStr = common.Print(path, common.DefaultPrintOptions())
+			// Static stored property: prepend "static " to the stripped path.
+			if inner.Attrs != nil && inner.Attrs["swift.static"] == "true" {
+				innerStr = "static " + innerStr
+			}
 		} else {
 			innerStr = common.Print(inner, common.DefaultPrintOptions())
 		}
@@ -4479,10 +4483,16 @@ func (p *parser) tryVariableEntity() (*demangle.Node, bool, error) {
 		wrap.Text = "property descriptor for " + staticPrefix + strings.Join(parts, ".")
 		return wrap, true, nil
 	}
-	// For plain stored-property ('vp') without a static marker, produce a
-	// structured KindStoredProperty node so the remangler can round-trip it.
-	if kindByte == 'p' && staticPrefix == "" {
+	// For plain stored-property ('vp'), produce a structured KindStoredProperty
+	// node so the remangler can round-trip it, and so the QO (opaque-return-
+	// type-descriptor) handler in parseGlobal can strip the module and type
+	// annotation. Static marker is carried as Attrs["swift.static"] so the QO
+	// handler can prepend "static " to the stripped path.
+	if kindByte == 'p' {
 		node := common.NewNode(common.KindStoredProperty)
+		if staticPrefix != "" {
+			node.Attrs = map[string]string{"swift.static": "true"}
+		}
 		common.AddChildren(node, pathSteps...)
 		common.AddChildren(node, typ)
 		return node, true, nil
