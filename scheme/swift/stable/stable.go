@@ -6879,6 +6879,16 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 			} else if c == 'y' && p.i+1 < len(p.s) && p.s[p.i+1] == 'y' {
 				p.i++ // consume first 'y' (label-list-empty marker)
 				break
+			} else if len(labels) > 0 && c == 'A' && p.i+1 < len(p.s) &&
+				p.s[p.i+1] >= 'A' && p.s[p.i+1] <= 'Z' {
+				idx := int(p.s[p.i+1] - 'A')
+				if n, ok := p.subs.Get(idx); ok &&
+					common.NodeKind(n.Kind) == common.KindIdentifier {
+					labels = append(labels, n.Text)
+					p.i += 2
+				} else {
+					break
+				}
 			} else {
 				break
 			}
@@ -7995,6 +8005,18 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 			ci++
 		}
 	}
+	// pureARef: constraint bytes consist entirely of A<letter> pairs (extension
+	// module back-refs only, no type constraints). Apple resolves these WITHOUT
+	// pushing a new subs entry, so we skip the Module push and allow the decl name
+	// to land at the correct subs index for A<letter> label back-refs.
+	pureARef := len(constraintBytes) > 0 && len(constraintBytes)%2 == 0
+	for i := 0; pureARef && i < len(constraintBytes); i += 2 {
+		if constraintBytes[i] != 'A' {
+			pureARef = false
+		} else if b := constraintBytes[i+1]; !((b >= 'A' && b <= 'Z') || (b >= 'a' && b <= 'z')) {
+			pureARef = false
+		}
+	}
 	// Second pass: push A<letter>, S<letter>, and So<N><name><kind> subs.
 	for ci := 0; ci+1 < len(constraintBytes); ci++ {
 		switch constraintBytes[ci] {
@@ -8003,7 +8025,9 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 			if letter >= 'A' && letter <= 'Z' {
 				idx := int(letter - 'A')
 				if n, ok := p.subs.Get(idx); ok {
-					p.subs.Push(n)
+					if !pureARef || common.NodeKind(n.Kind) != common.KindModule {
+						p.subs.Push(n)
+					}
 				}
 				ci++ // skip letter
 			} else if letter >= 'a' && letter <= 'z' {
@@ -8786,6 +8810,12 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 			nestedTypesSuffix = append(nestedTypesSuffix, ident)
 		} else {
 			declName = ident
+			if pureARef {
+				// For pure-module-ref extensions, Apple doesn't push the module node,
+				// so the decl name lands at the correct subs index for A<letter> label
+				// back-refs (e.g. AD = ornament).
+				p.subs.Push(common.NewIdentifier(declName))
+			}
 			break
 		}
 	}
@@ -9061,6 +9091,21 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 			// 'yy' prefix: first y is label-list-empty marker.
 			p.i++
 			break
+		} else if pureARef && c == 'A' && p.i+1 < len(p.s) &&
+			p.s[p.i+1] >= 'A' && p.s[p.i+1] <= 'Z' {
+			// A<uppercase-letter> as label: only valid when constraint bytes are
+			// pure module back-refs (pureARef=true). In that case the subs table
+			// is predictable and A<letter> in label position is a repeated function
+			// name (e.g. AD = ornament). When pureARef=false, A<letter> refs are
+			// type references, not labels.
+			idx := int(p.s[p.i+1] - 'A')
+			if n, ok := p.subs.Get(idx); ok &&
+				common.NodeKind(n.Kind) == common.KindIdentifier {
+				labels = append(labels, n.Text)
+				p.i += 2
+			} else {
+				break
+			}
 		} else {
 			break
 		}
