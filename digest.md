@@ -1,12 +1,12 @@
 # Swift Production Digest
 
-**Parity**: 85.45% (54328/63757) — 2026-05-05T02:00:00Z
+**Parity**: 85.46% (54333/63757) — 2026-05-05T02:00:00Z
 **Round-trip**: 63.65% (11655/18311) — 2026-05-05T02:00:00Z
-**Failures**: ~8829 parse-errors + ~600 mismatches
+**Failures**: ~8824 parse-errors + ~600 mismatches
 
 ## Top-20 Mismatch Categories
 
-- property descriptor                        18
+- property descriptor                        13
 - opaque type descriptor                     12
 - static (extension                          9
 - protocol conformance descriptor            5
@@ -29,6 +29,8 @@
 
 ## Last 10 Commits
 
+- 8920f92 swift-parity: QR SS5IndexVRsz nested-stdlib same-type + sAA self-ref constraint — parity 85.45%→85.46% (+5 production, +3 fixtures)
+- 220148e chore: lock snapshot after QZ commit (parity 54314→54328)
 - e88df79 swift-parity: QZ Sc<letter> protocol name in tryStdlibProtoConformanceSuffix — parity 85.43%→85.45% (+14 production, +8 fixtures)
 - 1c08027 chore: restore digest.md after make digest overwrote with stale data
 - e52aa73 chore: lock snapshot after QY commit (parity 54306→54314)
@@ -37,11 +39,9 @@
 - e5ca7d9 chore: update digest.md for QX commit (parity 54296→54306)
 - 053a487 swift-parity: QX opaque-return Qr push in tryPath — parity 85.16%→85.32% (+10 production, +3 fixtures)
 - 8ddd711 chore: lock snapshot after QW commit (parity 54245→54296)
-- 8373538 chore: update digest.md for QW commit (parity 54245→54296)
-- 34d8d15 swift-parity: QW Sc<X> concurrency protocols in tryStdlibProtoConformanceSuffix — parity 85.08%→85.16% (+51 production, +5 fixtures)
 
 ## Suggested Next 3 Items
 
-1. P1: property descriptor fix — 18 mismatches
+1. P1: property descriptor fix — 13 mismatches
 2. P10: opaque type descriptor — 12 mismatches
 3. P2: protocol conformance descriptor — 5 mismatches
