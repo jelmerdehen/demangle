@@ -7498,6 +7498,32 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 			continue
 		}
 		if c == 'E' && (p.s[k+1] >= '0' && p.s[k+1] <= '9' || p.s[k+1] == '_') {
+			// Guard against false-positive E0 matches: E0<word-refs>0<kind> encodes
+			// a word-sub type name in constraint bytes, not the entity name.
+			// Look ahead: if after E0 we see word-ref letters ending with uppercase,
+			// then trailing '0', then type-kind byte (V/C/O/P), skip it as a
+			// constraint type and continue scanning for the real entity E.
+			if p.s[k+1] == '0' {
+				m := k + 2 // past E and 0
+				// Skip lowercase word-refs (non-terminal).
+				for m < len(p.s) && p.s[m] >= 'a' && p.s[m] <= 'z' {
+					m++
+				}
+				// Consume optional uppercase terminal word-ref.
+				if m < len(p.s) && p.s[m] >= 'A' && p.s[m] <= 'Z' {
+					m++
+				}
+				// Check trailing '0' terminator.
+				if m < len(p.s) && p.s[m] == '0' {
+					m++
+					// Check type-kind byte: V=struct C=class O=enum P=protocol.
+					if m < len(p.s) && (p.s[m] == 'V' || p.s[m] == 'C' || p.s[m] == 'O' || p.s[m] == 'P') {
+						// This is a word-sub type in constraint bytes; skip past it.
+						k = m + 1
+						continue
+					}
+				}
+			}
 			eFound = k
 			break
 		}
@@ -8025,6 +8051,43 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 						} else {
 							break
 						}
+					} else if buf[bi] == '0' {
+						// Word-sub encoded name: 0 <lowercase-refs...> <uppercase-terminal> 0 <kind>
+						bi++ // skip '0' mode marker
+						name := ""
+						terminal := false
+						for bi < len(buf) {
+							b := buf[bi]
+							if b >= 'a' && b <= 'z' {
+								idx := int(b - 'a')
+								if idx < len(p.words) {
+									name += p.words[idx]
+								}
+								bi++
+							} else if b >= 'A' && b <= 'Z' {
+								idx := int(b - 'A')
+								if idx < len(p.words) {
+									name += p.words[idx]
+								}
+								bi++
+								terminal = true
+								break
+							} else {
+								break
+							}
+						}
+						if !terminal || name == "" {
+							break
+						}
+						if bi < len(buf) && buf[bi] == '0' {
+							bi++ // trailing terminator
+						}
+						if bi < len(buf) && (buf[bi] == 'V' || buf[bi] == 'C' || buf[bi] == 'O' || buf[bi] == 'P') {
+							bi++
+							nestedParts = append(nestedParts, name)
+						} else {
+							break
+						}
 					} else {
 						break
 					}
@@ -8039,6 +8102,133 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 				return ""
 			}(); s3 != "" {
 				return s3
+			}
+			// Strategy 4: Swift-stdlib-based extension type.
+			// Pattern: A<letter> S<letter> A<letter> E <word-sub-or-named-chain>
+			// Encodes "(extension in <extMod>):Swift.<stdType>.<nested>..."
+			// Example: AASSAAE0C0V → (extension in Foundation):Swift.String.Comparator
+			if s4 := func() string {
+				bi := 0
+				// Skip leading A<letter> (LHS generic param sub-ref).
+				if bi+1 >= len(buf) || buf[bi] != 'A' ||
+					!((buf[bi+1] >= 'A' && buf[bi+1] <= 'Z') || (buf[bi+1] >= 'a' && buf[bi+1] <= 'z')) {
+					return ""
+				}
+				bi += 2
+				// Parse S<letter> stdlib type.
+				if bi+1 >= len(buf) || buf[bi] != 'S' || buf[bi+1] == 'o' {
+					return ""
+				}
+				stdLetter := buf[bi+1]
+				stdNomNode, stdOk := common.BuildStdlibNominal(stdLetter)
+				if !stdOk {
+					return ""
+				}
+				stdTypeStr := common.Print(stdNomNode, common.DefaultPrintOptions())
+				if !strings.HasPrefix(stdTypeStr, "Swift.") {
+					return ""
+				}
+				stdTypeName := strings.TrimPrefix(stdTypeStr, "Swift.")
+				bi += 2
+				// Parse A<letter> extension module ref.
+				if bi+1 >= len(buf) || buf[bi] != 'A' ||
+					!((buf[bi+1] >= 'A' && buf[bi+1] <= 'Z') || (buf[bi+1] >= 'a' && buf[bi+1] <= 'z')) {
+					return ""
+				}
+				extModLetter := buf[bi+1]
+				var extModIdx int
+				if extModLetter >= 'A' && extModLetter <= 'Z' {
+					extModIdx = int(extModLetter - 'A')
+				} else {
+					extModIdx = int(extModLetter - 'a')
+				}
+				extModNode, extModOk := p.subs.Get(extModIdx)
+				if !extModOk || common.NodeKind(extModNode.Kind) != common.KindModule {
+					return ""
+				}
+				extModName := extModNode.Text
+				bi += 2
+				// Expect E (extension marker).
+				if bi >= len(buf) || buf[bi] != 'E' {
+					return ""
+				}
+				bi++
+				// Parse nominal chain: word-sub or length-prefixed names with kind byte.
+				var nestedParts4 []string
+				for bi < len(buf) {
+					if buf[bi] == '0' {
+						// Word-sub encoded name: 0 <lowercase-refs...> <uppercase-terminal> 0 <kind>
+						bi++ // skip '0' mode marker
+						name := ""
+						terminal := false
+						for bi < len(buf) {
+							b := buf[bi]
+							if b >= 'a' && b <= 'z' {
+								idx := int(b - 'a')
+								if idx < len(p.words) {
+									name += p.words[idx]
+								}
+								bi++
+							} else if b >= 'A' && b <= 'Z' {
+								idx := int(b - 'A')
+								if idx < len(p.words) {
+									name += p.words[idx]
+								}
+								bi++
+								terminal = true
+								break
+							} else {
+								break
+							}
+						}
+						if !terminal || name == "" {
+							break
+						}
+						if bi < len(buf) && buf[bi] == '0' {
+							bi++ // trailing terminator
+						}
+						if bi < len(buf) && (buf[bi] == 'V' || buf[bi] == 'C' || buf[bi] == 'O' || buf[bi] == 'P') {
+							bi++
+							nestedParts4 = append(nestedParts4, name)
+						} else {
+							break
+						}
+					} else if buf[bi] >= '1' && buf[bi] <= '9' {
+						// Length-prefixed identifier.
+						lenStart4 := bi
+						for bi < len(buf) && buf[bi] >= '0' && buf[bi] <= '9' {
+							bi++
+						}
+						n4 := 0
+						for _, d := range buf[lenStart4:bi] {
+							n4 = n4*10 + int(d-'0')
+						}
+						nameEnd4 := bi + n4
+						if nameEnd4 >= len(buf) {
+							break
+						}
+						partName4 := string(buf[bi:nameEnd4])
+						bi = nameEnd4
+						if buf[bi] == 'V' || buf[bi] == 'C' || buf[bi] == 'O' || buf[bi] == 'P' {
+							bi++
+							nestedParts4 = append(nestedParts4, partName4)
+						} else {
+							break
+						}
+					} else {
+						break
+					}
+				}
+				if bi == len(buf) && len(nestedParts4) > 0 {
+					typeStr4 := "(extension in " + extModName + "):Swift." + stdTypeName
+					for _, part := range nestedParts4 {
+						typeStr4 += "." + part
+					}
+					return typeStr4
+				}
+				return ""
+			}(); s4 != "" {
+				return s4
 			}
 			return ""
 		}
@@ -10228,6 +10418,49 @@ func extractConstraintSigFullOpts(b []byte, includeObjCRequirements bool) (sig, 
 			if pos+3 < len(s) && s[pos+3] == 'C' {
 				constraints = append(constraints, paramName+": AnyObject")
 			}
+		}
+	}
+
+	// Scan for <N><name>Rm<subj>C — assoc-type member-type class (AnyObject) requirement.
+	// Example: 8RawValueRmzC → "A.RawValue: AnyObject".
+	if includeObjCRequirements {
+		for pos := 0; pos < len(s); pos++ {
+			if !(s[pos] >= '1' && s[pos] <= '9') {
+				continue
+			}
+			j := pos
+			lenStart := j
+			for j < len(s) && s[j] >= '0' && s[j] <= '9' {
+				j++
+			}
+			n := 0
+			for k := lenStart; k < j; k++ {
+				n = n*10 + int(s[k]-'0')
+			}
+			nameEnd := j + n
+			if nameEnd+3 >= len(s) {
+				continue
+			}
+			assocName := s[j:nameEnd]
+			if s[nameEnd] != 'R' || s[nameEnd+1] != 'm' {
+				continue
+			}
+			subjPos := nameEnd + 2
+			var paramName string
+			switch s[subjPos] {
+			case 'z':
+				paramName = "A"
+			case '_':
+				paramName = "B"
+			}
+			if paramName == "" {
+				continue
+			}
+			if s[subjPos+1] != 'C' {
+				continue
+			}
+			constraints = append(constraints, paramName+"."+assocName+": AnyObject")
+			break
 		}
 	}
 

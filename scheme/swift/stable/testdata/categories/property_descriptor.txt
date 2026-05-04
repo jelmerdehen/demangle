@@ -83,3 +83,7 @@ _$ss8SIMDMaskVss5SIMD2Vys4Int8VGRszrlE7allTrueAByAGGvpZMV ---> property descript
 _$ss8SIMDMaskVss5SIMD2Vys5Int16VGRszrlE7allTrueAByAGGvpZMV ---> property descriptor for static (extension in Swift):Swift.SIMDMask< where A == Swift.SIMD2<Swift.Int16>>.allTrue : Swift.SIMDMask<Swift.SIMD2<Swift.Int16>>
 _$ss8SIMDMaskVss5SIMD2Vys5Int32VGRszrlE7allTrueAByAGGvpZMV ---> property descriptor for static (extension in Swift):Swift.SIMDMask< where A == Swift.SIMD2<Swift.Int32>>.allTrue : Swift.SIMDMask<Swift.SIMD2<Swift.Int32>>
 _$ss8SIMDMaskVss5SIMD2Vys5Int64VGRszrlE7allTrueAByAGGvpZMV ---> property descriptor for static (extension in Swift):Swift.SIMDMask< where A == Swift.SIMD2<Swift.Int64>>.allTrue : Swift.SIMDMask<Swift.SIMD2<Swift.Int64>>
+# PY: E0-scanner look-ahead + Strategy 3 word-sub extension (ObjC-bridged type in constraintRHSType)
+# AASo9NSDecimalaAAE0cD0V: A=generic-param, NSDecimala=ObjC alias, AA=Foundation, E0cD0V=word-sub "FormatStyle"V
+_$s10Foundation20ParseableFormatStylePAASo9NSDecimalaAAE0cD0VRszrlE6numberAGvgZ ---> static (extension in Foundation):Foundation.ParseableFormatStyle< where A == (extension in Foundation):__C.NSDecimal.FormatStyle>.number.getter : (extension in Foundation):__C.NSDecimal.FormatStyle
+_$s10Foundation20ParseableFormatStylePAASo9NSDecimalaAAE0cD0V7PercentVRszrlE7percentAIvgZ ---> static (extension in Foundation):Foundation.ParseableFormatStyle< where A == (extension in Foundation):__C.NSDecimal.FormatStyle.Percent>.percent.getter : (extension in Foundation):__C.NSDecimal.FormatStyle.Percent

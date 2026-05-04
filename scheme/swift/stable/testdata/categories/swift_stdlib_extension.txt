@@ -4,3 +4,7 @@ _$sSBss17FixedWidthInteger14RawSignificandRpzrlE6random2inxSNyxG_tFZ ---> static
 _$sSBss17FixedWidthInteger14RawSignificandRpzrlE6random2inxSnyxG_tFZ ---> static (extension in Swift):Swift.BinaryFloatingPoint< where A.RawSignificand: Swift.FixedWidthInteger>.random(in: Swift.Range<A>) -> A
 _$sSIsSKRzrlE5index6before5IndexQzAD_tF ---> (extension in Swift):Swift.DefaultIndices< where A: Swift.BidirectionalCollection>.index(before: A.Index) -> A.Index
 _$sSIsSKRzrlE9formIndex6beforey0B0Qzz_tF ---> (extension in Swift):Swift.DefaultIndices< where A: Swift.BidirectionalCollection>.formIndex(before: inout A.Index) -> ()
+# PY fix: E0-scanner look-ahead + Strategy 4 (Swift-stdlib extension host in constraintRHSType)
+# AASSAAE0C0VRszrl: A=generic-param, SS=Swift.String, AA=Foundation, E0C0V=word-sub "Comparator"V, Rsz=same-type
+_$s10Foundation14SortComparatorPAASSAAE0C0VRszrlE9localizedAEvgZ ---> static (extension in Foundation):Foundation.SortComparator< where A == (extension in Foundation):Swift.String.Comparator>.localized.getter : (extension in Foundation):Swift.String.Comparator
+_$s10Foundation14SortComparatorPAASSAAE0C0VRszrlE17localizedStandardAEvgZ ---> static (extension in Foundation):Foundation.SortComparator< where A == (extension in Foundation):Swift.String.Comparator>.localizedStandard.getter : (extension in Foundation):Swift.String.Comparator
