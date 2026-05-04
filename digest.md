@@ -29,6 +29,7 @@
 
 ## Last 10 Commits
 
+- a49a6bc swift-parity: RX captureWords in tryTypeFirstExtensionEntity constraint first-pass — parity 85.79%→85.80% (+4 production)
 - a81c27c chore: lock snapshot after RW commit (parity 54428→54696)
 - b12eb7d swift-parity: RW labeled-tuple result + y-existential fix — parity 85.37%→85.79% (+268 production, +2 fixtures)
 - 5f194db chore: lock snapshot after RV commit (parity 54411→54428)
@@ -38,7 +39,6 @@
 - f889090 chore: update digest.md for RT commit (parity 54335→54409)
 - 65af2df swift-parity: RT A<letter>Qz dependent-member type back-ref in extension entity — parity 85.22%→85.33% (+74 production, +4 fixtures)
 - 97b52b6 chore: update digest.md for RS commit (parity 54333→54335)
-- f3f260c swift-parity: RS vpZQOMQ static stored-property opaque-type descriptor — parity 85.46%→85.47% (+2 production, +2 fixtures)
 
 ## Suggested Next 3 Items
 

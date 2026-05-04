@@ -5522,7 +5522,7 @@ func (p *parser) tryEntitySuffix(inner *demangle.Node) (*demangle.Node, bool) {
 		case 'u':
 			prefix = "method lookup function for "
 		case 's':
-			prefix = "ObjC class stub for "
+			prefix = "ObjC resilient class stub for "
 		case 'o':
 			prefix = "class metadata base offset for "
 		case 'Q':
@@ -7690,6 +7690,12 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 				}
 				continue
 			}
+		}
+		// Skip function-type convention markers X<letter> (XE=@escaping, XC=C-func, XK=noescape, etc.)
+		// Prevents 'E' in 'XE' from being misidentified as the extension entity marker.
+		if c == 'X' && k+1 < len(p.s)-1 {
+			k += 2
+			continue
 		}
 		if c == '0' && !(k > scan && p.s[k-1] >= '1' && p.s[k-1] <= '9') {
 			// Word-sub mode start ('0'). Handle only the two patterns that cause
