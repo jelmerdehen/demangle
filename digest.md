@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 85.32% (54306/63757) — 2026-05-04T18:30:00Z
-**Round-trip**: 63.65% (11655/18311) — 2026-05-04T18:30:00Z
-**Failures**: ~8850 parse-errors + ~597 mismatches
+**Parity**: 85.43% (54314/63757) — 2026-05-05T02:00:00Z
+**Round-trip**: 63.65% (11655/18311) — 2026-05-05T02:00:00Z
+**Failures**: ~8842 parse-errors + ~597 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,6 +29,7 @@
 
 ## Last 10 Commits
 
+- eca4177 swift-parity: QY A<letter> label back-refs in pureARef extension entities — parity 85.32%→85.43% (+8 production, +8 fixtures)
 - 053a487 swift-parity: QX opaque-return Qr push in tryPath — parity 85.16%→85.32% (+10 production, +3 fixtures)
 - 34d8d15 swift-parity: QW Sc<X> concurrency protocols in tryStdlibProtoConformanceSuffix — parity 85.08%→85.16% (+51 production, +5 fixtures)
 - 0230e18 swift-parity: QV Sc<X> concurrency types in tryVariableEntity — parity 84.92%→85.08% (+103 production, +4 fixtures)
@@ -46,5 +47,5 @@
 ## Suggested Next 3 Items
 
 1. P1: property descriptor fix — 18 mismatches
-2. P10: opaque type descriptor — ~9 mismatches remaining
+2. P10: opaque type descriptor — ~1 mismatch remaining (ornament group fixed)
 3. P2: protocol conformance descriptor — 5 mismatches
