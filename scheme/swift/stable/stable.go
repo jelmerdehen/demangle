@@ -12539,6 +12539,68 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 				p.subs = tupSubs
 			}
 		}
+		// Post-result labeled-tuple: type1 label1_ type2 label2 t.
+		// Apple encodes labeled result tuples with each element's label
+		// appearing AFTER its type (post-type labels), different from
+		// param tuples where labels precede types. Detect when result is
+		// followed by a digit-led identifier (label), '_', another type,
+		// optional label, and 't'.
+		if r != nil && !p.eof() && p.s[p.i] >= '1' && p.s[p.i] <= '9' &&
+			common.NodeKind(r.Kind) != common.KindEmptyList &&
+			common.NodeKind(r.Kind) != common.KindTypeList {
+			saveLRT := p.i
+			saveSubsLRT := p.subs
+			lrtOK := false
+			lbl1, lbl1Err := p.parseIdentifier()
+			if lbl1Err == nil && !p.eof() && p.s[p.i] == '_' {
+				p.i++ // consume '_'
+				elem2, elem2Err := p.parseType()
+				if elem2Err == nil {
+					var lbl2 string
+					if !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+						lbl2, _ = p.parseIdentifier()
+					}
+					if !p.eof() && p.s[p.i] == 't' {
+						p.i++ // consume 't'
+						lrtOK = true
+						cloned1 := *r
+						if cloned1.Attrs == nil {
+							cloned1.Attrs = map[string]string{}
+						} else {
+							a := make(map[string]string, len(cloned1.Attrs)+1)
+							for k, v := range cloned1.Attrs {
+								a[k] = v
+							}
+							cloned1.Attrs = a
+						}
+						cloned1.Attrs["swift.label"] = lbl1
+						r1 := &cloned1
+						r2 := elem2
+						if lbl2 != "" {
+							cloned2 := *r2
+							if cloned2.Attrs == nil {
+								cloned2.Attrs = map[string]string{}
+							} else {
+								a := make(map[string]string, len(cloned2.Attrs)+1)
+								for k, v := range cloned2.Attrs {
+									a[k] = v
+								}
+								cloned2.Attrs = a
+							}
+							cloned2.Attrs["swift.label"] = lbl2
+							r2 = &cloned2
+						}
+						tup := common.NewNode(common.KindTypeList)
+						common.AddChildren(tup, r1, r2)
+						r = tup
+					}
+				}
+			}
+			if !lrtOK {
+				p.i = saveLRT
+				p.subs = saveSubsLRT
+			}
+		}
 		// Apple's demangler pushes the opaque-return-type node twice —
 		// inner DependentGenericParamType("some") + outer Type wrapper —
 		// when 'Qr' is the result type of a function entity. This means
@@ -13726,6 +13788,28 @@ func (p *parser) parseType() (*demangle.Node, error) {
 		}
 		// Could be either function-type or empty-tuple-in-type-context.
 		node, err = p.parseFunctionType()
+		if err != nil {
+			// Try y<type> as existential "any" prefix: Apple encodes
+			// existential types like "any AnyObject" as 'yXl'. When
+			// parseFunctionType fails (no convention marker follows),
+			// consume 'y' and parse the inner type directly.
+			// Guard: only accept if the existential type is followed by
+			// more input — a standalone 'y<type>' at EOF is more likely
+			// a truncated/unsupported symbol (e.g. $syQo) that should
+			// fall through to identityFallback rather than parse as an
+			// opaque node and suppress the error.
+			saveYE := p.i
+			saveSubsYE := p.subs
+			p.i++ // consume 'y'
+			inner, innerErr := p.parseType()
+			if innerErr == nil && inner != nil && !p.eof() {
+				node = inner
+				err = nil
+			} else {
+				p.i = saveYE
+				p.subs = saveSubsYE
+			}
+		}
 	case c == '$':
 		// Integer type literal. Forms:
 		//   $<base36-digit>       → single digit, value = digit+1
