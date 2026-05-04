@@ -971,12 +971,31 @@ func (p *parser) tryStdlibProtoConformanceSuffix(inner *demangle.Node) (*demangl
 
 	p.i++ // consume 'S'
 	protoLetter := p.s[p.i]
-	protoEntry, ok := common.StdlibLookup(protoLetter)
-	if !ok {
-		revert()
-		return inner, false
+	// Sc<X> three-byte concurrency protocol: 'c' is NOT in StdlibSubstitutions
+	// (it routes to StdlibSubstitutions2). Check for Sc<X> first and consume
+	// both 'c' and the concurrency type letter. Output for concurrency
+	// conformances uses the simplified (no-protocol) form so protoEntry is
+	// not used for output in this path.
+	var protoEntry common.StdlibEntry
+	if protoLetter == 'c' {
+		if p.i+1 >= len(p.s) {
+			revert()
+			return inner, false
+		}
+		if _, ok2 := common.BuildStdlibNominal2(p.s[p.i+1]); !ok2 {
+			revert()
+			return inner, false
+		}
+		p.i += 2 // consume 'c' + concurrency letter (e.g. 'i'=AsyncSequence, 'I'=AsyncIteratorProtocol)
+	} else {
+		var ok bool
+		protoEntry, ok = common.StdlibLookup(protoLetter)
+		if !ok {
+			revert()
+			return inner, false
+		}
+		p.i++ // consume proto letter
 	}
-	p.i++ // consume proto letter
 
 	if p.eof() {
 		revert()

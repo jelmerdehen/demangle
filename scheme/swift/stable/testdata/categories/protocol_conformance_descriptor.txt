@@ -20,3 +20,9 @@ _$s7SwiftUI13PickerBuilderV17ContentWithFooterVyx_qd__qd_0_GAA4ViewAAMc ---> pro
 # PB-3: sADRzrlMc conditional-conformance pattern (self-referential Rz).
 _$ss18ReversedCollectionVyxGs20LazySequenceProtocolssADRzrlMc ---> protocol conformance descriptor for < where A: Swift.LazySequenceProtocol> Swift.ReversedCollection<A> : Swift.LazySequenceProtocol in Swift
 _$ss5SliceVyxGs20LazySequenceProtocolssADRzrlMc ---> protocol conformance descriptor for < where A: Swift.LazySequenceProtocol> Swift.Slice<A> : Swift.LazySequenceProtocol in Swift
+# QW fix: Sc<X> concurrency protocols in tryStdlibProtoConformanceSuffix
+_$sScMScAsMc ---> protocol conformance descriptor for MainActor
+_$sScGyxGScisMc ---> protocol conformance descriptor for TaskGroup<A>
+_$sScG8IteratorVyx_GScIsMc ---> protocol conformance descriptor for TaskGroup<A>.Iterator
+_$s7Combine14AsyncPublisherVyxGSciAAMc ---> protocol conformance descriptor for AsyncPublisher<A>
+_$s7Combine14AsyncPublisherV8IteratorVyx_GScIAAMc ---> protocol conformance descriptor for AsyncPublisher<A>.Iterator
