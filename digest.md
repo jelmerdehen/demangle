@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 84.31% (53750/63757) — 2026-05-04 (ratchet)
+**Parity**: 84.32% (53756/63757) — 2026-05-04 (ratchet)
 **Round-trip**: 63.59% (11644/18311) — 2026-05-04 (ratchet)
-**Failures**: ~9477 parse-errors + ~530 mismatches (est; divergences ts 2026-05-03T22:21:40Z — stale)
+**Failures**: ~9477 parse-errors + ~524 mismatches (est; divergences ts 2026-05-03T22:21:40Z — stale)
 
 ## Top-20 Mismatch Categories
 
@@ -29,7 +29,10 @@
 
 ## Last 10 Commits
 
-- (pending) swift-parity: PQ xm_t function-type + Rd__ constraint subject — parity 83.97%→84.31% (+213 production, +3 fixtures)
+- (pending) swift-parity: PR ObjC init compact-label truncation — parity 84.31%→84.32% (+6 production)
+- 2b8e7cf chore: lock snapshot after PQ commit (parity 53537→53750)
+- 27eb662 chore: update digest.md for PQ commit (parity 53537→53750)
+- 4969cd0 swift-parity: PQ xm_t function-type + Rd__ constraint subject — parity 83.97%→84.31% (+213 production, +3 fixtures)
 - e0335dc chore: lock snapshot after PP commit (parity 53470→53537)
 - 7aca448 chore: update digest.md for PP commit (parity 53470→53537)
 - c7484a0 swift-parity: PP stdlib-ext constraint — parity 83.87%→83.97% (+67 production, +4 fixtures)
@@ -38,7 +41,7 @@
 - e55b38f swift-parity: PO parseNominalWithModule KindType — parity 83.79%→83.87% (+50 production, +8 fixtures)
 - 06d92ee fuzz: crasher for FuzzSwiftStable [skip ci]
 - 85e484c chore: update digest.md for PN commit (parity 83.77%→83.78%)
-- 6e78eb5 swift-parity: PN ObjC-ext return-type subs alignment — parity 83.77%→83.78% (+5 production, +5 fixtures)
+- 06d92ee fuzz: crasher for FuzzSwiftStable [skip ci]
 
 ## Suggested Next 3 Items
 
