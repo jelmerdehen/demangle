@@ -2,7 +2,7 @@
 
 **Parity**: 85.43% (54314/63757) — 2026-05-05T02:00:00Z
 **Round-trip**: 63.65% (11655/18311) — 2026-05-05T02:00:00Z
-**Failures**: ~8842 parse-errors + ~597 mismatches
+**Failures**: ~8843 parse-errors + ~600 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,20 +29,16 @@
 
 ## Last 10 Commits
 
+- e52aa73 chore: lock snapshot after QY commit (parity 54306→54314)
+- 76abf3e chore: update digest.md for QY commit (parity 54306→54314)
 - eca4177 swift-parity: QY A<letter> label back-refs in pureARef extension entities — parity 85.32%→85.43% (+8 production, +8 fixtures)
+- e5ca7d9 chore: update digest.md for QX commit (parity 54296→54306)
 - 053a487 swift-parity: QX opaque-return Qr push in tryPath — parity 85.16%→85.32% (+10 production, +3 fixtures)
+- 8ddd711 chore: lock snapshot after QW commit (parity 54245→54296)
+- 8373538 chore: update digest.md for QW commit (parity 54245→54296)
 - 34d8d15 swift-parity: QW Sc<X> concurrency protocols in tryStdlibProtoConformanceSuffix — parity 85.08%→85.16% (+51 production, +5 fixtures)
-- 0230e18 swift-parity: QV Sc<X> concurrency types in tryVariableEntity — parity 84.92%→85.08% (+103 production, +4 fixtures)
-- 05cbc9e swift-parity: QU consume 'd' variadic marker in applyParamConvention — parity 84.86%→84.92% (+40 production, +3 fixtures)
-- 42ba64c chore: update digest.md for QT commit (parity 54098→54102)
-- da71e61 chore: lock snapshot after QT commit (parity 54098→54102)
-- aad61c1 swift-parity: QT S<N><letter> compact params in tryExtensionEntity — parity 84.85%→84.86% (+4 production, +3 fixtures)
-- 915af29 chore: lock snapshot after QS commit (parity 54098→54098)
-- 465634a chore: update digest.md for QS commit (parity 54085→54098)
-- 3d088a6 swift-parity: QS Rp assoc-type subs push — A.Element back-refs in extension params — parity 84.83%→84.85% (+13 production, +6 fixtures)
-- bdb2a06 chore: lock snapshot after QR commit (parity 54085→54085)
-- a0460a4 chore: update digest.md for QR commit (parity 54072→54085)
-- 04976d0 swift-parity: QR self-same-type constraints A == A.<Ident> in extension sigs — parity 84.81%→84.83% (+13 production, +9 fixtures)
+- af770b9 chore: lock snapshot after QV commit (parity 54142→54245)
+- 3d77bf3 chore: update digest.md for QV commit (parity 54142→54245)
 
 ## Suggested Next 3 Items
 
