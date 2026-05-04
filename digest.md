@@ -29,6 +29,8 @@
 
 ## Last 10 Commits
 
+- a81c27c chore: lock snapshot after RW commit (parity 54428→54696)
+- b12eb7d swift-parity: RW labeled-tuple result + y-existential fix — parity 85.37%→85.79% (+268 production, +2 fixtures)
 - 5f194db chore: lock snapshot after RV commit (parity 54411→54428)
 - c3c0d9a swift-parity: RV operator-on-type subs fix — SIMDMask<A> params — parity 85.34%→85.37% (+17 production)
 - 482a9e2 chore: lock snapshot after RU commit (parity 54409→54411)
@@ -37,8 +39,6 @@
 - 65af2df swift-parity: RT A<letter>Qz dependent-member type back-ref in extension entity — parity 85.22%→85.33% (+74 production, +4 fixtures)
 - 97b52b6 chore: update digest.md for RS commit (parity 54333→54335)
 - f3f260c swift-parity: RS vpZQOMQ static stored-property opaque-type descriptor — parity 85.46%→85.47% (+2 production, +2 fixtures)
-- f288500 chore: update digest.md for QR commit (parity 54328→54333)
-- 8920f92 swift-parity: QR SS5IndexVRsz nested-stdlib same-type + sAA self-ref constraint — parity 85.45%→85.46% (+5 production, +3 fixtures)
 
 ## Suggested Next 3 Items
 

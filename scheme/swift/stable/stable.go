@@ -6592,6 +6592,7 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 						} else {
 							p.subs.Push(common.NewIdentifier(name))
 						}
+						p.captureWords(name)
 						ci = end
 					} else {
 						ci++
