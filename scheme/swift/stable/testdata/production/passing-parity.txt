@@ -1,4 +1,4 @@
-# snapshot-pass-set update 2026-05-04T18:32:21Z — union with previous (high-water)
+# snapshot-pass-set update 2026-05-04T19:14:41Z — union with previous (high-water)
 _$s10Foreground7SwiftUI18LabelGroupStyle_v0PTl
 _$s10Foundation10CocoaErrorV010formattingC0AC4CodeVvgZ
 _$s10Foundation10CocoaErrorV010formattingC0AC4CodeVvpZMV
@@ -40372,6 +40372,7 @@ _$sSnMn
 _$sSnsSHRzrlE4hash4intoys6HasherVz_tF
 _$sSnsSHRzrlE9hashValueSivg
 _$sSnsSHRzrlE9hashValueSivpMV
+_$sSnsSS5IndexVRszrlE19_encodedOffsetRangeSnySiGvpMV
 _$sSnsSxRzSZ6StrideRpzrlE10startIndexxvg
 _$sSnsSxRzSZ6StrideRpzrlE10startIndexxvpMV
 _$sSnsSxRzSZ6StrideRpzrlE31_customContainsEquatableElementySbSgxF
@@ -48381,6 +48382,8 @@ _$ss20LazySequenceProtocolPsE4lazys0aB0Vy8ElementsQzGvpMV
 _$ss20LazySequenceProtocolPsE6filterys0a6FilterB0Vy8ElementsQzGSb7ElementQzcF
 _$ss20LazySequenceProtocolPsE6prefix5whiles0a11PrefixWhileB0Vy8ElementsQzGSb7ElementQzc_tF
 _$ss20LazySequenceProtocolPsST7ElementRpzrlE6joineds0aB0Vys07FlattenB0Vy8ElementsQzGGyF
+_$ss20LazySequenceProtocolPssAA8ElementsRpzrlE4lazyADvg
+_$ss20LazySequenceProtocolPssAA8ElementsRpzrlE4lazyADvpMV
 _$ss20LazySequenceProtocolTL
 _$ss20ManagedBufferPointerV07_headerC0SpyxGvg
 _$ss20ManagedBufferPointerV07_headerC0SpyxGvpMV
@@ -48738,6 +48741,8 @@ _$ss22KeyedEncodingContainerVyxGs0abC8ProtocolsMc
 _$ss22LazyCollectionProtocolMp
 _$ss22LazyCollectionProtocolPsE4lazys0A8SequenceVy8ElementsQzGvg
 _$ss22LazyCollectionProtocolPsE4lazys0A8SequenceVy8ElementsQzGvpMV
+_$ss22LazyCollectionProtocolPssAA8ElementsRpzrlE4lazyADvg
+_$ss22LazyCollectionProtocolPssAA8ElementsRpzrlE4lazyADvpMV
 _$ss22LazyCollectionProtocolTL
 _$ss22_AnyCollectionProtocolMp
 _$ss22_AnyCollectionProtocolP6_boxIDSOvgTj

@@ -6814,7 +6814,7 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 		} else if modName == "Swift" && extHostMod == "Swift" && len(constraintBytes) > 0 {
 			// Swift-on-Swift extension with constraints: descriptor/accessor nodes need the full
 			// "(extension in Swift):Swift.<Type>< where ...>.<Nested>" format.
-			extSig, _ := extractConstraintSigFullOpts(constraintBytes, true, p.words, "Swift")
+			extSig, _ := extractConstraintSigFullOpts(constraintBytes, true, p.words, "Swift", origHostPath)
 			nestedPart := strings.TrimPrefix(pathText, origHostPath)
 			pathText = "(extension in Swift):Swift." + origHostPath + extSig + nestedPart
 		}
@@ -7268,7 +7268,7 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 	extSig := ""
 	extMarker := ""
 	if len(constraintBytes) > 0 {
-		extSig, _ = extractConstraintSigFullOpts(constraintBytes, true, p.words, "Swift")
+		extSig, _ = extractConstraintSigFullOpts(constraintBytes, true, p.words, "Swift", origHostPath)
 		if extSig == "" && len(constraintBytes) > 2 {
 			extMarker = "<>"
 		}
@@ -10524,7 +10524,7 @@ func decodeWordSubAt(s string, j int, words []string) (string, int, bool) {
 // these constraints.
 // extModName is the extension module name (e.g. "Foundation") used by the
 // bare-nominal same-type scanner; pass "" when unknown.
-func extractConstraintSigFullOpts(b []byte, includeObjCRequirements bool, words []string, extModName string) (sig, sameTypeConstraint string) {
+func extractConstraintSigFullOpts(b []byte, includeObjCRequirements bool, words []string, extModName string, hostTypeName ...string) (sig, sameTypeConstraint string) {
 	s := string(b)
 	// Same-type requirement: '<S<letter>> Rs z' encodes "A == <stdlib-type>".
 	// Check this first and return early (narrow: only one Rs per constraint).
@@ -10536,12 +10536,53 @@ func extractConstraintSigFullOpts(b []byte, includeObjCRequirements bool, words 
 		case 'z':
 			paramName = "A"
 		}
-		if paramName != "" && rs >= 2 && s[rs-2] == 'S' {
-			letter := s[rs-1]
-			if nomNode, ok := common.BuildStdlibNominal(letter); ok {
-				concreteType := common.Print(nomNode, common.DefaultPrintOptions())
-				sig = "<" + paramName + " where " + paramName + " == " + concreteType + ">"
-				return sig, concreteType
+		if paramName != "" {
+			// Determine prefix for early-return same-type constraints:
+			// "< where" when constraint ends with "rl" (existing-param extension),
+			// "<A where" when it ends with bare "l" (new generic param introduced).
+			earlyPfx := "< where "
+			if len(s) >= 2 && s[len(s)-1] == 'l' && s[len(s)-2] != 'r' {
+				earlyPfx = "<A where "
+			}
+			// Case 1: S<letter> immediately before Rs (bare stdlib type).
+			if rs >= 2 && s[rs-2] == 'S' {
+				letter := s[rs-1]
+				if nomNode, ok := common.BuildStdlibNominal(letter); ok {
+					concreteType := common.Print(nomNode, common.DefaultPrintOptions())
+					sig = earlyPfx + paramName + " == " + concreteType + ">"
+					return sig, concreteType
+				}
+			}
+			// Case 2: S<letter><N><name><kind> before Rs (nested type within a stdlib type).
+			// Example: SS5IndexVRsz → "A == Swift.String.Index".
+			if rs >= 1 && (s[rs-1] == 'V' || s[rs-1] == 'C' || s[rs-1] == 'O') {
+				kindPos := rs - 1
+				i := kindPos - 1
+				for i >= 0 && ((s[i] >= 'a' && s[i] <= 'z') || (s[i] >= 'A' && s[i] <= 'Z') || s[i] == '_') {
+					i--
+				}
+				nameEnd := kindPos
+				digEnd := i + 1
+				digStart := digEnd
+				for digStart > 0 && s[digStart-1] >= '0' && s[digStart-1] <= '9' {
+					digStart--
+				}
+				if digStart < digEnd {
+					n := 0
+					for k := digStart; k < digEnd; k++ {
+						n = n*10 + int(s[k]-'0')
+					}
+					nameStr := s[digEnd:nameEnd]
+					if len(nameStr) == n && digStart >= 2 && s[digStart-2] == 'S' {
+						letter := s[digStart-1]
+						if outerNode, ok2 := common.BuildStdlibNominal(letter); ok2 {
+							outerType := common.Print(outerNode, common.DefaultPrintOptions())
+							concreteType := outerType + "." + nameStr
+							sig = earlyPfx + paramName + " == " + concreteType + ">"
+							return sig, concreteType
+						}
+					}
+				}
 			}
 		}
 	}
@@ -11283,8 +11324,9 @@ func extractConstraintSigFullOpts(b []byte, includeObjCRequirements bool, words 
 		}
 	}
 
-	// Scan for S<letter><N><Ident>Rtz — assoc-type same-type with stdlib type.
-	// Example: SS7ElementRtzrl → "A.Element == Swift.String"
+	// Scan for S<letter>[y<x>G]<N><Ident>Rtz — assoc-type same-type with stdlib type.
+	// Base form: SS7ElementRtzrl → "A.Element == Swift.String"
+	// Bound-generic form: SIyxG7IndicesRtz → "A.Indices == Swift.DefaultIndices<A>"
 	if includeObjCRequirements {
 		seenAssocStdlibSame := map[string]bool{}
 		for pos := 0; pos+3 < len(s); pos++ {
@@ -11296,6 +11338,12 @@ func extractConstraintSigFullOpts(b []byte, includeObjCRequirements bool, words 
 				continue
 			}
 			j := pos + 2
+			// Optional yxG: bound-generic with first generic param (→ "<A>").
+			typeArgStr := ""
+			if j+2 < len(s) && s[j] == 'y' && s[j+1] == 'x' && s[j+2] == 'G' {
+				typeArgStr = "<A>"
+				j += 3
+			}
 			if j >= len(s) || !(s[j] >= '1' && s[j] <= '9') {
 				continue
 			}
@@ -11330,10 +11378,62 @@ func extractConstraintSigFullOpts(b []byte, includeObjCRequirements bool, words 
 			if paramName == "" {
 				continue
 			}
-			typeName := common.Print(nomNode, common.DefaultPrintOptions())
+			typeName := common.Print(nomNode, common.DefaultPrintOptions()) + typeArgStr
 			key := paramName + "." + assocName + " == " + typeName
 			if !seenAssocStdlibSame[key] {
 				seenAssocStdlibSame[key] = true
+				constraints = append(constraints, key)
+			}
+		}
+	}
+
+	// Scan for sAA<N><assoc>Rpz — self-referential assoc-type protocol constraint.
+	// "sAA" encodes Swift-module back-ref to the host protocol (subs[1]).
+	// Example: sAA8ElementsRpz → "A.Elements: Swift.<hostType>"
+	// Only fires when hostTypeName is provided by the caller.
+	if len(hostTypeName) > 0 && hostTypeName[0] != "" && extModName != "" {
+		seenSelfRef := map[string]bool{}
+		for pos := 0; pos+5 < len(s); pos++ {
+			if s[pos] != 's' || s[pos+1] != 'A' || s[pos+2] != 'A' {
+				continue
+			}
+			j := pos + 3
+			if j >= len(s) || !(s[j] >= '1' && s[j] <= '9') {
+				continue
+			}
+			lenStart := j
+			for j < len(s) && s[j] >= '0' && s[j] <= '9' {
+				j++
+			}
+			n := 0
+			for k := lenStart; k < j; k++ {
+				n = n*10 + int(s[k]-'0')
+			}
+			if j+n > len(s) {
+				continue
+			}
+			assocName := s[j : j+n]
+			j += n
+			if j+1 >= len(s) || s[j] != 'R' || s[j+1] != 'p' {
+				continue
+			}
+			j += 2
+			if j >= len(s) {
+				continue
+			}
+			var paramName string
+			switch s[j] {
+			case 'z':
+				paramName = "A"
+			case '_':
+				paramName = "B"
+			}
+			if paramName == "" {
+				continue
+			}
+			key := paramName + "." + assocName + ": " + extModName + "." + hostTypeName[0]
+			if !seenSelfRef[key] {
+				seenSelfRef[key] = true
 				constraints = append(constraints, key)
 			}
 		}

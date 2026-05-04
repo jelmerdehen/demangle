@@ -96,3 +96,7 @@ _$sScG11isCancelledSbvpMV ---> property descriptor for TaskGroup.isCancelled
 _$sScT11isCancelledSbvpMV ---> property descriptor for Task.isCancelled
 _$sScS12ContinuationV9hashValueSivpMV ---> property descriptor for AsyncStream.Continuation.hashValue
 _$sScS12ContinuationV11TerminationO9hashValueSivpMV ---> property descriptor for AsyncStream.Continuation.Termination.hashValue
+# QR fix: SS5IndexVRsz nested-stdlib same-type + sAA<N>Rpz self-referential assoc-type constraint
+_$sSnsSS5IndexVRszrlE19_encodedOffsetRangeSnySiGvpMV ---> property descriptor for (extension in Swift):Swift.Range< where A == Swift.String.Index>._encodedOffsetRange : Swift.Range<Swift.Int>
+_$ss20LazySequenceProtocolPssAA8ElementsRpzrlE4lazyADvpMV ---> property descriptor for (extension in Swift):Swift.LazySequenceProtocol< where A.Elements: Swift.LazySequenceProtocol>.lazy : A.Elements
+_$ss22LazyCollectionProtocolPssAA8ElementsRpzrlE4lazyADvpMV ---> property descriptor for (extension in Swift):Swift.LazyCollectionProtocol< where A.Elements: Swift.LazyCollectionProtocol>.lazy : A.Elements
