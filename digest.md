@@ -1,14 +1,14 @@
 # Swift Production Digest
 
-**Parity**: 85.46% (54333/63757) — 2026-05-05T02:00:00Z
+**Parity**: 85.22% (54335/63757) — 2026-05-05T02:00:00Z
 **Round-trip**: 63.65% (11655/18311) — 2026-05-05T02:00:00Z
-**Failures**: ~8824 parse-errors + ~600 mismatches
+**Failures**: ~8800 parse-errors + ~600 mismatches
 
 ## Top-20 Mismatch Categories
 
 - property descriptor                        13
-- opaque type descriptor                     12
 - static (extension                          9
+- opaque type descriptor                     10
 - protocol conformance descriptor            5
 - (extension in Foundation):Foundation.Measurement< … 4
 - (extension in Foundation):Swift.String.Localizatio… 4
@@ -29,6 +29,8 @@
 
 ## Last 10 Commits
 
+- f3f260c swift-parity: RS vpZQOMQ static stored-property opaque-type descriptor — parity 85.22%→85.22% (+2 production, +2 fixtures)
+- f288500 chore: update digest.md for QR commit (parity 54328→54333)
 - 8920f92 swift-parity: QR SS5IndexVRsz nested-stdlib same-type + sAA self-ref constraint — parity 85.45%→85.46% (+5 production, +3 fixtures)
 - 220148e chore: lock snapshot after QZ commit (parity 54314→54328)
 - e88df79 swift-parity: QZ Sc<letter> protocol name in tryStdlibProtoConformanceSuffix — parity 85.43%→85.45% (+14 production, +8 fixtures)
@@ -37,11 +39,9 @@
 - 76abf3e chore: update digest.md for QY commit (parity 54306→54314)
 - eca4177 swift-parity: QY A<letter> label back-refs in pureARef extension entities — parity 85.32%→85.43% (+8 production, +8 fixtures)
 - e5ca7d9 chore: update digest.md for QX commit (parity 54296→54306)
-- 053a487 swift-parity: QX opaque-return Qr push in tryPath — parity 85.16%→85.32% (+10 production, +3 fixtures)
-- 8ddd711 chore: lock snapshot after QW commit (parity 54245→54296)
 
 ## Suggested Next 3 Items
 
 1. P1: property descriptor fix — 13 mismatches
-2. P10: opaque type descriptor — 12 mismatches
+2. P10: opaque type descriptor — 10 mismatches
 3. P2: protocol conformance descriptor — 5 mismatches
