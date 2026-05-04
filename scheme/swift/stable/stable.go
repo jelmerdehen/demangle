@@ -8898,6 +8898,20 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 			p.subs.Push(common.NewIdentifier(ident))
 			p.i++ // consume kind byte — this is a nested type level
 			nestedTypesSuffix = append(nestedTypesSuffix, ident)
+			// Push the full accumulated extension-path type so that A<letter> back-refs
+			// in property type bytes (e.g. AIyx__G) can resolve to the complete
+			// nested type. Apple's demangler pushes a TypeMangling node at each level.
+			// Only done for Foundation/Swift extensions that emit verbose type annotations.
+			if modName == "Foundation" || modName == "Swift" {
+				sig, _ := extractConstraintSigFullOpts(constraintBytes, modName == "Foundation", p.words, modName)
+				accPath := "(extension in " + modName + "):" + modName + "." + hostName + sig
+				for _, nt := range nestedTypesSuffix {
+					accPath += "." + nt
+				}
+				accTn := common.NewNode(common.KindTypeMangling)
+				accTn.Text = accPath
+				p.subs.Push(accTn)
+			}
 		} else {
 			declName = ident
 			if pureARef {
@@ -14078,6 +14092,25 @@ afterNestedLoop:
 			node = cons
 		}
 	}
+	// TypeMangling base followed by a length-prefixed nested nominal:
+	// extend the pre-rendered extension-path text with the nested type.
+	// e.g. AG9UnitWidthV → subs[6]("...FormatStyle") → "...FormatStyle.UnitWidth".
+	// Only fires for extension-path TypeMangling nodes (containing "(extension in ").
+	if common.NodeKind(node.Kind) == common.KindTypeMangling &&
+		strings.Contains(node.Text, "(extension in ") &&
+		!p.eof() && p.s[p.i] >= '1' && p.s[p.i] <= '9' {
+		saveTM := p.i
+		ident, ierr := p.parseIdentifier()
+		if ierr == nil && !p.eof() &&
+			(p.s[p.i] == 'V' || p.s[p.i] == 'C' || p.s[p.i] == 'O' || p.s[p.i] == 'P') {
+			p.i++ // consume kind byte
+			extTm := common.NewNode(common.KindTypeMangling)
+			extTm.Text = node.Text + "." + ident
+			node = extTm
+		} else {
+			p.i = saveTM
+		}
+	}
 	// Bound-generic trailer: base y <type>+ G.
 	if bg, ok, err := p.tryBoundGeneric(node); err != nil {
 		return nil, err
@@ -14651,6 +14684,45 @@ func (p *parser) tryBoundGeneric(base *demangle.Node) (*demangle.Node, bool, err
 	if common.NodeKind(baseNom.Kind) == common.KindType && len(baseNom.Children) > 0 {
 		baseNom = baseNom.Children[0]
 	}
+	// Handle TypeMangling base: pre-rendered extension type text like
+	// "(extension in Foundation):Foundation.Measurement< where A: __C.NSDimension>.FormatStyle.UnitWidth".
+	// Insert the generic args (e.g. "<A>") immediately before the constraint sig "< where".
+	// This covers property type back-refs of the form AIyx__G pushed by the nested-type accumulator.
+	if common.NodeKind(baseNom.Kind) == common.KindTypeMangling && baseNom.Text != "" {
+		opts := common.DefaultPrintOptions()
+		var argStrs []string
+		// Only include args at level 0 (outermost generic params); positional nulls skip inner levels.
+		for i, arg := range args {
+			lv := 0
+			if i < len(argLevels) {
+				lv = argLevels[i]
+			}
+			if lv == 0 {
+				argStrs = append(argStrs, common.Print(arg, opts))
+			}
+		}
+		if len(argStrs) > 0 {
+			argStr := "<" + strings.Join(argStrs, ", ") + ">"
+			baseText := baseNom.Text
+			// Insert before the constraint-sig opener "< where " (no space before it).
+			if idx := strings.Index(baseText, "< where "); idx >= 0 {
+				baseText = baseText[:idx] + argStr + baseText[idx:]
+			} else if idx = strings.Index(baseText, "<A where "); idx >= 0 {
+				baseText = baseText[:idx] + argStr + baseText[idx:]
+			} else {
+				baseText += argStr
+			}
+			result := common.NewNode(common.KindTypeMangling)
+			result.Text = baseText
+			typ := common.NewNode(common.KindType)
+			common.AddChildren(typ, result)
+			p.subs.Push(typ)
+			return typ, true, nil
+		}
+		p.i = save
+		return base, false, nil
+	}
+
 	var bKind common.NodeKind
 	switch common.NodeKind(baseNom.Kind) {
 	case common.KindStructure:
