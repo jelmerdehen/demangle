@@ -96,6 +96,14 @@ _$sScG11isCancelledSbvpMV ---> property descriptor for TaskGroup.isCancelled
 _$sScT11isCancelledSbvpMV ---> property descriptor for Task.isCancelled
 _$sScS12ContinuationV9hashValueSivpMV ---> property descriptor for AsyncStream.Continuation.hashValue
 _$sScS12ContinuationV11TerminationO9hashValueSivpMV ---> property descriptor for AsyncStream.Continuation.Termination.hashValue
+# RT fix: A<letter>Qz dependent-member type back-ref in extension entity
+# Handles two patterns:
+#   1. ACQz where AC=Identifier("Index") after no-ident constraint bytes (EnumeratedSequence)
+#   2. AEQz where AE=Identifier("Index") after ident-push constraint bytes (FlattenSequence)
+_$ss18EnumeratedSequenceVsSlRzrlE5IndexV4baseACQzvg ---> (extension in Swift):Swift.EnumeratedSequence< where A: Swift.Collection>.Index.base.getter : A.Index
+_$ss18EnumeratedSequenceVsSlRzrlE5IndexV4baseACQzvpMV ---> property descriptor for (extension in Swift):Swift.EnumeratedSequence< where A: Swift.Collection>.Index.base : A.Index
+_$ss15FlattenSequenceVsSlRzSl7ElementRpzrlE5IndexV6_outerAEQzvg ---> (extension in Swift):Swift.FlattenSequence< where A: Swift.Collection, A.Element: Swift.Collection>.Index._outer.getter : A.Index
+_$ss15FlattenSequenceVsSlRzSl7ElementRpzrlE5IndexV6_outerAEQzvpMV ---> property descriptor for (extension in Swift):Swift.FlattenSequence< where A: Swift.Collection, A.Element: Swift.Collection>.Index._outer : A.Index
 # QR fix: SS5IndexVRsz nested-stdlib same-type + sAA<N>Rpz self-referential assoc-type constraint
 _$sSnsSS5IndexVRszrlE19_encodedOffsetRangeSnySiGvpMV ---> property descriptor for (extension in Swift):Swift.Range< where A == Swift.String.Index>._encodedOffsetRange : Swift.Range<Swift.Int>
 _$ss20LazySequenceProtocolPssAA8ElementsRpzrlE4lazyADvpMV ---> property descriptor for (extension in Swift):Swift.LazySequenceProtocol< where A.Elements: Swift.LazySequenceProtocol>.lazy : A.Elements

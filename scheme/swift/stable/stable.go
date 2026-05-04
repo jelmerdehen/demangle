@@ -6428,6 +6428,7 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 	var constraintBytes []byte // non-nil when S<letter>+constraint pattern
 	eAlreadyConsumed := false
 	moduleAlreadyPushed := false
+	hasConstraintIdents := false // set in constraint-bytes path; used for deferred module push
 	if !p.eof() && p.s[p.i] == 's' {
 		modName = "Swift"
 		p.i++ // consume 's'
@@ -6439,9 +6440,7 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 				restore()
 				return nil, false, nil
 			}
-			// Push module first (before constraint types, matching Apple's subs order).
-			p.subs.Push(common.NewModule("Swift"))
-			moduleAlreadyPushed = true
+			moduleAlreadyPushed = true // prevent line ~6727 from pushing; we handle it below
 			// Scan for 'E' followed by digit or '_' within a bounded window.
 			scan := p.i
 			eFound := -1
@@ -6496,6 +6495,23 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 			constraintBytes = []byte(p.s[scan:eFound])
 			p.i = eFound + 1 // past 'E'
 			eAlreadyConsumed = true
+			// Push module before first-pass identifier pushes only when the
+			// constraint bytes contain digit-led identifiers. When there are
+			// no identifier pushes (e.g. SlRzrl for EnumeratedSequence.Index),
+			// defer the module push until after entity-path parsing so that
+			// the entity-path identifier lands at subs[n] and A<n>Qz back-refs
+			// (e.g. ACQz → "A.Index") resolve to the correct identifier.
+			hasConstraintIdents = false
+			for ci := 0; ci < len(constraintBytes); {
+				if constraintBytes[ci] >= '1' && constraintBytes[ci] <= '9' {
+					hasConstraintIdents = true
+					break
+				}
+				ci++
+			}
+			if hasConstraintIdents {
+				p.subs.Push(common.NewModule("Swift"))
+			}
 			// First pass: push length-prefixed identifiers from constraint bytes to subs.
 			// Mirrors Apple's generic-sig demangling which pushes each identifier encountered.
 			for ci := 0; ci < len(constraintBytes); {
@@ -6697,7 +6713,15 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 				if c == 'S' {
 					letter := constraintBytes[ci+1]
 					if n, ok := common.BuildStdlibNominal(letter); ok {
-						p.subs.Push(n)
+						// Apple's demangler does not add stdlib Protocol nodes
+						// (e.g. Collection 'l', Sequence 'T') to the substitution
+						// table in this second-pass scan. Pushing them shifts
+						// entity-path back-refs (AE, AC, …) past the protocol
+						// node, causing dependent-member types like AEQz to
+						// resolve to the wrong subs entry. Skip protocol pushes.
+						if !isStdlibProtoNode(n) {
+							p.subs.Push(n)
+						}
 						ci += 2
 						continue
 					}
@@ -6805,6 +6829,14 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 	origHostPath := hostPath // save before appending nested types
 	for _, nt := range nestedTypes {
 		hostPath += "." + nt
+	}
+	// Deferred module push for Swift-on-Swift constraint extensions that had no
+	// identifier pushes in the constraint bytes (e.g. EnumeratedSequence.Index).
+	// The module push is deferred past entity-path parsing so that entity-path
+	// identifiers (e.g. "Index") occupy the subs slots immediately after the host
+	// type entries, making A<n>Qz back-refs (e.g. ACQz → "A.Index") resolve correctly.
+	if moduleAlreadyPushed && !hasConstraintIdents {
+		p.subs.Push(common.NewModule(modName))
 	}
 
 	// Entity-suffix terminal (Ma, Mn, N, Mc, etc.) or conformance suffix
@@ -13485,35 +13517,144 @@ func (p *parser) parseType() (*demangle.Node, error) {
 				} else {
 					fromNominalModule = true
 				}
+			} else if !p.eof() && p.s[p.i] == 'Q' && p.i+1 < len(p.s) &&
+				(p.s[p.i+1] == 'z' || p.s[p.i+1] == 'y') {
+				// Module back-ref followed by Qz/Qy_: the extension module
+				// occupies a subs slot before entity-path identifiers.
+				// Use the last Identifier in subs as the dependent-member
+				// type name (e.g. AC=Module("Swift"), last ident="Index"
+				// → ACQz → "A.Index").
+				assocMod := ""
+				for k := p.subs.Len() - 1; k >= 0; k-- {
+					if mn, ok2 := p.subs.Get(k); ok2 && mn != nil &&
+						common.NodeKind(mn.Kind) == common.KindIdentifier {
+						assocMod = mn.Text
+						break
+					}
+				}
+				if assocMod != "" {
+					saveQmod := p.i
+					p.i++ // consume 'Q'
+					kindQmod := p.s[p.i]
+					p.i++
+					paramMod := ""
+					okMod := true
+					switch kindQmod {
+					case 'z':
+						paramMod = "A"
+					case 'y':
+						start := p.i
+						for !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+							p.i++
+						}
+						if p.eof() || p.s[p.i] != '_' {
+							p.i = saveQmod
+							okMod = false
+						} else {
+							nv := 0
+							for _, d := range p.s[start:p.i] {
+								nv = nv*10 + int(d-'0')
+							}
+							if p.i > start {
+								nv++
+							}
+							p.i++
+							paramMod = string(rune('B' + byte(nv)))
+						}
+					default:
+						p.i = saveQmod
+						okMod = false
+					}
+					if okMod {
+						wrap := common.NewNode(common.KindType)
+						tn := common.NewNode(common.KindBuiltinTypeName)
+						tn.Text = paramMod + "." + assocMod
+						common.AddChildren(wrap, tn)
+						node = wrap
+					} else {
+						node = sub
+					}
+				} else {
+					node = sub
+				}
 			} else {
 				node = sub
 			}
 		} else if common.NodeKind(sub.Kind) == common.KindIdentifier &&
 			(p.eof() || !(p.s[p.i] >= '0' && p.s[p.i] <= '9')) {
-			// Sub-ref to a bare Identifier not followed by a digit (so
-			// it's being used as a type, not as a module-prefix for a
-			// nested name). Our parser double-pushes identifiers and
-			// nominal Types into subs where Apple pushes identifiers
-			// only and builds the Type on demand; promote the Ident to
-			// the matching Type if one exists in subs so A<idx> lookups
-			// produce the correct type-valued node.
-			if t, ok := p.findTypeForIdent(sub.Text); ok {
-				node = t
-				// In Apple's stack-based model, A<lower...><Upper> returns
-				// an Identifier that a subsequent 'P' (Protocol kind byte)
-				// uses to build a Protocol type from (module + ident). When
-				// we short-circuit via findTypeForIdent the Protocol is
-				// already resolved but 'P' has not been consumed. Consume it
-				// now so the caller (e.g. tryDependentMemberType) sees 'Q'
-				// next instead of 'P'.
-				if !p.eof() && p.s[p.i] == 'P' &&
-					common.NodeKind(node.Kind) == common.KindType &&
-					len(node.Children) > 0 &&
-					common.NodeKind(node.Children[0].Kind) == common.KindProtocol {
-					p.i++ // consume 'P' nominal-kind byte
+			// Sub-ref to a bare Identifier not followed by a digit.
+			if !p.eof() && p.s[p.i] == 'Q' && p.i+1 < len(p.s) &&
+				(p.s[p.i+1] == 'z' || p.s[p.i+1] == 'y') {
+				// A<letter>Qz/Qy_: back-ref to an Identifier used as a
+				// dependent-member type name. Produces "A.<ident>" (Qz=A)
+				// or "B.<ident>" (Qy_=B).
+				saveQid := p.i
+				p.i++ // consume 'Q'
+				kindQid := p.s[p.i]
+				p.i++
+				paramId := ""
+				okId := true
+				switch kindQid {
+				case 'z':
+					paramId = "A"
+				case 'y':
+					start := p.i
+					for !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+						p.i++
+					}
+					if p.eof() || p.s[p.i] != '_' {
+						p.i = saveQid
+						okId = false
+					} else {
+						nv := 0
+						for _, d := range p.s[start:p.i] {
+							nv = nv*10 + int(d-'0')
+						}
+						if p.i > start {
+							nv++
+						}
+						p.i++
+						paramId = string(rune('B' + byte(nv)))
+					}
+				default:
+					p.i = saveQid
+					okId = false
+				}
+				if okId {
+					wrap := common.NewNode(common.KindType)
+					tn := common.NewNode(common.KindBuiltinTypeName)
+					tn.Text = paramId + "." + sub.Text
+					common.AddChildren(wrap, tn)
+					node = wrap
+				} else {
+					if t, ok := p.findTypeForIdent(sub.Text); ok {
+						node = t
+					} else {
+						node = sub
+					}
 				}
 			} else {
-				node = sub
+				// Identifier used as type (not a module-prefix). Promote to
+				// the matching Type node from subs so A<idx> lookups return
+				// a proper type-valued node.
+				if t, ok := p.findTypeForIdent(sub.Text); ok {
+					node = t
+					// In Apple's stack-based model, A<lower...><Upper> returns
+					// an Identifier that a subsequent 'P' (Protocol kind byte)
+					// uses to build a Protocol type from (module + ident). When
+					// we short-circuit via findTypeForIdent the Protocol is
+					// already resolved but 'P' has not been consumed. Consume it
+					// now so the caller (e.g. tryDependentMemberType) sees 'Q'
+					// next instead of 'P'.
+					if !p.eof() && p.s[p.i] == 'P' &&
+						common.NodeKind(node.Kind) == common.KindType &&
+						len(node.Children) > 0 &&
+						common.NodeKind(node.Children[0].Kind) == common.KindProtocol {
+						p.i++ // consume 'P' nominal-kind byte
+					}
+				} else {
+					node = sub
+				}
 			}
 		} else {
 			node = sub
