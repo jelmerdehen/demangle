@@ -6418,15 +6418,94 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 					ci++
 				}
 			}
-			// Second pass: push S<letter> stdlib nominal types from constraint bytes.
-			for ci := 0; ci+1 < len(constraintBytes); ci++ {
-				if constraintBytes[ci] == 'S' {
+			// Second pass: push stdlib nominal types from constraint bytes.
+			// Skip length-prefixed identifier bodies to avoid misidentifying
+			// S<letter> sequences that are embedded inside identifier names
+			// (e.g. "SI" inside "SIMD2" would otherwise push DefaultIndices).
+			// Also handle s<N>Vy<S<letter>>G — a Swift bound-generic struct type
+			// in constraint-sig position: push Identifier(name)+Type(Name<Arg>).
+			for ci := 0; ci+1 < len(constraintBytes); {
+				c := constraintBytes[ci]
+				// Skip length-prefixed identifier bodies.
+				if c >= '1' && c <= '9' {
+					lenStart := ci
+					for ci < len(constraintBytes) && constraintBytes[ci] >= '0' && constraintBytes[ci] <= '9' {
+						ci++
+					}
+					length := 0
+					for k := lenStart; k < ci; k++ {
+						length = length*10 + int(constraintBytes[k]-'0')
+					}
+					ci += length
+					continue
+				}
+				// s<N><name>V y S<letter> G — Swift struct bound-generic same-type.
+				// Push: the bound-generic Type(Swift.<name><Swift.Arg>) so that
+				// A<idx> back-refs in the return type resolve to the full type.
+				if c == 's' && ci+1 < len(constraintBytes) && constraintBytes[ci+1] >= '1' && constraintBytes[ci+1] <= '9' {
+					j := ci + 1
+					nlenStart := j
+					for j < len(constraintBytes) && constraintBytes[j] >= '0' && constraintBytes[j] <= '9' {
+						j++
+					}
+					nlen := 0
+					for k := nlenStart; k < j; k++ {
+						nlen = nlen*10 + int(constraintBytes[k]-'0')
+					}
+					nameEnd := j + nlen
+					if nameEnd < len(constraintBytes) && (constraintBytes[nameEnd] == 'V' || constraintBytes[nameEnd] == 'C' || constraintBytes[nameEnd] == 'O') {
+						kind := constraintBytes[nameEnd]
+						name := string(constraintBytes[j:nameEnd])
+						j = nameEnd + 1
+						// Check for y<S<letter>>G (single stdlib type arg, bound generic).
+						if j+2 < len(constraintBytes) && constraintBytes[j] == 'y' {
+							j++ // consume 'y'
+							if constraintBytes[j] == 'S' && j+2 < len(constraintBytes) {
+								argLetter := constraintBytes[j+1]
+								if argNode, aok := common.BuildStdlibNominal(argLetter); aok {
+									if constraintBytes[j+2] == 'G' {
+										// Build Type(Swift.<name><Swift.Arg>).
+										var nk common.NodeKind
+										var bgKind common.NodeKind
+										switch kind {
+										case 'V':
+											nk = common.KindStructure
+											bgKind = common.KindBoundGenericStructure
+										case 'C':
+											nk = common.KindClass
+											bgKind = common.KindBoundGenericClass
+										case 'O':
+											nk = common.KindEnum
+											bgKind = common.KindBoundGenericEnum
+										}
+										innerNom := common.NewNode(nk)
+										common.AddChildren(innerNom, common.NewModule("Swift"), common.NewIdentifier(name))
+										nomType := common.NewNode(common.KindType)
+										common.AddChildren(nomType, innerNom)
+										typeList := common.NewNode(common.KindTypeList)
+										common.AddChildren(typeList, argNode) // argNode is already KindType
+										bg := common.NewNode(bgKind)
+										common.AddChildren(bg, nomType, typeList)
+										bgType := common.NewNode(common.KindType)
+										common.AddChildren(bgType, bg)
+										p.subs.Push(bgType)
+										ci = j + 3 // advance past 'y', 'S', letter, 'G'
+										continue
+									}
+								}
+							}
+						}
+					}
+				}
+				if c == 'S' {
 					letter := constraintBytes[ci+1]
 					if n, ok := common.BuildStdlibNominal(letter); ok {
 						p.subs.Push(n)
-						ci++
+						ci += 2
+						continue
 					}
 				}
+				ci++
 			}
 		}
 	} else if p.eof() || !(p.s[p.i] >= '0' && p.s[p.i] <= '9') {
@@ -9971,6 +10050,17 @@ func extractConstraintSigFullOpts(b []byte, includeObjCRequirements bool) (sig, 
 				continue
 			}
 			j = nameEnd + 1
+			// Optional y<S<letter>>G — bound-generic type arg list with one stdlib type.
+			typeArgStr := ""
+			if j+3 < len(s) && s[j] == 'y' && s[j+1] == 'S' {
+				argLetter := s[j+2]
+				if argNode2, aok2 := common.BuildStdlibNominal(argLetter); aok2 {
+					if s[j+3] == 'G' {
+						typeArgStr = "<" + common.Print(argNode2, common.DefaultPrintOptions()) + ">"
+						j += 4
+					}
+				}
+			}
 			if j+1 >= len(s) || s[j] != 'R' || s[j+1] != 's' {
 				continue
 			}
@@ -9988,7 +10078,7 @@ func extractConstraintSigFullOpts(b []byte, includeObjCRequirements bool) (sig, 
 			if paramName == "" {
 				continue
 			}
-			key := paramName + " == Swift." + typeName
+			key := paramName + " == Swift." + typeName + typeArgStr
 			if !seenSwiftRs[key] {
 				seenSwiftRs[key] = true
 				constraints = append(constraints, key)

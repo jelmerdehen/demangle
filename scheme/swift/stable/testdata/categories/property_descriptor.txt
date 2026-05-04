@@ -74,3 +74,7 @@ _$sSi12SIMD4StorageVyS2icipMV ---> property descriptor for Swift.Int.SIMD4Storag
 # PV: S<N><letter>G compact bound-generic expansion — Dictionary<String,String>
 _$s10Foundation10URLRequestV19allHTTPHeaderFieldsSDyS2SGSgvpMV ---> property descriptor for Foundation.URLRequest.allHTTPHeaderFields : [Swift.String : Swift.String]?
 _$s10Foundation8TimeZoneV22abbreviationDictionarySDyS2SGvpZMV ---> property descriptor for static Foundation.TimeZone.abbreviationDictionary : [Swift.String : Swift.String]
+# PW: s<N>Vy<SxG>Rs<subj> bound-generic same-type constraint (SIMDMask family)
+_$ss8SIMDMaskVss5SIMD2VySiGRszrlE7allTrueAByAEGvpZMV ---> property descriptor for static (extension in Swift):Swift.SIMDMask< where A == Swift.SIMD2<Swift.Int>>.allTrue : Swift.SIMDMask<Swift.SIMD2<Swift.Int>>
+_$ss8SIMDMaskVss5SIMD4VySiGRszrlE7allTrueAByAEGvpZMV ---> property descriptor for static (extension in Swift):Swift.SIMDMask< where A == Swift.SIMD4<Swift.Int>>.allTrue : Swift.SIMDMask<Swift.SIMD4<Swift.Int>>
+_$ss8SIMDMaskVss6SIMD64VySiGRszrlE7allTrueAByAEGvpZMV ---> property descriptor for static (extension in Swift):Swift.SIMDMask< where A == Swift.SIMD64<Swift.Int>>.allTrue : Swift.SIMDMask<Swift.SIMD64<Swift.Int>>
