@@ -26,3 +26,12 @@ _$sScGyxGScisMc ---> protocol conformance descriptor for TaskGroup<A>
 _$sScG8IteratorVyx_GScIsMc ---> protocol conformance descriptor for TaskGroup<A>.Iterator
 _$s7Combine14AsyncPublisherVyxGSciAAMc ---> protocol conformance descriptor for AsyncPublisher<A>
 _$s7Combine14AsyncPublisherV8IteratorVyx_GScIAAMc ---> protocol conformance descriptor for AsyncPublisher<A>.Iterator
+# QZ fix: Sc<X> protocol name output in tryStdlibProtoConformanceSuffix (non-concurrency conformee)
+_$s10Foundation17AsyncLineSequenceVyxGSciAAMc ---> protocol conformance descriptor for Foundation.AsyncLineSequence<A> : Swift.AsyncSequence in Foundation
+_$s10Foundation17AsyncLineSequenceV0B8IteratorVyx_GScIAAMc ---> protocol conformance descriptor for Foundation.AsyncLineSequence<A>.AsyncIterator : Swift.AsyncIteratorProtocol in Foundation
+_$s10Foundation22AsyncCharacterSequenceVyxGSciAAMc ---> protocol conformance descriptor for Foundation.AsyncCharacterSequence<A> : Swift.AsyncSequence in Foundation
+_$s10Foundation22AsyncCharacterSequenceV0B8IteratorVyx_GScIAAMc ---> protocol conformance descriptor for Foundation.AsyncCharacterSequence<A>.AsyncIterator : Swift.AsyncIteratorProtocol in Foundation
+_$s10Foundation3URLV10AsyncBytesVSciAAMc ---> protocol conformance descriptor for Foundation.URL.AsyncBytes : Swift.AsyncSequence in Foundation
+_$s10Foundation3URLV10AsyncBytesV0C8IteratorVScIAAMc ---> protocol conformance descriptor for Foundation.URL.AsyncBytes.AsyncIterator : Swift.AsyncIteratorProtocol in Foundation
+_$sSo12NSFileHandleC10FoundationE10AsyncBytesVSciACMc ---> protocol conformance descriptor for (extension in Foundation):__C.NSFileHandle.AsyncBytes : Swift.AsyncSequence in Foundation
+_$sSo12NSFileHandleC10FoundationE10AsyncBytesV8IteratorVScIACMc ---> protocol conformance descriptor for (extension in Foundation):__C.NSFileHandle.AsyncBytes.Iterator : Swift.AsyncIteratorProtocol in Foundation

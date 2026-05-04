@@ -982,11 +982,17 @@ func (p *parser) tryStdlibProtoConformanceSuffix(inner *demangle.Node) (*demangl
 			revert()
 			return inner, false
 		}
-		if _, ok2 := common.BuildStdlibNominal2(p.s[p.i+1]); !ok2 {
+		concNode, ok2 := common.BuildStdlibNominal2(p.s[p.i+1])
+		if !ok2 {
 			revert()
 			return inner, false
 		}
-		p.i += 2 // consume 'c' + concurrency letter (e.g. 'i'=AsyncSequence, 'I'=AsyncIteratorProtocol)
+		// Capture the protocol name (e.g. 'i'=AsyncSequence, 'I'=AsyncIteratorProtocol)
+		// so it appears in the output for non-concurrency conformees (Foundation types, etc.).
+		if len(concNode.Children) > 0 && len(concNode.Children[0].Children) >= 2 {
+			protoEntry = common.StdlibEntry{Name: concNode.Children[0].Children[1].Text}
+		}
+		p.i += 2 // consume 'c' + concurrency letter
 	} else {
 		var ok bool
 		protoEntry, ok = common.StdlibLookup(protoLetter)
