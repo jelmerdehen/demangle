@@ -4248,13 +4248,26 @@ func (p *parser) tryVariableEntity() (*demangle.Node, bool, error) {
 	var moduleNode *demangle.Node
 	var accParent *demangle.Node
 	var accType *demangle.Node
+	rootIsConcurrency := false // true when Sc<X> concurrency type is the root host
 	if !p.eof() && p.s[p.i] == 'S' && p.i+1 < len(p.s) {
 		letter := p.s[p.i+1]
-		stdlibTyp, ok := common.BuildStdlibNominal(letter)
-		if !ok {
-			return nil, false, nil
+		var stdlibTyp *demangle.Node
+		var ok bool
+		isConcurrency := false
+		// Sc<X> concurrency types take priority: ScG=TaskGroup, ScT=Task, etc.
+		if letter == 'c' && p.i+2 < len(p.s) {
+			if stdlibTyp, ok = common.BuildStdlibNominal2(p.s[p.i+2]); ok {
+				isConcurrency = true
+				p.i += 3
+			}
 		}
-		p.i += 2
+		if !ok {
+			stdlibTyp, ok = common.BuildStdlibNominal(letter)
+			if !ok {
+				return nil, false, nil
+			}
+			p.i += 2
+		}
 		mod = "Swift"
 		moduleNode = common.NewModule("Swift")
 		pathSteps = append(pathSteps, moduleNode)
@@ -4275,6 +4288,10 @@ func (p *parser) tryVariableEntity() (*demangle.Node, bool, error) {
 			kindByte = "P"
 		}
 		identNode.Attrs = map[string]string{"swift.nominalKind": kindByte}
+		if isConcurrency {
+			nom.Attrs = map[string]string{"swift.concurrency": "true"}
+			rootIsConcurrency = true
+		}
 		pathSteps = append(pathSteps, identNode)
 		// Standard stdlib substitutions (SS, Si, etc.) are NOT pushed to the
 		// regular substitution table — Apple's demangler treats them as a
@@ -4418,7 +4435,8 @@ func (p *parser) tryVariableEntity() (*demangle.Node, bool, error) {
 	if kindByte == 'p' && p.i+1 < len(p.s) && p.s[p.i] == 'M' && p.s[p.i+1] == 'V' {
 		p.i += 2 // consume 'MV'
 		opts := common.DefaultPrintOptions()
-		isConcurrencyProp := mod == "Swift" && len(pathSteps) >= 2 && swiftConcurrencyRuntimeTypes[pathSteps[1].Text]
+		isConcurrencyProp := mod == "Swift" && (rootIsConcurrency ||
+			(len(pathSteps) >= 2 && swiftConcurrencyRuntimeTypes[pathSteps[1].Text]))
 		if (mod == "Foundation" || mod == "Swift") && !isConcurrencyProp {
 			// Full: module-qualified path + type annotation.
 			path := common.NewNode(common.KindEntityPath)
@@ -4456,7 +4474,8 @@ func (p *parser) tryVariableEntity() (*demangle.Node, bool, error) {
 	opts := common.DefaultPrintOptions()
 	switch kindByte {
 	case 'g', 's', 'M', 'w', 'W':
-		isConcurrencyAcc := mod == "Swift" && len(pathSteps) >= 2 && swiftConcurrencyRuntimeTypes[pathSteps[1].Text]
+		isConcurrencyAcc := mod == "Swift" && (rootIsConcurrency ||
+			(len(pathSteps) >= 2 && swiftConcurrencyRuntimeTypes[pathSteps[1].Text]))
 		if (mod == "Foundation" || mod == "Swift") && !isConcurrencyAcc {
 			// Full form: module-qualified path + type annotation.
 			path := common.NewNode(common.KindEntityPath)
