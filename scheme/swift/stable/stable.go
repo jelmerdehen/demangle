@@ -7534,6 +7534,14 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 				if subP.i == len(subP.s) {
 					s := common.Print(tn, common.DefaultPrintOptions())
 					if s != "" && !strings.HasPrefix(s, "<<") {
+						// Push the concrete type node to the main parser's subs so
+						// that A<idx> refs in the function body (e.g. AE=subs[4] for
+						// ByteCountFormatStyle) resolve correctly.  Apple's demangler
+						// pushes every type it encounters during generic-sig parsing;
+						// mirroring that here fixes non-property proto-ext symbols
+						// (FZ, vgZ) whose constraint RHS is a non-generic user type
+						// (PA-1 bucket: ByteCount, PersonNameComponents, etc.).
+						p.subs.Push(tn)
 						return s
 					}
 				}
@@ -13791,6 +13799,24 @@ func (p *parser) parseNominalWithModule(module *demangle.Node) (*demangle.Node, 
 				case common.KindModule:
 					name = n.Text
 					p.i += 2
+				case common.KindType:
+					// KindType wraps a nominal node (Structure/Class/Enum/Protocol)
+					// whose last KindIdentifier child is the type name.
+					// Handles ABV-style encodings where the A-ref resolves to a
+					// compound type instead of a bare Identifier node — e.g. when
+					// the constraint RHS is a nested type like PersonNameComponents.FormatStyle
+					// and AB = subs[1] = FormatStyle type node.
+					if len(n.Children) > 0 {
+						nom := n.Children[len(n.Children)-1]
+						for _, ch := range nom.Children {
+							if common.NodeKind(ch.Kind) == common.KindIdentifier {
+								name = ch.Text
+							}
+						}
+					}
+					if name != "" {
+						p.i += 2 // consume 'A' + letter
+					}
 				}
 			}
 		}
