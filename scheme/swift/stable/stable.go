@@ -7089,7 +7089,7 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 	extSig := ""
 	extMarker := ""
 	if len(constraintBytes) > 0 {
-		extSig, _ = extractConstraintSigFullOpts(constraintBytes, true)
+		extSig, _ = extractConstraintSigFullOpts(constraintBytes, true, p.words, "Swift")
 		if extSig == "" && len(constraintBytes) > 2 {
 			extMarker = "<>"
 		}
@@ -7292,7 +7292,7 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 	if verbose {
 		extSig := ""
 		if len(constraintBytes) > 0 {
-			extSig, _ = extractConstraintSigFullOpts(constraintBytes, true)
+			extSig, _ = extractConstraintSigFullOpts(constraintBytes, true, p.words, "Swift")
 		}
 		// extSig attaches to the base host type, not nested types.
 		fnNestedSuffix := ""
@@ -7581,6 +7581,78 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 			}
 		}
 	}
+	// Pre-scan: identify '0' bytes that are word-sub assoc-type names handled by
+	// the second pass. These must be skipped in the first pass so no spurious
+	// Identifier node is pushed, keeping subs indices aligned for A<letter> back-refs.
+	// Three patterns are recognised:
+	//   A: s<N><proto>0<word-sub>Rp/Rt — Swift-protocol constraint with word-sub assoc-type
+	//   B: A<digit+><letter><N><name>V/C/O 0<word-sub>Rp/Rt — bare nominal + assoc same-type
+	//   C: S<letter>0<word-sub>Rp — stdlib-type letter + word-sub assoc-type conformance
+	suppressWordSubAt := map[int]bool{}
+	for i := 0; i < len(constraintBytes); i++ {
+		b0 := constraintBytes[i]
+		if b0 == 's' && i+1 < len(constraintBytes) && constraintBytes[i+1] >= '1' && constraintBytes[i+1] <= '9' {
+			j := i + 1
+			jStart := j
+			for j < len(constraintBytes) && constraintBytes[j] >= '0' && constraintBytes[j] <= '9' {
+				j++
+			}
+			sLen := 0
+			for _, d := range constraintBytes[jStart:j] {
+				sLen = sLen*10 + int(d-'0')
+			}
+			nameEnd := j + sLen
+			if nameEnd < len(constraintBytes) && constraintBytes[nameEnd] == '0' {
+				_, wsEnd, wsOk := decodeWordSubAt(string(constraintBytes), nameEnd+1, p.words)
+				if wsOk && wsEnd+1 < len(constraintBytes) &&
+					constraintBytes[wsEnd] == 'R' &&
+					(constraintBytes[wsEnd+1] == 'p' || constraintBytes[wsEnd+1] == 't') {
+					suppressWordSubAt[nameEnd] = true
+				}
+			}
+		} else if b0 == 'A' && i+1 < len(constraintBytes) && constraintBytes[i+1] >= '0' && constraintBytes[i+1] <= '9' {
+			j := i + 1
+			for j < len(constraintBytes) && constraintBytes[j] >= '0' && constraintBytes[j] <= '9' {
+				j++
+			}
+			if j < len(constraintBytes) && ((constraintBytes[j] >= 'A' && constraintBytes[j] <= 'Z') || (constraintBytes[j] >= 'a' && constraintBytes[j] <= 'z')) {
+				j++ // skip terminal letter
+			}
+			if j < len(constraintBytes) && constraintBytes[j] >= '1' && constraintBytes[j] <= '9' {
+				kStart := j
+				for j < len(constraintBytes) && constraintBytes[j] >= '0' && constraintBytes[j] <= '9' {
+					j++
+				}
+				nLen := 0
+				for _, d := range constraintBytes[kStart:j] {
+					nLen = nLen*10 + int(d-'0')
+				}
+				nomEnd := j + nLen
+				if nomEnd < len(constraintBytes) &&
+					(constraintBytes[nomEnd] == 'V' || constraintBytes[nomEnd] == 'C' || constraintBytes[nomEnd] == 'O') {
+					next := nomEnd + 1
+					if next < len(constraintBytes) && constraintBytes[next] == '0' {
+						_, wsEnd, wsOk := decodeWordSubAt(string(constraintBytes), next+1, p.words)
+						if wsOk && wsEnd+1 < len(constraintBytes) &&
+							constraintBytes[wsEnd] == 'R' &&
+							(constraintBytes[wsEnd+1] == 'p' || constraintBytes[wsEnd+1] == 't') {
+							suppressWordSubAt[next] = true
+						}
+					}
+				}
+			}
+		} else if b0 == 'S' && i+2 < len(constraintBytes) &&
+			(constraintBytes[i+1] >= 'A' && constraintBytes[i+1] <= 'Z') &&
+			constraintBytes[i+2] == '0' {
+			// Pattern C: S<UPPER>0<word-sub>Rp — stdlib-letter + word-sub assoc-type.
+			// Mirrors the second-pass S<letter>0<word-sub>Rp handler.
+			_, wsEnd, wsOk := decodeWordSubAt(string(constraintBytes), i+3, p.words)
+			if wsOk && wsEnd+1 < len(constraintBytes) &&
+				constraintBytes[wsEnd] == 'R' && constraintBytes[wsEnd+1] == 'p' {
+				suppressWordSubAt[i+2] = true
+			}
+		}
+	}
 	// First pass: scan for <digits><chars> identifiers and push them.
 	// Skip So<N><name><kind> ObjC type refs in this pass; second pass handles them.
 	for ci := 0; ci < len(constraintBytes); {
@@ -7613,6 +7685,36 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 			ci = j
 			continue
 		}
+		// Skip s<N><kind> Swift-nominal type refs (e.g. s8DurationV) without
+		// pushing an Identifier node. The second pass (case 's') builds and
+		// pushes the correct Type(Swift.<name>) node. Without this skip the
+		// first pass would push Identifier("Duration") and misalign the subs
+		// indices that A<letter> back-refs in the entity params rely on.
+		// Only matches when a kind byte (V/C/O) terminates the name bytes —
+		// this distinguishes struct/class/enum refs from protocol-name prefixes
+		// like s17FixedWidthInteger (which use R<req> after the name, not V/C/O).
+		if constraintBytes[ci] == 's' && ci+1 < len(constraintBytes) &&
+			constraintBytes[ci+1] >= '1' && constraintBytes[ci+1] <= '9' {
+			j := ci + 1
+			jStart := j
+			for j < len(constraintBytes) && constraintBytes[j] >= '0' && constraintBytes[j] <= '9' {
+				j++
+			}
+			sLen := 0
+			for _, d := range constraintBytes[jStart:j] {
+				sLen = sLen*10 + int(d-'0')
+			}
+			nameEnd := j + sLen
+			if nameEnd < len(constraintBytes) &&
+				(constraintBytes[nameEnd] == 'V' || constraintBytes[nameEnd] == 'C' ||
+					constraintBytes[nameEnd] == 'O') {
+				if sLen > 0 {
+					addWordsFromConstraintIdent(string(constraintBytes[j:nameEnd]))
+				}
+				ci = nameEnd + 1 // skip past kind byte
+				continue
+			}
+		}
 		// Skip all A-substitution-ref patterns so their bytes are not mistaken
 		// for length-prefixed identifiers:
 		//   A<letter>         — standard 2-byte sub-ref (subs[0..25])
@@ -7631,13 +7733,39 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 				continue
 			}
 			if next >= '0' && next <= '9' {
-				ci++ // skip 'A'
-				for ci < len(constraintBytes) && constraintBytes[ci] >= '0' && constraintBytes[ci] <= '9' {
-					ci++ // skip digit(s)
+				// Only skip A<digit(s)><letter> when followed by a bare nominal
+				// type <N><name>V/C/O (e.g. A2A4DateV). Without the look-ahead,
+				// patterns like A2A0bc8Standard (no kind byte) would have their
+				// following length-prefixed identifiers suppressed, breaking
+				// A<letter> back-refs in entity params (e.g. UIWindowScenePlacement).
+				j2 := ci + 1 // at first digit
+				for j2 < len(constraintBytes) && constraintBytes[j2] >= '0' && constraintBytes[j2] <= '9' {
+					j2++
 				}
-				if ci < len(constraintBytes) && ((constraintBytes[ci] >= 'A' && constraintBytes[ci] <= 'Z') || (constraintBytes[ci] >= 'a' && constraintBytes[ci] <= 'z')) {
-					ci++ // skip terminal letter
+				if j2 < len(constraintBytes) && ((constraintBytes[j2] >= 'A' && constraintBytes[j2] <= 'Z') || (constraintBytes[j2] >= 'a' && constraintBytes[j2] <= 'z')) {
+					j2++ // skip terminal letter
 				}
+				if j2 < len(constraintBytes) && constraintBytes[j2] >= '1' && constraintBytes[j2] <= '9' {
+					k2 := j2
+					for k2 < len(constraintBytes) && constraintBytes[k2] >= '0' && constraintBytes[k2] <= '9' {
+						k2++
+					}
+					nLen2 := 0
+					for _, d := range constraintBytes[j2:k2] {
+						nLen2 = nLen2*10 + int(d-'0')
+					}
+					nomEnd2 := k2 + nLen2
+					if nomEnd2 < len(constraintBytes) &&
+						(constraintBytes[nomEnd2] == 'V' || constraintBytes[nomEnd2] == 'C' || constraintBytes[nomEnd2] == 'O') {
+						// Skip A<digit(s)><letter> and advance to the nominal.
+						ci = j2
+						continue
+					}
+				}
+				// Not followed by bare nominal — skip the A<digit(s)><letter>
+				// sequence entirely (same as old baseline), so the digits are
+				// not misread as a length prefix.
+				ci = j2
 				continue
 			}
 		}
@@ -7661,10 +7789,16 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 				addWordsFromConstraintIdent(ident)
 				ci = end
 			} else if length == 0 {
-				// '0' is a word-sub mode start token, not a length-0 identifier.
-				// Skip it and continue scanning so later length-prefixed identifiers
-				// (e.g. "10WillChange" after "C0c10WillChange") are processed.
-				ci++
+				if suppressWordSubAt[lenStart] {
+					// This '0' starts a word-sub assoc-type name handled by the second pass.
+					// Skip the entire word-sub token so no spurious Identifier is pushed.
+					_, skipEnd, _ := decodeWordSubAt(string(constraintBytes), ci, p.words)
+					ci = skipEnd
+				} else {
+					// '0' is a word-sub mode start token, not a length-0 identifier.
+					// Skip it so later length-prefixed identifiers are processed.
+					ci++
+				}
 			} else {
 				break
 			}
@@ -7691,6 +7825,55 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 					p.subs.Push(n)
 				}
 				ci++ // skip letter
+			} else if letter >= '0' && letter <= '9' {
+				// A<digit(s)><letter>: multi-index sub-ref (subs index >= 26).
+				// Skip the multi-index ref and check if followed by <N><name>V/C/O
+				// — a bare module-qualified nominal type (e.g. A2A4DateV = Foundation.Date).
+				j := ci + 1 // start at digit
+				for j < len(constraintBytes) && constraintBytes[j] >= '0' && constraintBytes[j] <= '9' {
+					j++
+				}
+				if j < len(constraintBytes) && ((constraintBytes[j] >= 'A' && constraintBytes[j] <= 'Z') || (constraintBytes[j] >= 'a' && constraintBytes[j] <= 'z')) {
+					j++ // skip terminal letter
+				}
+				// After the multi-index ref, look for <N><name>V/C/O.
+				if j < len(constraintBytes) && constraintBytes[j] >= '1' && constraintBytes[j] <= '9' {
+					kStart := j
+					for j < len(constraintBytes) && constraintBytes[j] >= '0' && constraintBytes[j] <= '9' {
+						j++
+					}
+					nomLen := 0
+					for _, d := range constraintBytes[kStart:j] {
+						nomLen = nomLen*10 + int(d-'0')
+					}
+					nomEnd := j + nomLen
+					if nomEnd < len(constraintBytes) {
+						var nomKindA common.NodeKind
+						switch constraintBytes[nomEnd] {
+						case 'V':
+							nomKindA = common.KindStructure
+						case 'C':
+							nomKindA = common.KindClass
+						case 'O':
+							nomKindA = common.KindEnum
+						}
+						if nomKindA != 0 {
+							nameA := string(constraintBytes[j:nomEnd])
+							nomA := common.NewNode(nomKindA)
+							common.AddChildren(nomA, common.NewModule(modName), common.NewIdentifier(nameA))
+							tnA := common.NewNode(common.KindType)
+							common.AddChildren(tnA, nomA)
+							p.subs.Push(tnA)
+							ci = nomEnd // for-loop ci++ advances past kind byte
+						} else {
+							ci = j - 1 // for-loop ci++ lands at j (past the multi-index ref)
+						}
+					} else {
+						ci = j - 1
+					}
+				} else {
+					ci = j - 1 // for-loop ci++ lands at j (past the multi-index ref)
+				}
 			}
 		case 'S':
 			if constraintBytes[ci+1] == 'o' {
@@ -7743,9 +7926,114 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 				}
 			} else {
 				letter := constraintBytes[ci+1]
+				// S<letter>0<word-sub>Rp: assoc-type conformance where the
+				// assoc-type name is word-sub encoded. Push a text-only
+				// TypeMangling("A.<assoc>") so A<letter> back-refs in the entity
+				// params resolve to the dependent-member type, not the protocol.
+				if ci+2 < len(constraintBytes) && constraintBytes[ci+2] == '0' {
+					j := ci + 3 // skip S, letter, '0'
+					var wsBuf strings.Builder
+					wsHas2 := true
+					for j < len(constraintBytes) {
+						b2 := constraintBytes[j]
+						if b2 >= 'a' && b2 <= 'z' {
+							idx2 := int(b2 - 'a')
+							if idx2 < len(p.words) {
+								wsBuf.WriteString(p.words[idx2])
+							}
+							j++
+						} else if b2 >= 'A' && b2 <= 'Z' {
+							idx2 := int(b2 - 'A')
+							if idx2 < len(p.words) {
+								wsBuf.WriteString(p.words[idx2])
+							}
+							j++
+							wsHas2 = false
+							break
+						} else {
+							break
+						}
+					}
+					if wsHas2 && j < len(constraintBytes) && constraintBytes[j] == '0' {
+						j++
+					}
+					if j < len(constraintBytes) && constraintBytes[j] >= '1' && constraintBytes[j] <= '9' {
+						litStart2 := j
+						for j < len(constraintBytes) && constraintBytes[j] >= '0' && constraintBytes[j] <= '9' {
+							j++
+						}
+						litLen2 := 0
+						for _, d := range constraintBytes[litStart2:j] {
+							litLen2 = litLen2*10 + int(d-'0')
+						}
+						if j+litLen2 <= len(constraintBytes) && litLen2 > 0 {
+							wsBuf.Write(constraintBytes[j : j+litLen2])
+							j += litLen2
+						}
+					}
+					assocName2 := wsBuf.String()
+					if assocName2 != "" && j+1 < len(constraintBytes) &&
+						constraintBytes[j] == 'R' && constraintBytes[j+1] == 'p' {
+						dm := common.NewNode(common.KindTypeMangling)
+						dm.Text = "A." + assocName2
+						p.subs.Push(dm)
+						ci = j + 1 // 'p' position; for-loop ci++ skips past 'p'
+						break
+					}
+				}
 				if n, ok := common.BuildStdlibNominal(letter); ok {
 					p.subs.Push(n)
 					ci++ // skip the letter byte
+				}
+			}
+		case 's':
+			// s<N><kind> Swift-nominal ref: build Type(Swift.<name>) and push to
+			// subs so that A<letter> back-refs in the entity params resolve to the
+			// correct concrete type (e.g. Swift.Duration for s8DurationV).
+			if ci+1 < len(constraintBytes) && constraintBytes[ci+1] >= '1' && constraintBytes[ci+1] <= '9' {
+				j := ci + 1
+				jStart := j
+				for j < len(constraintBytes) && constraintBytes[j] >= '0' && constraintBytes[j] <= '9' {
+					j++
+				}
+				sLen2 := 0
+				for _, d := range constraintBytes[jStart:j] {
+					sLen2 = sLen2*10 + int(d-'0')
+				}
+				nameEnd2 := j + sLen2
+				if nameEnd2 < len(constraintBytes) {
+					var nomKind2 common.NodeKind
+					switch constraintBytes[nameEnd2] {
+					case 'V':
+						nomKind2 = common.KindStructure
+					case 'C':
+						nomKind2 = common.KindClass
+					case 'O':
+						nomKind2 = common.KindEnum
+					}
+					if nomKind2 != 0 {
+						name2 := string(constraintBytes[j:nameEnd2])
+						nom2 := common.NewNode(nomKind2)
+						common.AddChildren(nom2, common.NewModule("Swift"), common.NewIdentifier(name2))
+						tn2 := common.NewNode(common.KindType)
+						common.AddChildren(tn2, nom2)
+						p.subs.Push(tn2)
+						ci = nameEnd2 // for-loop ci++ advances past kind byte
+					} else if nameEnd2 < len(constraintBytes) && constraintBytes[nameEnd2] == '0' {
+						// s<N>0<word-sub>Rp<subj>: Swift protocol (no kind byte) followed by word-sub assoc-type.
+						// E.g. s17FixedWidthInteger0C5InputRpz → push TypeMangling("A.<assoc>") only.
+						// Mirrors the S<letter>0<word-sub>Rp path: push only the dependent-member type,
+						// not the protocol, so A<letter> back-refs in entity params resolve to the assoc type.
+						j3 := nameEnd2 + 1 // skip '0' word-sub mode marker
+						assocName3, j3end, wsOk3 := decodeWordSubAt(string(constraintBytes), j3, p.words)
+						if wsOk3 && assocName3 != "" && j3end+1 < len(constraintBytes) &&
+							constraintBytes[j3end] == 'R' && constraintBytes[j3end+1] == 'p' {
+							dm3 := common.NewNode(common.KindTypeMangling)
+							dm3.Text = "A." + assocName3
+							p.subs.Push(dm3)
+							ci = j3end + 1 // 'p' position; for-loop ci++ skips past 'p'
+						}
+					}
 				}
 			}
 		case 'E':
@@ -8368,7 +8656,7 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 		if eFound2 >= 0 {
 			innerCB := []byte(p.s[scan2:eFound2])
 			p.i = eFound2 + 1
-			innerSig, _ := extractConstraintSigFullOpts(innerCB, modName == "Foundation")
+			innerSig, _ := extractConstraintSigFullOpts(innerCB, modName == "Foundation", p.words, modName)
 			if innerSig != "" {
 				nestedTypesSuffix[len(nestedTypesSuffix)-1] += innerSig
 			}
@@ -8522,7 +8810,7 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 			eHostPath += "." + nt
 		}
 		// If Rb/Rs constraints present, use verbose (extension in M):M.Host<sig>.nested form.
-		earlySig, earlyStc := extractConstraintSigFullOpts(constraintBytes, modName == "Foundation")
+		earlySig, earlyStc := extractConstraintSigFullOpts(constraintBytes, modName == "Foundation", p.words, modName)
 		innerText := eHostPath
 		if earlySig != "" || earlyStc != "" {
 			extInMod := modName
@@ -9226,7 +9514,7 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 				if isCrossFoundation {
 					extInMod = "Foundation"
 				}
-				sig, sameTypeConstraint := extractConstraintSigFullOpts(constraintBytes, extInMod == "Foundation")
+				sig, sameTypeConstraint := extractConstraintSigFullOpts(constraintBytes, extInMod == "Foundation", p.words, extInMod)
 				if foundationSameTypeSig != "" {
 					sig = foundationSameTypeSig
 					sameTypeConstraint = ""
@@ -9307,7 +9595,7 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 				// Simplified: no type annotation (matches Apple swift-demangle output).
 				text = "property descriptor for " + hostPath + nestedExtMarker + "." + declName
 			} else {
-				sig, sameTypeConstraint := extractConstraintSigFullOpts(constraintBytes, extInModProp == "Foundation")
+				sig, sameTypeConstraint := extractConstraintSigFullOpts(constraintBytes, extInModProp == "Foundation", p.words, extInModProp)
 				if foundationSameTypeSig != "" {
 					sig = foundationSameTypeSig
 					sameTypeConstraint = ""
@@ -9350,7 +9638,7 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 				// Drop propTypeStr: Apple shows no type annotation for cross-module stored properties.
 				text = hostPath + nestedExtMarker + "." + declName
 			} else {
-				sig, sameTypeConstraint := extractConstraintSigFullOpts(constraintBytes, extInModProp == "Foundation")
+				sig, sameTypeConstraint := extractConstraintSigFullOpts(constraintBytes, extInModProp == "Foundation", p.words, extInModProp)
 				if foundationSameTypeSig != "" {
 					sig = foundationSameTypeSig
 					sameTypeConstraint = ""
@@ -9438,7 +9726,7 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 				text = hostPath + nestedExtMarker + ".init" + labelStr
 			} else {
 				opts := common.DefaultPrintOptions()
-				sig, sameTypeConstraint := extractConstraintSigFullOpts(constraintBytes, extInModInit == "Foundation")
+				sig, sameTypeConstraint := extractConstraintSigFullOpts(constraintBytes, extInModInit == "Foundation", p.words, extInModInit)
 				if foundationSameTypeSig != "" {
 					sig = foundationSameTypeSig
 					sameTypeConstraint = ""
@@ -9554,7 +9842,7 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 	if isCrossFoundation {
 		extInModF = "Foundation"
 	}
-	sig, sameTypeConstraint := extractConstraintSigFullOpts(constraintBytes, extInModF == "Foundation")
+	sig, sameTypeConstraint := extractConstraintSigFullOpts(constraintBytes, extInModF == "Foundation", p.words, extInModF)
 	if foundationSameTypeSig != "" {
 		sig = foundationSameTypeSig
 		sameTypeConstraint = ""
@@ -9904,12 +10192,73 @@ func (p *parser) tryAssocTypeDescriptor() (*demangle.Node, bool) {
 	return wrap, true
 }
 
+// decodeWordSubAt decodes a word-substitution identifier from s starting at
+// position j (after the leading '0' has been consumed). Returns (text, end, ok).
+// words is the parser's word table used to resolve word-ref letters.
+// Mirrors the word-sub branch of parseIdentifier.
+func decodeWordSubAt(s string, j int, words []string) (string, int, bool) {
+	var buf strings.Builder
+	hasWS := true
+	for {
+		for hasWS && j < len(s) {
+			c := s[j]
+			if c >= 'a' && c <= 'z' {
+				idx := int(c - 'a')
+				if idx < len(words) {
+					buf.WriteString(words[idx])
+				}
+				j++
+			} else if c >= 'A' && c <= 'Z' {
+				idx := int(c - 'A')
+				if idx < len(words) {
+					buf.WriteString(words[idx])
+				}
+				j++
+				hasWS = false
+				break
+			} else {
+				break
+			}
+		}
+		if hasWS && j < len(s) && s[j] == '0' {
+			j++
+			break
+		}
+		if j >= len(s) || !(s[j] >= '0' && s[j] <= '9') {
+			break
+		}
+		start := j
+		for j < len(s) && s[j] >= '0' && s[j] <= '9' {
+			j++
+		}
+		length := 0
+		for k := start; k < j; k++ {
+			length = length*10 + int(s[k]-'0')
+		}
+		if j+length > len(s) {
+			return "", j, false
+		}
+		buf.WriteString(s[j : j+length])
+		j += length
+		if !hasWS {
+			break
+		}
+	}
+	text := buf.String()
+	if text == "" {
+		return "", j, false
+	}
+	return text, j, true
+}
+
 // extractConstraintSigFullOpts is like the removed extractConstraintSigFull but lets the
 // caller control whether ObjC base-class/same-type requirements (Rb/Rs on ObjC
 // class types) are included.  Pass includeObjCRequirements=true only for
 // Foundation-module verbose output; non-Foundation simplified output ignores
 // these constraints.
-func extractConstraintSigFullOpts(b []byte, includeObjCRequirements bool) (sig, sameTypeConstraint string) {
+// extModName is the extension module name (e.g. "Foundation") used by the
+// bare-nominal same-type scanner; pass "" when unknown.
+func extractConstraintSigFullOpts(b []byte, includeObjCRequirements bool, words []string, extModName string) (sig, sameTypeConstraint string) {
 	s := string(b)
 	// Same-type requirement: '<S<letter>> Rs z' encodes "A == <stdlib-type>".
 	// Check this first and return early (narrow: only one Rs per constraint).
@@ -10153,23 +10502,35 @@ func extractConstraintSigFullOpts(b []byte, includeObjCRequirements bool) (sig, 
 			}
 			protoName := s[j : j+plen]
 			j += plen
-			// Parse assoc-type name length + name.
-			if j >= len(s) || !(s[j] >= '1' && s[j] <= '9') {
+			// Parse assoc-type name: length-prefixed (1-9) or word-sub (0).
+			if j >= len(s) {
 				continue
 			}
-			aLenStart := j
-			for j < len(s) && s[j] >= '0' && s[j] <= '9' {
-				j++
-			}
-			alen := 0
-			for k := aLenStart; k < j; k++ {
-				alen = alen*10 + int(s[k]-'0')
-			}
-			if j+alen > len(s) {
+			var assocName string
+			if s[j] >= '1' && s[j] <= '9' {
+				aLenStart := j
+				for j < len(s) && s[j] >= '0' && s[j] <= '9' {
+					j++
+				}
+				alen := 0
+				for k := aLenStart; k < j; k++ {
+					alen = alen*10 + int(s[k]-'0')
+				}
+				if j+alen > len(s) {
+					continue
+				}
+				assocName = s[j : j+alen]
+				j += alen
+			} else if s[j] == '0' && len(words) > 0 {
+				j++ // skip '0' word-sub mode marker
+				var wsOk bool
+				assocName, j, wsOk = decodeWordSubAt(s, j, words)
+				if !wsOk || assocName == "" {
+					continue
+				}
+			} else {
 				continue
 			}
-			assocName := s[j : j+alen]
-			j += alen
 			// Optional parent-proto disambiguation: S<letter> stdlib shorthand.
 			parentProtoName := ""
 			if j+1 < len(s) && s[j] == 'S' {
@@ -10341,9 +10702,12 @@ func extractConstraintSigFullOpts(b []byte, includeObjCRequirements bool) (sig, 
 		}
 	}
 
-	// Scan for S<letter><N><assoc>Rp<subj> — assoc-type conformance where the
-	// constraining protocol is an S<letter> stdlib shorthand.
+	// Scan for S<letter><N><assoc>Rp<subj> or S<letter>0<word-sub>Rp<subj> —
+	// assoc-type conformance where the constraining protocol is an S<letter>
+	// stdlib shorthand and the assoc-type name is either length-prefixed or
+	// word-sub encoded.
 	// E.g. SZ6StrideRpz = "A.Stride: Swift.SignedInteger".
+	//      SF0C5InputRpz = "A.FormatInput: Swift.FloatingPoint" (word-sub).
 	// Guarded same as s<N>Rz above.
 	if includeObjCRequirements {
 		seenRpS := map[string]bool{}
@@ -10357,22 +10721,34 @@ func extractConstraintSigFullOpts(b []byte, includeObjCRequirements bool) (sig, 
 				continue
 			}
 			j := pos + 2
-			if j >= len(s) || !(s[j] >= '1' && s[j] <= '9') {
+			if j >= len(s) {
 				continue
 			}
-			aLenStart := j
-			for j < len(s) && s[j] >= '0' && s[j] <= '9' {
-				j++
-			}
-			alen := 0
-			for k := aLenStart; k < j; k++ {
-				alen = alen*10 + int(s[k]-'0')
-			}
-			if j+alen > len(s) {
+			var assocName string
+			if s[j] >= '1' && s[j] <= '9' {
+				aLenStart := j
+				for j < len(s) && s[j] >= '0' && s[j] <= '9' {
+					j++
+				}
+				alen := 0
+				for k := aLenStart; k < j; k++ {
+					alen = alen*10 + int(s[k]-'0')
+				}
+				if j+alen > len(s) {
+					continue
+				}
+				assocName = s[j : j+alen]
+				j += alen
+			} else if s[j] == '0' && len(words) > 0 {
+				j++ // skip leading '0'
+				var wsOk bool
+				assocName, j, wsOk = decodeWordSubAt(s, j, words)
+				if !wsOk || assocName == "" {
+					continue
+				}
+			} else {
 				continue
 			}
-			assocName := s[j : j+alen]
-			j += alen
 			if j+1 >= len(s) || s[j] != 'R' || s[j+1] != 'p' {
 				continue
 			}
@@ -10393,6 +10769,133 @@ func extractConstraintSigFullOpts(b []byte, includeObjCRequirements bool) (sig, 
 			key := paramName + "." + assocName + ": Swift." + protoEntry.Name
 			if !seenRpS[key] {
 				seenRpS[key] = true
+				constraints = append(constraints, key)
+			}
+		}
+	}
+
+	// Scan for s<N><kind>0<word-sub>Rt<subj> — assoc-type same-type constraint
+	// where the concrete type is a Swift-module named type and the assoc-type name
+	// is word-sub encoded.
+	// E.g. s8DurationV0C5InputRtzrl = "A.FormatInput == Swift.Duration".
+	if includeObjCRequirements && len(words) > 0 {
+		seenRtWS := map[string]bool{}
+		for pos := 0; pos+1 < len(s); pos++ {
+			if s[pos] != 's' || !(s[pos+1] >= '1' && s[pos+1] <= '9') {
+				continue
+			}
+			j := pos + 1
+			lenStart := j
+			for j < len(s) && s[j] >= '0' && s[j] <= '9' {
+				j++
+			}
+			n := 0
+			for k := lenStart; k < j; k++ {
+				n = n*10 + int(s[k]-'0')
+			}
+			nameEnd := j + n
+			if nameEnd >= len(s) {
+				continue
+			}
+			kind := s[nameEnd]
+			if kind != 'V' && kind != 'C' && kind != 'O' {
+				continue
+			}
+			typeName := s[j:nameEnd]
+			j = nameEnd + 1
+			if j >= len(s) || s[j] != '0' {
+				continue
+			}
+			j++ // skip '0'
+			assocName, j2, wsOk := decodeWordSubAt(s, j, words)
+			if !wsOk || assocName == "" {
+				continue
+			}
+			j = j2
+			if j+1 >= len(s) || s[j] != 'R' || s[j+1] != 't' {
+				continue
+			}
+			j += 2
+			if j >= len(s) {
+				continue
+			}
+			var paramName string
+			switch s[j] {
+			case 'z':
+				paramName = "A"
+			case '_':
+				paramName = "B"
+			}
+			if paramName == "" {
+				continue
+			}
+			key := paramName + "." + assocName + " == Swift." + typeName
+			if !seenRtWS[key] {
+				seenRtWS[key] = true
+				constraints = append(constraints, key)
+			}
+		}
+	}
+
+	// Scan for <N><name>V/C/O 0<word-sub>Rt<subj> — module-nominal same-type assoc-type constraint
+	// where the concrete type is a bare length-prefixed nominal (no 's' Swift prefix).
+	// Used for Foundation-module types like Foundation.Date in constraint bytes like
+	// A2A4DateV0C5InputRtzrl → "A.FormatInput == Foundation.Date".
+	// Only emits when extModName is non-empty and includeObjCRequirements is set.
+	if includeObjCRequirements && extModName != "" && len(words) > 0 {
+		seenBareRt := map[string]bool{}
+		for pos := 0; pos+1 < len(s); pos++ {
+			if !(s[pos] >= '1' && s[pos] <= '9') {
+				continue
+			}
+			j := pos
+			lenStart := j
+			for j < len(s) && s[j] >= '0' && s[j] <= '9' {
+				j++
+			}
+			n := 0
+			for k := lenStart; k < j; k++ {
+				n = n*10 + int(s[k]-'0')
+			}
+			nameEnd := j + n
+			if nameEnd >= len(s) {
+				continue
+			}
+			kind := s[nameEnd]
+			if kind != 'V' && kind != 'C' && kind != 'O' {
+				continue
+			}
+			typeName := s[j:nameEnd]
+			j = nameEnd + 1
+			if j >= len(s) || s[j] != '0' {
+				continue
+			}
+			j++ // skip '0' word-sub mode marker
+			assocName, j2, wsOk := decodeWordSubAt(s, j, words)
+			if !wsOk || assocName == "" {
+				continue
+			}
+			j = j2
+			if j+1 >= len(s) || s[j] != 'R' || s[j+1] != 't' {
+				continue
+			}
+			j += 2
+			if j >= len(s) {
+				continue
+			}
+			var paramName string
+			switch s[j] {
+			case 'z':
+				paramName = "A"
+			case '_':
+				paramName = "B"
+			}
+			if paramName == "" {
+				continue
+			}
+			key := paramName + "." + assocName + " == " + extModName + "." + typeName
+			if !seenBareRt[key] {
+				seenBareRt[key] = true
 				constraints = append(constraints, key)
 			}
 		}
