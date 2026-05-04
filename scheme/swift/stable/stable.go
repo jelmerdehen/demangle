@@ -6736,6 +6736,7 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 			break
 		}
 	}
+	origHostPath := hostPath // save before appending nested types
 	for _, nt := range nestedTypes {
 		hostPath += "." + nt
 	}
@@ -6754,6 +6755,12 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 		// Other extension modules (Combine, CoreData, UIKit, etc.) stay simplified.
 		if extHostMod != "" && (modName == "Foundation" || (modName == "Swift" && extHostMod == "__C")) {
 			pathText = "(extension in " + modName + "):" + extHostMod + "." + pathText
+		} else if modName == "Swift" && extHostMod == "Swift" && len(constraintBytes) > 0 {
+			// Swift-on-Swift extension with constraints: descriptor/accessor nodes need the full
+			// "(extension in Swift):Swift.<Type>< where ...>.<Nested>" format.
+			extSig, _ := extractConstraintSigFullOpts(constraintBytes, true, p.words, "Swift")
+			nestedPart := strings.TrimPrefix(pathText, origHostPath)
+			pathText = "(extension in Swift):Swift." + origHostPath + extSig + nestedPart
 		}
 		inner := common.NewNode(common.KindTypeMangling)
 		inner.Text = pathText

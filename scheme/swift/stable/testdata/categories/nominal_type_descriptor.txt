@@ -7,3 +7,9 @@ _$s10Foundation4DateV19RelativeFormatStyleV05UnitsE0VMn ---> nominal type descri
 _$s8Dispatch0A4DataV10FoundationE6RegionVMn ---> nominal type descriptor for (extension in Foundation):Dispatch.DispatchData.Region
 _$s7SwiftUI19MultimodalListStyleV04IconE0OMn ---> nominal type descriptor for MultimodalListStyle.IconStyle
 _$s7SwiftUI20TabViewCustomizationV07SectionE0VMn ---> nominal type descriptor for TabViewCustomization.SectionCustomization
+_$ss15FlattenSequenceVsSlRzSl7ElementRpzrlE5IndexVMn ---> nominal type descriptor for (extension in Swift):Swift.FlattenSequence< where A: Swift.Collection, A.Element: Swift.Collection>.Index
+_$ss16PartialRangeFromVsSxRzSZ6StrideRpzrlE8IteratorVMn ---> nominal type descriptor for (extension in Swift):Swift.PartialRangeFrom< where A: Swift.Strideable, A.Stride: Swift.SignedInteger>.Iterator
+_$ss18EnumeratedSequenceVsSlRzrlE5IndexVMn ---> nominal type descriptor for (extension in Swift):Swift.EnumeratedSequence< where A: Swift.Collection>.Index
+_$ss23LazyPrefixWhileSequenceVsSlRzrlE20_IndexRepresentationOMn ---> nominal type descriptor for (extension in Swift):Swift.LazyPrefixWhileSequence< where A: Swift.Collection>._IndexRepresentation
+_$ss23LazyPrefixWhileSequenceVsSlRzrlE5IndexVMn ---> nominal type descriptor for (extension in Swift):Swift.LazyPrefixWhileSequence< where A: Swift.Collection>.Index
+_$sSNsSxRzSZ6StrideRpzrlE5IndexOMn ---> nominal type descriptor for (extension in Swift):Swift.ClosedRange< where A: Swift.Strideable, A.Stride: Swift.SignedInteger>.Index

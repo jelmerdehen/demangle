@@ -7,3 +7,9 @@ _$s10Foundation4DateV19RelativeFormatStyleV05UnitsE0VMa ---> type metadata acces
 _$s8Dispatch0A4DataV10FoundationE6RegionVMa ---> type metadata accessor for (extension in Foundation):Dispatch.DispatchData.Region
 _$s7SwiftUI19MultimodalListStyleV04IconE0OMa ---> type metadata accessor for MultimodalListStyle.IconStyle
 _$s7SwiftUI20TabViewCustomizationV07SectionE0VMa ---> type metadata accessor for TabViewCustomization.SectionCustomization
+_$ss15FlattenSequenceVsSlRzSl7ElementRpzrlE5IndexVMa ---> type metadata accessor for (extension in Swift):Swift.FlattenSequence< where A: Swift.Collection, A.Element: Swift.Collection>.Index
+_$ss16PartialRangeFromVsSxRzSZ6StrideRpzrlE8IteratorVMa ---> type metadata accessor for (extension in Swift):Swift.PartialRangeFrom< where A: Swift.Strideable, A.Stride: Swift.SignedInteger>.Iterator
+_$ss18EnumeratedSequenceVsSlRzrlE5IndexVMa ---> type metadata accessor for (extension in Swift):Swift.EnumeratedSequence< where A: Swift.Collection>.Index
+_$ss23LazyPrefixWhileSequenceVsSlRzrlE20_IndexRepresentationOMa ---> type metadata accessor for (extension in Swift):Swift.LazyPrefixWhileSequence< where A: Swift.Collection>._IndexRepresentation
+_$ss23LazyPrefixWhileSequenceVsSlRzrlE5IndexVMa ---> type metadata accessor for (extension in Swift):Swift.LazyPrefixWhileSequence< where A: Swift.Collection>.Index
+_$sSNsSxRzSZ6StrideRpzrlE5IndexOMa ---> type metadata accessor for (extension in Swift):Swift.ClosedRange< where A: Swift.Strideable, A.Stride: Swift.SignedInteger>.Index
