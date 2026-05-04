@@ -11057,6 +11057,112 @@ func extractConstraintSigFullOpts(b []byte, includeObjCRequirements bool, words 
 		}
 	}
 
+	// Scan for <N><Ident>QzRsz — self-same-type constraint "A == A.<Ident>".
+	// Example: s11SubSequenceQzRszrl → "A == A.SubSequence"
+	if includeObjCRequirements {
+		seenSelfSame := map[string]bool{}
+		for pos := 2; pos+4 < len(s); pos++ {
+			if s[pos] != 'Q' || s[pos+1] != 'z' {
+				continue
+			}
+			if s[pos+2] != 'R' || s[pos+3] != 's' {
+				continue
+			}
+			var paramName string
+			switch s[pos+4] {
+			case 'z':
+				paramName = "A"
+			case '_':
+				paramName = "B"
+			}
+			if paramName == "" {
+				continue
+			}
+			identEnd := pos
+			i := identEnd - 1
+			for i >= 0 && ((s[i] >= 'a' && s[i] <= 'z') || (s[i] >= 'A' && s[i] <= 'Z') || s[i] == '_') {
+				i--
+			}
+			digEnd := i + 1
+			digStart := digEnd
+			for digStart > 0 && s[digStart-1] >= '0' && s[digStart-1] <= '9' {
+				digStart--
+			}
+			if digStart >= digEnd {
+				continue
+			}
+			n := 0
+			for k := digStart; k < digEnd; k++ {
+				n = n*10 + int(s[k]-'0')
+			}
+			if n <= 0 || digEnd+n != identEnd {
+				continue
+			}
+			identName := s[digEnd:identEnd]
+			key := paramName + " == " + paramName + "." + identName
+			if !seenSelfSame[key] {
+				seenSelfSame[key] = true
+				constraints = append(constraints, key)
+			}
+		}
+	}
+
+	// Scan for S<letter><N><Ident>Rtz — assoc-type same-type with stdlib type.
+	// Example: SS7ElementRtzrl → "A.Element == Swift.String"
+	if includeObjCRequirements {
+		seenAssocStdlibSame := map[string]bool{}
+		for pos := 0; pos+3 < len(s); pos++ {
+			if s[pos] != 'S' {
+				continue
+			}
+			nomNode, ok := common.BuildStdlibNominal(s[pos+1])
+			if !ok {
+				continue
+			}
+			j := pos + 2
+			if j >= len(s) || !(s[j] >= '1' && s[j] <= '9') {
+				continue
+			}
+			lenStart := j
+			for j < len(s) && s[j] >= '0' && s[j] <= '9' {
+				j++
+			}
+			n := 0
+			for k := lenStart; k < j; k++ {
+				n = n*10 + int(s[k]-'0')
+			}
+			nameEnd := j + n
+			if nameEnd+2 >= len(s) {
+				continue
+			}
+			assocName := s[j:nameEnd]
+			j = nameEnd
+			if s[j] != 'R' || s[j+1] != 't' {
+				continue
+			}
+			j += 2
+			if j >= len(s) {
+				continue
+			}
+			var paramName string
+			switch s[j] {
+			case 'z':
+				paramName = "A"
+			case '_':
+				paramName = "B"
+			}
+			if paramName == "" {
+				continue
+			}
+			typeName := common.Print(nomNode, common.DefaultPrintOptions())
+			key := paramName + "." + assocName + " == " + typeName
+			if !seenAssocStdlibSame[key] {
+				seenAssocStdlibSame[key] = true
+				constraints = append(constraints, key)
+			}
+		}
+	}
+
 	if len(constraints) == 0 {
 		return "", ""
 	}

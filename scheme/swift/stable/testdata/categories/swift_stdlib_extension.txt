@@ -4,6 +4,16 @@ _$sSBss17FixedWidthInteger14RawSignificandRpzrlE6random2inxSNyxG_tFZ ---> static
 _$sSBss17FixedWidthInteger14RawSignificandRpzrlE6random2inxSnyxG_tFZ ---> static (extension in Swift):Swift.BinaryFloatingPoint< where A.RawSignificand: Swift.FixedWidthInteger>.random(in: Swift.Range<A>) -> A
 _$sSIsSKRzrlE5index6before5IndexQzAD_tF ---> (extension in Swift):Swift.DefaultIndices< where A: Swift.BidirectionalCollection>.index(before: A.Index) -> A.Index
 _$sSIsSKRzrlE9formIndex6beforey0B0Qzz_tF ---> (extension in Swift):Swift.DefaultIndices< where A: Swift.BidirectionalCollection>.formIndex(before: inout A.Index) -> ()
+# QR fix: <N><Ident>QzRsz self-same-type constraint "A == A.<Ident>"
+_$sSKs11SubSequenceQzRszrlE10removeLast7ElementQzyF ---> (extension in Swift):Swift.BidirectionalCollection< where A == A.SubSequence>.removeLast() -> A.Element
+_$sSKs11SubSequenceQzRszrlE7popLast7ElementQzSgyF ---> (extension in Swift):Swift.BidirectionalCollection< where A == A.SubSequence>.popLast() -> A.Element?
+_$sSls11SubSequenceQzRszrlE11removeFirst7ElementQzyF ---> (extension in Swift):Swift.Collection< where A == A.SubSequence>.removeFirst() -> A.Element
+_$sSls11SubSequenceQzRszrlE8popFirst7ElementQzSgyF ---> (extension in Swift):Swift.Collection< where A == A.SubSequence>.popFirst() -> A.Element?
+_$sSms11SubSequenceQzRszrlE11removeFirst7ElementQzyF ---> (extension in Swift):Swift.RangeReplaceableCollection< where A == A.SubSequence>.removeFirst() -> A.Element
+_$ss9OptionSetPs7ElementQzRszrlE6removeyxSgxF ---> (extension in Swift):Swift.OptionSet< where A == A.Element>.remove(A) -> A?
+_$ss9OptionSetPs7ElementQzRszrlE6update4withxSgx_tF ---> (extension in Swift):Swift.OptionSet< where A == A.Element>.update(with: A) -> A?
+_$ss9OptionSetPs7ElementQzRszrlE8containsySbxF ---> (extension in Swift):Swift.OptionSet< where A == A.Element>.contains(A) -> Swift.Bool
+_$ss20LazySequenceProtocolPs8ElementsQzRszrlE8elementsxvg ---> (extension in Swift):Swift.LazySequenceProtocol< where A == A.Elements>.elements.getter : A
 # PY fix: E0-scanner look-ahead + Strategy 4 (Swift-stdlib extension host in constraintRHSType)
 # AASSAAE0C0VRszrl: A=generic-param, SS=Swift.String, AA=Foundation, E0C0V=word-sub "Comparator"V, Rsz=same-type
 _$s10Foundation14SortComparatorPAASSAAE0C0VRszrlE9localizedAEvgZ ---> static (extension in Foundation):Foundation.SortComparator< where A == (extension in Foundation):Swift.String.Comparator>.localized.getter : (extension in Foundation):Swift.String.Comparator
