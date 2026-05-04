@@ -15,6 +15,30 @@ func TestCheckFailingSymbols(t *testing.T) {
 
 	syms := []struct{ sym, want string }{
 		{
+			"_$ss20_SwiftNewtypeWrapperPss21_ObjectiveCBridgeable8RawValueRpzrlE016_forceBridgeFromD1C_6resultyAD_01_D5CTypeQZ_xSgztFZ",
+			"static (extension in Swift):Swift._SwiftNewtypeWrapper< where A.RawValue: Swift._ObjectiveCBridgeable>._forceBridgeFromObjectiveC(_: A.RawValue._ObjectiveCType, result: inout A?) -> ()",
+		},
+		{
+			"_$sSlsSIyxG7IndicesRtzrlE7indicesAAvpMV",
+			"property descriptor for (extension in Swift):Swift.Collection< where A.Indices == Swift.DefaultIndices<A>>.indices : Swift.DefaultIndices<A>",
+		},
+		{
+			"_$sSksSx5IndexRpzSnyABG7IndicesRtzSiAA_6StrideRTzrlE7indicesACvpMV",
+			"property descriptor for (extension in Swift):Swift.RandomAccessCollection< where A.Index: Swift.Strideable, A.Indices == Swift.Range<A.Index>, A.Index.Stride == Swift.Int>.indices : Swift.Range<A.Index>",
+		},
+		{
+			"_$s10Foundation11FormatStylePA2A07IntegerbC0VySiGRszrlE6numberAFvpZMV",
+			"property descriptor for static (extension in Foundation):Foundation.FormatStyle< where A == Foundation.IntegerFormatStyle<Swift.Int>>.number : Foundation.IntegerFormatStyle<Swift.Int>",
+		},
+		{
+			"_$s10Foundation11MeasurementVAASo11NSDimensionCRbzrlE11FormatStyleV6localeAA6LocaleVvpMV",
+			"property descriptor for (extension in Foundation):Foundation.Measurement< where A: __C.NSDimension>.FormatStyle.locale : Foundation.Locale",
+		},
+		{
+			"_$s10Foundation13CustomNSErrorPAASYRzs17FixedWidthInteger8RawValueSYRpzrlE9errorCodeSivpMV",
+			"property descriptor for (extension in Foundation):Foundation.CustomNSError< where A: Swift.RawRepresentable, A.Swift.RawRepresentable.RawValue: Swift.FixedWidthInteger>.errorCode : Swift.Int",
+		},
+		{
 			"_$s10Foundation17_CalendarProtocolP4date8byAdding2to18wrappingComponentsAA4DateVSgAA0jI0V_AISbtFTj",
 			"dispatch thunk of Foundation._CalendarProtocol.date(byAdding: Foundation.DateComponents, to: Foundation.Date, wrappingComponents: Swift.Bool) -> Foundation.Date?",
 		},
@@ -37,16 +61,20 @@ func TestCheckFailingSymbols(t *testing.T) {
 	}
 
 	for _, s := range syms {
+		tag := s.sym
+		if len(tag) > 40 {
+			tag = tag[:40]
+		}
 		result, err := cat.Demangle(context.Background(), s.sym, nil)
 		if err != nil {
-			fmt.Printf("ERROR[%s...]: %v\n", s.sym[:40], err)
+			fmt.Printf("ERROR[%s...]: %v\n", tag, err)
 			continue
 		}
 		got := result.Output
 		if got == s.want {
-			fmt.Printf("PASS[%s...]\n", s.sym[:40])
+			fmt.Printf("PASS[%s...]\n", tag)
 		} else {
-			fmt.Printf("FAIL[%s...]\n  GOT:  %s\n  WANT: %s\n", s.sym[:40], got, s.want)
+			fmt.Printf("FAIL[%s...]\n  GOT:  %s\n  WANT: %s\n", tag, got, s.want)
 		}
 	}
 }

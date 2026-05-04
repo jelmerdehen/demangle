@@ -6509,6 +6509,41 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 				}
 				ci++
 			}
+			// When constraint bytes start with S<letter>yxG (a bound-generic stdlib type
+			// with the first generic parameter as the type arg), push that type FIRST so
+			// that AA refs in the return type resolve to the bound-generic (e.g. the return
+			// type of Collection.indices is DefaultIndices<A>, not Module("Swift")).
+			// This mirrors Apple's demangler which pushes types from generic-sig constraints
+			// before the extension module, when those types appear before any identifier.
+			if hasConstraintIdents && len(constraintBytes) >= 5 &&
+				constraintBytes[0] == 'S' && constraintBytes[2] == 'y' &&
+				constraintBytes[3] == 'x' && constraintBytes[4] == 'G' {
+				letter := constraintBytes[1]
+				if stdNomBG, stdOkBG := common.BuildStdlibNominal(letter); stdOkBG && !isStdlibProtoNode(stdNomBG) {
+					// Determine the bound-generic kind from the nominal kind.
+					var bgKindBG common.NodeKind
+					if len(stdNomBG.Children) > 0 {
+						switch common.NodeKind(stdNomBG.Children[0].Kind) {
+						case common.KindStructure:
+							bgKindBG = common.KindBoundGenericStructure
+						case common.KindClass:
+							bgKindBG = common.KindBoundGenericClass
+						case common.KindEnum:
+							bgKindBG = common.KindBoundGenericEnum
+						}
+					}
+					if bgKindBG != 0 {
+						paramA := p.genericParam(0, 0) // first generic param (A)
+						tlBG := common.NewNode(common.KindTypeList)
+						common.AddChildren(tlBG, paramA)
+						bgNode := common.NewNode(bgKindBG)
+						common.AddChildren(bgNode, stdNomBG, tlBG)
+						bgTypeBG := common.NewNode(common.KindType)
+						common.AddChildren(bgTypeBG, bgNode)
+						p.subs.Push(bgTypeBG)
+					}
+				}
+			}
 			if hasConstraintIdents {
 				p.subs.Push(common.NewModule("Swift"))
 			}
