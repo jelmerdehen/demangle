@@ -1055,7 +1055,8 @@ func (p *parser) tryStdlibProtoConformanceSuffix(inner *demangle.Node) (*demangl
 				break
 			}
 			p.i += 2
-			// Optional digit-led associated type path (e.g., "6Stride" → "Stride").
+			// Optional digit-led or A<idx>-ref associated type path (e.g., "6Stride" → "Stride",
+			// "AC" → subs[2].Text when subs[2] is an Identifier).
 			var assocTypeName string
 			if !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
 				n2 := 0
@@ -1070,6 +1071,15 @@ func (p *parser) tryStdlibProtoConformanceSuffix(inner *demangle.Node) (*demangl
 					ok2 = false
 					break
 				}
+			} else if !p.eof() && p.s[p.i] == 'A' && p.i+1 < len(p.s) && p.s[p.i+1] >= 'A' && p.s[p.i+1] <= 'Z' {
+				idx := int(p.s[p.i+1] - 'A')
+				p.i += 2
+				assocNode, aok := p.subs.Get(idx)
+				if !aok || assocNode == nil || common.NodeKind(assocNode.Kind) != common.KindIdentifier {
+					ok2 = false
+					break
+				}
+				assocTypeName = assocNode.Text
 			}
 			if p.eof() || p.s[p.i] != 'R' {
 				ok2 = false
@@ -1382,6 +1392,15 @@ func (p *parser) tryAAConformanceSuffix(inner *demangle.Node) (*demangle.Node, b
 					ok3 = false
 					break
 				}
+			} else if !p.eof() && p.s[p.i] == 'A' && p.i+1 < len(p.s) && p.s[p.i+1] >= 'A' && p.s[p.i+1] <= 'Z' {
+				idx := int(p.s[p.i+1] - 'A')
+				p.i += 2
+				assocNode, aok := p.subs.Get(idx)
+				if !aok || assocNode == nil || common.NodeKind(assocNode.Kind) != common.KindIdentifier {
+					ok3 = false
+					break
+				}
+				assocType2 = assocNode.Text
 			}
 			if p.eof() || p.s[p.i] != 'R' {
 				ok3 = false
@@ -1484,11 +1503,15 @@ func (p *parser) tryAAConformanceSuffix(inner *demangle.Node) (*demangle.Node, b
 		if aaReqParseOK && len(parsedAAReqs) > 0 && !isConcurrency {
 			var cparts []string
 			seen4 := map[string]bool{}
+			hasAssocType2 := false
+			var subjects2 []string
+			seen5 := map[int]bool{}
 			for _, r := range parsedAAReqs {
 				subj := string(rune('A' + r.subjectIdx))
 				var lhs string
 				if r.assocType != "" {
 					lhs = subj + "." + r.assocType
+					hasAssocType2 = true
 				} else {
 					lhs = subj
 				}
@@ -1497,8 +1520,16 @@ func (p *parser) tryAAConformanceSuffix(inner *demangle.Node) (*demangle.Node, b
 					seen4[key] = true
 					cparts = append(cparts, lhs+": Swift."+r.protoName)
 				}
+				if !seen5[r.subjectIdx] {
+					seen5[r.subjectIdx] = true
+					subjects2 = append(subjects2, subj)
+				}
 			}
-			condPrefix = "< where " + strings.Join(cparts, ", ") + "> "
+			if !hasAssocType2 && !foundCondReq {
+				condPrefix = "<" + strings.Join(subjects2, ", ") + " where " + strings.Join(cparts, ", ") + "> "
+			} else {
+				condPrefix = "< where " + strings.Join(cparts, ", ") + "> "
+			}
 		}
 		if isConcurrency {
 			body = strings.TrimPrefix(innerStr, "Swift.")
@@ -1514,7 +1545,39 @@ func (p *parser) tryAAConformanceSuffix(inner *demangle.Node) (*demangle.Node, b
 			if c == 's' {
 				protoModStr = "Swift"
 			}
-			body = innerStr + " : " + protoModStr + "." + protoName + " in " + modText
+			foundCondPrefix := ""
+			if aaReqParseOK && len(parsedAAReqs) > 0 {
+				var cparts []string
+				seen4 := map[string]bool{}
+				hasAssocType2 := false
+				var subjects2 []string
+				seen5 := map[int]bool{}
+				for _, r := range parsedAAReqs {
+					subj := string(rune('A' + r.subjectIdx))
+					var lhs string
+					if r.assocType != "" {
+						lhs = subj + "." + r.assocType
+						hasAssocType2 = true
+					} else {
+						lhs = subj
+					}
+					key := lhs + ":" + r.protoName
+					if !seen4[key] {
+						seen4[key] = true
+						cparts = append(cparts, lhs+": Swift."+r.protoName)
+					}
+					if !seen5[r.subjectIdx] {
+						seen5[r.subjectIdx] = true
+						subjects2 = append(subjects2, subj)
+					}
+				}
+				if !hasAssocType2 && !foundCondReq {
+					foundCondPrefix = "<" + strings.Join(subjects2, ", ") + " where " + strings.Join(cparts, ", ") + "> "
+				} else {
+					foundCondPrefix = "< where " + strings.Join(cparts, ", ") + "> "
+				}
+			}
+			body = foundCondPrefix + innerStr + " : " + protoModStr + "." + protoName + " in " + modText
 		} else {
 			// All other modules (Combine, UIKit, SwiftUI…): simplified — strip module prefix.
 			// Conditional conformances get a "<> " prefix (Apple convention).
