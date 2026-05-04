@@ -1,7 +1,7 @@
 # Category: property descriptor
 # Format: <symbol> ---> <expected>
 # Source: production-divergences.txt (last parity run 2026-04-28T11:56:43Z)
-# All 10 are currently failing — track improvement
+# PT fix: extSig computation in property terminal + new constraint scanners (s<N>Rz, S<letter>Rp, Ri-B, RlzC)
 
 _$s7Combine10PublishersO5LabelV8categoryAE8CategoryVy_x_GvpMV ---> property descriptor for Publishers.Label.category
 _$s7Combine10PublishersO8DebounceV7dueTime09SchedulerE4Type_6StrideQY_vpMV ---> property descriptor for Publishers.Debounce.dueTime
@@ -46,3 +46,20 @@ _$s10Foundation11FormatStylePA2A3URLVABVRszrlE3urlAFvgZ ---> static (extension i
 _$s10Foundation11FormatStylePA2A3URLVABVRszrlE3urlAFvpZMV ---> property descriptor for static (extension in Foundation):Foundation.FormatStyle< where A == Foundation.URL.FormatStyle>.url : Foundation.URL.FormatStyle
 _$s10Foundation11FormatStylePA2A4DateV010ComponentsbC0VRszrlE12timeDurationAGvgZ ---> static (extension in Foundation):Foundation.FormatStyle< where A == Foundation.Date.ComponentsFormatStyle>.timeDuration.getter : Foundation.Date.ComponentsFormatStyle
 _$s10Foundation11FormatStylePA2A4DateV010ComponentsbC0VRszrlE12timeDurationAGvpZMV ---> property descriptor for static (extension in Foundation):Foundation.FormatStyle< where A == Foundation.Date.ComponentsFormatStyle>.timeDuration : Foundation.Date.ComponentsFormatStyle
+# PT: extSig in property terminal — s<N>Rz, S<letter>Rp, Ri-B, RlzC patterns
+_$ss12LazySequenceVsSlRzrlE5countSivpMV ---> property descriptor for (extension in Swift):Swift.LazySequence< where A: Swift.Collection>.count : Swift.Int
+_$ss12LazySequenceVsSlRzrlE7isEmptySbvpMV ---> property descriptor for (extension in Swift):Swift.LazySequence< where A: Swift.Collection>.isEmpty : Swift.Bool
+_$ss18AdditiveArithmeticPss27ExpressibleByIntegerLiteralRzrlE4zeroxvpZMV ---> property descriptor for static (extension in Swift):Swift.AdditiveArithmetic< where A: Swift.ExpressibleByIntegerLiteral>.zero : A
+_$ss12IdentifiablePsRlzCrlE2idSOvpMV ---> property descriptor for (extension in Swift):Swift.Identifiable< where A: AnyObject>.id : Swift.ObjectIdentifier
+_$ss11InlineArrayVsRi__rlE8_addressSPyq_GvpMV ---> property descriptor for (extension in Swift):Swift.InlineArray< where B: ~Swift.Copyable>._address : Swift.UnsafePointer<B>
+_$ss11InlineArrayVsRi__rlE8endIndexSivpMV ---> property descriptor for (extension in Swift):Swift.InlineArray< where B: ~Swift.Copyable>.endIndex : Swift.Int
+_$ss4SIMDPss17FixedWidthInteger6ScalarRpzrlE15nonzeroBitCountxvpMV ---> property descriptor for (extension in Swift):Swift.SIMD< where A.Scalar: Swift.FixedWidthInteger>.nonzeroBitCount : A
+_$ss4SIMDPss17FixedWidthInteger6ScalarRpzrlE3onexvpZMV ---> property descriptor for static (extension in Swift):Swift.SIMD< where A.Scalar: Swift.FixedWidthInteger>.one : A
+_$sSUss17FixedWidthIntegerRzrlE3maxxvpZMV ---> property descriptor for static (extension in Swift):Swift.UnsignedInteger< where A: Swift.FixedWidthInteger>.max : A
+_$sSUss17FixedWidthIntegerRzrlE3minxvpZMV ---> property descriptor for static (extension in Swift):Swift.UnsignedInteger< where A: Swift.FixedWidthInteger>.min : A
+_$sSZss17FixedWidthIntegerRzrlE3maxxvpZMV ---> property descriptor for static (extension in Swift):Swift.SignedInteger< where A: Swift.FixedWidthInteger>.max : A
+_$sSZss17FixedWidthIntegerRzrlE3minxvpZMV ---> property descriptor for static (extension in Swift):Swift.SignedInteger< where A: Swift.FixedWidthInteger>.min : A
+_$ss5ErrorPsSYRzs17FixedWidthInteger8RawValueSYRpzrlE5_codeSivpMV ---> property descriptor for (extension in Swift):Swift.Error< where A: Swift.RawRepresentable, A.Swift.RawRepresentable.RawValue: Swift.FixedWidthInteger>._code : Swift.Int
+_$sSnsSxRzSZ6StrideRpzrlE10startIndexxvpMV ---> property descriptor for (extension in Swift):Swift.Range< where A: Swift.Strideable, A.Stride: Swift.SignedInteger>.startIndex : A
+_$ss16PartialRangeFromVsSxRzSZ6StrideRpzrlE8IteratorV8_currentxvpMV ---> property descriptor for (extension in Swift):Swift.PartialRangeFrom< where A: Swift.Strideable, A.Stride: Swift.SignedInteger>.Iterator._current : A
+_$ss6ResultOsSHRzSHR_rlE9hashValueSivpMV ---> property descriptor for (extension in Swift):Swift.Result< where A: Swift.Hashable, B: Swift.Hashable>.hashValue : Swift.Int

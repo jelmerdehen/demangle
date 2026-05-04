@@ -6924,6 +6924,26 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 	}
 
 	// Property accessor and descriptor terminals.
+	// extSig: constraint signature suffix (e.g. "< where A: Swift.Hashable>") for
+	// the extension host type name; appended between baseHostPath and nested-type
+	// suffix in verbose output. extMarker: simplified "<>" placeholder for
+	// non-verbose generic protocol extensions.
+	// For nested types (hostPath = "Base.Nested"), extSig attaches to the base
+	// only: "(extension in Swift):Swift.Base<extSig>.Nested.decl".
+	extSig := ""
+	extMarker := ""
+	if len(constraintBytes) > 0 {
+		extSig, _ = extractConstraintSigFullOpts(constraintBytes, true)
+		if extSig == "" && len(constraintBytes) > 2 {
+			extMarker = "<>"
+		}
+	}
+	nestedSuffix := ""
+	baseHostPath := hostPath
+	if len(nestedTypes) > 0 {
+		nestedSuffix = "." + strings.Join(nestedTypes, ".")
+		baseHostPath = hostPath[:len(hostPath)-len(nestedSuffix)]
+	}
 	if !p.eof() && p.s[p.i] == 'v' && p.i+1 < len(p.s) {
 		switch p.s[p.i+1] {
 		case 'g', 's', 'M', 'w', 'W':
@@ -6951,11 +6971,11 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 			foundationExt := modName == "Foundation" && extHostMod != ""
 			swiftObjCExt := modName == "Swift" && extHostMod == "__C"
 			if verbose {
-				wrap.Text = staticPfx + "(extension in Swift):Swift." + hostPath + "." + declName + accessor + verboseRetStr(false)
+				wrap.Text = staticPfx + "(extension in Swift):Swift." + baseHostPath + extSig + nestedSuffix + "." + declName + accessor + verboseRetStr(false)
 			} else if foundationExt || swiftObjCExt {
 				wrap.Text = staticPfx + "(extension in " + modName + "):" + extHostMod + "." + hostPath + "." + declName + accessor + verboseRetStr(false)
 			} else {
-				wrap.Text = staticPfx + hostPath + "." + declName + accessor
+				wrap.Text = staticPfx + hostPath + extMarker + "." + declName + accessor
 			}
 			return wrap, true, nil
 		case 'p':
@@ -6978,11 +6998,11 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 					foundationExt := modName == "Foundation" && extHostMod != ""
 					swiftObjCExt := modName == "Swift" && extHostMod == "__C"
 					if verbose {
-						wrap.Text = "property descriptor for " + staticPfx + "(extension in Swift):Swift." + hostPath + "." + declName + verboseRetStr(false)
+						wrap.Text = "property descriptor for " + staticPfx + "(extension in Swift):Swift." + baseHostPath + extSig + nestedSuffix + "." + declName + verboseRetStr(false)
 					} else if foundationExt || swiftObjCExt {
 						wrap.Text = "property descriptor for " + staticPfx + "(extension in " + modName + "):" + extHostMod + "." + hostPath + "." + declName + verboseRetStr(false)
 					} else {
-						wrap.Text = "property descriptor for " + staticPfx + hostPath + "." + declName
+						wrap.Text = "property descriptor for " + staticPfx + hostPath + extMarker + "." + declName
 					}
 					return wrap, true, nil
 				}
@@ -6999,11 +7019,11 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 				foundationExt := modName == "Foundation" && extHostMod != ""
 				swiftObjCExt := modName == "Swift" && extHostMod == "__C"
 				if verbose {
-					wrap.Text = staticPfx + "(extension in Swift):Swift." + hostPath + "." + declName
+					wrap.Text = staticPfx + "(extension in Swift):Swift." + baseHostPath + extSig + nestedSuffix + "." + declName
 				} else if foundationExt || swiftObjCExt {
 					wrap.Text = staticPfx + "(extension in " + modName + "):" + extHostMod + "." + hostPath + "." + declName
 				} else {
-					wrap.Text = staticPfx + hostPath + "." + declName
+					wrap.Text = staticPfx + hostPath + extMarker + "." + declName
 				}
 				return wrap, true, nil
 			}
@@ -7118,7 +7138,14 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 		if len(constraintBytes) > 0 {
 			extSig, _ = extractConstraintSigFullOpts(constraintBytes, true)
 		}
-		wrap.Text = "(extension in Swift):Swift." + hostPath + extSig + "." + declName + verboseParamStr(labels) + verboseRetStr(true)
+		// extSig attaches to the base host type, not nested types.
+		fnNestedSuffix := ""
+		fnBaseHostPath := hostPath
+		if len(nestedTypes) > 0 {
+			fnNestedSuffix = "." + strings.Join(nestedTypes, ".")
+			fnBaseHostPath = hostPath[:len(hostPath)-len(fnNestedSuffix)]
+		}
+		wrap.Text = "(extension in Swift):Swift." + fnBaseHostPath + extSig + fnNestedSuffix + "." + declName + verboseParamStr(labels) + verboseRetStr(true)
 	} else if modName == "Foundation" && extHostMod != "" {
 		wrap.Text = "(extension in Foundation):" + extHostMod + "." + hostPath + "." + declName + genericPart + verboseParamStr(labels) + verboseRetStr(true)
 	} else {
@@ -9653,8 +9680,8 @@ func extractConstraintSigFullOpts(b []byte, includeObjCRequirements bool) (sig, 
 	}
 	} // end includeObjCRequirements
 
-	// Find 'Ri' (type-param inverse requirement): "A: ~Swift.Copyable".
-	// Pattern: Ri <idx>? _ <subj> where subj 'z' = A.
+	// Find 'Ri' (type-param inverse requirement): "A/B: ~Swift.Copyable".
+	// Pattern: Ri <idx>? _ <subj> where subj 'z' = A, '_' = B.
 	// idx: absent or digits; '_' terminates; 0=Copyable, 1=Escapable.
 	ri := strings.Index(s, "Ri")
 	if ri >= 0 {
@@ -9674,15 +9701,20 @@ func extractConstraintSigFullOpts(b []byte, includeObjCRequirements bool) (sig, 
 				idx = n + 1
 			}
 			j++ // consume '_'
-			// Subject byte: 'z' = first generic param = A.
-			if j < len(s) && s[j] == 'z' {
+			// Subject byte: 'z' = A, '_' = B.
+			if j < len(s) {
 				proto := "Swift.Copyable"
 				if idx == 1 {
 					proto = "Swift.Escapable"
 				} else if idx > 1 {
 					proto = fmt.Sprintf("Swift.<bit %d>", idx)
 				}
-				constraints = append(constraints, "A: ~"+proto)
+				switch s[j] {
+				case 'z':
+					constraints = append(constraints, "A: ~"+proto)
+				case '_':
+					constraints = append(constraints, "B: ~"+proto)
+				}
 			}
 		}
 	}
@@ -9827,6 +9859,137 @@ func extractConstraintSigFullOpts(b []byte, includeObjCRequirements bool) (sig, 
 			if !seenRp[key] {
 				seenRp[key] = true
 				constraints = append(constraints, assocPath+": Swift."+protoName)
+			}
+		}
+	}
+
+	// Scan for s<N><proto>Rz/R_ Swift-module protocol conformance via full name.
+	// Pattern: 's' digits name 'R' ('z'=A | '_'=B). E.g. s17FixedWidthIntegerRzrl = "A: Swift.FixedWidthInteger".
+	// Distinct from the s<N><proto><N><assoc>Rp assoc-type path: here 'R' follows immediately after name.
+	// Guarded: only emit for Swift-stdlib and Foundation extension contexts (avoids false positives in
+	// non-Foundation tryExtensionEntity paths like Combine/SwiftUI where Apple omits these constraints).
+	if includeObjCRequirements {
+		seenSwiftProto := map[string]bool{}
+		for pos := 0; pos+1 < len(s); pos++ {
+			if s[pos] != 's' || !(s[pos+1] >= '1' && s[pos+1] <= '9') {
+				continue
+			}
+			j := pos + 1
+			lenStart := j
+			for j < len(s) && s[j] >= '0' && s[j] <= '9' {
+				j++
+			}
+			n := 0
+			for k := lenStart; k < j; k++ {
+				n = n*10 + int(s[k]-'0')
+			}
+			nameEnd := j + n
+			if nameEnd >= len(s) {
+				continue
+			}
+			protoName := s[j:nameEnd]
+			j = nameEnd
+			if j >= len(s) || s[j] != 'R' {
+				continue
+			}
+			j++
+			if j >= len(s) {
+				continue
+			}
+			var paramName string
+			switch s[j] {
+			case 'z':
+				paramName = "A"
+			case '_':
+				paramName = "B"
+			}
+			if paramName == "" {
+				continue
+			}
+			key := paramName + ": Swift." + protoName
+			if !seenSwiftProto[key] {
+				seenSwiftProto[key] = true
+				constraints = append(constraints, key)
+			}
+		}
+	}
+
+	// Scan for S<letter><N><assoc>Rp<subj> — assoc-type conformance where the
+	// constraining protocol is an S<letter> stdlib shorthand.
+	// E.g. SZ6StrideRpz = "A.Stride: Swift.SignedInteger".
+	// Guarded same as s<N>Rz above.
+	if includeObjCRequirements {
+		seenRpS := map[string]bool{}
+		for pos := 0; pos+1 < len(s); pos++ {
+			if s[pos] != 'S' {
+				continue
+			}
+			letter := s[pos+1]
+			protoEntry, eok := common.StdlibLookup(letter)
+			if !eok {
+				continue
+			}
+			j := pos + 2
+			if j >= len(s) || !(s[j] >= '1' && s[j] <= '9') {
+				continue
+			}
+			aLenStart := j
+			for j < len(s) && s[j] >= '0' && s[j] <= '9' {
+				j++
+			}
+			alen := 0
+			for k := aLenStart; k < j; k++ {
+				alen = alen*10 + int(s[k]-'0')
+			}
+			if j+alen > len(s) {
+				continue
+			}
+			assocName := s[j : j+alen]
+			j += alen
+			if j+1 >= len(s) || s[j] != 'R' || s[j+1] != 'p' {
+				continue
+			}
+			j += 2
+			if j >= len(s) {
+				continue
+			}
+			var paramName string
+			switch s[j] {
+			case 'z':
+				paramName = "A"
+			case '_':
+				paramName = "B"
+			}
+			if paramName == "" {
+				continue
+			}
+			key := paramName + "." + assocName + ": Swift." + protoEntry.Name
+			if !seenRpS[key] {
+				seenRpS[key] = true
+				constraints = append(constraints, key)
+			}
+		}
+	}
+
+	// Layout requirement: Rl<subj>C = subject must be a class (AnyObject).
+	// Guarded same as s<N>Rz above.
+	if includeObjCRequirements {
+		for pos := 0; pos+2 < len(s); pos++ {
+			if s[pos] != 'R' || s[pos+1] != 'l' {
+				continue
+			}
+			var paramName string
+			switch s[pos+2] {
+			case 'z':
+				paramName = "A"
+			case '_':
+				paramName = "B"
+			}
+			if paramName == "" {
+				continue
+			}
+			if pos+3 < len(s) && s[pos+3] == 'C' {
+				constraints = append(constraints, paramName+": AnyObject")
 			}
 		}
 	}
