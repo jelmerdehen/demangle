@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 85.08% (54245/63757) — 2026-05-04T16:20:00Z
+**Parity**: 85.16% (54296/63757) — 2026-05-04T17:00:00Z
 **Round-trip**: 63.62% (11650/18311) — 2026-05-04T15:55:00Z
-**Failures**: ~8900 parse-errors + ~607 mismatches
+**Failures**: ~8850 parse-errors + ~607 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,6 +29,7 @@
 
 ## Last 10 Commits
 
+- 34d8d15 swift-parity: QW Sc<X> concurrency protocols in tryStdlibProtoConformanceSuffix — parity 85.08%→85.16% (+51 production, +5 fixtures)
 - 0230e18 swift-parity: QV Sc<X> concurrency types in tryVariableEntity — parity 84.92%→85.08% (+103 production, +4 fixtures)
 - 05cbc9e swift-parity: QU consume 'd' variadic marker in applyParamConvention — parity 84.86%→84.92% (+40 production, +3 fixtures)
 - 42ba64c chore: update digest.md for QT commit (parity 54098→54102)
