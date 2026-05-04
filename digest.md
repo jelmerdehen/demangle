@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 84.75% (54032/63757) — 2026-05-04T12:02:26Z
+**Parity**: 84.80% (54063/63757) — 2026-05-04T12:25:16Z
 **Round-trip**: 63.09% (11553/18311) — 2026-05-03T21:04:43Z
-**Failures**: 9093 parse-errors + 632 mismatches
+**Failures**: 9093 parse-errors + 601 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,6 +29,8 @@
 
 ## Last 10 Commits
 
+- 8c6ea9e swift-parity: QE QZ dependent-member-type chain — parity 84.75%→84.80% (+31 production, +2 fixtures)
+- 746ed3e chore: update digest.md for QD commit (parity 54020→54032)
 - c9f427e chore: lock snapshot after QD commit (parity 54020→54032)
 - a2f81a1 swift-parity: QD Swift-on-Swift extension descriptor full-form — parity 84.73%→84.75% (+12 production, +12 fixtures)
 - 9048e0a chore: update digest.md for QC commit (parity 54014→54020)
@@ -37,11 +39,9 @@
 - f1d57f1 chore: lock snapshot after QB commit (parity 54007→54014)
 - 15534b3 chore: update digest.md for QB commit (parity 54007→54014)
 - d9bed05 swift-parity: QB conformance-descriptor constraint prefix — parity 84.71%→84.72% (+7 production)
-- ec59934 chore: update digest.md for QA commit (parity 54003→54007)
-- ea48e5a swift-parity: QA _SwiftNewtypeWrapper assoc-type RawValue in tryTypeFirstExtensionEntity — parity 84.70%→84.71% (+4 production)
 
 ## Suggested Next 3 Items
 
 1. P1: property descriptor fix — 19 mismatches
 2. P10: opaque type descriptor — 12 mismatches
-3. P3: method descriptor — 5 mismatches
+3. QF: _CalendarProtocol.date to/byAdding substitution alignment — 4 mismatches
