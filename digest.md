@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 83.87% (53470/63757) — 2026-05-04 (ratchet)
+**Parity**: 83.97% (53537/63757) — 2026-05-04 (ratchet)
 **Round-trip**: 63.49% (11627/18311) — 2026-05-04 (ratchet)
-**Failures**: ~9690 parse-errors + ~597 mismatches (est; next parity run will refresh)
+**Failures**: ~9690 parse-errors + ~530 mismatches (est; divergences ts 2026-05-03T22:21:40Z — stale)
 
 ## Top-20 Mismatch Categories
 
@@ -29,20 +29,19 @@
 
 ## Last 10 Commits
 
+- 04a64a3 swift-parity: PP stdlib-ext constraint — parity 83.87%→83.97% (+67 production, +4 fixtures)
+- 3ccb7a4 chore: lock snapshot after PO commit (parity 53420→53470)
+- f3574da chore: update digest.md for PO commit (parity 53420→53470)
 - d0295ae swift-parity: PO parseNominalWithModule KindType — parity 83.79%→83.87% (+50 production, +8 fixtures)
+- 85e484c chore: update digest.md for PN commit (parity 53415→53420)
 - 6e78eb5 swift-parity: PN ObjC-ext return-type subs alignment — parity 83.77%→83.78% (+5 production, +5 fixtures)
 - 37abac3 chore: update digest.md for PM commit (parity 53410→53415)
 - 386119f swift-parity: PM tryExtensionEntity label-loop Qz break — parity 83.77%→83.78% (+5 production, +2 fixtures)
 - 0c855a0 chore: update digest.md for PL commit (parity 53408→53410)
 - 0d08e82 swift-parity: PL findTypeForIdent KindBuiltinTypeName suffix — parity 53408→53410 (+2 production, +2 fixtures)
-- 40d5c65 chore: update digest.md for PK commit (parity 53373→53408)
-- e83a4eb swift-parity: PK Swift.AnyObject type + UIViewInvalidating + propDesc AnyObject? — parity 53373→53408 (+35 production)
-- ddcb6a5 bench: drop topology-dependent benchmarks from CI baseline
-- d345bae swift-parity: PJ doubly-nested vpMV/vp outerExtPfx — parity 53360→53373 (+13 production)
-- c4ac86e ci: make bench-threshold configurable, set 100% on CI runners
 
 ## Suggested Next 3 Items
 
-1. property descriptor residual — 16 mismatches (PA-1 ObjC-ext partially fixed by PN)
-2. static (extension — 11 mismatches
-3. opaque type descriptor — 10 mismatches
+1. P1: property descriptor fix — 18 mismatches
+2. investigate: static (extension — 11 mismatches
+3. P10: opaque type descriptor — 10 mismatches
