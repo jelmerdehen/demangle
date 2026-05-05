@@ -4357,6 +4357,28 @@ func (p *parser) tryVariableEntity() (*demangle.Node, bool, error) {
 	// have a terminating plain-ident (decl-name).
 	for {
 		if p.eof() || !(p.s[p.i] >= '0' && p.s[p.i] <= '9') {
+			// A<subs>E<digit> is a same-module extension marker embedded in
+			// some nested-type chains (e.g. AAE13protobufValue…). Skip past
+			// the multi-sub back-ref and the 'E', then re-enter the loop to
+			// parse the next length-prefixed identifier.
+			if !p.eof() && p.s[p.i] == 'A' {
+				j := p.i + 1
+				for j < len(p.s) {
+					if p.s[j] >= 'A' && p.s[j] <= 'Z' {
+						j++
+						break
+					} else if p.s[j] >= 'a' && p.s[j] <= 'z' {
+						j++
+					} else {
+						break
+					}
+				}
+				if j < len(p.s) && p.s[j] == 'E' &&
+					j+1 < len(p.s) && p.s[j+1] >= '0' && p.s[j+1] <= '9' {
+					p.i = j + 1
+					continue
+				}
+			}
 			restore()
 			return nil, false, nil
 		}
@@ -7808,6 +7830,28 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 		return nil, false, nil
 	}
 	constraintBytes := []byte(p.s[scan:eFound])
+	// Guard: if constraintBytes starts with '0<uppercase>' (Pattern-C word-sub
+	// reference, NOT a Pattern-A literal chunk) and contains no real
+	// protocol-constraint markers (Rp/Rs/Rb/Rz/Rm/Rj), the bytes represent a
+	// nested-type chain from a variable entity — not extension constraint bytes.
+	// Pattern A ('0' followed by a digit) introduces a literal word chunk and IS
+	// legitimate in extension entity constraint bytes; skip the guard for that case.
+	if len(constraintBytes) > 1 && constraintBytes[0] == '0' &&
+		constraintBytes[1] >= 'A' && constraintBytes[1] <= 'Z' {
+		hasRealConstraint := false
+		for i := 0; i < len(constraintBytes)-1; i++ {
+			if constraintBytes[i] == 'R' {
+				switch constraintBytes[i+1] {
+				case 'p', 'b', 's', 'z', 'm', 'j':
+					hasRealConstraint = true
+				}
+			}
+		}
+		if !hasRealConstraint {
+			restore()
+			return nil, false, nil
+		}
+	}
 	p.i = eFound + 1 // past 'E'
 	// Populate subs from types in constraint bytes so that A<idx> refs
 	// in params/result resolve correctly. Apple's demangler pushes every
