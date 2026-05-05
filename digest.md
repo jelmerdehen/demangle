@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- 3da3815 swift-parity: nested-type A<sub>E false-positive guard + loop skip — parity 85.96%→85.97% (+4 production)
+- 1282c69 chore: lock snapshot after SA commit (parity 54801→54801)
+- 351abf9 chore: update digest.md for SA commit (parity 54775→54801)
 - b6647fb swift-parity: SA StringProtocol extension subs alignment — parity 85.92%→85.96% (+26 production)
 - bb7f126 chore: lock snapshot after RZ commit (parity 54775→54775)
 - 3396e8e swift-parity: RZ extension property return type via subs accumulator + TypeMangling bound generic — parity 85.86%→85.92% (+38 production)
@@ -36,9 +39,6 @@
 - a49a6bc swift-parity: RX captureWords in tryTypeFirstExtensionEntity constraint first-pass — parity 85.79%→85.80% (+4 production)
 - a81c27c chore: lock snapshot after RW commit (parity 54428→54696)
 - b12eb7d swift-parity: RW labeled-tuple result + y-existential fix — parity 85.37%→85.79% (+268 production, +2 fixtures)
-- 5f194db chore: lock snapshot after RV commit (parity 54411→54428)
-- c3c0d9a swift-parity: RV operator-on-type subs fix — SIMDMask<A> params — parity 85.34%→85.37% (+17 production)
-- 482a9e2 chore: lock snapshot after RU commit (parity 54409→54411)
 
 ## Suggested Next 3 Items
 
