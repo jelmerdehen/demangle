@@ -29,16 +29,16 @@
 
 ## Last 10 Commits
 
+- b6647fb swift-parity: SA StringProtocol extension subs alignment — parity 85.92%→85.96% (+26 production)
+- bb7f126 chore: lock snapshot after RZ commit (parity 54775→54775)
+- 3396e8e swift-parity: RZ extension property return type via subs accumulator + TypeMangling bound generic — parity 85.86%→85.92% (+38 production)
+- aaf50d5 swift-parity: RY ObjC resilient stub label + XE scanner fix — parity 85.80%→85.86% (+37 production)
 - a49a6bc swift-parity: RX captureWords in tryTypeFirstExtensionEntity constraint first-pass — parity 85.79%→85.80% (+4 production)
 - a81c27c chore: lock snapshot after RW commit (parity 54428→54696)
 - b12eb7d swift-parity: RW labeled-tuple result + y-existential fix — parity 85.37%→85.79% (+268 production, +2 fixtures)
 - 5f194db chore: lock snapshot after RV commit (parity 54411→54428)
 - c3c0d9a swift-parity: RV operator-on-type subs fix — SIMDMask<A> params — parity 85.34%→85.37% (+17 production)
 - 482a9e2 chore: lock snapshot after RU commit (parity 54409→54411)
-- 664d838 swift-parity: RU SlsSIyxG bound-generic pre-push fixes Collection.indices return type — parity 85.34%→85.34% (+2 production, +1 fixture)
-- f889090 chore: update digest.md for RT commit (parity 54335→54409)
-- 65af2df swift-parity: RT A<letter>Qz dependent-member type back-ref in extension entity — parity 85.22%→85.33% (+74 production, +4 fixtures)
-- 97b52b6 chore: update digest.md for RS commit (parity 54333→54335)
 
 ## Suggested Next 3 Items
 
