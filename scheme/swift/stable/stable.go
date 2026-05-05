@@ -330,6 +330,11 @@ type parser struct {
 	// argument list. Apple pushes Module("Swift") to subs for 's<ident><kind>'
 	// types in this context but not in other type positions.
 	inBoundGenericArgs bool
+	// inRawStdlibBoundGenericArgs is true when inBoundGenericArgs is true AND
+	// the base of the enclosing bound-generic was a raw stdlib type (parsedRawStdlib).
+	// Apple does not push bare S<letter> stdlib types to subs when they appear
+	// as args to a raw-stdlib bound-generic (e.g. SS inside SnySS5IndexVG).
+	inRawStdlibBoundGenericArgs bool
 }
 
 const maxParseDepth = 64
@@ -6960,6 +6965,12 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 					break
 				}
 				labels = append(labels, lbl)
+				// Mirror Apple's demangler: each named param label is pushed as
+				// an Identifier to the substitution table. This shifts subsequent
+				// A<idx> back-refs in the return/param types so that nested-nominal
+				// subs (Ident("Index"), Type(String.Index)) land at the correct indices.
+				// Unlabeled '_' params are not pushed (they are positional markers only).
+				p.subs.Push(common.NewIdentifier(lbl))
 			} else if c == 'y' && p.i+1 < len(p.s) && p.s[p.i+1] == 'y' {
 				p.i++ // consume first 'y' (label-list-empty marker)
 				break
@@ -13484,9 +13495,10 @@ func (p *parser) parseType() (*demangle.Node, error) {
 	}
 	c := p.s[p.i]
 	var (
-		node             *demangle.Node
-		err              error
-		parsedRawStdlib  bool
+		node              *demangle.Node
+		err               error
+		parsedRawStdlib   bool
+		parsedStdlib      bool // set whenever S<letter> stdlib type was parsed
 		fromNominalModule bool // set when 'A'→Module→parseNominalWithModule fires
 	)
 	switch {
@@ -13514,6 +13526,7 @@ func (p *parser) parseType() (*demangle.Node, error) {
 				p.i = j
 				node, err = p.parseStdlibSubstitution()
 				parsedRawStdlib = err == nil && !p.eof() && p.s[p.i] == 'y'
+				parsedStdlib = err == nil
 				break
 			}
 		}
@@ -13525,6 +13538,7 @@ func (p *parser) parseType() (*demangle.Node, error) {
 		// push handles it. When 'y' does NOT follow (e.g. 'Sd' as a plain
 		// argument), push normally so downstream A<idx> refs resolve.
 		parsedRawStdlib = err == nil && !p.eof() && p.s[p.i] == 'y'
+		parsedStdlib = err == nil
 	case c == 's':
 		p.i++
 		swiftMod := common.NewModule("Swift")
@@ -13929,7 +13943,7 @@ func (p *parser) parseType() (*demangle.Node, error) {
 		isGenParam := nk == common.KindDependentGenericParamType ||
 			(nk == common.KindType && len(node.Children) == 1 &&
 				common.NodeKind(node.Children[0].Kind) == common.KindDependentGenericParamType)
-		if !isGenParam && !parsedRawStdlib {
+		if !isGenParam && !parsedRawStdlib && !(parsedStdlib && p.inRawStdlibBoundGenericArgs) {
 			p.subs.Push(node)
 		}
 	}
@@ -14112,9 +14126,13 @@ afterNestedLoop:
 		}
 	}
 	// Bound-generic trailer: base y <type>+ G.
-	if bg, ok, err := p.tryBoundGeneric(node); err != nil {
-		return nil, err
-	} else if ok {
+	prevRawBG := p.inRawStdlibBoundGenericArgs
+	p.inRawStdlibBoundGenericArgs = parsedRawStdlib
+	bg, bgOk, bgErr := p.tryBoundGeneric(node)
+	p.inRawStdlibBoundGenericArgs = prevRawBG
+	if bgErr != nil {
+		return nil, bgErr
+	} else if bgOk {
 		node = bg
 		p.subs.Push(node)
 	}
@@ -14123,11 +14141,16 @@ afterNestedLoop:
 	// y<type>G bound-generic form.
 	if p.i+1 < len(p.s) && p.s[p.i] == 'S' && p.s[p.i+1] == 'g' {
 		p.i += 2
-		// Apple pushes the inner type again before the Optional wrapper:
-		// a back-ref to the inner type (e.g. AD) and to the Optional
-		// (e.g. AE) are both valid after Sg.
 		inner := node
-		p.subs.Push(inner)
+		// Apple pushes the inner type before the Optional wrapper so that
+		// A<n> back-refs to both the inner type and to Optional are valid.
+		// Exception: when the inner type is itself a bound-generic result
+		// (bgOk=true, e.g. Range<String.Index>), Apple does NOT do this pre-push;
+		// only the Optional is pushed. Doing so would shift subsequent A<n>
+		// refs off by one (e.g. AH would land on Range instead of Optional).
+		if !bgOk {
+			p.subs.Push(inner)
+		}
 		optBase, _ := common.BuildStdlibNominal('q') // Swift.Optional
 		typeList := common.NewNode(common.KindTypeList)
 		common.AddChildren(typeList, inner)
