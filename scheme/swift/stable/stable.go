@@ -5856,13 +5856,32 @@ func (p *parser) tryEntitySuffix(inner *demangle.Node) (*demangle.Node, bool) {
 					}
 					var innerStr string
 					if common.NodeKind(inner.Kind) == common.KindStoredProperty && len(inner.Children) >= 2 {
-						// Strip module + type annotation per Apple convention.
 						nc := len(inner.Children)
-						path := common.NewNode(common.KindEntityPath)
-						common.AddChildren(path, inner.Children[1:nc-1]...)
-						innerStr = common.Print(path, common.DefaultPrintOptions())
-						if inner.Attrs != nil && inner.Attrs["swift.static"] == "true" {
-							innerStr = "static " + innerStr
+						modName := ""
+						if common.NodeKind(inner.Children[0].Kind) == common.KindModule {
+							modName = inner.Children[0].Text
+						}
+						isConcurrencyAcc := modName == "Swift" && nc >= 3 &&
+							swiftConcurrencyRuntimeTypes[inner.Children[1].Text]
+						if (modName == "Swift" || modName == "Foundation") && !isConcurrencyAcc {
+							// Verbose form per Apple: Module.Type.field : Module.FieldType.
+							opts := common.DefaultPrintOptions()
+							path := common.NewNode(common.KindEntityPath)
+							common.AddChildren(path, inner.Children[:nc-1]...)
+							pathStr := common.Print(path, opts)
+							typeStr := common.Print(inner.Children[nc-1], opts)
+							innerStr = pathStr + " : " + typeStr
+							if inner.Attrs != nil && inner.Attrs["swift.static"] == "true" {
+								innerStr = "static " + innerStr
+							}
+						} else {
+							// Simplified per Apple: strip module + type annotation.
+							path := common.NewNode(common.KindEntityPath)
+							common.AddChildren(path, inner.Children[1:nc-1]...)
+							innerStr = common.Print(path, common.DefaultPrintOptions())
+							if inner.Attrs != nil && inner.Attrs["swift.static"] == "true" {
+								innerStr = "static " + innerStr
+							}
 						}
 					} else {
 						innerStr = simplifiedFuncEntity(inner)
