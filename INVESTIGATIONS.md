@@ -30,6 +30,8 @@ Got: `Swift.Result<Foundation.POSIXError>` (1 arg). Want: `Swift.Result<__C.NSFi
 
 **Fix risk:** parseNumericSubstitution is shared infrastructure. Changing the multi-sub path could regress dozens of symbols that genuinely use multi-sub sequences. Needs corpus-bisection or careful Apple-grammar reverse-engineering before patching.
 
+**Fire 16 partial attempt:** added kind-suffix gate (`A<lower><V|C|O|P>` returns sub when nominal-kind matches) in parseNumericSubstitution. Returned NSFileHandle but parseType post-`A` switch then extended into nested type `__C.NSFileHandle.POSIXError` instead of stopping. Reverted. Full fix needs ALSO suppressing nested-nominal extension in `inBoundGenericArgs` context. Two-step parser change.
+
 ### bidirectional-collection [3 syms, distinct bugs]
 
 - distance/_distance (2): `Si5IndexQz_AEtF` — Qz dependent-member param + AE subref. Got resolves `AE` to `Swift.Int`; should be `A.Index`. Parser subs-table miss.
