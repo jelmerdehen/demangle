@@ -171,6 +171,7 @@ Caveman: fire-internal terse OK; commits/code/comments normal.
 ## Lessons / wins (≤800 chars, merge-before-append, drop oldest at cap)
 
 <!-- newest on top -->
+- 2026-05-12 SE-meta: cache-only fires are pseudo-progress; investigation must culminate in an attempted fix in the same fire or next, not perpetual classification. Push through ceiling instead of bailing at 15min mark.
 - 2026-05-12 SD: Foundation-branch wrap.Text in tryFunctionEntity built manually; genericSigStr (already computed) only emitted under isWC gate. Drop isWC guard for genericSig emission. +29 prod.
 - 2026-05-12 SC: 4-part dependent-member constraint S<L1><N><assoc>S<L2>R[pt]<subj> needs distinct scan from 3-part S<L1><N><assoc>Rp; assoc-defining proto L2 may differ from constraint-target L1. +12 prod.
 - 2026-05-12 SB: cross-module bare ext constraintBytes (no Rz/rl, just length-prefixed module name) hits "<>" catch-all; gate with bare-module-descriptor check.

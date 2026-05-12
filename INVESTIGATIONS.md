@@ -22,14 +22,13 @@ Remaining are all subs-table / multi-constraint / sugar-form issues. No shared r
 - Emit path: `stable.go:5408` / `5530` / `1521` (multiple `termPrefix = "protocol conformance descriptor for "`).
 - Pattern reuse: RT commit (`ddfa696`) handled `A<letter>Qz` dependent-member in extension constraint emit — similar trail.
 
-### randomaccess-collection [4 syms, multi-constraint extension of SC]
+### randomaccess-collection [3 syms remain, return-type emission bug]
 
-- Want: `< where A.Index: Strideable, A.Indices == Swift.Range<A.Index>, A.Index.Stride == Swift.Int>`.
-- Got drops 2nd+3rd constraints (only `A.Index: Strideable` shown).
-- Missing patterns in `extractConstraintSigFullOpts`:
-  - `S<L>yX...G<N><assoc>Rt<subj>` — bound-generic concrete value (`SnyABG7IndicesRtz` = "A.Indices == Range<A.Index>"). Needs SC-scaffold extension: parse bound-generic concrete before assoc.
-  - `S<L1><N><assoc><subref><N><assoc>RT<subj>` — nested dependent member (`SiAA_6StrideRTz` = "A.Index.Stride == Int"). Note capital `RT` (vs lowercase `Rt`).
-- Likely 4+ syms across collection clusters when both patterns added.
+Constraint emission done via SE (`55c2852`). Remaining 3 syms still
+fail due to return-type drop in function-sig parser: e.g.
+`index(after: A.Index) -> ()` vs `-> A.Index`. The `A2B_tF` mangling
+sequence (2 reps of AB) is being consumed as 2 params + void ret,
+should be 1 ret + 1 param. Function-sig parser work needed.
 
 ### foundation-string-localization [7 syms]
 
@@ -51,6 +50,7 @@ Remaining are all subs-table / multi-constraint / sugar-form issues. No shared r
 
 ## Closed
 
+- 2026-05-12 SE (`55c2852`): bound-generic Rt + nested-member RT constraint scans — +1 prod. SC scaffold extension. Constraint emit complete for RAC cluster; return-type bug separate.
 - 2026-05-12 SD (`5ba59a6`): Foundation local-generic-sig drop — +29 prod via removing isWC guard at `stable.go:13554`. Unlocked URL.append, AttributedString.{+,+=,append,insert,Index.isValid}, etc — any Foundation method with single protocol-constrained generic param.
 - 2026-05-12 SC (`ef61987`): dependent-member constraint Rp/Rt with stdlib defining-proto — +12 prod via new 4-part scan in `extractConstraintSigFullOpts`. Unlocked RawRepresentable, _SwiftNewtypeWrapper, CodingKeyRepresentable clusters.
 - 2026-05-12 SB (`6c85d27`): preview-init cross-module bare-marker — +9 prod via `isBareModuleDescriptor` gate at `stable.go:9323`.
