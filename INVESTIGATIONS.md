@@ -24,7 +24,15 @@ fast loop fires — avoids re-deriving path/cause each fire. Bounded
 
 ### foundation-string-localization [7 syms]
 
-- Unanalysed. Want column starts with `(extension in Foundation):Swift.String.Localization…`. Grep needed.
+- Got: compact `AttributedString.LocalizationValue.init(_:)` vs Want full verbose `Foundation.AttributedString.init(localized:..., defaultValue: ..., ...) -> Foundation.AttributedString`.
+- Host-resolution bug — emit picks nested-type `LocalizationValue.init` instead of outer-type `AttributedString.init` with `LocalizationValue` as a param type.
+- Likely needs init-host detection fix; multi-fire.
+
+### foundation-tuple-flatten [Calendar.date, 5 syms]
+
+- Got: `Foundation.Calendar.date((era: Int, year: Int, …)) -> Date?` (double-paren). Want: `Foundation.Calendar.date(era: Int, year: Int, …) -> Date?` (flat).
+- Single tuple param wrapping multi-element labels — emitter wraps in outer `(…)` even though inner tuple already has its own parens.
+- **Dead-end fire 5:** edits at `stable.go:7363` (verboseParamStr), `:10362` (paramsStr default), `common/printer.go:567` (printFunctionEntity), `:909` (printFunctionType) all left output unchanged. Live emit path is elsewhere — probe with stderr print before next attempt. Avoid burning more cycles until path located.
 
 ### preview-init-cluster [STATIC, see Closed → SB]
 
