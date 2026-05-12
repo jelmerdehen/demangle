@@ -13765,6 +13765,53 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 					}
 					return true
 				}
+				// multiSubExpand: A<lowers>+<UPPER> multi-substitution chain —
+				// Apple's stack-based model pushes one node per letter onto
+				// the parse stack. Our recursive parseNumericSubstitution
+				// returns only the LAST sub, dropping intermediate elements.
+				// In tuple-elem context each letter should add one element
+				// (e.g. AdE = [subs[3], subs[4]] for _stringCompare).
+				multiSubExpand := func() bool {
+					if p.eof() || p.s[p.i] != 'A' || p.i+1 >= len(p.s) {
+						return false
+					}
+					if p.s[p.i+1] < 'a' || p.s[p.i+1] > 'z' {
+						return false
+					}
+					// Scan letters: lowercase+ terminated by an uppercase.
+					end := p.i + 1
+					for end < len(p.s) && p.s[end] >= 'a' && p.s[end] <= 'z' {
+						end++
+					}
+					if end >= len(p.s) || p.s[end] < 'A' || p.s[end] > 'Z' {
+						return false
+					}
+					// Resolve all letters before mutating state.
+					var subsOut []*demangle.Node
+					for k := p.i + 1; k <= end; k++ {
+						c := p.s[k]
+						var idx int
+						if c >= 'a' && c <= 'z' {
+							idx = int(c - 'a')
+						} else {
+							idx = int(c - 'A')
+						}
+						sub, ok := p.subs.Get(idx)
+						if !ok {
+							return false
+						}
+						if common.NodeKind(sub.Kind) == common.KindIdentifier {
+							if nx, ok2 := p.subs.Get(idx + 1); ok2 &&
+								common.NodeKind(nx.Kind) == common.KindType {
+								sub = nx
+							}
+						}
+						subsOut = append(subsOut, sub)
+					}
+					p.i = end + 1
+					elements = append(elements, subsOut...)
+					return true
+				}
 				// aCompactExpand: A<digits><UPPER> compact-repeat back-ref —
 				// expand to N copies of subs[UPPER-'A']. Mirrors sCompactExpand.
 				// parseNominalPath pushes Identifier THEN Type at adjacent
@@ -13824,6 +13871,9 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 					if aCompactExpand() {
 						continue
 					}
+					if multiSubExpand() {
+						continue
+					}
 					y, err := p.parseType()
 					if err != nil {
 						revert()
@@ -13839,6 +13889,12 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 				// we haven't reached the closing 't'.
 				for !p.eof() && p.s[p.i] != 't' && p.s[p.i] != '_' {
 					if sCompactExpand() {
+						continue
+					}
+					if aCompactExpand() {
+						continue
+					}
+					if multiSubExpand() {
 						continue
 					}
 					saveTuple := p.i
