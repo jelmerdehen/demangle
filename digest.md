@@ -1,12 +1,11 @@
 # Swift Production Digest
 
-**Parity**: 86.07% (54876/63757) — 2026-05-12T18:44:13Z
+**Parity**: 86.08% (54881/63757) — 2026-05-12T18:54:24Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 8436 parse-errors + 445 mismatches
+**Failures**: 8436 parse-errors + 440 mismatches
 
 ## Top-20 Mismatch Categories
 
-- (extension in Foundation):Swift.String.Localizatio… 7
 - property descriptor                        7
 - static (extension                          6
 - protocol conformance descriptor            5
@@ -18,6 +17,7 @@
 - (extension in Swift):Swift.RandomAccessCollection<… 3
 - (extension in Foundation):Foundation.DataProtocol.… 2
 - (extension in Foundation):Foundation.DiscreteForma… 2
+- (extension in Foundation):Swift.String.Localizatio… 2
 - (extension in Foundation):Swift.StringProtocol.com… 2
 - (extension in Foundation):Swift.StringProtocol.get… 2
 - (extension in Foundation):__C.NSDimension.init(for… 2
@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- ec0dc26 swift-parity: SK Foundation extension local where-constraint emit — parity 86.08%→86.08% (+2 production fast-probe; full count at fire end)
+- 1a0ad6f chore: lock snapshot after SJ commit (parity 54876→54881)
+- 1a7a12a chore: update digest.md for SJ commit (parity 54876→54881)
 - 99b2b9a swift-parity: SJ StringInterpolation void-return exclude fluent-builder — parity 86.07%→86.07% (+5 production fast-probe; full count at fire end)
 - 6ab37d1 chore(investigations): bound-generic-subs is compound, single-pass land impossible
 - 12bb37b chore(investigations): fire 34 narrowed root - compound subs-push bugs
@@ -36,9 +39,6 @@
 - 3af8aa9 chore(investigations): bound-generic-subs deferred operator-led, trim closed entries
 - 61c1408 chore(investigations): fire 22 root-located bound-generic-subs double-push
 - fc170c8 chore(investigations): trim under 6 KB cap
-- 50cc271 chore(investigations): classify bound-generic-subs-indexing as highest-fanout deferred
-- a42bb07 chore: lock snapshot after SI commit (parity 54871→54876)
-- 6d509ec chore: update digest.md for SI commit (parity 54871→54876)
 
 ## Suggested Next 3 Items
 
