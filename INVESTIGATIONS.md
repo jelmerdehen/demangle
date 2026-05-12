@@ -37,9 +37,9 @@ Same shape across many Swift stdlib clusters: bound-generic type pushed to subs 
 
 **Fire 34 attempt:** `rawBackRefResolve` flag → skip post-switch push when node==sub. Combined with deferred-push-after-bgcall. RangeSet fixed correctly (+1 in target) but production -8, Apple -1 (Foobar Vector2 `AJ` now resolves to Swift.Double instead of bound Vector2<Double>).
 
-**Compound bugs:** removing the wrong push exposes a second bug — some symbols rely on the duplicate-push for downstream A<n> alignment. Foobar's `AJ` should resolve to `Vector2<Double>` (bound) but Apple's subs model has different push events at OTHER sites that compensate. We're missing those compensating pushes.
+**Compound bugs confirmed (fires 33-35):** fire-34 net = +75 newly passing syms vs -83 newly failing syms = -8 net. Removing the wrong post-switch push fixes the bound-generic cluster but breaks a similar-sized different cluster relying on the dup-push for alignment.
 
-**Path forward:** match Apple's exact `addSubstitution` call-site set. Per Demangler.cpp grep: addSubstitution fires inside identifier parse (line 1362), nominal-type build (1588), bound-generic build (2158), assoc-type (2718), etc. Multiple compensating sites need audit. Estimate 4-8 fires to land safely with each push site verified individually.
+**Real path:** match Apple's exact `addSubstitution` call-site set. Build compensating pushes alongside current wrong-push (additive), verify each site doesn't regress, THEN remove the wrong-push. Multi-session careful refactor — single-pass landing isn't possible. Apple source paths catalogued in `c++/apple/swift/lib/Demangling/Demangler.cpp` (key fns: demangleMultiSubstitutions:1183, demangleBoundGenericType:2143, addSubstitution call sites throughout).
 
 ### bidirectional-collection [3 syms, distinct bugs]
 
