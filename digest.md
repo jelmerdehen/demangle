@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 86.15% (54925/63757) — 2026-05-12T19:55:11Z
+**Parity**: 86.16% (54932/63757) — 2026-05-12T20:08:11Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 8424 parse-errors + 408 mismatches
+**Failures**: 8424 parse-errors + 401 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- a8f929d swift-parity: SU Foundation full-form ret-tuple parens for multi-element labeled tuple — parity 86.16%→86.16% (+1 production fast-probe; full count at fire end)
+- f375c88 chore: lock snapshot after ST commit (parity 54925→54932)
+- 9ba2812 chore: update digest.md for ST commit (parity 54925→54932)
 - ddcecf7 swift-parity: ST init label-application for pre-rendered tuples + init_t wrap — parity 86.15%→86.15% (+2 production fast-probe; full count at fire end)
 - 6367ca2 chore: lock snapshot after SS commit (parity 54919→54925)
 - d47cbeb chore: update digest.md for SS commit (parity 54919→54925)
@@ -36,9 +39,6 @@
 - cfa655d chore: lock snapshot after SR commit (parity 54917→54919)
 - fe75b9d chore: update digest.md for SR commit (parity 54917→54919)
 - fb368ca swift-parity: SR tryTypeFirstExtensionEntity verbose-Swift branch emit genericPart — parity 86.13%→86.13% (+1 production fast-probe; full count at fire end)
-- 395449b chore: lock snapshot after SQ commit (parity 54915→54917)
-- 9e1176e chore: update digest.md for SQ commit (parity 54915→54917)
-- 404aa16 swift-parity: SQ tryExtensionEntity verbose-form local generic-sig from localGeneric bool — parity 86.13%→86.13% (+2 production fast-probe; full count at fire end)
 
 ## Suggested Next 3 Items
 
