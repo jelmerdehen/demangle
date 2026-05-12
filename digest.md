@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- 55c2852 swift-parity: SE bound-generic Rt + nested-member RT constraint scans — parity 86.04%→86.04% (+1 production)
+- 1f58a05 chore(investigations): classify randomaccess-collection multi-constraint pattern
+- e488792 chore(loop+investigations): fix divergences-append trap, classify post-SD Top-20
 - 9ece4d6 chore: SD retro — close local-generic-sig-drop, log Foundation isWC-guard fix
 - b26d4fa chore: lock snapshot after SD commit (parity 54826→54855)
 - fe06eeb chore: update digest.md for SD commit (parity 54826→54855)
@@ -36,9 +39,6 @@
 - 9de36b8 chore(investigations): record local-generic-sig-drop pattern + refresh digest
 - 170b540 chore: SC retro — close raw-representable cluster, log 4-part constraint pattern win
 - c6e8a48 chore: lock snapshot after SC commit (parity 54814→54826)
-- 1418209 chore: update digest.md for SC commit (parity 54814→54826)
-- ef61987 swift-parity: SC dependent-member constraint Rp/Rt with stdlib defining-proto — parity 85.97%→86.00% (+12 production)
-- c707688 chore(investigations): record fire 5 dead-ends
 
 ## Suggested Next 3 Items
 
