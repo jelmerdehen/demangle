@@ -12160,6 +12160,20 @@ func decodeOperatorName(encoded string) string {
 // full-form output: "label: Type, label: Type".
 func funcEntityFullParams(args *demangle.Node, opts common.PrintOptions) string {
 	var b strings.Builder
+	// Pre-rendered parenthesised tuple inside a Type→BuiltinTypeName:
+	// the text already contains its own "(label: T, ...)" form (e.g. labeled
+	// tuple param for stdlib/Foundation methods like Calendar.date(era:...,)).
+	// The caller wraps the result in "(...)" — returning the text as-is
+	// would yield "((...))". Strip the outer parens here so caller's wrap
+	// produces the single set Apple expects.
+	if common.NodeKind(args.Kind) == common.KindType &&
+		len(args.Children) == 1 &&
+		common.NodeKind(args.Children[0].Kind) == common.KindBuiltinTypeName {
+		t := args.Children[0].Text
+		if strings.HasPrefix(t, "(") && strings.HasSuffix(t, ")") {
+			return t[1 : len(t)-1]
+		}
+	}
 	// Single-label-wraps-tuple: when args is a TypeList whose children all
 	// carry the same non-empty label, Swift's source-level meaning is
 	// "label: (T1, T2, ...)" — the label belongs to the parenthesised
