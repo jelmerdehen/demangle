@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 86.13% (54913/63757) — 2026-05-12T19:28:30Z
+**Parity**: 86.13% (54915/63757) — 2026-05-12T19:36:12Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 8424 parse-errors + 420 mismatches
+**Failures**: 8424 parse-errors + 418 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -19,16 +19,19 @@
 - (extension in Foundation):Foundation.DiscreteForma… 2
 - (extension in Foundation):Swift.StringProtocol.com… 2
 - (extension in Foundation):Swift.StringProtocol.get… 2
-- (extension in Foundation):__C.NSDecimal.FormatStyl… 2
 - (extension in Swift):Swift.LazyFilterSequence< whe… 2
 - (extension in Swift):Swift.LazyMapSequence< where … 2
 - (extension in Swift):Swift.LazyPrefixWhileSequence… 2
 - (extension in Swift):Swift.RangeReplaceableCollect… 2
 - Foundation.AttributedString.init(localized: Swift.… 2
 - Swift.UnsafeMutablePointer.init(Swift.UnsafeMutabl… 2
+- Swift._decodeUTF8(Swift.UInt8, Swift.UInt8, Swift.… 2
 
 ## Last 10 Commits
 
+- 404aa16 swift-parity: SQ tryExtensionEntity verbose-form local generic-sig from localGeneric bool — parity 86.13%→86.13% (+2 production fast-probe; full count at fire end)
+- 0013e6b chore: lock snapshot after SP commit (parity 54913→54915)
+- 400eacb chore: update digest.md for SP commit (parity 54913→54915)
 - 1a0066b swift-parity: SP gate ObjC-host bare-return to flat hostPath only (nested stays extension form) — parity 86.13%→86.13% (+2 production fast-probe; full count at fire end)
 - 2980784 chore: lock snapshot after SO commit (parity 54913)
 - 07c6274 chore: update digest.md for SO commit (parity 54913→54913)
@@ -36,9 +39,6 @@
 - e01070d chore: lock snapshot after SN commit (parity 54911→54913, roundtrip 11687→11701)
 - 424f824 chore: update digest.md for SN commit (parity 54911→54913)
 - ff443bb swift-parity: SN tryInitDeinitEntity push labels to subs + clone-on-label-attach — parity 86.13%→86.13% (+2 production fast-probe; full count at fire end)
-- d8f4b35 chore: lock snapshot after SM commit (parity 54903→54911)
-- de225f0 chore: update digest.md for SM commit (parity 54903→54911)
-- 4605ebe swift-parity: SM E-scan word-sub multi-chunk run handling — parity 86.11%→86.11% (full count at fire end)
 
 ## Suggested Next 3 Items
 
