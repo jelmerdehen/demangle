@@ -25,7 +25,10 @@ Remaining are all subs-table / multi-constraint / sugar-form issues. No shared r
 ### nsfilehandle-result-back-ref [4 syms]
 
 Got: `Swift.Result<Foundation.POSIXError>` (1 arg). Want: `Swift.Result<__C.NSFileHandle, Foundation.POSIXError>` (2 args).
-Mangling: `s6ResultOyAbC10POSIXErrorVG` — `Ab` is back-ref letter 'b' (idx 1) producing __C.NSFileHandle (subs[1]). Parser inside `tryBoundGeneric` (`stable.go:15010`) drops `Ab` arg. `parseType` may not handle `Ab` multi-letter back-ref correctly inside bound-generic args context (works elsewhere via `A<UPPER>` patterns).
+
+**Root located (fire 15):** parseType at `stable.go:14016` calls `parseNumericSubstitution`. For input `AbC...`, the multi-sub path at `stable.go:16586+` treats `b` (lowercase) as push-and-continue + `C` (uppercase) as terminator-return → returns subs[2] (consumed `bC`). Apple's actual semantic likely treats `AbC` as a single back-ref to subs[1] (NSFileHandle) with `C` as kind-suffix confirming Class, NOT multi-sub. Then `10POSIXErrorV` parses as the second arg.
+
+**Fix risk:** parseNumericSubstitution is shared infrastructure. Changing the multi-sub path could regress dozens of symbols that genuinely use multi-sub sequences. Needs corpus-bisection or careful Apple-grammar reverse-engineering before patching.
 
 ### bidirectional-collection [3 syms, distinct bugs]
 
