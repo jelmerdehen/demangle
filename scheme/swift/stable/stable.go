@@ -7934,6 +7934,7 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 	if modName == "Foundation" && extHostMod != "" && retNode == nil && len(paramTypes) > 0 &&
 		!strings.HasSuffix(hostPath, ".StringInterpolation") {
 		hasInoutParam := false
+		hasUMPParam := false
 		for _, pt := range paramTypes {
 			if pt != nil && pt.Attrs != nil {
 				if pt.Attrs["swift.inout"] == "true" || pt.Attrs["swift.conv"] != "" {
@@ -7941,8 +7942,16 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 					break
 				}
 			}
+			if pt != nil {
+				txt := common.Print(pt, common.DefaultPrintOptions())
+				if strings.HasPrefix(txt, "Swift.UnsafeMutablePointer<") {
+					hasUMPParam = true
+				}
+			}
 		}
-		if !hasInoutParam {
+		// UnsafeMutablePointer params signal C-style out-params; return is
+		// genuinely void in such cases (e.g. getLineStart/getParagraphStart).
+		if !hasInoutParam && !hasUMPParam {
 			selfTN := common.NewNode(common.KindBuiltinTypeName)
 			selfTN.Text = "(extension in Foundation):" + extHostMod + "." + hostPath
 			selfT := common.NewNode(common.KindType)
