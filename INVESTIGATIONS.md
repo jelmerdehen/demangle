@@ -6,14 +6,14 @@ fast loop fires — avoids re-deriving path/cause each fire. Bounded
 
 ## Active targets
 
-### property-descriptor [~11 syms, 2 emit paths]
+### property-descriptor [7 syms post-SC, bespoke each]
 
-- Path A: `stable.go:7427` — vpMV/vpZMV inside `case 'p':` of property-accessor block. Foundation-ext static-on-bound-generic. Hit `make smoke`-tested for cluster.
-- Path B: `stable.go:10003` — stored-property + descriptor terminal, outside `case 'p':`. Hit for non-static Foundation-ext on FormatStyle.
-- Sub-cluster `Dispatch.regions` (2): want `[…Region]` sugar vs got `Swift.Array`. Sugar-form for single-arg Array trailer missing.
-- Sub-cluster `Swift.Result<NSFileHandle,POSIXError>` (1): 2-arg bound-generic loses first arg in subs trailer.
-- Sub-cluster `Indices==Range<Int>` (2): where-clause `Indices == Swift.Range<A.Index>` not preserved in trailer; emits "Swift" naked.
-- Sub-cluster `ScrapeableContent.Content.Button.Role` (1): nested-decl-name resolution wrong; emits `ScrapeableContent.protobufValue` (skip outer).
+Remaining are all subs-table / multi-constraint / sugar-form issues. No shared root. Recommended: defer until Top-20 simpler categories drained.
+- Measurement FormatStyle.attributed (2): missing AttributedStyle return-type subs.
+- Dispatch.Region.regions / Dispatch.regions (2): `[X]` sugar + inner-bound-generic-arg drop.
+- NSFileHandle Result<NSFileHandle,POSIXError> (1): 2-arg bound-generic loses first arg.
+- RandomAccessCollection indices (1): multi-constraint with `Rt`-bound-generic-concrete + `RT` capital.
+- UICorePlatformViewHost (1): wrong decl-name picked.
 
 ### protocol-conformance-descriptor [4 syms]
 

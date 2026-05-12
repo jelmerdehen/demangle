@@ -37,8 +37,10 @@ Never full-read `passing-*.txt` or `stable.go`. Never deep `git log`.
 2. `git log --grep="swift-parity:" --oneline -1` → next letter ID
    (SA → SB → … → SZ → TA). Each sub-fix in this fire gets next ID
    in sequence.
-3. Refresh divergences if older than 1 h:
-   `GOWORK=off go test -tags production_corpus -count=1 -run TestProductionCorpusParity ./scheme/swift/stable/testdata/production/`
+3. Refresh divergences if older than 1 h. The parity test APPENDS
+   per-run sections — must `rm` first or digest will pull mismatches
+   from stale sections (fixed but still listed).
+   `rm -f scheme/swift/stable/testdata/production/production-divergences.txt && GOWORK=off go test -tags production_corpus -count=1 -run TestProductionCorpusParity ./scheme/swift/stable/testdata/production/`
    then `make digest`.
 4. Read `INVESTIGATIONS.md` and `digest.md` Top-20.
 
@@ -176,5 +178,6 @@ Caveman: fire-internal terse OK; commits/code/comments normal.
 ## Lessons / traps (≤500 chars, merge-before-append, drop oldest at cap)
 
 <!-- newest on top -->
+- 2026-05-12 SE-meta: parity test APPENDS sections to divergences.txt; `make digest` reads all → fixed mismatches still surface in Top-20. Always `rm` divergences before refresh.
 - 2026-05-12 SB-attempt: stale gitignored production-divergences.txt → phantom Top-20. Regen before reading digest.
 - 2026-05-12 SB-attempt: two property-descriptor emit paths (stable.go:7427 + :10003); probe before editing to confirm which fires.

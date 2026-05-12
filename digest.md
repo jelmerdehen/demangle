@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 85.99% (54826/63757) — 2026-05-12T14:49:11Z
+**Parity**: 86.04% (54855/63757) — 2026-05-12T14:57:11Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 8436 parse-errors + 495 mismatches
+**Failures**: 8436 parse-errors + 466 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- 9ece4d6 chore: SD retro — close local-generic-sig-drop, log Foundation isWC-guard fix
+- b26d4fa chore: lock snapshot after SD commit (parity 54826→54855)
+- fe06eeb chore: update digest.md for SD commit (parity 54826→54855)
 - 5ba59a6 swift-parity: SD local generic sig on Foundation methods — parity 86.00%→86.04% (+29 production)
 - 9de36b8 chore(investigations): record local-generic-sig-drop pattern + refresh digest
 - 170b540 chore: SC retro — close raw-representable cluster, log 4-part constraint pattern win
@@ -36,9 +39,6 @@
 - 1418209 chore: update digest.md for SC commit (parity 54814→54826)
 - ef61987 swift-parity: SC dependent-member constraint Rp/Rt with stdlib defining-proto — parity 85.97%→86.00% (+12 production)
 - c707688 chore(investigations): record fire 5 dead-ends
-- 2fd3910 chore(.gitignore): ignore LOOP_PAUSED pause-flag file
-- 6066e20 loop: spec v2 — multi-fix per fire + fast-probe feedback + investigations cache
-- 94da23b chore: lock snapshot after SB commit (parity 54805→54814)
 
 ## Suggested Next 3 Items
 
