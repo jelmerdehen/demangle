@@ -11267,6 +11267,85 @@ func extractConstraintSigFullOpts(b []byte, includeObjCRequirements bool, words 
 		}
 	}
 
+	// Scan for S<L1><N><assoc>S<L2>R[pt]<subj> — dependent-member constraint
+	// where the assoc-type is defined inside a stdlib protocol L2 and the
+	// constraint targets a stdlib protocol or concrete type L1.
+	// Rp = conformance ("A.Swift.<L2>.<assoc>: Swift.<L1>"), Rt = same-type
+	// ("A.Swift.<L2>.<assoc> == Swift.<L1>"). Distinguished from the simpler
+	// S<L1><N><assoc>Rp<subj> path (line ~11197) by the extra S<L2> between
+	// assoc name and the R-byte.
+	// E.g. SH8RawValueSYRpz = "A.Swift.RawRepresentable.RawValue: Swift.Hashable".
+	//      Si8RawValueSYRtz = "A.Swift.RawRepresentable.RawValue == Swift.Int".
+	if includeObjCRequirements {
+		seenRpDep := map[string]bool{}
+		for pos := 0; pos+1 < len(s); pos++ {
+			if s[pos] != 'S' {
+				continue
+			}
+			letter1 := s[pos+1]
+			ent1, ok1 := common.StdlibLookup(letter1)
+			if !ok1 {
+				continue
+			}
+			j := pos + 2
+			if j >= len(s) || !(s[j] >= '1' && s[j] <= '9') {
+				continue
+			}
+			aLenStart := j
+			for j < len(s) && s[j] >= '0' && s[j] <= '9' {
+				j++
+			}
+			alen := 0
+			for k := aLenStart; k < j; k++ {
+				alen = alen*10 + int(s[k]-'0')
+			}
+			if j+alen > len(s) {
+				continue
+			}
+			assocName := s[j : j+alen]
+			j += alen
+			if j+3 >= len(s) || s[j] != 'S' {
+				continue
+			}
+			letter2 := s[j+1]
+			ent2, ok2 := common.StdlibLookup(letter2)
+			if !ok2 {
+				continue
+			}
+			j += 2
+			if s[j] != 'R' {
+				continue
+			}
+			reqByte := s[j+1]
+			if reqByte != 'p' && reqByte != 't' {
+				continue
+			}
+			j += 2
+			if j >= len(s) {
+				continue
+			}
+			var paramName string
+			switch s[j] {
+			case 'z':
+				paramName = "A"
+			case '_':
+				paramName = "B"
+			}
+			if paramName == "" {
+				continue
+			}
+			op := ": "
+			if reqByte == 't' {
+				op = " == "
+			}
+			out := paramName + ".Swift." + ent2.Name + "." + assocName + op + "Swift." + ent1.Name
+			if !seenRpDep[out] {
+				seenRpDep[out] = true
+				constraints = append(constraints, out)
+			}
+		}
+	}
+
 	// Scan for s<N><kind>0<word-sub>Rt<subj> — assoc-type same-type constraint
 	// where the concrete type is a Swift-module named type and the assoc-type name
 	// is word-sub encoded.
