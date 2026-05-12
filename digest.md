@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 86.16% (54932/63757) — 2026-05-12T20:08:11Z
+**Parity**: 86.16% (54935/63757) — 2026-05-12T20:24:09Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 8424 parse-errors + 401 mismatches
+**Failures**: 8424 parse-errors + 398 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- eb42bef swift-parity: SV double extension prefix for nested-extension descriptors — parity 86.16%→86.16% (+2 production fast-probe; full count at fire end)
+- b3ab7cd chore: lock snapshot after SU commit (parity 54932→54935)
+- bf0d610 chore: update digest.md for SU commit (parity 54932→54935)
 - a8f929d swift-parity: SU Foundation full-form ret-tuple parens for multi-element labeled tuple — parity 86.16%→86.16% (+1 production fast-probe; full count at fire end)
 - f375c88 chore: lock snapshot after ST commit (parity 54925→54932)
 - 9ba2812 chore: update digest.md for ST commit (parity 54925→54932)
@@ -36,9 +39,6 @@
 - 6367ca2 chore: lock snapshot after SS commit (parity 54919→54925)
 - d47cbeb chore: update digest.md for SS commit (parity 54919→54925)
 - 1294add swift-parity: SS S<N><letter> compact-stdlib at result-slot in tryTypeFirstExtensionEntity splits ret + (N-1) params on _t — parity 86.14%→86.14% (+1 production fast-probe; full count at fire end)
-- cfa655d chore: lock snapshot after SR commit (parity 54917→54919)
-- fe75b9d chore: update digest.md for SR commit (parity 54917→54919)
-- fb368ca swift-parity: SR tryTypeFirstExtensionEntity verbose-Swift branch emit genericPart — parity 86.13%→86.13% (+1 production fast-probe; full count at fire end)
 
 ## Suggested Next 3 Items
 
