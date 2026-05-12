@@ -14569,7 +14569,8 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 			p.i++
 		}
 		// Apply labels to BuiltinTypeName-wrapped tuple params by
-		// rewriting its text with 'label: type' pairs.
+		// rewriting its text with 'label: type' pairs. Labels of "_"
+		// emit as "_: " to match Apple's unnamed-positional convention.
 		if a != nil && len(a.Children) > 0 &&
 			common.NodeKind(a.Children[0].Kind) == common.KindBuiltinTypeName &&
 			len(pathLabels) > 0 {
@@ -14579,7 +14580,9 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 				parts := strings.Split(inner, ", ")
 				if len(parts) == len(pathLabels) {
 					for i := range parts {
-						if pathLabels[i] != "" && pathLabels[i] != "_" {
+						if pathLabels[i] == "_" {
+							parts[i] = "_: " + parts[i]
+						} else if pathLabels[i] != "" {
 							parts[i] = pathLabels[i] + ": " + parts[i]
 						}
 					}
