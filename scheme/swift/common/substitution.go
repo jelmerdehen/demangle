@@ -131,6 +131,16 @@ func StdlibLookup(c byte) (StdlibEntry, bool) {
 	return StdlibEntry{Module: s.module, Name: s.name}, true
 }
 
+// StdlibLookup2 returns the StdlibEntry for the Sc<letter> level-2
+// concurrency-stdlib abbreviation. Returns (entry, false) on miss.
+func StdlibLookup2(c byte) (StdlibEntry, bool) {
+	s, ok := StdlibSubstitutions2[c]
+	if !ok {
+		return StdlibEntry{}, false
+	}
+	return StdlibEntry{Module: s.module, Name: s.name}, true
+}
+
 // BuildStdlibNominal constructs a nominal-type Node (Structure / Enum
 // / Protocol with Module + Identifier children) for a known Swift
 // abbreviation. Returns (node, true) if the byte is mapped.

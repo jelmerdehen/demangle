@@ -11219,6 +11219,14 @@ func (p *parser) tryAssocTypeDescriptor() (*demangle.Node, bool) {
 
 	case p.s[p.i] == 'S' && p.i+1 < len(p.s):
 		// Pattern C: S<letter> stdlib substitution + Tl (no P byte)
+		// Variant Cc: Sc<letter> = level-2 (concurrency) substitution.
+		if p.s[p.i+1] == 'c' && p.i+2 < len(p.s) {
+			if entry2, ok := common.StdlibLookup2(p.s[p.i+2]); ok {
+				p.i += 3 // consume 'S' + 'c' + letter
+				qualifiedProto = entry2.Name
+				break
+			}
+		}
 		entry, ok := common.StdlibLookup(p.s[p.i+1])
 		if !ok {
 			restore()
