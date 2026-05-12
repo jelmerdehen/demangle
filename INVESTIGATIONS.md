@@ -33,11 +33,13 @@ Same shape across many Swift stdlib clusters: bound-generic type pushed to subs 
 - `Swift.AnyCollection.init(Swift.AnyCollection)` — param drops `<A>`
 - `Swift.Dictionary.Keys.index(after: Swift.Dictionary.Index)` — param wraps wrong
 
-**Root with Apple source (fire 33):** Apple's `Demangler.cpp:1191` (demangleMultiSubstitutions) — LOWERCASE letters push to NODE STACK not subs. Apple's `addSubstitution(Ident)` fires for EVERY parsed identifier (`Demangler.cpp:1362`). Decl-name "subtracting" is pushed to subs in Apple's model — our parser doesn't push decl-names → subs slot 3 holds bound but our slot 3 holds bare (off-by-one).
+**Root with Apple source (fires 33-35):** Apple `case 'A'` returns resolved sub WITHOUT addSubstitution. Lowercase letters push to NODE STACK only. Our `parseType:14411-14421` post-switch pushes EVERY parseType result to subs, including case-'A' raw-back-ref-resolves — incorrect per Apple model.
 
-Fix: add `p.subs.Push(common.NewIdentifier(declName))` after declName capture in every entity-parse path. Spans `stable.go:6930`, `tryFunctionEntity` decl-name capture, init-decl-name capture, etc. Multi-fire refactor — touches ALL parse paths that capture a decl-name. Risk of regression high without careful sweep.
+**Fire 34 attempt:** `rawBackRefResolve` flag → skip post-switch push when node==sub. Combined with deferred-push-after-bgcall. RangeSet fixed correctly (+1 in target) but production -8, Apple -1 (Foobar Vector2 `AJ` now resolves to Swift.Double instead of bound Vector2<Double>).
 
-Apple source paths: `lib/Demangling/Demangler.cpp` (apple/swift). Key fns: demangleMultiSubstitutions, demangleBoundGenericType, demangleBoundGenerics, addSubstitution.
+**Compound bugs:** removing the wrong push exposes a second bug — some symbols rely on the duplicate-push for downstream A<n> alignment. Foobar's `AJ` should resolve to `Vector2<Double>` (bound) but Apple's subs model has different push events at OTHER sites that compensate. We're missing those compensating pushes.
+
+**Path forward:** match Apple's exact `addSubstitution` call-site set. Per Demangler.cpp grep: addSubstitution fires inside identifier parse (line 1362), nominal-type build (1588), bound-generic build (2158), assoc-type (2718), etc. Multiple compensating sites need audit. Estimate 4-8 fires to land safely with each push site verified individually.
 
 ### bidirectional-collection [3 syms, distinct bugs]
 
