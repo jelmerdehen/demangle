@@ -1,4 +1,4 @@
-# snapshot-pass-set update 2026-05-12T15:39:52Z — union with previous (high-water)
+# snapshot-pass-set update 2026-05-12T15:42:32Z — union with previous (high-water)
 _$s10Foreground7SwiftUI18LabelGroupStyle_v0PTl
 _$s10Foundation10CocoaErrorV010formattingC0AC4CodeVvgZ
 _$s10Foundation10CocoaErrorV010formattingC0AC4CodeVvpZMV
@@ -45438,6 +45438,7 @@ _$sSzsExycfC
 _$ss017_convertPointerToB8Argumentyq_xs01_B0RzsABR_r0_lF
 _$ss018_bridgeAnyObjectToB0yypyXlSgF
 _$ss031_getFunctionFullNameFromMangledD007mangledD0SSSgSS_tF
+_$ss039_checkIllegalTaskLocalBindingWithinWithC5Group4file4lineySS_SutF
 _$ss10AnyKeyPathC04_kvcbC6StringSSSgvgTj
 _$ss10AnyKeyPathC04_kvcbC6StringSSSgvgTq
 _$ss10AnyKeyPathC04_kvcbC6StringSSSgvpMV
@@ -47056,6 +47057,7 @@ _$ss13_bridgeObject8toTaggedSuBb_tF
 _$ss13_identityCast_2toq_x_q_mtr0_lF
 _$ss13_nativeObject10fromBridgeBoBb_tF
 _$ss13_nativeObject10fromNativeBoyXl_tF
+_$ss13_runAsyncMainyyyyYaKcF
 _$ss13repeatElement_5counts8RepeatedVyxGx_SitlF
 _$ss13unsafeBitCast_2toq_x_q_mtr0_lF
 _$ss14CVaListPointerV018_fromUnsafeMutableC0ABSv_tcfC
@@ -49314,6 +49316,7 @@ _$ss22__SwiftDeferredNSArrayCMu
 _$ss22__SwiftDeferredNSArrayCN
 _$ss22__SwiftDeferredNSArrayCfD
 _$ss22__SwiftDeferredNSArrayCfd
+_$ss22_checkExpectedExecutor14_filenameStart01_D6Length01_D7IsASCII5_line9_executoryBp_BwBi1_BwBetF
 _$ss22_isBridgedToObjectiveCySbxmlF
 _$ss22_isValidArraySubscript_5countSbSi_SitF
 _$ss22_minimumMergeRunLengthyS2iF
@@ -49729,6 +49732,8 @@ _$ss25__SwiftNativeNSDictionaryCN
 _$ss25__SwiftNativeNSDictionaryCfD
 _$ss25__SwiftNativeNSDictionaryCfd
 _$ss25_conditionallyUnreachables5NeverOyF
+_$ss25_getGenericSerialExecutorBeyF
+_$ss25_getUndefinedTaskExecutorBeyF
 _$ss25_isClassOrObjCExistentialySbxmlF
 _$ss26AnyBidirectionalCollectionV10startIndexs0aE0Vvg
 _$ss26AnyBidirectionalCollectionV10startIndexs0aE0VvpMV
