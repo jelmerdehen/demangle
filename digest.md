@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 86.13% (54917/63757) — 2026-05-12T19:41:11Z
+**Parity**: 86.14% (54919/63757) — 2026-05-12T19:45:23Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 8424 parse-errors + 416 mismatches
+**Failures**: 8424 parse-errors + 414 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -19,16 +19,19 @@
 - (extension in Foundation):Swift.StringProtocol.com… 2
 - (extension in Foundation):Swift.StringProtocol.get… 2
 - (extension in Swift):Swift.LazyFilterSequence< whe… 2
-- (extension in Swift):Swift.LazyMapSequence< where … 2
 - (extension in Swift):Swift.LazyPrefixWhileSequence… 2
 - (extension in Swift):Swift.RangeReplaceableCollect… 2
 - Foundation.AttributedString.init(localized: Swift.… 2
 - Swift.UnsafeMutablePointer.init(Swift.UnsafeMutabl… 2
 - Swift._decodeUTF8(Swift.UInt8, Swift.UInt8, Swift.… 2
 - _DigitalCrownConfiguration.init(minValue:maxValue:… 2
+- dispatch thunk                             2
 
 ## Last 10 Commits
 
+- 1294add swift-parity: SS S<N><letter> compact-stdlib at result-slot in tryTypeFirstExtensionEntity splits ret + (N-1) params on _t — parity 86.14%→86.14% (+1 production fast-probe; full count at fire end)
+- cfa655d chore: lock snapshot after SR commit (parity 54917→54919)
+- fe75b9d chore: update digest.md for SR commit (parity 54917→54919)
 - fb368ca swift-parity: SR tryTypeFirstExtensionEntity verbose-Swift branch emit genericPart — parity 86.13%→86.13% (+1 production fast-probe; full count at fire end)
 - 395449b chore: lock snapshot after SQ commit (parity 54915→54917)
 - 9e1176e chore: update digest.md for SQ commit (parity 54915→54917)
@@ -36,9 +39,6 @@
 - 0013e6b chore: lock snapshot after SP commit (parity 54913→54915)
 - 400eacb chore: update digest.md for SP commit (parity 54913→54915)
 - 1a0066b swift-parity: SP gate ObjC-host bare-return to flat hostPath only (nested stays extension form) — parity 86.13%→86.13% (+2 production fast-probe; full count at fire end)
-- 2980784 chore: lock snapshot after SO commit (parity 54913)
-- 07c6274 chore: update digest.md for SO commit (parity 54913→54913)
-- 4d8b250 swift-parity: SO ObjC-host init returns bare __C.<host> not extension-form — parity 86.13%→86.13% (+2 production fast-probe; full count at fire end)
 
 ## Suggested Next 3 Items
 
