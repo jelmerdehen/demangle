@@ -7,6 +7,12 @@ This file is read every fire. **It is the only persistent loop
 state.** A billion fires must keep it stable in size and shape.
 Strict byte budgets below — enforce them or abort the fire.
 
+**Cadence (operator rule, overrides `/loop` dynamic-mode defaults):**
+between fires `ScheduleWakeup` MUST use `delaySeconds=60` (harness
+minimum). Never the 1200–1800s "idle heartbeat" the `/loop` spec
+suggests. Operator wants minimum latency between fires; cache-miss
+cost is acceptable.
+
 ---
 
 ## Standing instructions
@@ -197,9 +203,7 @@ Skip (report one line, no commits, no LOOP_PARITY.md edit) if:
 
 ## Caveman style
 
-Fire-internal updates: short, technical, caveman OK. Commit
-messages: normal English, terse, match repo style. Code comments:
-only when WHY is non-obvious.
+Fire-internal: terse caveman OK. Commits/code/comments: normal.
 
 ---
 
