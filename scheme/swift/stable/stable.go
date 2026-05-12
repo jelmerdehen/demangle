@@ -7566,7 +7566,14 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 			// an instance of the extended type.
 			if modName == "Foundation" && extHostMod != "" && retNode == nil {
 				selfTN := common.NewNode(common.KindBuiltinTypeName)
-				selfTN.Text = "(extension in Foundation):" + extHostMod + "." + hostPath
+				// ObjC-hosted inits (extHostMod="__C"): Apple renders return as
+				// bare "__C.NSDimension", not the "(extension in Foundation):"
+				// extension form used for Swift-hosted extension types.
+				if extHostMod == "__C" {
+					selfTN.Text = extHostMod + "." + hostPath
+				} else {
+					selfTN.Text = "(extension in Foundation):" + extHostMod + "." + hostPath
+				}
 				selfT := common.NewNode(common.KindType)
 				common.AddChildren(selfT, selfTN)
 				retNode = selfT
