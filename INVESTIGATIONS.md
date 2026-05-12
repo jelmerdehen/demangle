@@ -32,6 +32,15 @@ Got: `Swift.Result<Foundation.POSIXError>` (1 arg). Want: `Swift.Result<__C.NSFi
 
 **Fire 16/17 attempts:** kind-suffix gate in parseNumericSubstitution + flag-guarded skip of nested-nominal-chain at parseType:14474. Combined attempt **regressed parity 54863→54853 (-10)**. Reverted. The kind-suffix match condition fires for cases where it shouldn't (probably collisions with legitimate multi-sub sequences that happen to end with V/C/O/P matching). Need much narrower gate or completely different approach. Defer to dedicated session with thorough corpus-bisect.
 
+### bound-generic-subs-indexing [22+ syms across RangeSet, SIMD, Dictionary, Set, Any*Collection]
+
+Same shape across many Swift stdlib clusters: bound-generic type pushed to subs but back-refs (`AD` etc.) resolve to the BASE bare-generic version instead of the BOUND version. Examples:
+- `Swift.RangeSet.subtracting(Swift.RangeSet) → ...<A>)` — param drops `<A>`
+- `Swift.AnyCollection.init(Swift.AnyCollection)` — param drops `<A>`
+- `Swift.Dictionary.Keys.index(after: Swift.Dictionary.Index)` — param wraps wrong
+
+Likely fix: in tryBoundGeneric (`stable.go:15010`), the subs push for bound-generic result may be at wrong index OR Apple's subs model pushes BOTH base and bound; ours pushes one. Needs trace + Apple subs-model verification before patching. Highest-fanout potential remaining work — estimate 22+ syms unlock if fixed correctly.
+
 ### bidirectional-collection [3 syms, distinct bugs]
 
 - distance/_distance (2): `Si5IndexQz_AEtF` — Qz dependent-member param + AE subref. Got resolves `AE` to `Swift.Int`; should be `A.Index`. Parser subs-table miss.
