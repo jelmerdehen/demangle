@@ -7483,6 +7483,41 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 						}
 					}
 				}
+				// A<N><UPPER> compact-repeat back-ref: expand to N copies of
+				// subs[UPPER-'A']. parseNominalPath pushes Identifier THEN Type
+				// at adjacent slots; prefer the Type at idx+1 when idx is an
+				// Identifier (mirrors aCompactExpand in tryFunctionEntity).
+				if p.s[p.i] == 'A' && p.i+1 < len(p.s) &&
+					p.s[p.i+1] >= '0' && p.s[p.i+1] <= '9' {
+					j := p.i + 1
+					for j < len(p.s) && p.s[j] >= '0' && p.s[j] <= '9' {
+						j++
+					}
+					if j < len(p.s) && p.s[j] >= 'A' && p.s[j] <= 'Z' {
+						idx := int(p.s[j] - 'A')
+						sub, ok := p.subs.Get(idx)
+						if ok && common.NodeKind(sub.Kind) == common.KindIdentifier {
+							if nx, ok2 := p.subs.Get(idx + 1); ok2 &&
+								common.NodeKind(nx.Kind) == common.KindType {
+								sub = nx
+							}
+						}
+						if ok {
+							n := 0
+							for _, d := range p.s[p.i+1 : j] {
+								n = n*10 + int(d-'0')
+							}
+							if n >= 2 && n <= 512 {
+								p.i = j + 1
+								for k := 0; k < n; k++ {
+									paramTypes = append(paramTypes, sub)
+									paramCount++
+								}
+								continue
+							}
+						}
+					}
+				}
 				elemSave := p.i
 				elemSubs := p.subs
 				elem2, eerr2 := p.parseType()
@@ -9898,6 +9933,40 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 							p.i = j + 1
 							for k := 0; k < n; k++ {
 								paramTypes = append(paramTypes, one)
+							}
+							continue
+						}
+					}
+				}
+			}
+			// A<N><UPPER> compact-repeat back-ref: expand to N copies of
+			// subs[UPPER-'A']. parseNominalPath pushes Identifier THEN Type
+			// at adjacent slots; prefer the Type at idx+1 when idx is an
+			// Identifier (mirrors aCompactExpand in tryFunctionEntity).
+			if p.s[p.i] == 'A' && p.i+1 < len(p.s) &&
+				p.s[p.i+1] >= '0' && p.s[p.i+1] <= '9' {
+				j := p.i + 1
+				for j < len(p.s) && p.s[j] >= '0' && p.s[j] <= '9' {
+					j++
+				}
+				if j < len(p.s) && p.s[j] >= 'A' && p.s[j] <= 'Z' {
+					idx := int(p.s[j] - 'A')
+					sub, ok := p.subs.Get(idx)
+					if ok && common.NodeKind(sub.Kind) == common.KindIdentifier {
+						if nx, ok2 := p.subs.Get(idx + 1); ok2 &&
+							common.NodeKind(nx.Kind) == common.KindType {
+							sub = nx
+						}
+					}
+					if ok {
+						n := 0
+						for _, d := range p.s[p.i+1 : j] {
+							n = n*10 + int(d-'0')
+						}
+						if n >= 2 && n <= 512 {
+							p.i = j + 1
+							for k := 0; k < n; k++ {
+								paramTypes = append(paramTypes, sub)
 							}
 							continue
 						}
