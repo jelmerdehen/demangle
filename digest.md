@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 86.08% (54883/63757) — 2026-05-12T19:08:15Z
+**Parity**: 86.11% (54903/63757) — 2026-05-12T19:14:12Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 8436 parse-errors + 438 mismatches
+**Failures**: 8436 parse-errors + 418 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- 4605ebe swift-parity: SM E-scan word-sub multi-chunk run handling — parity 86.11%→86.11% (full count at fire end)
+- 7f43b50 chore: lock snapshot after SL commit (parity 54883→54903)
+- 5a9da3a chore: update digest.md for SL commit (parity 54883→54903)
 - 76b8ee5 swift-parity: SL A<N><UPPER> nested-postfix splits ret/param on stdlib nested-type — parity 86.08%→86.08% (+8 production fast-probe; full count at fire end)
 - acf55c8 chore: lock snapshot after SK commit (parity 54881→54883)
 - 246889e chore: update digest.md for SK commit (parity 54881→54883)
@@ -36,9 +39,6 @@
 - 1a0ad6f chore: lock snapshot after SJ commit (parity 54876→54881)
 - 1a7a12a chore: update digest.md for SJ commit (parity 54876→54881)
 - 99b2b9a swift-parity: SJ StringInterpolation void-return exclude fluent-builder — parity 86.07%→86.07% (+5 production fast-probe; full count at fire end)
-- 6ab37d1 chore(investigations): bound-generic-subs is compound, single-pass land impossible
-- 12bb37b chore(investigations): fire 34 narrowed root - compound subs-push bugs
-- 3f7bde6 chore(investigations): Apple-source-confirmed root for bound-generic-subs
 
 ## Suggested Next 3 Items
 
