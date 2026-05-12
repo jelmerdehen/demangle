@@ -5842,24 +5842,38 @@ func (p *parser) tryEntitySuffix(inner *demangle.Node) (*demangle.Node, bool) {
 			prefix = "value witness table for "
 		case 'v':
 			// Wv<X> — value-witness opcodes. Apple's swift-demangle emits
-			// "<opcode> for <inner>" with opcode varying by X. Narrow
-			// support so 'Wvd' (direct field offset, common in Combine
-			// generic boxes) round-trips without surfacing as a parse error.
+			// "<opcode> for <inner>" with opcode varying by X. For stored
+			// properties Apple strips module prefix + type annotation, so
+			// render the inner manually as "<HostName>.<propName>".
 			if p.i+2 < len(p.s) {
 				switch p.s[p.i+2] {
-				case 'd':
-					innerStr := simplifiedFuncEntity(inner)
+				case 'd', 'i':
+					var prefix string
+					if p.s[p.i+2] == 'd' {
+						prefix = "direct field offset for "
+					} else {
+						prefix = "indirect field offset for "
+					}
+					var innerStr string
+					if common.NodeKind(inner.Kind) == common.KindStoredProperty && len(inner.Children) >= 2 {
+						// Strip module + type annotation per Apple convention.
+						nc := len(inner.Children)
+						path := common.NewNode(common.KindEntityPath)
+						common.AddChildren(path, inner.Children[1:nc-1]...)
+						innerStr = common.Print(path, common.DefaultPrintOptions())
+						if inner.Attrs != nil && inner.Attrs["swift.static"] == "true" {
+							innerStr = "static " + innerStr
+						}
+					} else {
+						innerStr = simplifiedFuncEntity(inner)
+					}
 					wrap := common.NewNode(common.KindTypeMangling)
-					wrap.Text = "direct field offset for " + innerStr
-					wrap.Attrs = map[string]string{"swift.suffix": "Wvd", "swift.prerendered": "true"}
-					common.AddChildren(wrap, inner)
-					p.i += 3
-					return wrap, true
-				case 'i':
-					innerStr := simplifiedFuncEntity(inner)
-					wrap := common.NewNode(common.KindTypeMangling)
-					wrap.Text = "indirect field offset for " + innerStr
-					wrap.Attrs = map[string]string{"swift.suffix": "Wvi", "swift.prerendered": "true"}
+					wrap.Text = prefix + innerStr
+					sfx := "Wvd"
+					if p.s[p.i+2] == 'i' {
+						sfx = "Wvi"
+					}
+					wrap.Attrs = map[string]string{"swift.suffix": sfx, "swift.prerendered": "true"}
 					common.AddChildren(wrap, inner)
 					p.i += 3
 					return wrap, true
