@@ -11346,6 +11346,260 @@ func extractConstraintSigFullOpts(b []byte, includeObjCRequirements bool, words 
 		}
 	}
 
+	// Scan for S<L1>y<args>G<N><assoc>Rt<subj> — bound-generic concrete value
+	// same-type constraint. Args between 'y' and 'G' may include back-refs
+	// like 'A<letter>' that resolve to previously defined assoc-types in
+	// this constraint sequence. Single-letter known assoc-type back-refs
+	// resolved against earlier Rp-derived assoc names.
+	// E.g. SnyABG7IndicesRtz = "A.Indices == Swift.Range<A.Index>" when
+	// AB → A.Index (from earlier Sx5IndexRpz).
+	if includeObjCRequirements {
+		// First pass: collect param-assoc-name pairs from earlier Rp scans
+		// in this same constraint byte sequence. Used to resolve A<letter>
+		// back-refs in bound-generic args.
+		// We re-scan the simple S<L>R<subj> and S<L><N><assoc>Rp<subj> forms.
+		assocByParam := map[string][]string{} // "A" → ["Index", ...]
+		for pos := 0; pos+3 <= len(s); pos++ {
+			if s[pos] != 'S' {
+				continue
+			}
+			if _, ok := common.StdlibLookup(s[pos+1]); !ok {
+				continue
+			}
+			j := pos + 2
+			if j >= len(s) || !(s[j] >= '1' && s[j] <= '9') {
+				continue
+			}
+			aLenStart := j
+			for j < len(s) && s[j] >= '0' && s[j] <= '9' {
+				j++
+			}
+			alen := 0
+			for k := aLenStart; k < j; k++ {
+				alen = alen*10 + int(s[k]-'0')
+			}
+			if j+alen > len(s) {
+				continue
+			}
+			assocName := s[j : j+alen]
+			j += alen
+			if j+1 >= len(s) || s[j] != 'R' || s[j+1] != 'p' {
+				continue
+			}
+			j += 2
+			if j >= len(s) {
+				continue
+			}
+			var paramName string
+			switch s[j] {
+			case 'z':
+				paramName = "A"
+			case '_':
+				paramName = "B"
+			}
+			if paramName != "" {
+				assocByParam[paramName] = append(assocByParam[paramName], assocName)
+			}
+		}
+
+		seenRtBG := map[string]bool{}
+		for pos := 0; pos+1 < len(s); pos++ {
+			if s[pos] != 'S' {
+				continue
+			}
+			ent1, ok1 := common.StdlibLookup(s[pos+1])
+			if !ok1 {
+				continue
+			}
+			j := pos + 2
+			if j >= len(s) || s[j] != 'y' {
+				continue
+			}
+			j++
+			// Resolve single back-ref arg pattern: A<letter>.
+			if j+2 > len(s) || s[j] != 'A' {
+				continue
+			}
+			subrefByte := s[j+1]
+			j += 2
+			// args may continue with more types or close with 'G'.
+			if j >= len(s) || s[j] != 'G' {
+				continue
+			}
+			j++ // consume 'G'
+			// Now read length-prefixed assoc name.
+			if j >= len(s) || !(s[j] >= '1' && s[j] <= '9') {
+				continue
+			}
+			aLenStart := j
+			for j < len(s) && s[j] >= '0' && s[j] <= '9' {
+				j++
+			}
+			alen := 0
+			for k := aLenStart; k < j; k++ {
+				alen = alen*10 + int(s[k]-'0')
+			}
+			if j+alen > len(s) {
+				continue
+			}
+			assocName := s[j : j+alen]
+			j += alen
+			if j+2 > len(s) || s[j] != 'R' || s[j+1] != 't' {
+				continue
+			}
+			j += 2
+			if j >= len(s) {
+				continue
+			}
+			var paramName string
+			switch s[j] {
+			case 'z':
+				paramName = "A"
+			case '_':
+				paramName = "B"
+			}
+			if paramName == "" {
+				continue
+			}
+			// Resolve subref byte to A.<assocName-from-pool>. Heuristic:
+			// A_ → A (the param itself), A<letter> with letter >= 'A' →
+			// index into assocByParam[paramName].
+			argStr := ""
+			if subrefByte == '_' {
+				argStr = paramName
+			} else if subrefByte >= 'A' && subrefByte <= 'Z' {
+				idx := int(subrefByte - 'A')
+				assocs := assocByParam[paramName]
+				if idx >= 0 && idx < len(assocs) {
+					argStr = paramName + "." + assocs[idx]
+				} else if idx == 1 && len(assocs) > 0 {
+					// Common single-assoc case: AB → A.<first assoc>.
+					argStr = paramName + "." + assocs[0]
+				}
+			}
+			if argStr == "" {
+				continue
+			}
+			out := paramName + "." + assocName + " == Swift." + ent1.Name + "<" + argStr + ">"
+			if !seenRtBG[out] {
+				seenRtBG[out] = true
+				constraints = append(constraints, out)
+			}
+		}
+	}
+
+	// Scan for S<L1>AA_<N><assoc>RT<subj> — nested-member same-type constraint
+	// where the subject is a depth-2 dependent member (e.g. A.Index.Stride).
+	// AA_ is the multi-step back-ref decoding to A.<first-assoc>; RT (capital T)
+	// is the nested-member same-type requirement kind.
+	// E.g. SiAA_6StrideRTz = "A.Index.Stride == Swift.Int" when AA_ resolves
+	// to A.Index from earlier Sx5IndexRpz.
+	if includeObjCRequirements {
+		// Reuse the same assoc-pool building as pattern A.
+		assocByParam := map[string][]string{}
+		for pos := 0; pos+3 <= len(s); pos++ {
+			if s[pos] != 'S' {
+				continue
+			}
+			if _, ok := common.StdlibLookup(s[pos+1]); !ok {
+				continue
+			}
+			j := pos + 2
+			if j >= len(s) || !(s[j] >= '1' && s[j] <= '9') {
+				continue
+			}
+			aLenStart := j
+			for j < len(s) && s[j] >= '0' && s[j] <= '9' {
+				j++
+			}
+			alen := 0
+			for k := aLenStart; k < j; k++ {
+				alen = alen*10 + int(s[k]-'0')
+			}
+			if j+alen > len(s) {
+				continue
+			}
+			a := s[j : j+alen]
+			j += alen
+			if j+1 >= len(s) || s[j] != 'R' || s[j+1] != 'p' {
+				continue
+			}
+			j += 2
+			if j >= len(s) {
+				continue
+			}
+			var p string
+			switch s[j] {
+			case 'z':
+				p = "A"
+			case '_':
+				p = "B"
+			}
+			if p != "" {
+				assocByParam[p] = append(assocByParam[p], a)
+			}
+		}
+
+		seenRTNested := map[string]bool{}
+		for pos := 0; pos+3 < len(s); pos++ {
+			if s[pos] != 'S' {
+				continue
+			}
+			ent1, ok1 := common.StdlibLookup(s[pos+1])
+			if !ok1 {
+				continue
+			}
+			j := pos + 2
+			// Expect "AA_" multi-step back-ref.
+			if j+3 > len(s) || s[j] != 'A' || s[j+1] != 'A' || s[j+2] != '_' {
+				continue
+			}
+			j += 3
+			if j >= len(s) || !(s[j] >= '1' && s[j] <= '9') {
+				continue
+			}
+			aLenStart := j
+			for j < len(s) && s[j] >= '0' && s[j] <= '9' {
+				j++
+			}
+			alen := 0
+			for k := aLenStart; k < j; k++ {
+				alen = alen*10 + int(s[k]-'0')
+			}
+			if j+alen > len(s) {
+				continue
+			}
+			assocName := s[j : j+alen]
+			j += alen
+			if j+2 > len(s) || s[j] != 'R' || s[j+1] != 'T' {
+				continue
+			}
+			j += 2
+			if j >= len(s) {
+				continue
+			}
+			var paramName string
+			switch s[j] {
+			case 'z':
+				paramName = "A"
+			case '_':
+				paramName = "B"
+			}
+			if paramName == "" {
+				continue
+			}
+			assocs := assocByParam[paramName]
+			if len(assocs) == 0 {
+				continue
+			}
+			out := paramName + "." + assocs[0] + "." + assocName + " == Swift." + ent1.Name
+			if !seenRTNested[out] {
+				seenRTNested[out] = true
+				constraints = append(constraints, out)
+			}
+		}
+	}
+
 	// Scan for s<N><kind>0<word-sub>Rt<subj> — assoc-type same-type constraint
 	// where the concrete type is a Swift-module named type and the assoc-type name
 	// is word-sub encoded.
