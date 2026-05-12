@@ -37,11 +37,6 @@ Want: full Foundation verbose `Foundation.AttributedString.init(localized:..., d
 Parser misidentifies host as `LocalizationValue` (nested type from param-type stream) instead of `AttributedString`. Init labels get truncated to `_:` single. **Needs `tryInitDeinitEntity` parser surgery to keep host fixed across the label-then-param-types pattern. Multi-fire.**
 
 
-### foundation-tuple-flatten [Calendar.date, 5 syms]
-
-- Got: `Foundation.Calendar.date((era: Int, year: Int, …)) -> Date?` (double-paren). Want: `Foundation.Calendar.date(era: Int, year: Int, …) -> Date?` (flat).
-- Single tuple param wrapping multi-element labels — emitter wraps in outer `(…)` even though inner tuple already has its own parens.
-- **Dead-end fire 5:** edits at `stable.go:7363` (verboseParamStr), `:10362` (paramsStr default), `common/printer.go:567` (printFunctionEntity), `:909` (printFunctionType) all left output unchanged. Live emit path is elsewhere — probe with stderr print before next attempt. Avoid burning more cycles until path located.
 
 ### preview-init-cluster [STATIC, see Closed → SB]
 
@@ -51,6 +46,7 @@ Parser misidentifies host as `LocalizationValue` (nested type from param-type st
 
 ## Closed
 
+- 2026-05-12 SG (`2a7cca6`): foundation-tuple-flatten (Calendar.date) — +2 prod via stripping outer parens on pre-rendered tuple BuiltinTypeName in `funcEntityFullParams`. Calendar.date double-paren bug from fire 5 finally resolved by emit-path-locating via stderr probe.
 - 2026-05-12 SF (`ef13be1`): stdlib-init-tuple-label — +5 prod via single-label-wraps-tuple gate in `funcEntityFullParams`. Detects duplicate-label-per-tuple-child and wraps. Symptomatic but unambiguous (Swift forbids duplicate labels).
 - 2026-05-12 SE (`55c2852`): bound-generic Rt + nested-member RT constraint scans — +1 prod. SC scaffold extension. Constraint emit complete for RAC cluster; return-type bug separate.
 - 2026-05-12 SD (`5ba59a6`): Foundation local-generic-sig drop — +29 prod via removing isWC guard at `stable.go:13554`. Unlocked URL.append, AttributedString.{+,+=,append,insert,Index.isValid}, etc — any Foundation method with single protocol-constrained generic param.

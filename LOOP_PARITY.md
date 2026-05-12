@@ -171,6 +171,7 @@ Caveman: fire-internal terse OK; commits/code/comments normal.
 ## Lessons / wins (≤800 chars, merge-before-append, drop oldest at cap)
 
 <!-- newest on top -->
+- 2026-05-12 SG: pre-rendered parenthesised tuple as single-param-of-Type-BuiltinTypeName double-wraps when caller adds outer parens. Strip own parens in funcEntityFullParams. +2 prod.
 - 2026-05-12 SF: single label binding a tuple param shows as duplicated labels per child in funcEntityFullParams; symptomatic emit-side fix (detect all-same-label, wrap tuple) lands without finding the upstream label-copy site. Sometimes emit-side gate beats hunting the root. +5 prod.
 - 2026-05-12 SE-meta: cache-only fires are pseudo-progress; investigation must culminate in an attempted fix in the same fire or next, not perpetual classification. Push through ceiling instead of bailing at 15min mark.
 - 2026-05-12 SD: Foundation-branch wrap.Text in tryFunctionEntity built manually; genericSigStr (already computed) only emitted under isWC gate. Drop isWC guard for genericSig emission. +29 prod.
