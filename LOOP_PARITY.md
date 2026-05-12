@@ -177,6 +177,7 @@ Caveman: fire-internal terse OK; commits/code/comments normal.
 ## Lessons / traps (≤500 chars, merge-before-append, drop oldest at cap)
 
 <!-- newest on top -->
-- 2026-05-13 TI/TJ: porting TG/TH compact-expand helpers to tryInitDeinitEntity tuple-elem regressed -2/-3. Init shape where S<N><L>/A<lowers>+<U> ≠ tuple-expand. Narrower gate needed.
-- 2026-05-12 SK-attempt: collecting where-constraints unconditionally regressed -20 (simplified syms gained clauses); narrow to Foundation+'z'/'p' kinds gave +2. Display branches matter.
-- 2026-05-12 SE-meta: parity test APPENDS to divergences.txt; digest reads all. `rm` before refresh.
+- 2026-05-13 TP: funcEntityLabels split BuiltinTypeName-tuple per-elem '_:' broke curated (myColorLiteral.materialize wants singular '_:'). materialize ≠ fn tuple.
+- 2026-05-13 TI/TJ: TG/TH compact-expand helpers in tryInitDeinitEntity regressed -2/-3. Init shape ≠ tuple-expand.
+- 2026-05-12 SK: collecting where-constraints unconditionally regressed -20; narrow to Foundation+'z'/'p' kinds gave +2.
+- 2026-05-12 SE-meta: parity test APPENDS to divergences.txt; `rm` before refresh.
