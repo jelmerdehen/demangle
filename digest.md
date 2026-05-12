@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 86.65% (55247/63757) — 2026-05-12T23:16:08Z
+**Parity**: 86.86% (55378/63757) — 2026-05-12T23:30:01Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 8265 parse-errors + 245 mismatches
+**Failures**: 8134 parse-errors + 245 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,16 +29,16 @@
 
 ## Last 10 Commits
 
+- 7b6021f swift-parity: TT tryAssocTypeDescriptor accept Sc<letter> concurrency stdlib2 (Tl) — parity 86.86%→86.86% (full count at fire end)
+- e57b550 chore: lock snapshot after TS revert (parity 55378→55378, no-op)
+- 1cdf105 chore: lock snapshot after TR (parity 55247→55378)
+- b79d50b chore: update digest.md for TR (parity 55247→55378)
 - 21f7a00 swift-parity: TR tryGenericPreSpecialization wraps <args> Ts5 — parity 86.66%→86.66% (full count at fire end)
 - 4613eee chore: lock snapshot after TQ (parity 55239→55247)
 - 690420c chore: update digest.md for TQ (parity 55239→55247)
 - b640afe swift-parity: TQ tryFunctionEntity A<N><UPPER>+nested-postfix consume optional bound-generic tail — parity 86.64%→86.64% (full count at fire end)
 - 3292e19 chore: lock snapshot after TP revert (parity 55239→55239, no-op)
 - 05225bd Revert "swift-parity: TP funcEntityLabels split BuiltinTypeName tuple into per-element '_:' labels — parity 86.64%→86.64% (full count at fire end)"
-- 43e1d10 swift-parity: TP funcEntityLabels split BuiltinTypeName tuple into per-element '_:' labels — parity 86.64%→86.64% (full count at fire end)
-- 50dac13 chore: lock snapshot after TO (parity 55233→55239)
-- 2646821 chore: update digest.md for TO (parity 55233→55239)
-- df8dd49 swift-parity: TO tryFunctionEntity BuiltinTypeName tuple emit '_:' for unnamed label '_' — parity 86.63%→86.63% (full count at fire end)
 
 ## Suggested Next 3 Items
 
