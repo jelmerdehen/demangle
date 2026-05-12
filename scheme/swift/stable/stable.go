@@ -9354,7 +9354,13 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 				verboseHost += earlySig
 			}
 			verboseHost += nestedSuffix
-			innerText = "(extension in " + extInMod + "):" + verboseHost
+			prefix := "(extension in " + extInMod + "):"
+			if hasNestedExtension {
+				// Nested-extension entity (inner E found during scan): Apple
+				// emits the "(extension in M):" prefix once per E level.
+				prefix += "(extension in " + extInMod + "):"
+			}
+			innerText = prefix + verboseHost
 		}
 		inner := common.NewNode(common.KindTypeMangling)
 		inner.Text = innerText
