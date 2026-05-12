@@ -33,7 +33,11 @@ Same shape across many Swift stdlib clusters: bound-generic type pushed to subs 
 - `Swift.AnyCollection.init(Swift.AnyCollection)` — param drops `<A>`
 - `Swift.Dictionary.Keys.index(after: Swift.Dictionary.Index)` — param wraps wrong
 
-**Root (fire 22):** parseType:14419 pushes bare BEFORE bgcall; 14609 pushes bound. Apple's addSubstitution fires once after full type. Skip-on-y attempt regressed Apple 151→144 (`y` ambiguous: `yp`=Any, empty-args). Apple subs has bound at slot 3 (we have bare); needs intermediate inner-generic-param push too. Defer to operator-led session with Apple swift-demangle source.
+**Root with Apple source (fire 33):** Apple's `Demangler.cpp:1191` (demangleMultiSubstitutions) — LOWERCASE letters push to NODE STACK not subs. Apple's `addSubstitution(Ident)` fires for EVERY parsed identifier (`Demangler.cpp:1362`). Decl-name "subtracting" is pushed to subs in Apple's model — our parser doesn't push decl-names → subs slot 3 holds bound but our slot 3 holds bare (off-by-one).
+
+Fix: add `p.subs.Push(common.NewIdentifier(declName))` after declName capture in every entity-parse path. Spans `stable.go:6930`, `tryFunctionEntity` decl-name capture, init-decl-name capture, etc. Multi-fire refactor — touches ALL parse paths that capture a decl-name. Risk of regression high without careful sweep.
+
+Apple source paths: `lib/Demangling/Demangler.cpp` (apple/swift). Key fns: demangleMultiSubstitutions, demangleBoundGenericType, demangleBoundGenerics, addSubstitution.
 
 ### bidirectional-collection [3 syms, distinct bugs]
 
