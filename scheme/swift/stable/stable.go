@@ -5095,33 +5095,6 @@ func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 		if !p.eof() && p.s[p.i] == '_' && p.i+1 < len(p.s) && p.s[p.i+1] != 't' {
 			p.i++ // consume FirstElementMarker '_'
 			for !p.eof() && p.s[p.i] != 't' {
-				// S<N><letter> compact-stdlib repeat: expand to N copies
-				// of the letter-type. Mirrors tryFunctionEntity tuple
-				// loop's sCompactExpand. Needed for init signatures like
-				// WeekendRange.init(... start: Int, end: Int) which mangles
-				// the trailing two Ints as 'S2i'.
-				if p.s[p.i] == 'S' && p.i+1 < len(p.s) &&
-					p.s[p.i+1] >= '0' && p.s[p.i+1] <= '9' {
-					j := p.i + 1
-					for j < len(p.s) && p.s[j] >= '0' && p.s[j] <= '9' {
-						j++
-					}
-					if j < len(p.s) {
-						if one, okBN := common.BuildStdlibNominal(p.s[j]); okBN {
-							n := 0
-							for _, d := range p.s[p.i+1 : j] {
-								n = n*10 + int(d-'0')
-							}
-							if n >= 1 && n <= 512 {
-								p.i = j + 1
-								for k := 0; k < n; k++ {
-									paramTypes = append(paramTypes, one)
-								}
-								continue
-							}
-						}
-					}
-				}
 				// A<N><UPPER> compact-repeat back-ref: expand to N copies
 				// of subs[UPPER-'A']. parseNominalPath/WithModule pushes
 				// Identifier THEN Type at adjacent slots; Apple's index
