@@ -5339,6 +5339,17 @@ func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 			lbls = []string{"_:"}
 		}
 	}
+	// Fallback: label-list length may exceed paramTypes count when params
+	// were compacted (e.g. A<N><UPPER> multi-sub repeat collapsed to 1 node).
+	// Apple's simplified display still emits one entry per label.
+	for i := len(lbls); i < len(labels); i++ {
+		lbl := labels[i]
+		if lbl != "" && lbl != "_" {
+			lbls = append(lbls, lbl+":")
+		} else {
+			lbls = append(lbls, "_:")
+		}
+	}
 	paramsStr := "(" + strings.Join(lbls, "") + ")"
 	// For ufC inits (own generic where-clause), collect depth-0 generic param
 	// names (A, B, C…) from retType + paramsType to display as "<A>", "<A, B>".
