@@ -1,11 +1,12 @@
 # Swift Production Digest
 
-**Parity**: 86.35% (55057/63757) — 2026-05-12T21:01:33Z
+**Parity**: 86.38% (55073/63757) — 2026-05-12T21:25:12Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 8425 parse-errors + 275 mismatches
+**Failures**: 8352 parse-errors + 332 mismatches
 
 ## Top-20 Mismatch Categories
 
+- direct field offset for Swift.__RawDictionaryStora… 8
 - property descriptor                        6
 - static (extension                          6
 - protocol conformance descriptor            5
@@ -14,6 +15,7 @@
 - Foundation.AttributedString.init(localized: (exten… 4
 - (extension in Foundation):(extension in Foundation… 3
 - (extension in Swift):Swift.RandomAccessCollection<… 3
+- direct field offset for ClosureBasedAnySubscriber.… 3
 - (extension in Foundation):Foundation.DiscreteForma… 2
 - (extension in Foundation):Swift.StringProtocol.com… 2
 - (extension in Foundation):Swift.StringProtocol.get… 2
@@ -22,13 +24,14 @@
 - (extension in Swift):Swift.LazyPrefixWhileSequence… 2
 - (extension in Swift):Swift.RangeReplaceableCollect… 2
 - Foundation.AttributedString.init(localized: Swift.… 2
-- Swift.UnsafeMutablePointer.init(Swift.UnsafeMutabl… 2
-- Swift._decodeUTF8(Swift.UInt8, Swift.UInt8, Swift.… 2
-- dispatch thunk                             2
-- method descriptor                          2
+- Foundation.URL.init(fileURLWithPath: __shared Swif… 2
+- Foundation.URLComponents.init(string: __shared Swi… 2
 
 ## Last 10 Commits
 
+- bfbd2e2 swift-parity: TC tryConformanceDescriptorMc accept 's'-prefix Swift module proto — parity 86.39%→86.39% (full count at fire end)
+- c9d5933 chore: lock snapshot after TB commit (parity 55064→55073)
+- 3a45136 chore: update digest.md for TB commit (parity 55064→55073)
 - 26b223e swift-parity: TB tryInitDeinitEntity firstParam applyMod (z/h/n modifiers) — parity 86.37%→86.37% (full count at fire end)
 - ae455bb chore: lock snapshot after TA commit (parity 55057→55064, roundtrip 11810→11833)
 - a2880c6 chore: update digest.md for TA commit (parity 55057→55064)
@@ -36,9 +39,6 @@
 - 3580052 chore: lock snapshot after SY commit (parity 55055→55057)
 - e62cf80 chore: update digest.md for SY commit (parity 55055→55057)
 - 211517e swift-parity: SY tryInitDeinitEntity A<N><UPPER> compact-repeat (Type-slot lookup) — parity 86.35%→86.35% (+1 production fast-probe; full count at fire end)
-- 7cf6dba chore: lock snapshot after SX commit (parity 54947→55055, roundtrip 11701→11810)
-- fcdd1bf chore: update digest.md for SX commit (parity 54947→55055)
-- c1d0e14 swift-parity: SX consumeElemMods clone-before-attr to prevent shared back-ref-resolved nodes inheriting modifiers — parity 86.18%→86.18% (+1 production fast-probe; full count at fire end)
 
 ## Suggested Next 3 Items
 
