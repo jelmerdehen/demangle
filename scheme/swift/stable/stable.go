@@ -5159,6 +5159,47 @@ func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 						}
 					}
 				}
+				// A<lowers>+<UPPER> multi-substitution chain: Apple's
+				// stack-based model pushes one node per letter. Our
+				// recursive parseNumericSubstitution returns only the
+				// last. In tuple-elem context each letter = one element.
+				if p.s[p.i] == 'A' && p.i+1 < len(p.s) &&
+					p.s[p.i+1] >= 'a' && p.s[p.i+1] <= 'z' {
+					end := p.i + 1
+					for end < len(p.s) && p.s[end] >= 'a' && p.s[end] <= 'z' {
+						end++
+					}
+					if end < len(p.s) && p.s[end] >= 'A' && p.s[end] <= 'Z' {
+						var subsOut []*demangle.Node
+						resOK := true
+						for k := p.i + 1; k <= end; k++ {
+							c := p.s[k]
+							var idx int
+							if c >= 'a' && c <= 'z' {
+								idx = int(c - 'a')
+							} else {
+								idx = int(c - 'A')
+							}
+							sub, ok := p.subs.Get(idx)
+							if !ok {
+								resOK = false
+								break
+							}
+							if common.NodeKind(sub.Kind) == common.KindIdentifier {
+								if nx, ok2 := p.subs.Get(idx + 1); ok2 &&
+									common.NodeKind(nx.Kind) == common.KindType {
+									sub = nx
+								}
+							}
+							subsOut = append(subsOut, sub)
+						}
+						if resOK {
+							p.i = end + 1
+							paramTypes = append(paramTypes, subsOut...)
+							continue
+						}
+					}
+				}
 				elem, eerr := p.parseType()
 				if eerr != nil {
 					break
