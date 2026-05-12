@@ -29,6 +29,8 @@
 
 ## Last 10 Commits
 
+- 6c85d27 swift-parity: SB cross-module bare extension empty marker — parity 85.96%→85.97% (+9 production)
+- af1971a chore: refresh digest from fresh divergences + add stale-data orient step
 - 8da0cb7 loop: codify minimum-cadence rule (delaySeconds=60)
 - f492f44 docs: add LOOP_PARITY.md self-paced parity-ratchet loop prompt
 - fa46017 docs(CLAUDE.md): refresh current state + add parity operating loop
@@ -37,8 +39,6 @@
 - c85a896 chore: update digest.md for nested-type fix (parity 54801→54805)
 - 3a26394 swift-parity: nested-type A<sub>E false-positive guard + loop skip — parity 85.96%→85.97% (+4 production)
 - e9d1f38 chore: lock snapshot after SA commit (parity 54801→54801)
-- 0157850 chore: update digest.md for SA commit (parity 54775→54801)
-- d7e93aa swift-parity: SA StringProtocol extension subs alignment — parity 85.92%→85.96% (+26 production)
 
 ## Suggested Next 3 Items
 
