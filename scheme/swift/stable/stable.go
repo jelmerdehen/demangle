@@ -7143,12 +7143,53 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 			// '_t' immediately following: the "result type" we already parsed
 			// was actually the single param (1-element labeled-tuple). Treat
 			// retNode as the param, reset retNode, and consume '_t'.
+			//
+			// Compact-stdlib exception: when retNode came from a S<N><letter>
+			// (N>=2) multi-substitution, those N copies represent <result> +
+			// (N-1) params, NOT a single labeled-tuple param. Expand: retNode
+			// keeps 1 copy, paramTypes gets (N-1) more.
 			if retNode != nil && !p.eof() && p.s[p.i] == '_' &&
 				p.i+1 < len(p.s) && p.s[p.i+1] == 't' {
-				paramTypes = append(paramTypes, retNode)
-				retNode = nil
-				paramCount = 1
-				p.i += 2
+				// Look back for S<digit(s)><letter> pattern that produced retNode.
+				expanded := false
+				if p.i >= 3 {
+					letterPos := p.i - 1
+					letter := p.s[letterPos]
+					// Stdlib-sub letters: a-z and A-Z (excluding 'o' which is
+					// the __C module marker, not a nominal stdlib sub).
+					isStdlibLetter := (letter >= 'a' && letter <= 'z' && letter != 'o') ||
+						(letter >= 'A' && letter <= 'Z')
+					if isStdlibLetter {
+						digEnd := letterPos
+						start := digEnd - 1
+						for start > 0 && p.s[start] >= '0' && p.s[start] <= '9' {
+							start--
+						}
+						if start >= 0 && p.s[start] == 'S' && digEnd > start+1 {
+							n := 0
+							for k := start + 1; k < digEnd; k++ {
+								n = n*10 + int(p.s[k]-'0')
+							}
+							if n >= 2 && n <= 512 {
+								if base, ok := common.BuildStdlibNominal(letter); ok {
+									for k := 1; k < n; k++ {
+										paramTypes = append(paramTypes, base)
+										paramCount++
+									}
+									p.i += 2 // consume '_t'
+									_ = base
+									expanded = true
+								}
+							}
+						}
+					}
+				}
+				if !expanded {
+					paramTypes = append(paramTypes, retNode)
+					retNode = nil
+					paramCount = 1
+					p.i += 2
+				}
 			} else {
 				restore()
 				return nil, false, nil
