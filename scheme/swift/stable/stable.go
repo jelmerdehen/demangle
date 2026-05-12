@@ -12890,6 +12890,63 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 					} else {
 						aOK = false
 					}
+				} else if !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' &&
+					len(aCompactTypes) == 2 {
+					// Nested-postfix form: 'A<N><LETTER><digits><name><kind>'.
+					// The N copies establish the same sub as the most-recent
+					// subs entry; the trailing '<digits><name><kind>' is then
+					// a nested nominal on that sub. Replace the second copy
+					// with the nested type so result = original sub, param =
+					// <sub>.<NestedName>.
+					nestSave := p.i
+					nestSubsSave := p.subs
+					nestedIdent, niErr := p.parseIdentifier()
+					if niErr != nil || p.eof() {
+						p.i = nestSave
+						p.subs = nestSubsSave
+					} else {
+						kb := p.s[p.i]
+						var nestKind common.NodeKind
+						switch kb {
+						case 'V':
+							nestKind = common.KindStructure
+						case 'C':
+							nestKind = common.KindClass
+						case 'O':
+							nestKind = common.KindEnum
+						case 'P':
+							nestKind = common.KindProtocol
+						}
+						if nestKind == 0 {
+							p.i = nestSave
+							p.subs = nestSubsSave
+						} else {
+							// Build nested nominal using last compact copy as parent.
+							parent := aCompactTypes[1]
+							if common.NodeKind(parent.Kind) == common.KindType &&
+								len(parent.Children) > 0 {
+								parent = parent.Children[0]
+							}
+							switch common.NodeKind(parent.Kind) {
+							case common.KindStructure, common.KindClass,
+								common.KindEnum, common.KindProtocol,
+								common.KindBoundGenericStructure, common.KindBoundGenericClass,
+								common.KindBoundGenericEnum, common.KindBoundGenericProtocol:
+								p.i++ // consume kind byte
+								identNode := common.NewIdentifier(nestedIdent)
+								p.subs.Push(identNode)
+								nom := common.NewNode(nestKind)
+								common.AddChildren(nom, parent, identNode)
+								newTyp := common.NewNode(common.KindType)
+								common.AddChildren(newTyp, nom)
+								p.subs.Push(newTyp)
+								aCompactTypes[1] = newTyp
+							default:
+								p.i = nestSave
+								p.subs = nestSubsSave
+							}
+						}
+					}
 				}
 			}
 			if aOK && len(aCompactTypes) >= 2 {
