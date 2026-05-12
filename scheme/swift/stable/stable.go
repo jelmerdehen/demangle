@@ -856,22 +856,62 @@ func (p *parser) tryAutodiffSigBeforeTJ(inner *demangle.Node) (*demangle.Node, b
 // <Module>.<Proto> in <Module>". Narrow: only 1-constraint Ri inverse
 // requirement form + depth-0 generic sig.
 func (p *parser) tryConformanceDescriptorMc(inner *demangle.Node) (*demangle.Node, bool) {
-	if p.eof() || !(p.s[p.i] >= '0' && p.s[p.i] <= '9') {
+	if p.eof() {
+		return inner, false
+	}
+	// Accept 's' (Swift module shortcut) or digit-led module identifier.
+	swiftProto := false
+	if p.s[p.i] == 's' {
+		swiftProto = true
+	} else if !(p.s[p.i] >= '0' && p.s[p.i] <= '9') {
 		return inner, false
 	}
 	save := p.i
 	saveSubs := p.subs
 	revert := func() { p.i = save; p.subs = saveSubs }
-	modName, err := p.parseIdentifier()
-	if err != nil {
-		revert()
-		return inner, false
+	var modName, protoName string
+	if swiftProto {
+		p.i++ // consume 's'
+		name, perr := p.parseIdentifier()
+		if perr != nil {
+			revert()
+			return inner, false
+		}
+		// 's<proto>' form: protocol module = Swift, protocol name = parsed,
+		// then implementation module follows as digit-led identifier.
+		protoName = name
+		if p.eof() || !(p.s[p.i] >= '0' && p.s[p.i] <= '9') {
+			revert()
+			return inner, false
+		}
+		mname, merr := p.parseIdentifier()
+		if merr != nil {
+			revert()
+			return inner, false
+		}
+		modName = mname
+		// Wrap protoName with Swift prefix so emit produces "Swift.<proto>".
+		protoName = "Swift." + protoName
+		// Skip past the normal modName/protoName lookup branch below.
+		goto afterModProto
 	}
-	protoName, err := p.parseIdentifier()
-	if err != nil {
-		revert()
-		return inner, false
+	{
+		mname, merr := p.parseIdentifier()
+		if merr != nil {
+			revert()
+			return inner, false
+		}
+		modName = mname
 	}
+	{
+		pname, perr := p.parseIdentifier()
+		if perr != nil {
+			revert()
+			return inner, false
+		}
+		protoName = pname
+	}
+afterModProto:
 	// Optional multi-sub (AB/AC/etc.) pointing back to the type; we
 	// consume but ignore.
 	if !p.eof() && p.s[p.i] == 'A' {
@@ -971,13 +1011,23 @@ func (p *parser) tryConformanceDescriptorMc(inner *demangle.Node) (*demangle.Nod
 		wrap.Text = termPrefix + sig + stripFirstDot(innerStr)
 	case uiTypeMods[typeMod] && modName == "Foundation":
 		// ObjC type (__C) conforming to Foundation protocol: full qualified format.
-		wrap.Text = termPrefix + sig + innerStr + " : " + modName + "." + protoName + " in " + modName
+		wrap.Text = termPrefix + sig + innerStr + " : " + func() string {
+			if strings.Contains(protoName, ".") {
+				return protoName
+			}
+			return modName + "." + protoName
+		}() + " in " + modName
 	case typeMod == "Swift" && uiProtoMods[modName]:
 		// Swift stdlib type conforming to UI-layer protocol: simplified.
 		wrap.Text = termPrefix + sig + stripFirstDot(innerStr)
 	case typeMod == "Swift":
 		// Swift stdlib type conforming to system/core protocol: "in modName".
-		wrap.Text = termPrefix + sig + innerStr + " : " + modName + "." + protoName + " in " + modName
+		wrap.Text = termPrefix + sig + innerStr + " : " + func() string {
+			if strings.Contains(protoName, ".") {
+				return protoName
+			}
+			return modName + "." + protoName
+		}() + " in " + modName
 	default:
 		// Conformance module: use protocol module when a non-Foundation conformer
 		// type implements a Foundation protocol (Foundation extended the type).
@@ -986,7 +1036,12 @@ func (p *parser) tryConformanceDescriptorMc(inner *demangle.Node) (*demangle.Nod
 		if typeMod != "Foundation" && modName == "Foundation" {
 			inMod = modName
 		}
-		wrap.Text = termPrefix + sig + innerStr + " : " + modName + "." + protoName + " in " + inMod
+		wrap.Text = termPrefix + sig + innerStr + " : " + func() string {
+			if strings.Contains(protoName, ".") {
+				return protoName
+			}
+			return modName + "." + protoName
+		}() + " in " + inMod
 	}
 	return wrap, true
 }
@@ -10769,7 +10824,12 @@ func (p *parser) tryProtoRequirementsBaseDescriptor() (*demangle.Node, bool) {
 	var displayName string
 	// Foundation keeps module prefix; other modules drop it.
 	if modName == "Foundation" {
-		displayName = modName + "." + protoName
+		displayName = func() string {
+			if strings.Contains(protoName, ".") {
+				return protoName
+			}
+			return modName + "." + protoName
+		}()
 	} else {
 		displayName = protoName
 	}
