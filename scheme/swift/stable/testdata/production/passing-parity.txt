@@ -1,4 +1,4 @@
-# snapshot-pass-set update 2026-05-12T22:47:51Z — union with previous (high-water)
+# snapshot-pass-set update 2026-05-12T23:03:19Z — union with previous (high-water)
 _$s10Foreground7SwiftUI18LabelGroupStyle_v0PTl
 _$s10Foundation10CocoaErrorV010formattingC0AC4CodeVvgZ
 _$s10Foundation10CocoaErrorV010formattingC0AC4CodeVvpZMV
@@ -38143,6 +38143,7 @@ _$sSR5countSivg
 _$sSR5countSivpMV
 _$sSR5index5afterS2i_tF
 _$sSR5index6beforeS2i_tF
+_$sSR5index_8offsetBy07limitedC0SiSgSi_S2itF
 _$sSR5index_8offsetByS2i_SitF
 _$sSR5start5countSRyxGSPyxGSg_SitcfC
 _$sSR7indicesSnySiGvg
@@ -39108,6 +39109,7 @@ _$sSa5countSivg
 _$sSa5countSivpMV
 _$sSa5index5afterS2i_tF
 _$sSa5index6beforeS2i_tF
+_$sSa5index_8offsetBy07limitedC0SiSgSi_S2itF
 _$sSa5index_8offsetByS2i_SitF
 _$sSa6_owneryXlSgvg
 _$sSa6_owneryXlSgvpMV
@@ -44866,6 +44868,7 @@ _$sSr5countSivg
 _$sSr5countSivpMV
 _$sSr5index5afterS2i_tF
 _$sSr5index6beforeS2i_tF
+_$sSr5index_8offsetBy07limitedC0SiSgSi_S2itF
 _$sSr5index_8offsetByS2i_SitF
 _$sSr5start5countSryxGSpyxGSg_SitcfC
 _$sSr6assign9repeatingyx_tF
@@ -45728,6 +45731,7 @@ _$ss10ArraySliceV5countSivg
 _$ss10ArraySliceV5countSivpMV
 _$ss10ArraySliceV5index5afterS2i_tF
 _$ss10ArraySliceV5index6beforeS2i_tF
+_$ss10ArraySliceV5index_8offsetBy07limitedE0SiSgSi_S2itF
 _$ss10ArraySliceV5index_8offsetByS2i_SitF
 _$ss10ArraySliceV6_owneryXlSgvg
 _$ss10ArraySliceV6_owneryXlSgvpMV
@@ -47564,6 +47568,7 @@ _$ss15ContiguousArrayV5countSivg
 _$ss15ContiguousArrayV5countSivpMV
 _$ss15ContiguousArrayV5index5afterS2i_tF
 _$ss15ContiguousArrayV5index6beforeS2i_tF
+_$ss15ContiguousArrayV5index_8offsetBy07limitedE0SiSgSi_S2itF
 _$ss15ContiguousArrayV5index_8offsetByS2i_SitF
 _$ss15ContiguousArrayV6_owneryXlSgvg
 _$ss15ContiguousArrayV6_owneryXlSgvpMV
@@ -47665,6 +47670,7 @@ _$ss15EmptyCollectionV5countSivg
 _$ss15EmptyCollectionV5countSivpMV
 _$ss15EmptyCollectionV5index5afterS2i_tF
 _$ss15EmptyCollectionV5index6beforeS2i_tF
+_$ss15EmptyCollectionV5index_8offsetBy07limitedE0SiSgSi_S2itF
 _$ss15EmptyCollectionV5index_8offsetByS2i_SitF
 _$ss15EmptyCollectionV8IteratorV4nextxSgyF
 _$ss15EmptyCollectionV8IteratorVADyx_GycfC
