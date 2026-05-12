@@ -171,12 +171,11 @@ Caveman: fire-internal terse OK; commits/code/comments normal.
 ## Lessons / wins (≤800 chars, merge-before-append, drop oldest at cap)
 
 <!-- newest on top -->
-- 2026-05-12 SH/SJ-meta: narrow allowlist/denylist beats broad rule. Examples: withCheckedContinuation name-allowlist not stdlib-underscore-prefix (SH, broad attempt -155); StringInterpolation host-suffix exclude from Foundation fluent-builder heuristic (SJ, +5). Probe heuristic-dependent cases before narrowing.
+- 2026-05-12 SL: A<N><UPPER> compact-sub repeat (N≥2) followed by <digits><name><kind> = ret + nested-on-sub param (Apple stack pops the just-pushed sub as parent context). +20 prod.
+- 2026-05-12 SH/SJ-meta: narrow allowlist/denylist beats broad rule. SH withCheckedContinuation name-allowlist not stdlib-underscore (broad -155); SJ StringInterpolation host-suffix exclude from fluent-builder (+5). Probe heuristic-dependent cases.
 - 2026-05-12 SG: pre-rendered parenthesised tuple as single-param-of-Type-BuiltinTypeName double-wraps when caller adds outer parens. Strip own parens in funcEntityFullParams.
-- 2026-05-12 SF: single label binding tuple param duplicates per child in funcEntityFullParams; symptomatic gate (all-same-label → wrap tuple) lands without root.
-- 2026-05-12 SE-meta: cache-only fires are pseudo-progress; culminate in attempted fix same/next fire.
-- 2026-05-12 SD: tryFunctionEntity Foundation wrap.Text built manually; genericSigStr emission was isWC-gated. Drop guard for genericSig.
-- 2026-05-12 SC: 4-part dep-member constraint S<L1><N><assoc>S<L2>R[pt]<subj>: assoc-defining proto L2 may differ from target L1.
+- 2026-05-12 SF: single label binding tuple param duplicates per child; symptomatic all-same-label-wrap-tuple gate beats root.
+- 2026-05-12 SD: tryFunctionEntity Foundation wrap.Text built manually; genericSigStr was isWC-gated. Drop guard for genericSig.
 
 ## Lessons / traps (≤500 chars, merge-before-append, drop oldest at cap)
 
