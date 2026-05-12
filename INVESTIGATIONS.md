@@ -22,6 +22,16 @@ Remaining are all subs-table / multi-constraint / sugar-form issues. No shared r
 - Emit path: `stable.go:5408` / `5530` / `1521` (multiple `termPrefix = "protocol conformance descriptor for "`).
 - Pattern reuse: RT commit (`ddfa696`) handled `A<letter>Qz` dependent-member in extension constraint emit — similar trail.
 
+### nsfilehandle-result-back-ref [4 syms]
+
+Got: `Swift.Result<Foundation.POSIXError>` (1 arg). Want: `Swift.Result<__C.NSFileHandle, Foundation.POSIXError>` (2 args).
+Mangling: `s6ResultOyAbC10POSIXErrorVG` — `Ab` is back-ref letter 'b' (idx 1) producing __C.NSFileHandle (subs[1]). Parser inside `tryBoundGeneric` (`stable.go:15010`) drops `Ab` arg. `parseType` may not handle `Ab` multi-letter back-ref correctly inside bound-generic args context (works elsewhere via `A<UPPER>` patterns).
+
+### bidirectional-collection [3 syms, distinct bugs]
+
+- distance/_distance (2): `Si5IndexQz_AEtF` — Qz dependent-member param + AE subref. Got resolves `AE` to `Swift.Int`; should be `A.Index`. Parser subs-table miss.
+- joined (1): `S2S_tF` — 2-rep compact form, ret-type lost. Compact-S path at `stable.go:12768` should handle but isn't reached.
+
 ### randomaccess-collection [3 syms remain, return-type emission bug]
 
 Constraint emission done via SE (`55c2852`). Remaining 3 syms still
