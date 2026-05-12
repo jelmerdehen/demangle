@@ -1,4 +1,4 @@
-# snapshot-pass-set update 2026-05-12T23:28:38Z — union with previous (high-water)
+# snapshot-pass-set update 2026-05-12T23:58:50Z — union with previous (high-water)
 _$s10Foreground7SwiftUI18LabelGroupStyle_v0PTl
 _$s10Foundation10CocoaErrorV010formattingC0AC4CodeVvgZ
 _$s10Foundation10CocoaErrorV010formattingC0AC4CodeVvpZMV
@@ -11880,6 +11880,7 @@ _$s12SIMD2Storages10SIMDScalarPTl
 _$s12SIMD4Storages10SIMDScalarPTl
 _$s12SIMD8Storages10SIMDScalarPTl
 _$s12TableRowBody7SwiftUI0aB7ContentPTl
+_$s13AsyncIteratorSciTl
 _$s13EncodedScalars16_UnicodeEncodingPTl
 _$s13ForwardParsers16_UnicodeEncodingPTl
 _$s13ReferenceType10Foundation0A11ConvertiblePTl
@@ -19199,10 +19200,14 @@ _$s7Combine9SchedulerPAAE8scheduleyyyycF
 _$s7Combine9SchedulerTL
 _$s7Context7SwiftUI15PreviewModifierPTl
 _$s7ElementSTTl
+_$s7ElementScITl
+_$s7ElementSciTl
 _$s7ElementStTl
 _$s7Elements10SetAlgebraPTl
 _$s7Failure7Combine10SubscriberPTl
 _$s7Failure7Combine9PublisherPTl
+_$s7FailureScITl
+_$s7FailureSciTl
 _$s7IndicesSlTl
 _$s7Instants5ClockPTl
 _$s7Payload5UIKit33UISceneConnectionOptionDefinitionPTl
