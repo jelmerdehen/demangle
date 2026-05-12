@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- 26b223e swift-parity: TB tryInitDeinitEntity firstParam applyMod (z/h/n modifiers) — parity 86.37%→86.37% (full count at fire end)
+- ae455bb chore: lock snapshot after TA commit (parity 55057→55064, roundtrip 11810→11833)
+- a2880c6 chore: update digest.md for TA commit (parity 55057→55064)
 - 5a87d66 swift-parity: TA Wvd/Wvi value-witness suffixes (direct/indirect field offset) — parity 86.36%→86.36% (full count at fire end)
 - 3580052 chore: lock snapshot after SY commit (parity 55055→55057)
 - e62cf80 chore: update digest.md for SY commit (parity 55055→55057)
@@ -36,9 +39,6 @@
 - 7cf6dba chore: lock snapshot after SX commit (parity 54947→55055, roundtrip 11701→11810)
 - fcdd1bf chore: update digest.md for SX commit (parity 54947→55055)
 - c1d0e14 swift-parity: SX consumeElemMods clone-before-attr to prevent shared back-ref-resolved nodes inheriting modifiers — parity 86.18%→86.18% (+1 production fast-probe; full count at fire end)
-- 13d040d chore: lock snapshot after SW commit (parity 54939→54947)
-- e87151c chore: update digest.md for SW commit (parity 54939→54947)
-- 81a32bf swift-parity: SW simplified-init label-list pad when labels exceed compacted paramTypes — parity 86.17%→86.17% (+4 production fast-probe; full count at fire end)
 
 ## Suggested Next 3 Items
 
