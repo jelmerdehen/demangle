@@ -177,5 +177,6 @@ Caveman: fire-internal terse OK; commits/code/comments normal.
 ## Lessons / traps (≤500 chars, merge-before-append, drop oldest at cap)
 
 <!-- newest on top -->
-- 2026-05-12 SK-attempt: collecting local where-constraints unconditionally regressed -20 (simplified-display syms gained unwanted clauses); narrow to (Foundation branch only, conformance kinds 'z'/'p' only) gave +2 clean. Display branches matter when wiring new emit fields.
-- 2026-05-12 SE-meta: parity test APPENDS sections to divergences.txt; `make digest` reads all → fixed mismatches still surface. Always `rm` before refresh.
+- 2026-05-13 TI/TJ: porting TG/TH compact-expand helpers to tryInitDeinitEntity tuple-elem regressed -2/-3. Init shape where S<N><L>/A<lowers>+<U> ≠ tuple-expand. Narrower gate needed.
+- 2026-05-12 SK-attempt: collecting where-constraints unconditionally regressed -20 (simplified syms gained clauses); narrow to Foundation+'z'/'p' kinds gave +2. Display branches matter.
+- 2026-05-12 SE-meta: parity test APPENDS to divergences.txt; digest reads all. `rm` before refresh.
