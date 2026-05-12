@@ -28,13 +28,6 @@ fast loop fires — avoids re-deriving path/cause each fire. Bounded
 - Host-resolution bug — emit picks nested-type `LocalizationValue.init` instead of outer-type `AttributedString.init` with `LocalizationValue` as a param type.
 - Likely needs init-host detection fix; multi-fire.
 
-### local-generic-sig-drop [URL/AttributedString methods, ~6 syms]
-
-- Got: `Foundation.URL.append(path: A, directoryHint: ...)`. Want: `Foundation.URL.append<A where A: Swift.StringProtocol>(path: A, directoryHint: ...)`.
-- Local generic-sig `<A where A: Proto>` dropped from method emit even though `A` is referenced in params. Mangling ends in `<Proto>RzlF` with constraint+local-gen+func terminators.
-- Emit goes through `tryFunctionEntity` (stable.go:11978) but `genericSigStr` (line 13525) not reaching wrap.Text — investigate why `localGeneric` flag or `swift.generic` attr is empty here. Different code path than ext-entity (which has `localSig` working).
-- Touches AttributedString.append/insert/+/+=, URL.append. Likely 5-7 syms unlock.
-
 ### foundation-tuple-flatten [Calendar.date, 5 syms]
 
 - Got: `Foundation.Calendar.date((era: Int, year: Int, …)) -> Date?` (double-paren). Want: `Foundation.Calendar.date(era: Int, year: Int, …) -> Date?` (flat).
@@ -49,6 +42,7 @@ fast loop fires — avoids re-deriving path/cause each fire. Bounded
 
 ## Closed
 
+- 2026-05-12 SD (`5ba59a6`): Foundation local-generic-sig drop — +29 prod via removing isWC guard at `stable.go:13554`. Unlocked URL.append, AttributedString.{+,+=,append,insert,Index.isValid}, etc — any Foundation method with single protocol-constrained generic param.
 - 2026-05-12 SC (`ef61987`): dependent-member constraint Rp/Rt with stdlib defining-proto — +12 prod via new 4-part scan in `extractConstraintSigFullOpts`. Unlocked RawRepresentable, _SwiftNewtypeWrapper, CodingKeyRepresentable clusters.
 - 2026-05-12 SB (`6c85d27`): preview-init cross-module bare-marker — +9 prod via `isBareModuleDescriptor` gate at `stable.go:9323`.
 - 2026-05-12 SA (`d7e93aa`): StringProtocol ext subs alignment — +26 prod.
