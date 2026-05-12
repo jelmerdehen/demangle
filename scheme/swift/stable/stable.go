@@ -5486,6 +5486,10 @@ var swiftConcurrencyRuntimeTypes = map[string]bool{
 	"UnimplementedMainExecutor":   true,
 	"UnimplementedTaskExecutor":   true,
 	"UnownedTaskExecutor":         true,
+	// Top-level concurrency-context functions: Apple emits these in
+	// simplified form (labels-only, no module prefix, no types, no return).
+	"withCheckedContinuation":         true,
+	"withCheckedThrowingContinuation": true,
 }
 
 // descriptorPrintOpts returns the appropriate PrintOptions for rendering a
