@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- 1a0066b swift-parity: SP gate ObjC-host bare-return to flat hostPath only (nested stays extension form) — parity 86.13%→86.13% (+2 production fast-probe; full count at fire end)
+- 2980784 chore: lock snapshot after SO commit (parity 54913)
+- 07c6274 chore: update digest.md for SO commit (parity 54913→54913)
 - 4d8b250 swift-parity: SO ObjC-host init returns bare __C.<host> not extension-form — parity 86.13%→86.13% (+2 production fast-probe; full count at fire end)
 - e01070d chore: lock snapshot after SN commit (parity 54911→54913, roundtrip 11687→11701)
 - 424f824 chore: update digest.md for SN commit (parity 54911→54913)
@@ -36,9 +39,6 @@
 - d8f4b35 chore: lock snapshot after SM commit (parity 54903→54911)
 - de225f0 chore: update digest.md for SM commit (parity 54903→54911)
 - 4605ebe swift-parity: SM E-scan word-sub multi-chunk run handling — parity 86.11%→86.11% (full count at fire end)
-- 7f43b50 chore: lock snapshot after SL commit (parity 54883→54903)
-- 5a9da3a chore: update digest.md for SL commit (parity 54883→54903)
-- 76b8ee5 swift-parity: SL A<N><UPPER> nested-postfix splits ret/param on stdlib nested-type — parity 86.08%→86.08% (+8 production fast-probe; full count at fire end)
 
 ## Suggested Next 3 Items
 
