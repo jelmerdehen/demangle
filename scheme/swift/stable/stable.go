@@ -13452,47 +13452,73 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 			// Must be called after each element parse, BEFORE checking for '_'
 			// tuple separators — some modifiers (like 'n') appear between the
 			// type and its trailing separator.
-			consumeElemMods := func(n *demangle.Node) {
-				ensureA := func() {
-					if n.Attrs == nil {
-						n.Attrs = map[string]string{}
+			// Returns the (possibly cloned) node so callers see the modified
+			// instance rather than mutating shared back-ref-resolved subs
+			// (e.g. AttributedString.+=: two AC back-refs to the same sub,
+			// only first carrying 'z' — mutating in place would mark both).
+			consumeElemMods := func(n *demangle.Node) *demangle.Node {
+				var cloned *demangle.Node
+				ensureClone := func() {
+					if cloned != nil {
+						return
 					}
+					c := *n
+					if c.Attrs != nil {
+						a := make(map[string]string, len(c.Attrs)+1)
+						for k, v := range c.Attrs {
+							a[k] = v
+						}
+						c.Attrs = a
+					} else {
+						c.Attrs = map[string]string{}
+					}
+					cloned = &c
 				}
 				for !p.eof() {
 					c := p.s[p.i]
 					switch {
 					case c == 'z':
 						p.i++
-						ensureA()
-						n.Attrs["swift.inout"] = "true"
+						ensureClone()
+						cloned.Attrs["swift.inout"] = "true"
 					case c == 'h':
 						p.i++
-						ensureA()
-						n.Attrs["swift.shared"] = "true"
+						ensureClone()
+						cloned.Attrs["swift.shared"] = "true"
 					case c == 'n':
 						p.i++
-						ensureA()
-						n.Attrs["swift.owned"] = "true"
+						ensureClone()
+						cloned.Attrs["swift.owned"] = "true"
 					case c == 'Y' && p.i+1 < len(p.s):
 						next := p.s[p.i+1]
 						switch next {
 						case 'i':
 							p.i += 2
-							ensureA()
-							n.Attrs["swift.isolated"] = "true"
+							ensureClone()
+							cloned.Attrs["swift.isolated"] = "true"
 						case 'u':
 							p.i += 2
-							ensureA()
-							n.Attrs["swift.sending"] = "true"
+							ensureClone()
+							cloned.Attrs["swift.sending"] = "true"
 						default:
-							return
+							if cloned != nil {
+								return cloned
+							}
+							return n
 						}
 					default:
-						return
+						if cloned != nil {
+							return cloned
+						}
+						return n
 					}
 				}
+				if cloned != nil {
+					return cloned
+				}
+				return n
 			}
-			consumeElemMods(x)
+			x = consumeElemMods(x)
 			if !p.eof() && p.s[p.i] == '_' {
 				// Multi-element tuple OR single-element labeled tuple.
 				// Single-element form: '<type>_t' closes directly
@@ -13551,7 +13577,7 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 						revert()
 						return false
 					}
-					consumeElemMods(y)
+					y = consumeElemMods(y)
 					elements = append(elements, y)
 				}
 				// Generic-param encodings like 'q_' (B) consume their
@@ -13571,7 +13597,7 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 						p.subs = saveTupleSubs
 						break
 					}
-					consumeElemMods(y)
+					y = consumeElemMods(y)
 					elements = append(elements, y)
 				}
 				if p.eof() || p.s[p.i] != 't' {
