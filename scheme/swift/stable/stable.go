@@ -13549,9 +13549,11 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 			}
 			sbFull.WriteString(step.Text)
 		}
-		// WC enum cases with generic constraints: include sig after case name and
-		// use the return type (which carries correct bound-generic params) for .Type param.
-		if isWC && genericSig && genericSigStr != "" {
+		// Include local generic sig "<A where A: Proto>" after the path. Was
+		// previously gated to isWC only — Foundation methods with `lF`-terminated
+		// signatures (e.g. URL.append<A where A: StringProtocol>(path:...)) also
+		// need it.
+		if genericSig && genericSigStr != "" {
 			sbFull.WriteString(genericSigStr)
 		}
 		sbFull.WriteByte('(')
