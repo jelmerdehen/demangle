@@ -36,12 +36,6 @@ Got: compact `AttributedString.LocalizationValue.init(_:)`.
 Want: full Foundation verbose `Foundation.AttributedString.init(localized:..., defaultValue: ..., ...) -> Foundation.AttributedString` with 7 labeled params.
 Parser misidentifies host as `LocalizationValue` (nested type from param-type stream) instead of `AttributedString`. Init labels get truncated to `_:` single. **Needs `tryInitDeinitEntity` parser surgery to keep host fixed across the label-then-param-types pattern. Multi-fire.**
 
-### stdlib-init-tuple-label-distribute [3 syms]
-
-`_SmallString.init(raw:)` / `_StringObject.init(rawUncheckedValue:)`.
-Got: `init(raw: UInt64, raw: UInt64)` (label per element).
-Want: `init(raw: (UInt64, UInt64))` (label wraps tuple).
-Mangling shape: 1 label + 1 tuple param of 2 elements. Got distributes label across tuple children; want applies once and parenthesises tuple. Inverse of the Calendar tuple-double-paren bug. **Surgical fix in init emit (likely `tryInitDeinitEntity` verbose path around `stable.go:5269` or similar simplified branch).**
 
 ### foundation-tuple-flatten [Calendar.date, 5 syms]
 
@@ -57,6 +51,7 @@ Mangling shape: 1 label + 1 tuple param of 2 elements. Got distributes label acr
 
 ## Closed
 
+- 2026-05-12 SF (`ef13be1`): stdlib-init-tuple-label — +5 prod via single-label-wraps-tuple gate in `funcEntityFullParams`. Detects duplicate-label-per-tuple-child and wraps. Symptomatic but unambiguous (Swift forbids duplicate labels).
 - 2026-05-12 SE (`55c2852`): bound-generic Rt + nested-member RT constraint scans — +1 prod. SC scaffold extension. Constraint emit complete for RAC cluster; return-type bug separate.
 - 2026-05-12 SD (`5ba59a6`): Foundation local-generic-sig drop — +29 prod via removing isWC guard at `stable.go:13554`. Unlocked URL.append, AttributedString.{+,+=,append,insert,Index.isValid}, etc — any Foundation method with single protocol-constrained generic param.
 - 2026-05-12 SC (`ef61987`): dependent-member constraint Rp/Rt with stdlib defining-proto — +12 prod via new 4-part scan in `extractConstraintSigFullOpts`. Unlocked RawRepresentable, _SwiftNewtypeWrapper, CodingKeyRepresentable clusters.
