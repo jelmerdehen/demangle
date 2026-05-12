@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 86.16% (54935/63757) — 2026-05-12T20:24:09Z
+**Parity**: 86.17% (54939/63757) — 2026-05-12T20:33:10Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 8424 parse-errors + 398 mismatches
+**Failures**: 8424 parse-errors + 394 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- 81a32bf swift-parity: SW simplified-init label-list pad when labels exceed compacted paramTypes — parity 86.17%→86.17% (+4 production fast-probe; full count at fire end)
+- 9e361da chore: lock snapshot after SV commit (parity 54935→54939)
+- 3531ed3 chore: update digest.md for SV commit (parity 54935→54939)
 - eb42bef swift-parity: SV double extension prefix for nested-extension descriptors — parity 86.16%→86.16% (+2 production fast-probe; full count at fire end)
 - b3ab7cd chore: lock snapshot after SU commit (parity 54932→54935)
 - bf0d610 chore: update digest.md for SU commit (parity 54932→54935)
@@ -36,9 +39,6 @@
 - f375c88 chore: lock snapshot after ST commit (parity 54925→54932)
 - 9ba2812 chore: update digest.md for ST commit (parity 54925→54932)
 - ddcecf7 swift-parity: ST init label-application for pre-rendered tuples + init_t wrap — parity 86.15%→86.15% (+2 production fast-probe; full count at fire end)
-- 6367ca2 chore: lock snapshot after SS commit (parity 54919→54925)
-- d47cbeb chore: update digest.md for SS commit (parity 54919→54925)
-- 1294add swift-parity: SS S<N><letter> compact-stdlib at result-slot in tryTypeFirstExtensionEntity splits ret + (N-1) params on _t — parity 86.14%→86.14% (+1 production fast-probe; full count at fire end)
 
 ## Suggested Next 3 Items
 
