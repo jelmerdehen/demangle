@@ -1,12 +1,11 @@
 # Swift Production Digest
 
-**Parity**: 86.58% (55203/63757) — 2026-05-12T22:01:37Z
+**Parity**: 86.61% (55223/63757) — 2026-05-12T22:29:33Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 8255 parse-errors + 299 mismatches
+**Failures**: 8265 parse-errors + 269 mismatches
 
 ## Top-20 Mismatch Categories
 
-- direct field offset for Swift.__RawDictionaryStora… 8
 - property descriptor                        6
 - static (extension                          6
 - protocol conformance descriptor            5
@@ -24,21 +23,22 @@
 - (extension in Swift):Swift.RangeReplaceableCollect… 2
 - Foundation.AttributedString.init(localized: Swift.… 2
 - Swift.UnsafeMutablePointer.init(Swift.UnsafeMutabl… 2
-- Swift._decodeUTF8(Swift.UInt8, Swift.UInt8, Swift.… 2
 - dispatch thunk                             2
+- method descriptor                          2
+- (extension in Foundation):Dispatch.DispatchData.Re… 1
 
 ## Last 10 Commits
 
+- fe76852 swift-parity: TL Foundation extension fluent-builder denylist UnsafeMutablePointer params (void return) — parity 86.61%→86.61% (full count at fire end)
+- 35d72aa swift-parity: TK tryTypeFirstExtensionEntity + tryExtensionEntity tuple-elem aCompactExpand — parity 86.61%→86.61% (full count at fire end)
+- 20971a8 chore: lock snapshot after TI/TJ revert (parity 55223→55223, no-op)
+- 760268e Revert "swift-parity: TI tryInitDeinitEntity param-tuple sCompactExpand for S<N><letter> — parity 86.61%→86.61% (full count at fire end)"
+- 3fe77ae Revert "swift-parity: TJ tryInitDeinitEntity param-tuple multiSubExpand for A<lowers>+<UPPER> — parity 86.61%→86.61% (full count at fire end)"
+- 67e5654 swift-parity: TJ tryInitDeinitEntity param-tuple multiSubExpand for A<lowers>+<UPPER> — parity 86.61%→86.61% (full count at fire end)
+- 665d5fa swift-parity: TI tryInitDeinitEntity param-tuple sCompactExpand for S<N><letter> — parity 86.61%→86.61% (full count at fire end)
+- 4177039 chore: lock snapshot after TF..TH (parity 55203→55223)
+- d302c3f chore: update digest.md for TF..TH (parity 55203→55223)
 - 9fb5155 swift-parity: TH tryFunctionEntity param-tuple multiSubExpand for A<lowers>+<UPPER> chain — parity 86.58%→86.58% (full count at fire end)
-- 415bd95 swift-parity: TG tryFunctionEntity param-tuple aCompactExpand for A<N><UPPER> — parity 86.58%→86.58% (full count at fire end)
-- 5659c90 swift-parity: TF Wvd/Wvi keep verbose form for Swift/Foundation stdlib stored properties — parity 86.58%→86.58% (full count at fire end)
-- b9b4e36 chore: lock snapshot after TE commit (parity 55175→55203)
-- ff9ab7f chore: update digest.md for TE commit (parity 55175→55203)
-- 2a66cd0 swift-parity: TE funcEntityFullParams renderParam emit swift.conv (__shared/__owned) — parity 86.55%→86.55% (full count at fire end)
-- 6875798 chore: lock snapshot after TD commit (parity 55170→55175)
-- f8279e8 chore: update digest.md for TD commit (parity 55170→55175)
-- 1489a33 swift-parity: TD Wvd/Wvi strip module + type for stored-property inner — parity 86.54%→86.54% (full count at fire end)
-- dcca242 chore: lock snapshot after TC commit (parity 55073→55170)
 
 ## Suggested Next 3 Items
 
