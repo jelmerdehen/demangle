@@ -5000,6 +5000,43 @@ func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 		if !p.eof() && p.s[p.i] == '_' && p.i+1 < len(p.s) && p.s[p.i+1] != 't' {
 			p.i++ // consume FirstElementMarker '_'
 			for !p.eof() && p.s[p.i] != 't' {
+				// A<N><UPPER> compact-repeat back-ref: expand to N copies
+				// of subs[UPPER-'A']. parseNominalPath/WithModule pushes
+				// Identifier THEN Type at adjacent slots; Apple's index
+				// points at the Type slot, which our parser stores at
+				// idx+1 (Identifier at idx). Use idx+1 to fetch the Type.
+				if p.s[p.i] == 'A' && p.i+1 < len(p.s) &&
+					p.s[p.i+1] >= '0' && p.s[p.i+1] <= '9' {
+					j := p.i + 1
+					for j < len(p.s) && p.s[j] >= '0' && p.s[j] <= '9' {
+						j++
+					}
+					if j < len(p.s) && p.s[j] >= 'A' && p.s[j] <= 'Z' {
+						idx := int(p.s[j] - 'A')
+						sub, ok := p.subs.Get(idx)
+						// Prefer the Type at idx+1 when idx slot is an
+						// Identifier and the next slot is a wrapping Type.
+						if ok && common.NodeKind(sub.Kind) == common.KindIdentifier {
+							if nx, ok2 := p.subs.Get(idx + 1); ok2 &&
+								common.NodeKind(nx.Kind) == common.KindType {
+								sub = nx
+							}
+						}
+						if ok {
+							n := 0
+							for _, d := range p.s[p.i+1 : j] {
+								n = n*10 + int(d-'0')
+							}
+							if n >= 2 && n <= 512 {
+								p.i = j + 1
+								for k := 0; k < n; k++ {
+									paramTypes = append(paramTypes, sub)
+								}
+								continue
+							}
+						}
+					}
+				}
 				elem, eerr := p.parseType()
 				if eerr != nil {
 					break
