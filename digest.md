@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 86.08% (54881/63757) — 2026-05-12T18:54:24Z
+**Parity**: 86.08% (54883/63757) — 2026-05-12T19:08:15Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 8436 parse-errors + 440 mismatches
+**Failures**: 8436 parse-errors + 438 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -17,7 +17,6 @@
 - (extension in Swift):Swift.RandomAccessCollection<… 3
 - (extension in Foundation):Foundation.DataProtocol.… 2
 - (extension in Foundation):Foundation.DiscreteForma… 2
-- (extension in Foundation):Swift.String.Localizatio… 2
 - (extension in Foundation):Swift.StringProtocol.com… 2
 - (extension in Foundation):Swift.StringProtocol.get… 2
 - (extension in Foundation):__C.NSDimension.init(for… 2
@@ -26,9 +25,13 @@
 - (extension in Swift):Swift.LazyPrefixWhileSequence… 2
 - (extension in Swift):Swift.RangeReplaceableCollect… 2
 - DocumentLaunchView.init<A, B>(_:for:_:onDocumentOp… 2
+- DocumentLaunchView.init<A, B>(_:for:backgroundStyl… 2
 
 ## Last 10 Commits
 
+- 76b8ee5 swift-parity: SL A<N><UPPER> nested-postfix splits ret/param on stdlib nested-type — parity 86.08%→86.08% (+8 production fast-probe; full count at fire end)
+- acf55c8 chore: lock snapshot after SK commit (parity 54881→54883)
+- 246889e chore: update digest.md for SK commit (parity 54881→54883)
 - ec0dc26 swift-parity: SK Foundation extension local where-constraint emit — parity 86.08%→86.08% (+2 production fast-probe; full count at fire end)
 - 1a0ad6f chore: lock snapshot after SJ commit (parity 54876→54881)
 - 1a7a12a chore: update digest.md for SJ commit (parity 54876→54881)
@@ -36,9 +39,6 @@
 - 6ab37d1 chore(investigations): bound-generic-subs is compound, single-pass land impossible
 - 12bb37b chore(investigations): fire 34 narrowed root - compound subs-push bugs
 - 3f7bde6 chore(investigations): Apple-source-confirmed root for bound-generic-subs
-- 3af8aa9 chore(investigations): bound-generic-subs deferred operator-led, trim closed entries
-- 61c1408 chore(investigations): fire 22 root-located bound-generic-subs double-push
-- fc170c8 chore(investigations): trim under 6 KB cap
 
 ## Suggested Next 3 Items
 
