@@ -4992,6 +4992,46 @@ func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 			restore()
 			return nil, false, nil
 		}
+		// applyMod: consume per-element type modifiers (z=inout, h=__shared,
+		// n=__owned) and stamp on a clone (avoid shared back-ref aliasing).
+		applyMod := func(n *demangle.Node) *demangle.Node {
+			if p.eof() {
+				return n
+			}
+			var attr, val string
+			switch p.s[p.i] {
+			case 'z':
+				attr, val = "swift.inout", "true"
+			case 'h':
+				w := common.NewNode(common.KindType)
+				w.Attrs = map[string]string{"swift.conv": "__shared "}
+				common.AddChildren(w, n)
+				p.i++
+				return w
+			case 'n':
+				w := common.NewNode(common.KindType)
+				w.Attrs = map[string]string{"swift.conv": "__owned "}
+				common.AddChildren(w, n)
+				p.i++
+				return w
+			default:
+				return n
+			}
+			p.i++
+			cl := *n
+			if cl.Attrs != nil {
+				a := make(map[string]string, len(cl.Attrs)+1)
+				for k, v := range cl.Attrs {
+					a[k] = v
+				}
+				cl.Attrs = a
+			} else {
+				cl.Attrs = map[string]string{}
+			}
+			cl.Attrs[attr] = val
+			return &cl
+		}
+		firstParam = applyMod(firstParam)
 		var paramTypes []*demangle.Node
 		paramTypes = append(paramTypes, firstParam)
 		// Multi-element tuple: one '_' FirstElementMarker after element 0,
