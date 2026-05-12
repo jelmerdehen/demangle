@@ -7679,7 +7679,7 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 			fnNestedSuffix = "." + strings.Join(nestedTypes, ".")
 			fnBaseHostPath = hostPath[:len(hostPath)-len(fnNestedSuffix)]
 		}
-		wrap.Text = "(extension in Swift):Swift." + fnBaseHostPath + extSig + fnNestedSuffix + "." + declName + verboseParamStr(labels) + verboseRetStr(true)
+		wrap.Text = "(extension in Swift):Swift." + fnBaseHostPath + extSig + fnNestedSuffix + "." + declName + genericPart + verboseParamStr(labels) + verboseRetStr(true)
 	} else if modName == "Foundation" && extHostMod != "" {
 		wrap.Text = "(extension in Foundation):" + extHostMod + "." + hostPath + "." + declName + genericPartFoundation + verboseParamStr(labels) + verboseRetStr(true)
 	} else {
