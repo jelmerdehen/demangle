@@ -5490,6 +5490,11 @@ var swiftConcurrencyRuntimeTypes = map[string]bool{
 	// simplified form (labels-only, no module prefix, no types, no return).
 	"withCheckedContinuation":         true,
 	"withCheckedThrowingContinuation": true,
+	"_runAsyncMain":                                     true,
+	"_checkExpectedExecutor":                            true,
+	"_getGenericSerialExecutor":                         true,
+	"_getUndefinedTaskExecutor":                         true,
+	"_checkIllegalTaskLocalBindingWithinWithTaskGroup":  true,
 }
 
 // descriptorPrintOpts returns the appropriate PrintOptions for rendering a
