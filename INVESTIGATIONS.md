@@ -33,11 +33,7 @@ Same shape across many Swift stdlib clusters: bound-generic type pushed to subs 
 - `Swift.AnyCollection.init(Swift.AnyCollection)` — param drops `<A>`
 - `Swift.Dictionary.Keys.index(after: Swift.Dictionary.Index)` — param wraps wrong
 
-**Root located (fire 22):** parseType post-switch line 14419 pushes BARE base to subs before tryBoundGeneric runs (line 14609 then pushes BOUND). Apple's addSubstitution fires once AFTER full type built — pushes only BOUND. Our double-push misaligns indices so back-refs to slot N resolve to bare instead of bound.
-
-**Fire 22 attempt:** added `boundGenericFollows` skip-condition (skip bare push when next byte is `y` and not `yt`/empty-tuple). Probe matched RangeSet but Apple curated regressed 151→144 (-7) — `y` can follow for `yp`=Any, function-type-empty-params, etc. Condition too broad. Reverted.
-
-Better approach: lookahead WHOLE `y...G` to verify bound-generic shape before skipping, or thread "bound-generic-coming" signal back from tryBoundGeneric. Multi-fire careful work.
+**Root (fire 22):** parseType:14419 pushes bare BEFORE bgcall; 14609 pushes bound. Apple's addSubstitution fires once after full type. Skip-on-y attempt regressed Apple 151→144 (`y` ambiguous: `yp`=Any, empty-args). Apple subs has bound at slot 3 (we have bare); needs intermediate inner-generic-param push too. Defer to operator-led session with Apple swift-demangle source.
 
 ### bidirectional-collection [3 syms, distinct bugs]
 
@@ -72,5 +68,3 @@ Parser misidentifies host as `LocalizationValue` (nested type from param-type st
 - 2026-05-12 SD (`5ba59a6`): Foundation local-generic-sig drop — +29 prod via removing isWC guard at `stable.go:13554`. Unlocked URL.append, AttributedString.{+,+=,append,insert,Index.isValid}, etc — any Foundation method with single protocol-constrained generic param.
 - 2026-05-12 SC (`ef61987`): dependent-member constraint Rp/Rt with stdlib defining-proto — +12 prod via new 4-part scan in `extractConstraintSigFullOpts`. Unlocked RawRepresentable, _SwiftNewtypeWrapper, CodingKeyRepresentable clusters.
 - 2026-05-12 SB (`6c85d27`): preview-init cross-module bare-marker — +9 prod via `isBareModuleDescriptor` gate at `stable.go:9323`.
-- 2026-05-12 SA (`d7e93aa`): StringProtocol ext subs alignment — +26 prod.
-- 2026-05-12 RZ (`c5b2c1f`): ext property return type via subs accumulator — +38 prod.
