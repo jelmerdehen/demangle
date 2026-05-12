@@ -22,6 +22,15 @@ Remaining are all subs-table / multi-constraint / sugar-form issues. No shared r
 - Emit path: `stable.go:5408` / `5530` / `1521` (multiple `termPrefix = "protocol conformance descriptor for "`).
 - Pattern reuse: RT commit (`ddfa696`) handled `A<letter>Qz` dependent-member in extension constraint emit — similar trail.
 
+### randomaccess-collection [4 syms, multi-constraint extension of SC]
+
+- Want: `< where A.Index: Strideable, A.Indices == Swift.Range<A.Index>, A.Index.Stride == Swift.Int>`.
+- Got drops 2nd+3rd constraints (only `A.Index: Strideable` shown).
+- Missing patterns in `extractConstraintSigFullOpts`:
+  - `S<L>yX...G<N><assoc>Rt<subj>` — bound-generic concrete value (`SnyABG7IndicesRtz` = "A.Indices == Range<A.Index>"). Needs SC-scaffold extension: parse bound-generic concrete before assoc.
+  - `S<L1><N><assoc><subref><N><assoc>RT<subj>` — nested dependent member (`SiAA_6StrideRTz` = "A.Index.Stride == Int"). Note capital `RT` (vs lowercase `Rt`).
+- Likely 4+ syms across collection clusters when both patterns added.
+
 ### foundation-string-localization [7 syms]
 
 - Got: compact `AttributedString.LocalizationValue.init(_:)` vs Want full verbose `Foundation.AttributedString.init(localized:..., defaultValue: ..., ...) -> Foundation.AttributedString`.
