@@ -171,11 +171,8 @@ Caveman: fire-internal terse OK; commits/code/comments normal.
 ## Lessons / wins (≤800 chars, merge-before-append, drop oldest at cap)
 
 <!-- newest on top -->
-- 2026-05-12 SX/SN-meta: shared back-ref-resolved subs + mutation = silent contamination across sites. Clone-before-attr/label is essential for tuple-elem mods (SX +108 prod, +109 rtrip — biggest single-fire gain) AND for per-element labels (SN +2 prod). Search anywhere parser mutates a node freshly returned from parseNumericSubstitution.
-- 2026-05-12 SQ/SR-meta: same emit field needed in multiple branches. localGeneric-only "<A>" missing from tryExtensionEntity verbose-Foundation (SQ) and tryTypeFirstExtensionEntity verbose-Swift (SR) — grep emit-path siblings when fixing one.
-- 2026-05-12 SM: E-scan word-sub run = '0' + (lowercase|chunk)* + uppercase-terminal. Single-chunk path missed multi-chunk runs like '0g9AccessoryE'. +8 prod.
-- 2026-05-12 SL: A<N><UPPER> compact-sub repeat (N≥2) followed by <digits><name><kind> = ret + nested-on-sub param. +20 prod.
-- 2026-05-12 SH/SJ/SP-meta: narrow allow/denylist beats broad rule. Probe heuristic-dependent cases first.
+- 2026-05-13 TG/TH-meta: tryFunctionEntity param-tuple has TWO sub-loops (`_`-led + contiguous). Compact/expand helpers MUST go in BOTH. TG/TH +2 each only after second loop patched.
+- 2026-05-12 SX/SN: shared subs + mutation = silent contamination. Clone-before-attr/label for tuple-elem mods (+108) and per-elem labels (+2). Audit parseNumericSubstitution-result mutations.
 
 ## Lessons / traps (≤500 chars, merge-before-append, drop oldest at cap)
 
