@@ -5745,6 +5745,31 @@ func (p *parser) tryEntitySuffix(inner *demangle.Node) (*demangle.Node, bool) {
 			prefix = "enum case for "
 		case 'V':
 			prefix = "value witness table for "
+		case 'v':
+			// Wv<X> — value-witness opcodes. Apple's swift-demangle emits
+			// "<opcode> for <inner>" with opcode varying by X. Narrow
+			// support so 'Wvd' (direct field offset, common in Combine
+			// generic boxes) round-trips without surfacing as a parse error.
+			if p.i+2 < len(p.s) {
+				switch p.s[p.i+2] {
+				case 'd':
+					innerStr := simplifiedFuncEntity(inner)
+					wrap := common.NewNode(common.KindTypeMangling)
+					wrap.Text = "direct field offset for " + innerStr
+					wrap.Attrs = map[string]string{"swift.suffix": "Wvd", "swift.prerendered": "true"}
+					common.AddChildren(wrap, inner)
+					p.i += 3
+					return wrap, true
+				case 'i':
+					innerStr := simplifiedFuncEntity(inner)
+					wrap := common.NewNode(common.KindTypeMangling)
+					wrap.Text = "indirect field offset for " + innerStr
+					wrap.Attrs = map[string]string{"swift.suffix": "Wvi", "swift.prerendered": "true"}
+					common.AddChildren(wrap, inner)
+					p.i += 3
+					return wrap, true
+				}
+			}
 		case 'S':
 			prefix = "self-conformance witness for "
 		case 'J':
