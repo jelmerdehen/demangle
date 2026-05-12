@@ -13765,6 +13765,51 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 					}
 					return true
 				}
+				// aCompactExpand: A<digits><UPPER> compact-repeat back-ref —
+				// expand to N copies of subs[UPPER-'A']. Mirrors sCompactExpand.
+				// parseNominalPath pushes Identifier THEN Type at adjacent
+				// slots; Apple's index points at the Type slot, which our
+				// parser stores at idx+1. Prefer the Type at idx+1 when the
+				// idx slot is an Identifier.
+				aCompactExpand := func() bool {
+					if p.eof() || p.s[p.i] != 'A' || p.i+1 >= len(p.s) ||
+						p.s[p.i+1] < '0' || p.s[p.i+1] > '9' {
+						return false
+					}
+					j := p.i + 1
+					for j < len(p.s) && p.s[j] >= '0' && p.s[j] <= '9' {
+						j++
+					}
+					if j >= len(p.s) || p.s[j] < 'A' || p.s[j] > 'Z' {
+						return false
+					}
+					idx := int(p.s[j] - 'A')
+					sub, ok := p.subs.Get(idx)
+					if !ok {
+						return false
+					}
+					if common.NodeKind(sub.Kind) == common.KindIdentifier {
+						if nx, ok2 := p.subs.Get(idx + 1); ok2 &&
+							common.NodeKind(nx.Kind) == common.KindType {
+							sub = nx
+						}
+					}
+					n := 0
+					for _, d := range p.s[p.i+1 : j] {
+						n = n*10 + int(d-'0')
+						if n > 512 {
+							return false
+						}
+					}
+					if n < 2 {
+						return false
+					}
+					p.i = j + 1 // consume A<digits><UPPER>
+					for k := 0; k < n; k++ {
+						elements = append(elements, sub)
+					}
+					return true
+				}
 				for !p.eof() && p.s[p.i] == '_' {
 					// '_t' — direct tuple closer for the elements
 					// collected so far. Consume both bytes + break.
@@ -13774,6 +13819,9 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 					}
 					p.i++
 					if sCompactExpand() {
+						continue
+					}
+					if aCompactExpand() {
 						continue
 					}
 					y, err := p.parseType()
