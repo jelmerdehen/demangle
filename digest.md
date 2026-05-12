@@ -29,6 +29,8 @@
 
 ## Last 10 Commits
 
+- 5ba59a6 swift-parity: SD local generic sig on Foundation methods — parity 86.00%→86.04% (+29 production)
+- 9de36b8 chore(investigations): record local-generic-sig-drop pattern + refresh digest
 - 170b540 chore: SC retro — close raw-representable cluster, log 4-part constraint pattern win
 - c6e8a48 chore: lock snapshot after SC commit (parity 54814→54826)
 - 1418209 chore: update digest.md for SC commit (parity 54814→54826)
@@ -37,8 +39,6 @@
 - 2fd3910 chore(.gitignore): ignore LOOP_PAUSED pause-flag file
 - 6066e20 loop: spec v2 — multi-fix per fire + fast-probe feedback + investigations cache
 - 94da23b chore: lock snapshot after SB commit (parity 54805→54814)
-- b781953 chore: update digest.md for SB commit (parity 54805→54814)
-- 6c85d27 swift-parity: SB cross-module bare extension empty marker — parity 85.96%→85.97% (+9 production)
 
 ## Suggested Next 3 Items
 
