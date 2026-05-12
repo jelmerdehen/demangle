@@ -1,4 +1,4 @@
-# snapshot-pass-set update 2026-05-12T15:06:05Z — union with previous (high-water)
+# snapshot-pass-set update 2026-05-12T15:14:54Z — union with previous (high-water)
 _$s10Foreground7SwiftUI18LabelGroupStyle_v0PTl
 _$s10Foundation10CocoaErrorV010formattingC0AC4CodeVvgZ
 _$s10Foundation10CocoaErrorV010formattingC0AC4CodeVvpZMV
@@ -46557,6 +46557,7 @@ _$ss12_SliceBufferVyxSicis
 _$ss12_SmallStringV10startIndexSivg
 _$ss12_SmallStringV10startIndexSivpMV
 _$ss12_SmallStringV11taggedCocoaABSgyXl_tcfC
+_$ss12_SmallStringV12rawUncheckedABs6UInt64V_AEt_tcfC
 _$ss12_SmallStringV14leadingRawBitss6UInt64VvM
 _$ss12_SmallStringV14leadingRawBitss6UInt64Vvg
 _$ss12_SmallStringV14leadingRawBitss6UInt64VvpMV
@@ -46570,6 +46571,7 @@ _$ss12_SmallStringV15trailingRawBitss6UInt64VvpMV
 _$ss12_SmallStringV15trailingRawBitss6UInt64Vvs
 _$ss12_SmallStringV22rawDiscriminatedObjects6UInt64Vvg
 _$ss12_SmallStringV22rawDiscriminatedObjects6UInt64VvpMV
+_$ss12_SmallStringV3rawABs6UInt64V_AEt_tcfC
 _$ss12_SmallStringV5countSivg
 _$ss12_SmallStringV5countSivpMV
 _$ss12_SmallStringV7isASCIISbvg
@@ -46903,6 +46905,7 @@ _$ss13_StringObjectV16largeAddressBitsSuvg
 _$ss13_StringObjectV16largeAddressBitsSuvpMV
 _$ss13_StringObjectV16providesFastUTF8Sbvg
 _$ss13_StringObjectV16providesFastUTF8SbvpMV
+_$ss13_StringObjectV17rawUncheckedValueABs6UInt64V_AEt_tcfC
 _$ss13_StringObjectV18_countAndFlagsBitss6UInt64VvM
 _$ss13_StringObjectV18_countAndFlagsBitss6UInt64Vvg
 _$ss13_StringObjectV18_countAndFlagsBitss6UInt64VvpMV
@@ -46945,6 +46948,7 @@ _$ss13_StringObjectV8fastUTF8SRys5UInt8VGvpMV
 _$ss13_StringObjectV8immortal7isASCIIABSRys5UInt8VG_SbtcfC
 _$ss13_StringObjectV8isMortalSbvg
 _$ss13_StringObjectV8isMortalSbvpMV
+_$ss13_StringObjectV8rawValueABs6UInt64V_AEt_tcfC
 _$ss13_StringObjectV9isForeignSbvg
 _$ss13_StringObjectV9isForeignSbvpMV
 _$ss13_StringObjectVMa
@@ -52137,6 +52141,7 @@ _$ss6HasherV8_combineyys5UInt8VF
 _$ss6HasherV8_combineyys6UInt16VF
 _$ss6HasherV8_combineyys6UInt32VF
 _$ss6HasherV8_combineyys6UInt64VF
+_$ss6HasherV8_rawSeedABs6UInt64V_AEt_tcfC
 _$ss6HasherV8finalizeSiyF
 _$ss6HasherV9_finalizeSiyF
 _$ss6HasherVABycfC
