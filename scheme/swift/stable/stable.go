@@ -5036,28 +5036,55 @@ func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 	// CGFloat, byY: AH) where AH back-ref points at the same CGFloat node).
 	if len(labels) > 0 {
 		if common.NodeKind(paramsType.Kind) == common.KindTypeList {
-			for i, el := range paramsType.Children {
-				if i >= len(labels) || labels[i] == "" {
-					continue
-				}
-				cloned := *el
-				if cloned.Attrs == nil {
-					cloned.Attrs = map[string]string{}
-				} else {
-					a := make(map[string]string, len(cloned.Attrs)+1)
-					for k, v := range cloned.Attrs {
-						a[k] = v
+			// Single-label wraps multi-element tuple (init_t form): Apple
+			// emits the label once on the parenthesised tuple as a single arg
+			// (e.g. init(rawUncheckedValue: (UInt64, UInt64))).
+			if len(labels) == 1 && paramsType.Attrs != nil &&
+				paramsType.Attrs["swift.init_t"] == "1" {
+				paramsType.Attrs["swift.label"] = labels[0]
+				paramsType.Attrs["swift.label_wraps_tuple"] = "1"
+			} else {
+				for i, el := range paramsType.Children {
+					if i >= len(labels) || labels[i] == "" {
+						continue
 					}
-					cloned.Attrs = a
+					cloned := *el
+					if cloned.Attrs == nil {
+						cloned.Attrs = map[string]string{}
+					} else {
+						a := make(map[string]string, len(cloned.Attrs)+1)
+						for k, v := range cloned.Attrs {
+							a[k] = v
+						}
+						cloned.Attrs = a
+					}
+					cloned.Attrs["swift.label"] = labels[i]
+					paramsType.Children[i] = &cloned
 				}
-				cloned.Attrs["swift.label"] = labels[i]
-				paramsType.Children[i] = &cloned
 			}
 		} else if len(labels) == 1 && paramsType != nil {
 			if paramsType.Attrs == nil {
 				paramsType.Attrs = map[string]string{}
 			}
 			paramsType.Attrs["swift.label"] = labels[0]
+			// Single-label wrapping a multi-element labeled tuple (init_t form):
+			// Apple emits the label once, wrapping the whole tuple as a single
+			// arg (e.g. init(rawUncheckedValue: (UInt64, UInt64))).
+			if common.NodeKind(paramsType.Kind) == common.KindTypeList &&
+				paramsType.Attrs["swift.init_t"] == "1" {
+				paramsType.Attrs["swift.label_wraps_tuple"] = "1"
+			}
+		} else if len(labels) > 1 && paramsType != nil &&
+			common.NodeKind(paramsType.Kind) == common.KindType &&
+			len(paramsType.Children) == 1 &&
+			common.NodeKind(paramsType.Children[0].Kind) == common.KindBuiltinTypeName {
+			// Pre-rendered tuple-as-BuiltinTypeName (from tryPostfixCompactTuple).
+			// Stash labels on the type so funcEntityFullParams can re-split and
+			// apply them when rendering.
+			if paramsType.Attrs == nil {
+				paramsType.Attrs = map[string]string{}
+			}
+			paramsType.Attrs["swift.labels"] = strings.Join(labels, "\x00")
 		}
 	}
 	// Consume optional calling-convention 'c' (escape marker in init type encoding)
@@ -12263,6 +12290,30 @@ func decodeOperatorName(encoded string) string {
 	return string(b)
 }
 
+// splitTopLevelComma splits s on commas at depth 0 (outside any nesting of
+// (), <>, []). Used to decompose a pre-rendered tuple/parameter-list string
+// into its top-level parts so per-position labels can be reattached.
+func splitTopLevelComma(s string) []string {
+	var parts []string
+	depth := 0
+	start := 0
+	for i := 0; i < len(s); i++ {
+		switch s[i] {
+		case '(', '<', '[':
+			depth++
+		case ')', '>', ']':
+			depth--
+		case ',':
+			if depth == 0 {
+				parts = append(parts, s[start:i])
+				start = i + 1
+			}
+		}
+	}
+	parts = append(parts, s[start:])
+	return parts
+}
+
 // funcEntityFullParams renders params with labels and types for Foundation
 // full-form output: "label: Type, label: Type".
 func funcEntityFullParams(args *demangle.Node, opts common.PrintOptions) string {
@@ -12278,7 +12329,45 @@ func funcEntityFullParams(args *demangle.Node, opts common.PrintOptions) string 
 		common.NodeKind(args.Children[0].Kind) == common.KindBuiltinTypeName {
 		t := args.Children[0].Text
 		if strings.HasPrefix(t, "(") && strings.HasSuffix(t, ")") {
-			return t[1 : len(t)-1]
+			inner := t[1 : len(t)-1]
+			if lblStr := args.Attrs["swift.labels"]; lblStr != "" {
+				// Re-split tuple parts and apply per-position labels.
+				lbls := strings.Split(lblStr, "\x00")
+				parts := splitTopLevelComma(inner)
+				if len(parts) == len(lbls) {
+					out := make([]string, len(parts))
+					for i, p := range parts {
+						p = strings.TrimSpace(p)
+						if lbls[i] != "" && lbls[i] != "_" {
+							out[i] = lbls[i] + ": " + p
+						} else {
+							out[i] = p
+						}
+					}
+					return strings.Join(out, ", ")
+				}
+			}
+			return inner
+		}
+	}
+	// Init labeled-tuple wrap: args is a TypeList carrying a top-level label
+	// and the init_t terminator (set by tryInitDeinitEntity when '_t' follows
+	// a multi-element tuple). Apple emits the label once, wrapping the whole
+	// tuple as a single arg (e.g. init(rawUncheckedValue: (UInt64, UInt64))).
+	if common.NodeKind(args.Kind) == common.KindTypeList &&
+		args.Attrs != nil && args.Attrs["swift.label_wraps_tuple"] == "1" {
+		lbl := args.Attrs["swift.label"]
+		if lbl != "" && lbl != "_" {
+			b.WriteString(lbl)
+			b.WriteString(": (")
+			for i, c := range args.Children {
+				if i > 0 {
+					b.WriteString(", ")
+				}
+				b.WriteString(common.Print(c, opts))
+			}
+			b.WriteByte(')')
+			return b.String()
 		}
 	}
 	// Single-label-wraps-tuple: when args is a TypeList whose children all
