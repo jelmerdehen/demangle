@@ -12896,25 +12896,6 @@ func funcEntityLabels(args *demangle.Node) string {
 		}
 		return b.String()
 	}
-	// Single Type+BuiltinTypeName collapsed tuple from tryPostfixCompactTuple:
-	// emit one "_:" per top-level comma-split element so labels match the
-	// underlying parameter count (e.g. dispatch_data_create_subrange has
-	// 3 positional params merged into one BuiltinTypeName "(T1, T2, T3)").
-	if common.NodeKind(args.Kind) == common.KindType &&
-		len(args.Children) == 1 &&
-		common.NodeKind(args.Children[0].Kind) == common.KindBuiltinTypeName {
-		t := args.Children[0].Text
-		if strings.HasPrefix(t, "(") && strings.HasSuffix(t, ")") && (args.Attrs == nil || args.Attrs["swift.label"] == "") {
-			inner := t[1 : len(t)-1]
-			parts := splitTopLevelComma(inner)
-			if len(parts) >= 2 {
-				for range parts {
-					b.WriteString("_:")
-				}
-				return b.String()
-			}
-		}
-	}
 	lbl := ""
 	if args.Attrs != nil {
 		lbl = args.Attrs["swift.label"]
