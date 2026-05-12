@@ -24,13 +24,7 @@ Remaining are all subs-table / multi-constraint / sugar-form issues. No shared r
 
 ### nsfilehandle-result-back-ref [4 syms]
 
-Got: `Swift.Result<Foundation.POSIXError>` (1 arg). Want: `Swift.Result<__C.NSFileHandle, Foundation.POSIXError>` (2 args).
-
-**Root located (fire 15):** parseType at `stable.go:14016` calls `parseNumericSubstitution`. For input `AbC...`, the multi-sub path at `stable.go:16586+` treats `b` (lowercase) as push-and-continue + `C` (uppercase) as terminator-return → returns subs[2] (consumed `bC`). Apple's actual semantic likely treats `AbC` as a single back-ref to subs[1] (NSFileHandle) with `C` as kind-suffix confirming Class, NOT multi-sub. Then `10POSIXErrorV` parses as the second arg.
-
-**Fix risk:** parseNumericSubstitution is shared infrastructure. Changing the multi-sub path could regress dozens of symbols that genuinely use multi-sub sequences. Needs corpus-bisection or careful Apple-grammar reverse-engineering before patching.
-
-**Fire 16/17 attempts:** kind-suffix gate in parseNumericSubstitution + flag-guarded skip of nested-nominal-chain at parseType:14474. Combined attempt **regressed parity 54863→54853 (-10)**. Reverted. The kind-suffix match condition fires for cases where it shouldn't (probably collisions with legitimate multi-sub sequences that happen to end with V/C/O/P matching). Need much narrower gate or completely different approach. Defer to dedicated session with thorough corpus-bisect.
+Got: `Swift.Result<Foundation.POSIXError>`. Want: `Swift.Result<__C.NSFileHandle, Foundation.POSIXError>`. parseNumericSubstitution (`stable.go:16586`) treats `AbC` as multi-sub returning subs[2]; Apple likely treats it as back-ref-with-kind-suffix returning subs[1]. Fire 16/17 narrow attempt regressed -10 due to false matches on legitimate multi-sub. Needs corpus-bisect.
 
 ### bound-generic-subs-indexing [22+ syms across RangeSet, SIMD, Dictionary, Set, Any*Collection]
 
@@ -61,8 +55,6 @@ Want: full Foundation verbose `Foundation.AttributedString.init(localized:..., d
 Parser misidentifies host as `LocalizationValue` (nested type from param-type stream) instead of `AttributedString`. Init labels get truncated to `_:` single. **Needs `tryInitDeinitEntity` parser surgery to keep host fixed across the label-then-param-types pattern. Multi-fire.**
 
 
-
-### preview-init-cluster [STATIC, see Closed → SB]
 
 ## Skip list (oracle quirks / off-corpus)
 
