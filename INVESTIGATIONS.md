@@ -33,7 +33,11 @@ Same shape across many Swift stdlib clusters: bound-generic type pushed to subs 
 - `Swift.AnyCollection.init(Swift.AnyCollection)` — param drops `<A>`
 - `Swift.Dictionary.Keys.index(after: Swift.Dictionary.Index)` — param wraps wrong
 
-Likely fix: in tryBoundGeneric (`stable.go:15010`), the subs push for bound-generic result may be at wrong index OR Apple's subs model pushes BOTH base and bound; ours pushes one. Needs trace + Apple subs-model verification before patching. Highest-fanout potential remaining work — estimate 22+ syms unlock if fixed correctly.
+**Root located (fire 22):** parseType post-switch line 14419 pushes BARE base to subs before tryBoundGeneric runs (line 14609 then pushes BOUND). Apple's addSubstitution fires once AFTER full type built — pushes only BOUND. Our double-push misaligns indices so back-refs to slot N resolve to bare instead of bound.
+
+**Fire 22 attempt:** added `boundGenericFollows` skip-condition (skip bare push when next byte is `y` and not `yt`/empty-tuple). Probe matched RangeSet but Apple curated regressed 151→144 (-7) — `y` can follow for `yp`=Any, function-type-empty-params, etc. Condition too broad. Reverted.
+
+Better approach: lookahead WHOLE `y...G` to verify bound-generic shape before skipping, or thread "bound-generic-coming" signal back from tryBoundGeneric. Multi-fire careful work.
 
 ### bidirectional-collection [3 syms, distinct bugs]
 
