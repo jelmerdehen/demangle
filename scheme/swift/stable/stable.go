@@ -10363,9 +10363,22 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 	}
 	hostQualified += nestedSuffix5
 	// Build local generic sig string from parsed constraints.
+	// When localGeneric is set but no constraints were collected (lF suffix
+	// with no R<kind>), emit the bare "<A>" / "<A, B>" form so the verbose
+	// Foundation full-form output includes the generic-param introducer.
 	localSig := ""
 	if len(localConstraints) > 0 {
 		localSig = "<A where " + strings.Join(localConstraints, ", ") + ">"
+	} else if localGeneric {
+		if localGenericCount <= 1 {
+			localSig = "<A>"
+		} else {
+			gnames := make([]string, localGenericCount)
+			for gi := range gnames {
+				gnames[gi] = string(rune('A' + gi))
+			}
+			localSig = "<" + strings.Join(gnames, ", ") + ">"
+		}
 	}
 	// Build params string, applying labels when present.
 	var paramsStr string
