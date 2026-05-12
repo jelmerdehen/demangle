@@ -4938,6 +4938,10 @@ func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 				break
 			}
 			labels = append(labels, lbl)
+			// Apple's demangler pushes each named param label as an Identifier
+			// to the substitution table so back-refs in the result/param types
+			// (e.g. AH for the H-indexed subs slot) resolve correctly.
+			p.subs.Push(common.NewIdentifier(lbl))
 		}
 	}
 	// Result-type. When the empty-label-list shortcut 'y' was taken, suppress
@@ -5026,16 +5030,28 @@ func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 		paramsType.Attrs["swift.init_t"] = "1"
 	}
 	// Apply labels to paramsType children (tuple) or the single type.
+	// Clone children before labeling: back-ref-resolved elements may alias the
+	// same substitution-table node, so mutating one element's Attrs would
+	// corrupt the other's label (e.g. AffineTransform.init(translationByX:
+	// CGFloat, byY: AH) where AH back-ref points at the same CGFloat node).
 	if len(labels) > 0 {
 		if common.NodeKind(paramsType.Kind) == common.KindTypeList {
 			for i, el := range paramsType.Children {
 				if i >= len(labels) || labels[i] == "" {
 					continue
 				}
-				if el.Attrs == nil {
-					el.Attrs = map[string]string{}
+				cloned := *el
+				if cloned.Attrs == nil {
+					cloned.Attrs = map[string]string{}
+				} else {
+					a := make(map[string]string, len(cloned.Attrs)+1)
+					for k, v := range cloned.Attrs {
+						a[k] = v
+					}
+					cloned.Attrs = a
 				}
-				el.Attrs["swift.label"] = labels[i]
+				cloned.Attrs["swift.label"] = labels[i]
+				paramsType.Children[i] = &cloned
 			}
 		} else if len(labels) == 1 && paramsType != nil {
 			if paramsType.Attrs == nil {
