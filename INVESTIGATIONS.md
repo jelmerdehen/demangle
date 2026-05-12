@@ -28,6 +28,13 @@ fast loop fires — avoids re-deriving path/cause each fire. Bounded
 - Host-resolution bug — emit picks nested-type `LocalizationValue.init` instead of outer-type `AttributedString.init` with `LocalizationValue` as a param type.
 - Likely needs init-host detection fix; multi-fire.
 
+### local-generic-sig-drop [URL/AttributedString methods, ~6 syms]
+
+- Got: `Foundation.URL.append(path: A, directoryHint: ...)`. Want: `Foundation.URL.append<A where A: Swift.StringProtocol>(path: A, directoryHint: ...)`.
+- Local generic-sig `<A where A: Proto>` dropped from method emit even though `A` is referenced in params. Mangling ends in `<Proto>RzlF` with constraint+local-gen+func terminators.
+- Emit goes through `tryFunctionEntity` (stable.go:11978) but `genericSigStr` (line 13525) not reaching wrap.Text — investigate why `localGeneric` flag or `swift.generic` attr is empty here. Different code path than ext-entity (which has `localSig` working).
+- Touches AttributedString.append/insert/+/+=, URL.append. Likely 5-7 syms unlock.
+
 ### foundation-tuple-flatten [Calendar.date, 5 syms]
 
 - Got: `Foundation.Calendar.date((era: Int, year: Int, …)) -> Date?` (double-paren). Want: `Foundation.Calendar.date(era: Int, year: Int, …) -> Date?` (flat).
