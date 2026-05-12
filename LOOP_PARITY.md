@@ -171,13 +171,12 @@ Caveman: fire-internal terse OK; commits/code/comments normal.
 ## Lessons / wins (≤800 chars, merge-before-append, drop oldest at cap)
 
 <!-- newest on top -->
-- 2026-05-12 SH: withChecked[Throwing]Continuation use Apple-simplified emit despite Swift module + verbose-looking signature; add to swiftConcurrencyRuntimeTypes map. Targeted name-allowlist beats broad "Swift-stdlib-underscore-prefix" rule (which regressed -155 in initial attempt). +8 prod.
-- 2026-05-12 SG: pre-rendered parenthesised tuple as single-param-of-Type-BuiltinTypeName double-wraps when caller adds outer parens. Strip own parens in funcEntityFullParams. +2 prod.
-- 2026-05-12 SF: single label binding a tuple param shows as duplicated labels per child in funcEntityFullParams; symptomatic emit-side fix (detect all-same-label, wrap tuple) lands without finding the upstream label-copy site. Sometimes emit-side gate beats hunting the root. +5 prod.
-- 2026-05-12 SE-meta: cache-only fires are pseudo-progress; investigation must culminate in an attempted fix in the same fire or next, not perpetual classification. Push through ceiling instead of bailing at 15min mark.
-- 2026-05-12 SD: Foundation-branch wrap.Text in tryFunctionEntity built manually; genericSigStr (already computed) only emitted under isWC gate. Drop isWC guard for genericSig emission. +29 prod.
-- 2026-05-12 SC: 4-part dependent-member constraint S<L1><N><assoc>S<L2>R[pt]<subj> needs distinct scan from 3-part S<L1><N><assoc>Rp; assoc-defining proto L2 may differ from constraint-target L1. +12 prod.
-- 2026-05-12 SB: cross-module bare ext constraintBytes (no Rz/rl, just length-prefixed module name) hits "<>" catch-all; gate with bare-module-descriptor check.
+- 2026-05-12 SH/SJ-meta: narrow allowlist/denylist beats broad rule. Examples: withCheckedContinuation name-allowlist not stdlib-underscore-prefix (SH, broad attempt -155); StringInterpolation host-suffix exclude from Foundation fluent-builder heuristic (SJ, +5). Probe heuristic-dependent cases before narrowing.
+- 2026-05-12 SG: pre-rendered parenthesised tuple as single-param-of-Type-BuiltinTypeName double-wraps when caller adds outer parens. Strip own parens in funcEntityFullParams.
+- 2026-05-12 SF: single label binding tuple param duplicates per child in funcEntityFullParams; symptomatic gate (all-same-label → wrap tuple) lands without root.
+- 2026-05-12 SE-meta: cache-only fires are pseudo-progress; culminate in attempted fix same/next fire.
+- 2026-05-12 SD: tryFunctionEntity Foundation wrap.Text built manually; genericSigStr emission was isWC-gated. Drop guard for genericSig.
+- 2026-05-12 SC: 4-part dep-member constraint S<L1><N><assoc>S<L2>R[pt]<subj>: assoc-defining proto L2 may differ from target L1.
 
 ## Lessons / traps (≤500 chars, merge-before-append, drop oldest at cap)
 
