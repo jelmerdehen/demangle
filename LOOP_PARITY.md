@@ -181,6 +181,5 @@ Caveman: fire-internal terse OK; commits/code/comments normal.
 ## Lessons / traps (≤500 chars, merge-before-append, drop oldest at cap)
 
 <!-- newest on top -->
-- 2026-05-12 SE-meta: parity test APPENDS sections to divergences.txt; `make digest` reads all → fixed mismatches still surface in Top-20. Always `rm` divergences before refresh.
-- 2026-05-12 SB-attempt: stale gitignored production-divergences.txt → phantom Top-20. Regen before reading digest.
-- 2026-05-12 SB-attempt: two property-descriptor emit paths (stable.go:7427 + :10003); probe before editing to confirm which fires.
+- 2026-05-12 SK-attempt: collecting local where-constraints unconditionally regressed -20 (simplified-display syms gained unwanted clauses); narrow to (Foundation branch only, conformance kinds 'z'/'p' only) gave +2 clean. Display branches matter when wiring new emit fields.
+- 2026-05-12 SE-meta: parity test APPENDS sections to divergences.txt; `make digest` reads all → fixed mismatches still surface. Always `rm` before refresh.
