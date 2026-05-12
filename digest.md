@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 86.38% (55073/63757) — 2026-05-12T21:25:12Z
+**Parity**: 86.53% (55170/63757) — 2026-05-12T21:29:11Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 8352 parse-errors + 332 mismatches
+**Failures**: 8255 parse-errors + 332 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- 1489a33 swift-parity: TD Wvd/Wvi strip module + type for stored-property inner — parity 86.54%→86.54% (full count at fire end)
+- dcca242 chore: lock snapshot after TC commit (parity 55073→55170)
+- 3c833ff chore: update digest.md for TC commit (parity 55073→55170)
 - bfbd2e2 swift-parity: TC tryConformanceDescriptorMc accept 's'-prefix Swift module proto — parity 86.39%→86.39% (full count at fire end)
 - c9d5933 chore: lock snapshot after TB commit (parity 55064→55073)
 - 3a45136 chore: update digest.md for TB commit (parity 55064→55073)
@@ -36,9 +39,6 @@
 - ae455bb chore: lock snapshot after TA commit (parity 55057→55064, roundtrip 11810→11833)
 - a2880c6 chore: update digest.md for TA commit (parity 55057→55064)
 - 5a87d66 swift-parity: TA Wvd/Wvi value-witness suffixes (direct/indirect field offset) — parity 86.36%→86.36% (full count at fire end)
-- 3580052 chore: lock snapshot after SY commit (parity 55055→55057)
-- e62cf80 chore: update digest.md for SY commit (parity 55055→55057)
-- 211517e swift-parity: SY tryInitDeinitEntity A<N><UPPER> compact-repeat (Type-slot lookup) — parity 86.35%→86.35% (+1 production fast-probe; full count at fire end)
 
 ## Suggested Next 3 Items
 
