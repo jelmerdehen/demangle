@@ -7590,7 +7590,11 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 	// modified copy of self, encoded as Void at the ABI level via sret).
 	// Exclude cases where a param carries an inout/ownership modifier, which
 	// indicate the function genuinely returns void (e.g. hash(into:)).
-	if modName == "Foundation" && extHostMod != "" && retNode == nil && len(paramTypes) > 0 {
+	// StringInterpolation methods (appendLiteral / appendInterpolation) conform
+	// to the StringInterpolationProtocol contract which mandates void return —
+	// the heuristic mis-classifies them as fluent.
+	if modName == "Foundation" && extHostMod != "" && retNode == nil && len(paramTypes) > 0 &&
+		!strings.HasSuffix(hostPath, ".StringInterpolation") {
 		hasInoutParam := false
 		for _, pt := range paramTypes {
 			if pt != nil && pt.Attrs != nil {
