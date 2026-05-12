@@ -14133,6 +14133,12 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 		sbFull.WriteString(" -> ")
 		if ret == nil || common.NodeKind(ret.Kind) == common.KindEmptyList {
 			sbFull.WriteString("()")
+		} else if common.NodeKind(ret.Kind) == common.KindTypeList {
+			// Multi-element labeled-tuple result needs parens when inlined
+			// after '-> ' (e.g. (inserted: Bool, memberAfterInsert: Scalar)).
+			sbFull.WriteByte('(')
+			sbFull.WriteString(funcEntityFullParams(ret, opts))
+			sbFull.WriteByte(')')
 		} else {
 			sbFull.WriteString(common.Print(ret, opts))
 		}
