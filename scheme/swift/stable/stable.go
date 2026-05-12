@@ -12160,6 +12160,42 @@ func decodeOperatorName(encoded string) string {
 // full-form output: "label: Type, label: Type".
 func funcEntityFullParams(args *demangle.Node, opts common.PrintOptions) string {
 	var b strings.Builder
+	// Single-label-wraps-tuple: when args is a TypeList whose children all
+	// carry the same non-empty label, Swift's source-level meaning is
+	// "label: (T1, T2, ...)" — the label belongs to the parenthesised
+	// tuple as a single arg, not to each element. Detect and emit the
+	// wrapped form to avoid duplicate-label output like "raw: T, raw: T".
+	if common.NodeKind(args.Kind) == common.KindTypeList && len(args.Children) >= 2 {
+		first := ""
+		if args.Children[0].Attrs != nil {
+			first = args.Children[0].Attrs["swift.label"]
+		}
+		if first != "" && first != "_" {
+			allSame := true
+			for _, c := range args.Children[1:] {
+				cl := ""
+				if c.Attrs != nil {
+					cl = c.Attrs["swift.label"]
+				}
+				if cl != first {
+					allSame = false
+					break
+				}
+			}
+			if allSame {
+				b.WriteString(first)
+				b.WriteString(": (")
+				for i, c := range args.Children {
+					if i > 0 {
+						b.WriteString(", ")
+					}
+					b.WriteString(common.Print(c, opts))
+				}
+				b.WriteByte(')')
+				return b.String()
+			}
+		}
+	}
 	renderParam := func(c *demangle.Node) {
 		lbl := ""
 		if c.Attrs != nil {
