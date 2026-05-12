@@ -209,6 +209,7 @@ Caveman style: fire-internal terse OK; commits/code/comments normal.
 ## Lessons / wins (≤800 chars body, merge-before-append, drop oldest at cap)
 
 <!-- entries below this line; newest on top -->
+- 2026-05-12 SB: cross-module bare extension constraintBytes (no Rz/rl, just length-prefixed module name) hits "<>" catch-all; gate with bare-module-descriptor check.
 
 ## Lessons / traps (≤500 chars body, merge-before-append, drop oldest at cap)
 
