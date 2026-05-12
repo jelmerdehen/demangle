@@ -7525,6 +7525,33 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 								}
 							}
 						}
+						// A<digits><UPPER>_t back-ref compact: N copies of subs[UPPER-'A'].
+						// First copy → retNode (already set), remaining → params.
+						if !expanded && start >= 0 && p.s[start] == 'A' && digEnd > start+1 &&
+							letter >= 'A' && letter <= 'Z' {
+							n := 0
+							for k := start + 1; k < digEnd; k++ {
+								n = n*10 + int(p.s[k]-'0')
+							}
+							if n >= 2 && n <= 512 {
+								idx := int(letter - 'A')
+								sub, ok := p.subs.Get(idx)
+								if ok && common.NodeKind(sub.Kind) == common.KindIdentifier {
+									if nx, ok2 := p.subs.Get(idx + 1); ok2 &&
+										common.NodeKind(nx.Kind) == common.KindType {
+										sub = nx
+									}
+								}
+								if ok {
+									for k := 1; k < n; k++ {
+										paramTypes = append(paramTypes, sub)
+										paramCount++
+									}
+									p.i += 2 // consume '_t'
+									expanded = true
+								}
+							}
+						}
 					}
 				}
 				if !expanded {
