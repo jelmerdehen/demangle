@@ -21,3 +21,4 @@ coverage.txt
 scheme/swift/stable/testdata/production/production-divergences.txt
 /.claude/
 /logs/
+LOOP_PAUSED
