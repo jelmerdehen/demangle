@@ -29,16 +29,16 @@
 
 ## Last 10 Commits
 
+- 2a7cca6 swift-parity: SG strip outer parens from pre-rendered tuple in funcEntityFullParams — parity 86.05%→86.05% (+2 production)
+- 1dd998b chore: SF retro — close stdlib-init-tuple-label, log symptomatic-emit-side fix lesson
+- e72faa5 chore: lock snapshot after SF commit (parity 54856→54861)
+- 28ecdfd chore: update digest.md for SF commit (parity 54856→54861)
 - ef13be1 swift-parity: SF single-label-wraps-tuple emit in funcEntityFullParams — parity 86.04%→86.05% (+5 production)
 - 905b2d7 chore(investigations): classify AttributedString.init + stdlib-init-tuple-label clusters
 - 5d72bf8 chore: SE retro — push-through-ceiling lesson, RAC scope narrowed to ret-type bug
 - d7b4ca7 chore: lock snapshot after SE commit (parity 54855→54856)
 - 8945134 chore: update digest.md for SE commit (parity 54855→54856)
 - 55c2852 swift-parity: SE bound-generic Rt + nested-member RT constraint scans — parity 86.04%→86.04% (+1 production)
-- 1f58a05 chore(investigations): classify randomaccess-collection multi-constraint pattern
-- e488792 chore(loop+investigations): fix divergences-append trap, classify post-SD Top-20
-- 9ece4d6 chore: SD retro — close local-generic-sig-drop, log Foundation isWC-guard fix
-- b26d4fa chore: lock snapshot after SD commit (parity 54826→54855)
 
 ## Suggested Next 3 Items
 
