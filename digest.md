@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 85.96% (54805/63757) — 2026-05-12T14:23:35Z
+**Parity**: 85.97% (54814/63757) — 2026-05-12T14:44:17Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 8436 parse-errors + 516 mismatches
+**Failures**: 8436 parse-errors + 507 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -18,27 +18,27 @@
 - Foundation.AttributedString.init(localized: (exten… 4
 - (extension in Foundation):(extension in Foundation… 3
 - (extension in Swift):Swift.BidirectionalCollection… 3
-- Preview.init(_:traits:body:)               3
-- Preview.init<A>(_:traits:arguments:body:)  3
-- Preview.init<A>(_:traits:body:arguments:)  3
 - (extension in Foundation):Foundation.DataProtocol.… 2
 - (extension in Foundation):Foundation.DiscreteForma… 2
 - (extension in Foundation):Swift.StringProtocol.com… 2
 - (extension in Foundation):Swift.StringProtocol.get… 2
 - (extension in Foundation):__C.NSDimension.init(for… 2
+- (extension in Swift):Swift.LazyFilterSequence< whe… 2
+- (extension in Swift):Swift.LazyMapSequence< where … 2
+- (extension in Swift):Swift.LazyPrefixWhileSequence… 2
 
 ## Last 10 Commits
 
+- ef61987 swift-parity: SC dependent-member constraint Rp/Rt with stdlib defining-proto — parity 85.97%→86.00% (+12 production)
+- c707688 chore(investigations): record fire 5 dead-ends
+- 2fd3910 chore(.gitignore): ignore LOOP_PAUSED pause-flag file
+- 6066e20 loop: spec v2 — multi-fix per fire + fast-probe feedback + investigations cache
+- 94da23b chore: lock snapshot after SB commit (parity 54805→54814)
+- b781953 chore: update digest.md for SB commit (parity 54805→54814)
 - 6c85d27 swift-parity: SB cross-module bare extension empty marker — parity 85.96%→85.97% (+9 production)
 - af1971a chore: refresh digest from fresh divergences + add stale-data orient step
 - 8da0cb7 loop: codify minimum-cadence rule (delaySeconds=60)
 - f492f44 docs: add LOOP_PARITY.md self-paced parity-ratchet loop prompt
-- fa46017 docs(CLAUDE.md): refresh current state + add parity operating loop
-- 24fc829 chore: refresh snapshot timestamps after rebase
-- 4130841 chore: lock snapshot after nested-type fix (parity 54801→54805)
-- c85a896 chore: update digest.md for nested-type fix (parity 54801→54805)
-- 3a26394 swift-parity: nested-type A<sub>E false-positive guard + loop skip — parity 85.96%→85.97% (+4 production)
-- e9d1f38 chore: lock snapshot after SA commit (parity 54801→54801)
 
 ## Suggested Next 3 Items
 
