@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 86.13% (54911/63757) — 2026-05-12T19:21:14Z
+**Parity**: 86.13% (54913/63757) — 2026-05-12T19:28:30Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 8436 parse-errors + 410 mismatches
+**Failures**: 8424 parse-errors + 420 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -19,7 +19,7 @@
 - (extension in Foundation):Foundation.DiscreteForma… 2
 - (extension in Foundation):Swift.StringProtocol.com… 2
 - (extension in Foundation):Swift.StringProtocol.get… 2
-- (extension in Foundation):__C.NSDimension.init(for… 2
+- (extension in Foundation):__C.NSDecimal.FormatStyl… 2
 - (extension in Swift):Swift.LazyFilterSequence< whe… 2
 - (extension in Swift):Swift.LazyMapSequence< where … 2
 - (extension in Swift):Swift.LazyPrefixWhileSequence… 2
@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- 4d8b250 swift-parity: SO ObjC-host init returns bare __C.<host> not extension-form — parity 86.13%→86.13% (+2 production fast-probe; full count at fire end)
+- e01070d chore: lock snapshot after SN commit (parity 54911→54913, roundtrip 11687→11701)
+- 424f824 chore: update digest.md for SN commit (parity 54911→54913)
 - ff443bb swift-parity: SN tryInitDeinitEntity push labels to subs + clone-on-label-attach — parity 86.13%→86.13% (+2 production fast-probe; full count at fire end)
 - d8f4b35 chore: lock snapshot after SM commit (parity 54903→54911)
 - de225f0 chore: update digest.md for SM commit (parity 54903→54911)
@@ -36,9 +39,6 @@
 - 7f43b50 chore: lock snapshot after SL commit (parity 54883→54903)
 - 5a9da3a chore: update digest.md for SL commit (parity 54883→54903)
 - 76b8ee5 swift-parity: SL A<N><UPPER> nested-postfix splits ret/param on stdlib nested-type — parity 86.08%→86.08% (+8 production fast-probe; full count at fire end)
-- acf55c8 chore: lock snapshot after SK commit (parity 54881→54883)
-- 246889e chore: update digest.md for SK commit (parity 54881→54883)
-- ec0dc26 swift-parity: SK Foundation extension local where-constraint emit — parity 86.08%→86.08% (+2 production fast-probe; full count at fire end)
 
 ## Suggested Next 3 Items
 
