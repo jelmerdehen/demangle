@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 86.62% (55229/63757) — 2026-05-12T22:45:11Z
+**Parity**: 86.63% (55233/63757) — 2026-05-12T22:49:12Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 8265 parse-errors + 263 mismatches
+**Failures**: 8265 parse-errors + 259 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -12,7 +12,6 @@
 - (extension in Foundation):__C.NSFileHandle.Connect… 4
 - Foundation.AttributedString.init(localized: (exten… 4
 - (extension in Foundation):(extension in Foundation… 3
-- (extension in Swift):Swift.RandomAccessCollection<… 3
 - (extension in Foundation):Foundation.DiscreteForma… 2
 - (extension in Foundation):Swift.StringProtocol.com… 2
 - (extension in Swift):Swift.BidirectionalCollection… 2
@@ -26,9 +25,13 @@
 - (extension in Foundation):Dispatch.DispatchData.Re… 1
 - (extension in Foundation):Dispatch.DispatchData.re… 1
 - (extension in Foundation):Foundation.CodableConfig… 1
+- (extension in Foundation):Foundation.Measurement< … 1
 
 ## Last 10 Commits
 
+- df8dd49 swift-parity: TO tryFunctionEntity BuiltinTypeName tuple emit '_:' for unnamed label '_' — parity 86.63%→86.63% (full count at fire end)
+- 41bb92a chore: lock snapshot after TN (parity 55229→55233)
+- 51a819b chore: update digest.md for TN (parity 55229→55233)
 - 997f66f swift-parity: TN tryTypeFirstExtensionEntity A<digits><UPPER>_t back-ref compact-expand (result + N-1 params) — parity 86.62%→86.62% (full count at fire end)
 - 945740d chore: lock snapshot after TM (parity 55225→55229)
 - ccfd91b chore: update digest.md for TM (parity 55225→55229)
@@ -36,9 +39,6 @@
 - 6fd8cd9 chore: lock snapshot after TK..TL (parity 55223→55225)
 - 85dfa41 chore: update digest.md for TK..TL (parity 55223→55225)
 - fe76852 swift-parity: TL Foundation extension fluent-builder denylist UnsafeMutablePointer params (void return) — parity 86.61%→86.61% (full count at fire end)
-- 35d72aa swift-parity: TK tryTypeFirstExtensionEntity + tryExtensionEntity tuple-elem aCompactExpand — parity 86.61%→86.61% (full count at fire end)
-- 20971a8 chore: lock snapshot after TI/TJ revert (parity 55223→55223, no-op)
-- 760268e Revert "swift-parity: TI tryInitDeinitEntity param-tuple sCompactExpand for S<N><letter> — parity 86.61%→86.61% (full count at fire end)"
 
 ## Suggested Next 3 Items
 
