@@ -281,6 +281,39 @@ func prefixLen(in string) int {
 	return 2
 }
 
+// isBareModuleDescriptor reports whether b is a sequence of one or more
+// Swift name-length-prefixed identifiers with no constraint bytes — i.e. an
+// extension defined in a different module without any generic-requirement
+// or conditional-conformance constraints. Used to suppress the "<>"
+// placeholder marker for cross-module bare extensions like
+// `Preview<>.init` → `Preview.init`. The trailing 'E' terminator is stripped
+// before this check runs.
+func isBareModuleDescriptor(b []byte) bool {
+	if len(b) < 2 {
+		return false
+	}
+	i := 0
+	end := len(b)
+	for i < end {
+		n := 0
+		for i < end && b[i] >= '0' && b[i] <= '9' {
+			n = n*10 + int(b[i]-'0')
+			i++
+		}
+		if n == 0 || i+n > end {
+			return false
+		}
+		for k := 0; k < n; k++ {
+			c := b[i+k]
+			if !((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_') {
+				return false
+			}
+		}
+		i += n
+	}
+	return i == end
+}
+
 func tail(s string, from int) string {
 	if from < 0 || from >= len(s) {
 		return ""
@@ -9320,7 +9353,7 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 				extMarker = "<>"
 			} else if bytes.Contains(constraintBytes, []byte("Rz")) {
 				extMarker = "<A>"
-			} else if len(constraintBytes) > 2 {
+			} else if len(constraintBytes) > 2 && !isBareModuleDescriptor(constraintBytes) {
 				extMarker = "<>"
 			}
 			// Detect local generic sig: symbol ends in l u fC (local + unique entity marker).
