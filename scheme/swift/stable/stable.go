@@ -13546,7 +13546,17 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 								newTyp := common.NewNode(common.KindType)
 								common.AddChildren(newTyp, nom)
 								p.subs.Push(newTyp)
-								aCompactTypes[1] = newTyp
+								// Optional bound-generic trailer on the nested
+								// type: <type>y<arg>(_)*G. Apple writes the
+								// nested type's generic args here when it has
+								// any (e.g. ComponentParseStrategy<String> via
+								// 'y__SSG').
+								if bg, bgOk, _ := p.tryBoundGeneric(newTyp); bgOk {
+									aCompactTypes[1] = bg
+									p.subs.Push(bg)
+								} else {
+									aCompactTypes[1] = newTyp
+								}
 							default:
 								p.i = nestSave
 								p.subs = nestSubsSave
