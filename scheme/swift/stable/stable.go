@@ -12613,6 +12613,15 @@ func funcEntityFullParams(args *demangle.Node, opts common.PrintOptions) string 
 		if c.Attrs != nil && c.Attrs["swift.inout"] == "true" {
 			b.WriteString("inout ")
 		}
+		// swift.conv wrapper (__shared / __owned): prepend the conv prefix
+		// then print the inner child rather than the wrapper itself.
+		if c.Attrs != nil {
+			if conv := c.Attrs["swift.conv"]; conv != "" && len(c.Children) > 0 {
+				b.WriteString(conv)
+				b.WriteString(common.Print(c.Children[0], opts))
+				return
+			}
+		}
 		b.WriteString(common.Print(c, opts))
 	}
 	if common.NodeKind(args.Kind) == common.KindTypeList {
