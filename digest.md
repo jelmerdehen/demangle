@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 86.61% (55223/63757) — 2026-05-12T22:29:33Z
+**Parity**: 86.62% (55225/63757) — 2026-05-12T22:37:13Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 8265 parse-errors + 269 mismatches
+**Failures**: 8265 parse-errors + 267 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -16,7 +16,6 @@
 - (extension in Swift):Swift.RandomAccessCollection<… 3
 - (extension in Foundation):Foundation.DiscreteForma… 2
 - (extension in Foundation):Swift.StringProtocol.com… 2
-- (extension in Foundation):Swift.StringProtocol.get… 2
 - (extension in Swift):Swift.BidirectionalCollection… 2
 - (extension in Swift):Swift.LazyFilterSequence< whe… 2
 - (extension in Swift):Swift.LazyPrefixWhileSequence… 2
@@ -26,9 +25,13 @@
 - dispatch thunk                             2
 - method descriptor                          2
 - (extension in Foundation):Dispatch.DispatchData.Re… 1
+- (extension in Foundation):Dispatch.DispatchData.re… 1
 
 ## Last 10 Commits
 
+- a7b0cc1 swift-parity: TM tryTypeFirstExtensionEntity compact-N+nested unpack (S<N>(>=2)<letter><digits><name><kind>) — parity 86.62%→86.62% (full count at fire end)
+- 6fd8cd9 chore: lock snapshot after TK..TL (parity 55223→55225)
+- 85dfa41 chore: update digest.md for TK..TL (parity 55223→55225)
 - fe76852 swift-parity: TL Foundation extension fluent-builder denylist UnsafeMutablePointer params (void return) — parity 86.61%→86.61% (full count at fire end)
 - 35d72aa swift-parity: TK tryTypeFirstExtensionEntity + tryExtensionEntity tuple-elem aCompactExpand — parity 86.61%→86.61% (full count at fire end)
 - 20971a8 chore: lock snapshot after TI/TJ revert (parity 55223→55223, no-op)
@@ -36,9 +39,6 @@
 - 3fe77ae Revert "swift-parity: TJ tryInitDeinitEntity param-tuple multiSubExpand for A<lowers>+<UPPER> — parity 86.61%→86.61% (full count at fire end)"
 - 67e5654 swift-parity: TJ tryInitDeinitEntity param-tuple multiSubExpand for A<lowers>+<UPPER> — parity 86.61%→86.61% (full count at fire end)
 - 665d5fa swift-parity: TI tryInitDeinitEntity param-tuple sCompactExpand for S<N><letter> — parity 86.61%→86.61% (full count at fire end)
-- 4177039 chore: lock snapshot after TF..TH (parity 55203→55223)
-- d302c3f chore: update digest.md for TF..TH (parity 55203→55223)
-- 9fb5155 swift-parity: TH tryFunctionEntity param-tuple multiSubExpand for A<lowers>+<UPPER> chain — parity 86.58%→86.58% (full count at fire end)
 
 ## Suggested Next 3 Items
 
