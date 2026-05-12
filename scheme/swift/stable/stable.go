@@ -7812,41 +7812,7 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 			// walk the remaining chars individually — this preserves correct
 			// detection of extension markers that appear later in the sequence.
 			k++ // skip '0'
-			if k < len(p.s) && p.s[k] >= '1' && p.s[k] <= '9' {
-				// Pattern A: digit-prefixed literal chunk.
-				chunkStart := k
-				for k < len(p.s) && p.s[k] >= '0' && p.s[k] <= '9' {
-					k++
-				}
-				n := 0
-				for _, d := range []byte(p.s[chunkStart:k]) {
-					n = n*10 + int(d-'0')
-					if n < 0 || n > len(p.s) {
-						n = len(p.s) // overflow guard
-						break
-					}
-				}
-				k += n
-				// After the literal chunk, skip lowercase word-sub refs (they stay
-				// in word-sub mode) and then the optional uppercase terminal ref
-				// (which exits word-sub mode). Without this, '06CommondE4Kind'
-				// (lowercase 'd' ref before uppercase terminal 'E') would cause 'E'
-				// to be mistaken for the extension marker.
-				for k < len(p.s) && p.s[k] >= 'a' && p.s[k] <= 'z' {
-					k++ // skip lowercase word-sub ref (stays in mode)
-				}
-				if k < len(p.s) && p.s[k] >= 'A' && p.s[k] <= 'Z' {
-					k++ // skip uppercase word-sub terminal ref (exits mode)
-				}
-			} else if k < len(p.s) && p.s[k] >= 'a' && p.s[k] <= 'z' {
-				// Pattern B: lowercase letter run + one uppercase terminal.
-				for k < len(p.s) && p.s[k] >= 'a' && p.s[k] <= 'z' {
-					k++
-				}
-				if k < len(p.s) && p.s[k] >= 'A' && p.s[k] <= 'Z' {
-					k++
-				}
-			} else if k < len(p.s) && p.s[k] >= 'A' && p.s[k] <= 'Z' {
+			if k < len(p.s) && p.s[k] >= 'A' && p.s[k] <= 'Z' {
 				// Pattern C: uppercase-only word-sub ref '0<Upper>0' (no prior literal
 				// chunk). Example: "0E0" where 'E' is word-ref idx 4, not extension
 				// marker. Skip the uppercase ref letter and the trailing '0' terminator.
@@ -7854,6 +7820,38 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 				if k < len(p.s) && p.s[k] == '0' {
 					k++ // skip trailing '0' terminator
 				}
+				continue
+			}
+			// Word-sub run after '0': any interleaving of lowercase refs and
+			// digit-led literal chunks, terminated by an uppercase ref letter
+			// (which exits word-sub mode). Without this, sequences like
+			// '0g9AccessoryE' (lowercase 'g' ref + chunk "Accessory" + terminal
+			// 'E') would surface the 'E' as a false extension marker.
+			for k < len(p.s) {
+				if p.s[k] >= 'a' && p.s[k] <= 'z' {
+					k++ // lowercase word-sub ref (stays in mode)
+					continue
+				}
+				if p.s[k] >= '1' && p.s[k] <= '9' {
+					chunkStart := k
+					for k < len(p.s) && p.s[k] >= '0' && p.s[k] <= '9' {
+						k++
+					}
+					n := 0
+					for _, d := range []byte(p.s[chunkStart:k]) {
+						n = n*10 + int(d-'0')
+						if n < 0 || n > len(p.s) {
+							n = len(p.s) // overflow guard
+							break
+						}
+					}
+					k += n
+					continue
+				}
+				break
+			}
+			if k < len(p.s) && p.s[k] >= 'A' && p.s[k] <= 'Z' {
+				k++ // uppercase word-sub terminal ref (exits mode)
 			}
 			continue
 		}
