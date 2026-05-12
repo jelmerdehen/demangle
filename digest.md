@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 86.18% (54947/63757) — 2026-05-12T20:37:11Z
+**Parity**: 86.35% (55055/63757) — 2026-05-12T20:47:12Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 8424 parse-errors + 386 mismatches
+**Failures**: 8424 parse-errors + 278 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- 211517e swift-parity: SY tryInitDeinitEntity A<N><UPPER> compact-repeat (Type-slot lookup) — parity 86.35%→86.35% (+1 production fast-probe; full count at fire end)
+- 7cf6dba chore: lock snapshot after SX commit (parity 54947→55055, roundtrip 11701→11810)
+- fcdd1bf chore: update digest.md for SX commit (parity 54947→55055)
 - c1d0e14 swift-parity: SX consumeElemMods clone-before-attr to prevent shared back-ref-resolved nodes inheriting modifiers — parity 86.18%→86.18% (+1 production fast-probe; full count at fire end)
 - 13d040d chore: lock snapshot after SW commit (parity 54939→54947)
 - e87151c chore: update digest.md for SW commit (parity 54939→54947)
@@ -36,9 +39,6 @@
 - 9e361da chore: lock snapshot after SV commit (parity 54935→54939)
 - 3531ed3 chore: update digest.md for SV commit (parity 54935→54939)
 - eb42bef swift-parity: SV double extension prefix for nested-extension descriptors — parity 86.16%→86.16% (+2 production fast-probe; full count at fire end)
-- b3ab7cd chore: lock snapshot after SU commit (parity 54932→54935)
-- bf0d610 chore: update digest.md for SU commit (parity 54932→54935)
-- a8f929d swift-parity: SU Foundation full-form ret-tuple parens for multi-element labeled tuple — parity 86.16%→86.16% (+1 production fast-probe; full count at fire end)
 
 ## Suggested Next 3 Items
 
