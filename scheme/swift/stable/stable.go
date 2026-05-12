@@ -7254,6 +7254,7 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 	// Local generic-sig (type R <kind> ... l). Track whether 'l' was consumed.
 	localGeneric := false
 	localGenericCount := 1
+	var localConstraints []string
 	for !p.eof() {
 		c := p.s[p.i]
 		if c == 'l' {
@@ -7281,7 +7282,7 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 			c == 'B' || (c >= '0' && c <= '9') {
 			saveSig := p.i
 			saveSubsSig := p.subs
-			_, cerr := p.parseType()
+			constraint, cerr := p.parseType()
 			if cerr != nil {
 				p.i = saveSig
 				p.subs = saveSubsSig
@@ -7298,7 +7299,16 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 				p.subs = saveSubsSig
 				break
 			}
+			reqKind := p.s[p.i]
 			p.i++ // skip req kind
+			// Record conformance constraints ('z' subject = A, 'p' pack-conforms
+			// = A) for Foundation extension emit. Only collect the subset Apple
+			// displays in Foundation extension method signatures; other req
+			// kinds (same-type ==, layout :, etc.) skipped to avoid over-emit.
+			if (reqKind == 'z' || reqKind == 'p') && constraint != nil {
+				cstr := common.Print(constraint, common.DefaultPrintOptions())
+				localConstraints = append(localConstraints, "A: "+cstr)
+			}
 			continue
 		}
 		break
@@ -7614,15 +7624,23 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 	}
 	wrap := common.NewNode(common.KindTypeMangling)
 	genericPart := ""
+	genericPartFoundation := ""
 	if localGeneric {
+		var paramNames string
 		if localGenericCount <= 1 {
-			genericPart = "<A>"
+			paramNames = "A"
 		} else {
 			gnames := make([]string, localGenericCount)
 			for gi := range gnames {
 				gnames[gi] = string(rune('A' + gi))
 			}
-			genericPart = "<" + strings.Join(gnames, ", ") + ">"
+			paramNames = strings.Join(gnames, ", ")
+		}
+		genericPart = "<" + paramNames + ">"
+		if len(localConstraints) > 0 && modName == "Foundation" && extHostMod != "" {
+			genericPartFoundation = "<" + paramNames + " where " + strings.Join(localConstraints, ", ") + ">"
+		} else {
+			genericPartFoundation = genericPart
 		}
 	}
 	if verbose {
@@ -7639,7 +7657,7 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 		}
 		wrap.Text = "(extension in Swift):Swift." + fnBaseHostPath + extSig + fnNestedSuffix + "." + declName + verboseParamStr(labels) + verboseRetStr(true)
 	} else if modName == "Foundation" && extHostMod != "" {
-		wrap.Text = "(extension in Foundation):" + extHostMod + "." + hostPath + "." + declName + genericPart + verboseParamStr(labels) + verboseRetStr(true)
+		wrap.Text = "(extension in Foundation):" + extHostMod + "." + hostPath + "." + declName + genericPartFoundation + verboseParamStr(labels) + verboseRetStr(true)
 	} else {
 		wrap.Text = hostPath + "." + declName + genericPart + makeLabelStr(paramCount)
 	}
