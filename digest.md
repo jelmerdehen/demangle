@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 86.63% (55233/63757) — 2026-05-12T22:49:12Z
+**Parity**: 86.64% (55239/63757) — 2026-05-12T23:12:17Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 8265 parse-errors + 259 mismatches
+**Failures**: 8265 parse-errors + 253 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,16 +29,16 @@
 
 ## Last 10 Commits
 
+- b640afe swift-parity: TQ tryFunctionEntity A<N><UPPER>+nested-postfix consume optional bound-generic tail — parity 86.64%→86.64% (full count at fire end)
+- 3292e19 chore: lock snapshot after TP revert (parity 55239→55239, no-op)
+- 05225bd Revert "swift-parity: TP funcEntityLabels split BuiltinTypeName tuple into per-element '_:' labels — parity 86.64%→86.64% (full count at fire end)"
+- 43e1d10 swift-parity: TP funcEntityLabels split BuiltinTypeName tuple into per-element '_:' labels — parity 86.64%→86.64% (full count at fire end)
+- 50dac13 chore: lock snapshot after TO (parity 55233→55239)
+- 2646821 chore: update digest.md for TO (parity 55233→55239)
 - df8dd49 swift-parity: TO tryFunctionEntity BuiltinTypeName tuple emit '_:' for unnamed label '_' — parity 86.63%→86.63% (full count at fire end)
 - 41bb92a chore: lock snapshot after TN (parity 55229→55233)
 - 51a819b chore: update digest.md for TN (parity 55229→55233)
 - 997f66f swift-parity: TN tryTypeFirstExtensionEntity A<digits><UPPER>_t back-ref compact-expand (result + N-1 params) — parity 86.62%→86.62% (full count at fire end)
-- 945740d chore: lock snapshot after TM (parity 55225→55229)
-- ccfd91b chore: update digest.md for TM (parity 55225→55229)
-- a7b0cc1 swift-parity: TM tryTypeFirstExtensionEntity compact-N+nested unpack (S<N>(>=2)<letter><digits><name><kind>) — parity 86.62%→86.62% (full count at fire end)
-- 6fd8cd9 chore: lock snapshot after TK..TL (parity 55223→55225)
-- 85dfa41 chore: update digest.md for TK..TL (parity 55223→55225)
-- fe76852 swift-parity: TL Foundation extension fluent-builder denylist UnsafeMutablePointer params (void return) — parity 86.61%→86.61% (full count at fire end)
 
 ## Suggested Next 3 Items
 
