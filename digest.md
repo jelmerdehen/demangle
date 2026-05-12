@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 86.05% (54863/63757) — 2026-05-12T15:21:08Z
+**Parity**: 86.07% (54876/63757) — 2026-05-12T18:44:13Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 8436 parse-errors + 458 mismatches
+**Failures**: 8436 parse-errors + 445 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,16 +29,16 @@
 
 ## Last 10 Commits
 
-- e9176b5 swift-parity: SI underscore-prefix concurrency stdlib funcs simplified — parity 86.07%→86.07% (+5 production)
-- 9876d68 chore: SH retro — narrow name-allowlist beats broad underscore-prefix gate
-- 96f54f7 chore: lock snapshot after SH commit (parity 54863→54871)
-- 3158e03 chore: update digest.md for SH commit (parity 54863→54871)
-- 32e55a2 swift-parity: SH withChecked[Throwing]Continuation simplified emit — parity 86.05%→86.07% (+8 production)
-- 7c44629 chore(investigations): NSFileHandle 2-step fix attempt regressed -10, reverted
-- 5330d07 chore(investigations): fire 16 partial attempt on nsfilehandle back-ref + revert
-- 40e2517 chore(investigations): root-located nsfilehandle-result-back-ref at parseNumericSubstitution
-- 46fa1ef chore(investigations): classify nsfilehandle-result-back-ref + bidirectional-collection
-- 1e605f8 chore: SG retro — close foundation-tuple-flatten (Calendar.date), log strip-outer-parens lesson
+- 99b2b9a swift-parity: SJ StringInterpolation void-return exclude fluent-builder — parity 86.07%→86.07% (+5 production fast-probe; full count at fire end)
+- 6ab37d1 chore(investigations): bound-generic-subs is compound, single-pass land impossible
+- 12bb37b chore(investigations): fire 34 narrowed root - compound subs-push bugs
+- 3f7bde6 chore(investigations): Apple-source-confirmed root for bound-generic-subs
+- 3af8aa9 chore(investigations): bound-generic-subs deferred operator-led, trim closed entries
+- 61c1408 chore(investigations): fire 22 root-located bound-generic-subs double-push
+- fc170c8 chore(investigations): trim under 6 KB cap
+- 50cc271 chore(investigations): classify bound-generic-subs-indexing as highest-fanout deferred
+- a42bb07 chore: lock snapshot after SI commit (parity 54871→54876)
+- 6d509ec chore: update digest.md for SI commit (parity 54871→54876)
 
 ## Suggested Next 3 Items
 
