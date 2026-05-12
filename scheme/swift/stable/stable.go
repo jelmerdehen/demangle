@@ -7327,6 +7327,111 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 			}
 		}
 	}
+	// Compact-N + postfix-nested detection: result + first param via the
+	// 'S<digits>(N>=2)<letter><digits><name><V|C|O|P>' form. Apple unpacks
+	// the N copies onto the parse stack; the trailing nested-nominal
+	// absorbs onto the LAST copy. First copy → result, last (modified) →
+	// first param. Only fires when followed by tuple-terminator 'F'
+	// (no params), '_t' (one labeled tuple element), or 't' (multi-tuple).
+	// e.g. 'S2S5IndexV' → result=String, param0=String.Index. Optional
+	// leading 'y' indicates label-marker for unnamed param.
+	var compactNFirstParam *demangle.Node
+	cnLabelY := false
+	if len(labels) == 0 && retNode == nil && !p.eof() && p.s[p.i] == 'y' &&
+		p.i+1 < len(p.s) && p.s[p.i+1] == 'S' {
+		// Skip leading 'y' (label-marker for the single '_' param).
+		cnLabelY = true
+		p.i++
+	}
+	if len(labels) <= 1 && retNode == nil && !p.eof() && p.s[p.i] == 'S' &&
+		p.i+1 < len(p.s) && p.s[p.i+1] >= '2' && p.s[p.i+1] <= '9' {
+		cnSave := p.i
+		cnSubs := p.subs
+		cnWords := p.words
+		j := p.i + 1
+		for j < len(p.s) && p.s[j] >= '0' && p.s[j] <= '9' {
+			j++
+		}
+		if j < len(p.s) {
+			letter := p.s[j]
+			if base, ok := common.BuildStdlibNominal(letter); ok {
+				n := 0
+				for _, d := range p.s[p.i+1 : j] {
+					n = n*10 + int(d-'0')
+				}
+				if n == 2 && j+1 < len(p.s) && p.s[j+1] >= '1' && p.s[j+1] <= '9' {
+					// Try nested ident + kind byte.
+					p.i = j + 1
+					nestedIdent, nerr := p.parseIdentifier()
+					if nerr == nil && !p.eof() {
+						kb := p.s[p.i]
+						var nestKind common.NodeKind
+						switch kb {
+						case 'V':
+							nestKind = common.KindStructure
+						case 'C':
+							nestKind = common.KindClass
+						case 'O':
+							nestKind = common.KindEnum
+						case 'P':
+							nestKind = common.KindProtocol
+						}
+						if nestKind != 0 {
+							p.i++ // consume kind byte
+							// Check post-form terminator.
+							rest := p.i
+							ok2 := false
+							if rest < len(p.s) {
+								tb := p.s[rest]
+								if tb == 'F' || tb == 't' {
+									ok2 = true
+								} else if tb == '_' && rest+1 < len(p.s) && p.s[rest+1] == 't' {
+									ok2 = true
+								}
+							}
+							if ok2 {
+								retNode = base
+								// Build nested type as first param.
+								parent := base
+								if common.NodeKind(parent.Kind) == common.KindType &&
+									len(parent.Children) > 0 {
+									parent = parent.Children[0]
+								}
+								identNode := common.NewIdentifier(nestedIdent)
+								nom := common.NewNode(nestKind)
+								common.AddChildren(nom, parent, identNode)
+								nt := common.NewNode(common.KindType)
+								common.AddChildren(nt, nom)
+								compactNFirstParam = nt
+							} else {
+								p.i = cnSave
+								p.subs = cnSubs
+								p.words = cnWords
+							}
+						} else {
+							p.i = cnSave
+							p.subs = cnSubs
+							p.words = cnWords
+						}
+					} else {
+						p.i = cnSave
+						p.subs = cnSubs
+						p.words = cnWords
+					}
+				}
+			}
+		}
+		if retNode == nil {
+			p.i = cnSave
+			p.subs = cnSubs
+			p.words = cnWords
+		} else if cnLabelY {
+			labels = append(labels, "_")
+		}
+	} else if cnLabelY {
+		// Compact-N path didn't fire; restore the 'y' we tentatively consumed.
+		p.i--
+	}
 	if retNode == nil {
 		// Result type: 'y' = void, else parseType.
 		if p.eof() {
@@ -7361,8 +7466,18 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 	}
 	var paramCount int
 	var paramTypes []*demangle.Node
+	if compactNFirstParam != nil {
+		paramTypes = append(paramTypes, compactNFirstParam)
+		paramCount = 1
+		// Consume optional '_t' single-element labeled-tuple terminator.
+		if !p.eof() && p.s[p.i] == '_' && p.i+1 < len(p.s) && p.s[p.i+1] == 't' {
+			p.i += 2
+		}
+	}
 	ycConvention := !p.eof() && p.s[p.i] == 'y' && p.i+1 < len(p.s) && p.s[p.i+1] == 'c'
-	if p.paramsSlotIsEmpty() || ycConvention {
+	if compactNFirstParam != nil {
+		// already populated; skip params slot logic entirely.
+	} else if p.paramsSlotIsEmpty() || ycConvention {
 		p.i++ // consume 'y'
 	} else if !p.eof() && p.s[p.i] != 'F' && !isPropTerm() &&
 		p.s[p.i] != 'K' && p.s[p.i] != 'f' {
