@@ -580,6 +580,10 @@ func (p *parser) parseGlobal() (*demangle.Node, error) {
 			inner = wrapped
 			continue
 		}
+		if wrapped, ok := p.tryGenericPreSpecialization(inner); ok {
+			inner = wrapped
+			continue
+		}
 		wrapped, ok := p.tryEntitySuffix(inner)
 		if !ok {
 			break
@@ -2084,6 +2088,65 @@ func (p *parser) tryKeyPathSuffix(inner *demangle.Node) (*demangle.Node, bool) {
 		"swift.kpKind":       accessor,
 		"swift.kpSerialized": serialized,
 	}
+	return wrap, true
+}
+
+// tryGenericPreSpecialization handles the Apple form for compiler-emitted
+// generic pre-specialization symbols:
+//
+//	<entity> <type>('_' <type>)* '_'? 'Ts5'
+//
+// Renders as "generic pre-specialization <T1, T2, ...> of <inner>".
+// The trailing 'Ts5' is the format-version marker (5 = Swift 5.x form).
+// For a single arg, Apple emits a trailing '_' before 'Ts5'; for multi-arg
+// the last arg sits directly against 'Ts5'.
+func (p *parser) tryGenericPreSpecialization(inner *demangle.Node) (*demangle.Node, bool) {
+	if !strings.HasSuffix(p.s[p.i:], "Ts5") {
+		return inner, false
+	}
+	save := p.i
+	saveSubs := p.subs
+	saveWords := p.words
+	end := len(p.s) - 3 // strip "Ts5"
+	revert := func() { p.i = save; p.subs = saveSubs; p.words = saveWords }
+	// Parse one or more types separated by '_'. Optional trailing '_'
+	// (single-arg form).
+	var args []*demangle.Node
+	first := true
+	for p.i < end {
+		if !first {
+			if p.s[p.i] != '_' {
+				break
+			}
+			p.i++
+			if p.i == end {
+				// Trailing '_' (single-arg variant) — done.
+				break
+			}
+		}
+		first = false
+		t, err := p.parseType()
+		if err != nil {
+			revert()
+			return inner, false
+		}
+		args = append(args, t)
+	}
+	if p.i != end || len(args) == 0 {
+		revert()
+		return inner, false
+	}
+	p.i = end + 3 // consume "Ts5"
+	opts := common.DefaultPrintOptions()
+	var argStrs []string
+	for _, a := range args {
+		argStrs = append(argStrs, common.Print(a, opts))
+	}
+	innerStr := common.Print(inner, opts)
+	wrap := common.NewNode(common.KindTypeMangling)
+	wrap.Text = "generic pre-specialization <" + strings.Join(argStrs, ", ") + "> of " + innerStr
+	wrap.Attrs = map[string]string{"swift.suffix": "Ts5", "swift.prerendered": "true"}
+	common.AddChildren(wrap, inner)
 	return wrap, true
 }
 
