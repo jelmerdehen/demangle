@@ -1,47 +1,47 @@
 # Swift Production Digest
 
-**Parity**: 85.79% (54696/63757) — 2026-05-04T22:34:56Z
+**Parity**: 85.96% (54805/63757) — 2026-05-12T14:23:35Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 8498 parse-errors + 563 mismatches
+**Failures**: 8436 parse-errors + 516 mismatches
 
 ## Top-20 Mismatch Categories
 
-- property descriptor                        12
-- static (extension                          9
+- property descriptor                        11
+- (extension in Foundation):Swift.String.Localizatio… 7
+- static (extension                          6
+- (extension in Swift):Swift.RawRepresentable< where… 5
 - protocol conformance descriptor            5
-- (extension in Foundation):Foundation.Measurement< … 4
-- (extension in Foundation):Swift.String.Localizatio… 4
 - (extension in Foundation):Swift.StringProtocol.sub… 4
 - (extension in Foundation):__C.NSFileHandle.Connect… 4
 - (extension in Swift):Swift.RandomAccessCollection<… 4
+- (extension in Swift):Swift._SwiftNewtypeWrapper< w… 4
 - Foundation.AttributedString.init(localized: (exten… 4
 - (extension in Foundation):(extension in Foundation… 3
-- (extension in Foundation):Swift.StringProtocol.ran… 3
-- ObjC resilient class stub                  3
+- (extension in Swift):Swift.BidirectionalCollection… 3
 - Preview.init(_:traits:body:)               3
 - Preview.init<A>(_:traits:arguments:body:)  3
 - Preview.init<A>(_:traits:body:arguments:)  3
-- dispatch thunk                             3
-- method descriptor                          3
 - (extension in Foundation):Foundation.DataProtocol.… 2
 - (extension in Foundation):Foundation.DiscreteForma… 2
 - (extension in Foundation):Swift.StringProtocol.com… 2
+- (extension in Foundation):Swift.StringProtocol.get… 2
+- (extension in Foundation):__C.NSDimension.init(for… 2
 
 ## Last 10 Commits
 
-- 3da3815 swift-parity: nested-type A<sub>E false-positive guard + loop skip — parity 85.96%→85.97% (+4 production)
-- 1282c69 chore: lock snapshot after SA commit (parity 54801→54801)
-- 351abf9 chore: update digest.md for SA commit (parity 54775→54801)
-- b6647fb swift-parity: SA StringProtocol extension subs alignment — parity 85.92%→85.96% (+26 production)
-- bb7f126 chore: lock snapshot after RZ commit (parity 54775→54775)
-- 3396e8e swift-parity: RZ extension property return type via subs accumulator + TypeMangling bound generic — parity 85.86%→85.92% (+38 production)
-- aaf50d5 swift-parity: RY ObjC resilient stub label + XE scanner fix — parity 85.80%→85.86% (+37 production)
-- a49a6bc swift-parity: RX captureWords in tryTypeFirstExtensionEntity constraint first-pass — parity 85.79%→85.80% (+4 production)
-- a81c27c chore: lock snapshot after RW commit (parity 54428→54696)
-- b12eb7d swift-parity: RW labeled-tuple result + y-existential fix — parity 85.37%→85.79% (+268 production, +2 fixtures)
+- 8da0cb7 loop: codify minimum-cadence rule (delaySeconds=60)
+- f492f44 docs: add LOOP_PARITY.md self-paced parity-ratchet loop prompt
+- fa46017 docs(CLAUDE.md): refresh current state + add parity operating loop
+- 24fc829 chore: refresh snapshot timestamps after rebase
+- 4130841 chore: lock snapshot after nested-type fix (parity 54801→54805)
+- c85a896 chore: update digest.md for nested-type fix (parity 54801→54805)
+- 3a26394 swift-parity: nested-type A<sub>E false-positive guard + loop skip — parity 85.96%→85.97% (+4 production)
+- e9d1f38 chore: lock snapshot after SA commit (parity 54801→54801)
+- 0157850 chore: update digest.md for SA commit (parity 54775→54801)
+- d7e93aa swift-parity: SA StringProtocol extension subs alignment — parity 85.92%→85.96% (+26 production)
 
 ## Suggested Next 3 Items
 
-1. P1: property descriptor fix — 12 mismatches
+1. P1: property descriptor fix — 11 mismatches
 2. P2: protocol conformance descriptor — 5 mismatches
-3. P3: method descriptor — 3 mismatches
+3. P3: method descriptor — 2 mismatches

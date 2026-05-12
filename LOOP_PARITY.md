@@ -44,10 +44,13 @@ inputs and break loop stability.
 
 ### Step 1 — orient (≤30 s)
 
-1. `git status` — must be clean. If dirty, skip fire (Failure modes).
-2. `git log --grep="swift-parity:" --oneline -1` — derive next
-   letter ID by alphabetical increment (SA → SB → … → SZ → TA).
-3. Read `digest.md` — current parity %, Top-20, Suggested Next.
+1. `git status` clean. Dirty → skip fire.
+2. `git log --grep="swift-parity:" --oneline -1` → derive next
+   letter ID (SA → SB → … → SZ → TA).
+3. Refresh divergences (gitignored, stales fast → phantom targets):
+   `GOWORK=off go test -tags production_corpus -count=1 -run TestProductionCorpusParity ./scheme/swift/stable/testdata/production/`
+   then `make digest`. Skip if both touched in last hour.
+4. Read `digest.md`: parity %, Top-20, Suggested Next.
 
 ### Step 2 — pick target
 
@@ -200,11 +203,7 @@ Skip (report one line, no commits, no LOOP_PARITY.md edit) if:
   operator, no edit, no commits.
 
 ---
-
-## Caveman style
-
-Fire-internal: terse caveman OK. Commits/code/comments: normal.
-
+Caveman style: fire-internal terse OK; commits/code/comments normal.
 ---
 
 ## Lessons / wins (≤800 chars body, merge-before-append, drop oldest at cap)
@@ -214,3 +213,5 @@ Fire-internal: terse caveman OK. Commits/code/comments: normal.
 ## Lessons / traps (≤500 chars body, merge-before-append, drop oldest at cap)
 
 <!-- entries below this line; newest on top -->
+- 2026-05-12 SB-attempt: digest Top-20 derived from committed-but-gitignored production-divergences.txt; stale → phantom mismatch clusters that already pass. Regen divergences first.
+- 2026-05-12 SB-attempt: two property-descriptor emit paths (stable.go:7427 + :10003); cluster X hits one, cluster Y the other. Probe before editing to confirm which path fires.
