@@ -30,11 +30,18 @@ fail due to return-type drop in function-sig parser: e.g.
 sequence (2 reps of AB) is being consumed as 2 params + void ret,
 should be 1 ret + 1 param. Function-sig parser work needed.
 
-### foundation-string-localization [7 syms]
+### foundation-string-localization [6 syms]
 
-- Got: compact `AttributedString.LocalizationValue.init(_:)` vs Want full verbose `Foundation.AttributedString.init(localized:..., defaultValue: ..., ...) -> Foundation.AttributedString`.
-- Host-resolution bug — emit picks nested-type `LocalizationValue.init` instead of outer-type `AttributedString.init` with `LocalizationValue` as a param type.
-- Likely needs init-host detection fix; multi-fire.
+Got: compact `AttributedString.LocalizationValue.init(_:)`.
+Want: full Foundation verbose `Foundation.AttributedString.init(localized:..., defaultValue: ..., ...) -> Foundation.AttributedString` with 7 labeled params.
+Parser misidentifies host as `LocalizationValue` (nested type from param-type stream) instead of `AttributedString`. Init labels get truncated to `_:` single. **Needs `tryInitDeinitEntity` parser surgery to keep host fixed across the label-then-param-types pattern. Multi-fire.**
+
+### stdlib-init-tuple-label-distribute [3 syms]
+
+`_SmallString.init(raw:)` / `_StringObject.init(rawUncheckedValue:)`.
+Got: `init(raw: UInt64, raw: UInt64)` (label per element).
+Want: `init(raw: (UInt64, UInt64))` (label wraps tuple).
+Mangling shape: 1 label + 1 tuple param of 2 elements. Got distributes label across tuple children; want applies once and parenthesises tuple. Inverse of the Calendar tuple-double-paren bug. **Surgical fix in init emit (likely `tryInitDeinitEntity` verbose path around `stable.go:5269` or similar simplified branch).**
 
 ### foundation-tuple-flatten [Calendar.date, 5 syms]
 
