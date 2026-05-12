@@ -42,6 +42,7 @@ fast loop fires — avoids re-deriving path/cause each fire. Bounded
 
 ## Closed
 
+- 2026-05-12 SC (`ef61987`): dependent-member constraint Rp/Rt with stdlib defining-proto — +12 prod via new 4-part scan in `extractConstraintSigFullOpts`. Unlocked RawRepresentable, _SwiftNewtypeWrapper, CodingKeyRepresentable clusters.
 - 2026-05-12 SB (`6c85d27`): preview-init cross-module bare-marker — +9 prod via `isBareModuleDescriptor` gate at `stable.go:9323`.
 - 2026-05-12 SA (`d7e93aa`): StringProtocol ext subs alignment — +26 prod.
 - 2026-05-12 RZ (`c5b2c1f`): ext property return type via subs accumulator — +38 prod.
