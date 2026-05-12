@@ -29,16 +29,16 @@
 
 ## Last 10 Commits
 
+- 32e55a2 swift-parity: SH withChecked[Throwing]Continuation simplified emit — parity 86.05%→86.07% (+8 production)
+- 7c44629 chore(investigations): NSFileHandle 2-step fix attempt regressed -10, reverted
+- 5330d07 chore(investigations): fire 16 partial attempt on nsfilehandle back-ref + revert
+- 40e2517 chore(investigations): root-located nsfilehandle-result-back-ref at parseNumericSubstitution
+- 46fa1ef chore(investigations): classify nsfilehandle-result-back-ref + bidirectional-collection
 - 1e605f8 chore: SG retro — close foundation-tuple-flatten (Calendar.date), log strip-outer-parens lesson
 - c5d9510 chore: lock snapshot after SG commit (parity 54861→54863)
 - 1066470 chore: update digest.md for SG commit (parity 54861→54863)
 - 2a7cca6 swift-parity: SG strip outer parens from pre-rendered tuple in funcEntityFullParams — parity 86.05%→86.05% (+2 production)
 - 1dd998b chore: SF retro — close stdlib-init-tuple-label, log symptomatic-emit-side fix lesson
-- e72faa5 chore: lock snapshot after SF commit (parity 54856→54861)
-- 28ecdfd chore: update digest.md for SF commit (parity 54856→54861)
-- ef13be1 swift-parity: SF single-label-wraps-tuple emit in funcEntityFullParams — parity 86.04%→86.05% (+5 production)
-- 905b2d7 chore(investigations): classify AttributedString.init + stdlib-init-tuple-label clusters
-- 5d72bf8 chore: SE retro — push-through-ceiling lesson, RAC scope narrowed to ret-type bug
 
 ## Suggested Next 3 Items
 
