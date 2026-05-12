@@ -171,11 +171,11 @@ Caveman: fire-internal terse OK; commits/code/comments normal.
 ## Lessons / wins (≤800 chars, merge-before-append, drop oldest at cap)
 
 <!-- newest on top -->
-- 2026-05-12 SM: tryExtensionEntity E-scan word-sub run = '0' + (lowercase|digit-led-chunk)* + uppercase-terminal. Single-chunk path missed multi-chunk runs like '0g9AccessoryE' → false E-match misclassified DocumentLaunchView as extension. +8 prod.
-- 2026-05-12 SL: A<N><UPPER> compact-sub repeat (N≥2) followed by <digits><name><kind> = ret + nested-on-sub param (Apple stack pops the just-pushed sub as parent context). +20 prod.
-- 2026-05-12 SH/SJ-meta: narrow allowlist/denylist beats broad rule. Probe heuristic-dependent cases. SH withChecked name-allowlist (broad attempt -155); SJ StringInterpolation host-exclude from fluent (+5).
+- 2026-05-12 SN: tryInitDeinitEntity missed Apple's "push each named label as Identifier sub" convention → back-refs (e.g. AH for subs[7]) failed silently and param-tuple shrank. Also: back-ref-resolved tuple elements alias same node; clone-before-label-attach prevents overwrite. +2 prod, +14 round-trip.
+- 2026-05-12 SM: E-scan word-sub run = '0' + (lowercase|chunk)* + uppercase-terminal. Single-chunk path missed multi-chunk runs like '0g9AccessoryE' → false E-match. +8 prod.
+- 2026-05-12 SL: A<N><UPPER> compact-sub repeat (N≥2) followed by <digits><name><kind> = ret + nested-on-sub param (Apple stack pops just-pushed sub as parent context). +20 prod.
+- 2026-05-12 SH/SJ-meta: narrow allow/denylist beats broad rule. Probe heuristic-dependent cases first.
 - 2026-05-12 SG: pre-rendered parenthesised tuple as single-param-of-Type-BuiltinTypeName double-wraps when caller wraps. Strip own parens in funcEntityFullParams.
-- 2026-05-12 SD: tryFunctionEntity Foundation wrap.Text built manually; genericSigStr was isWC-gated. Drop guard.
 
 ## Lessons / traps (≤500 chars, merge-before-append, drop oldest at cap)
 
