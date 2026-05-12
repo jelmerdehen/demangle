@@ -1,4 +1,4 @@
-# snapshot-pass-set update 2026-05-12T19:39:07Z — union with previous (high-water)
+# snapshot-pass-set update 2026-05-12T19:42:50Z — union with previous (high-water)
 _$s10Foreground7SwiftUI18LabelGroupStyle_v0PTl
 _$s10Foundation10CocoaErrorV010formattingC0AC4CodeVvgZ
 _$s10Foundation10CocoaErrorV010formattingC0AC4CodeVvpZMV
@@ -47588,6 +47588,7 @@ _$ss15LazyMapSequenceVsSKRzrlE5index6before5IndexQzAF_tF
 _$ss15LazyMapSequenceVsSKRzrlE9formIndex6beforey0E0Qzz_tF
 _$ss15LazyMapSequenceVsSlRzrlE10startIndex0E0Qzvg
 _$ss15LazyMapSequenceVsSlRzrlE10startIndex0E0QzvpMV
+_$ss15LazyMapSequenceVsSlRzrlE3mapyAByxqd__Gqd__q_clF
 _$ss15LazyMapSequenceVsSlRzrlE5countSivg
 _$ss15LazyMapSequenceVsSlRzrlE5countSivpMV
 _$ss15LazyMapSequenceVsSlRzrlE5index5after5IndexQzAF_tF
@@ -48854,6 +48855,7 @@ _$ss20LazySequenceProtocolP8elements8ElementsQzvgTj
 _$ss20LazySequenceProtocolP8elements8ElementsQzvgTq
 _$ss20LazySequenceProtocolPs8ElementsQzRszrlE8elementsxvg
 _$ss20LazySequenceProtocolPs8ElementsQzRszrlE8elementsxvpMV
+_$ss20LazySequenceProtocolPsE3mapys0a3MapB0Vy8ElementsQzqd__Gqd__7ElementQzclF
 _$ss20LazySequenceProtocolPsE4drop5whiles0a9DropWhileB0Vy8ElementsQzGSb7ElementQzc_tF
 _$ss20LazySequenceProtocolPsE4lazys0aB0Vy8ElementsQzGvg
 _$ss20LazySequenceProtocolPsE4lazys0aB0Vy8ElementsQzGvpMV

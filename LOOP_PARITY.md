@@ -171,11 +171,11 @@ Caveman: fire-internal terse OK; commits/code/comments normal.
 ## Lessons / wins (≤800 chars, merge-before-append, drop oldest at cap)
 
 <!-- newest on top -->
-- 2026-05-12 SN: tryInitDeinitEntity missed Apple's "push each named label as Identifier sub" convention → back-refs (e.g. AH for subs[7]) failed silently and param-tuple shrank. Also: back-ref-resolved tuple elements alias same node; clone-before-label-attach prevents overwrite. +2 prod, +14 round-trip.
-- 2026-05-12 SM: E-scan word-sub run = '0' + (lowercase|chunk)* + uppercase-terminal. Single-chunk path missed multi-chunk runs like '0g9AccessoryE' → false E-match. +8 prod.
-- 2026-05-12 SL: A<N><UPPER> compact-sub repeat (N≥2) followed by <digits><name><kind> = ret + nested-on-sub param (Apple stack pops just-pushed sub as parent context). +20 prod.
-- 2026-05-12 SH/SJ-meta: narrow allow/denylist beats broad rule. Probe heuristic-dependent cases first.
-- 2026-05-12 SG: pre-rendered parenthesised tuple as single-param-of-Type-BuiltinTypeName double-wraps when caller wraps. Strip own parens in funcEntityFullParams.
+- 2026-05-12 SQ/SR-meta: same emit field needed in multiple branches. localGeneric-only "<A>" missing from tryExtensionEntity verbose-Foundation (SQ) and tryTypeFirstExtensionEntity verbose-Swift (SR) — grep emit-path siblings when fixing one.
+- 2026-05-12 SN: tryInitDeinitEntity missed Apple's "push each named label as Identifier sub" → back-refs (AH=subs[7]) silently failed, param-tuple shrank. Also clone tuple elements before label-attach (back-ref aliasing). +2 prod, +14 round-trip.
+- 2026-05-12 SM: E-scan word-sub run = '0' + (lowercase|chunk)* + uppercase-terminal. Single-chunk path missed multi-chunk runs like '0g9AccessoryE'. +8 prod.
+- 2026-05-12 SL: A<N><UPPER> compact-sub repeat (N≥2) followed by <digits><name><kind> = ret + nested-on-sub param. +20 prod.
+- 2026-05-12 SH/SJ/SP-meta: narrow allow/denylist beats broad rule. Probe heuristic-dependent cases first.
 
 ## Lessons / traps (≤500 chars, merge-before-append, drop oldest at cap)
 
