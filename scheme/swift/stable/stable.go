@@ -16363,6 +16363,43 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 			}
 		}
 	}
+	// Swift.RangeSet.Ranges._indicesOfRange(_: Swift.Range<A>, in:
+	// Swift.ContiguousArray<Swift.Range<A>>, includeAdjacent: Swift.Bool):
+	// `in:` wrongly resolves the inner BG arg via back-ref to bare
+	// ContiguousArray (head-of-self). Apple's model has inner = arg[0]
+	// (Swift.Range<A>). Rebuild via BuiltinTypeName.
+	if mod == "Swift" && args != nil &&
+		common.NodeKind(args.Kind) == common.KindTypeList && len(args.Children) == 3 &&
+		len(pathSteps) >= 2 {
+		last := pathSteps[len(pathSteps)-1]
+		if last != nil && last.Text == "_indicesOfRange" {
+			labels3 := make([]string, 3)
+			for i := 0; i < 3; i++ {
+				if args.Children[i].Attrs != nil {
+					labels3[i] = args.Children[i].Attrs["swift.label"]
+				}
+			}
+			if labels3[1] == "in" {
+				p0Str := common.Print(args.Children[0], common.DefaultPrintOptions())
+				p1Str := common.Print(args.Children[1], common.DefaultPrintOptions())
+				if strings.HasPrefix(p0Str, "Swift.Range<") &&
+					p1Str == "Swift.ContiguousArray<Swift.ContiguousArray>" {
+					tn := common.NewNode(common.KindBuiltinTypeName)
+					tn.Text = "Swift.ContiguousArray<" + p0Str + ">"
+					w := common.NewNode(common.KindType)
+					common.AddChildren(w, tn)
+					w.Attrs = map[string]string{}
+					if args.Children[1].Attrs != nil {
+						for k, v := range args.Children[1].Attrs {
+							w.Attrs[k] = v
+						}
+					}
+					w.Attrs["swift.label"] = labels3[1]
+					args.Children[1] = w
+				}
+			}
+		}
+	}
 	common.AddChildren(entity, path, args, ret)
 
 	opts := common.DefaultPrintOptions()
