@@ -190,7 +190,7 @@ Caveman: fire-internal terse OK; commits/code/comments normal.
 ## Lessons / wins (≤800 chars, merge-before-append, drop oldest at cap)
 
 <!-- newest on top -->
-- 2026-05-13 WU: Init-entity verbose Foundation render (tryInitDeinitEntity ~line 5721 sbFull) accepts narrow text-replace; WeekendRange compact-label `05ceaseE0` drop fixed. +1 prod.
+- 2026-05-13 WU/WV: Init-entity verbose render (tryInitDeinitEntity ~line 5721 sbFull) accepts narrow text-replace; WeekendRange + _StringObject.init compact-label collapse restored. +2 prod.
 - 2026-05-13 WT: Closure ret-type narrow text-replace for back-ref-resolves-to-outer-host pattern. LazySequenceProtocol.compactMap/flatMap closure `LazyMapSequence`→`A1?`. +2 prod.
 - 2026-05-13 WR/WS: Same-module simplified ext-method emit at tryExtensionEntity ~line 11733 + tryFunctionEntity simplified ~line 16748 — narrow text-replaces drop spurious labels (Scheduler.schedule 4→3) or restore lost labels (dispatch_data_create_subrange 1→3). +2 prod.
 
