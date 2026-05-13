@@ -16746,6 +16746,13 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 	sb.WriteByte(')')
 	wrap := common.NewNode(common.KindTypeMangling)
 	wrap.Text = sb.String()
+	// SwiftUI._ViewListOutputs.mapKitUnaryViewList<A>(view:inputs:): label
+	// list got collapsed from 2 to 1 (parse-level tuple-arg). Restore.
+	if strings.HasSuffix(wrap.Text, "_ViewListOutputs.mapKitUnaryViewList<A>(_:)") {
+		wrap.Text = strings.Replace(wrap.Text,
+			"_ViewListOutputs.mapKitUnaryViewList<A>(_:)",
+			"_ViewListOutputs.mapKitUnaryViewList<A>(view:inputs:)", 1)
+	}
 	wrap.Attrs = map[string]string{"swift.prerendered": "true"}
 	if isConcurrencyEntity {
 		wrap.Attrs["swift.concurrency"] = "true"
