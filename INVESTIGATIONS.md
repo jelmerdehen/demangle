@@ -23,6 +23,10 @@ ZA-ZE depth-1 primitives landed (2026-05-13):
 - ZH (+5): tryInitDeinitEntity R<kind>?<digit>_ depth-0 numeric subject (idx N+2 = letter A+N+1).
 - ZI (+50): tryConformanceDescriptorMc accepts S<letter> stdlib proto (Se/SE/SQ/SH/SL etc.) with digit-led implementation module. Render-path uses existing uiTypeMods strip branch.
 - ZJ empty/regressed: tryConformanceDescriptorMc render-path adding `__C + Swift.<proto>` full-format gate (`__C.<Type> : Swift.<Proto> in <Module>`) regressed -32 unrelated UIKit/Foundation syms (UITextEffectView, NSDecimalCompare, etc. — likely changed render path for syms that should stay simplified). Reverted. Render-path split for Mc requires per-conformer/proto inspection, not a typeMod-only gate.
+- ZK (+1): tryDependentMemberType with-proto-type Qyd<idx>_ depth-1 mirror of ZA direct form (line ~21607). One sym unlocked; rest of with-proto-type depth-1 have multi-hop or multi-type chain blockers.
+- ZL empty: surface drained for narrow primitives. Remaining clusters (extension entity refactor, multi-type Rt chain for Combine receive(subscriber:), Mc render-path split per conformer/proto, subscript thunk MV/MQ handlers) all require wider surgery beyond single-commit landing.
+
+Cumulative ZA..ZK = +351 production (56348 → 56699, 88.38% → 88.93%). Loop scope completed; further parity gains require multi-fire refactors.
 
 Remaining ZA-plan items deferred to multi-fire:
 - ZA-1 trailer `_l` count consumption (high-blast, shared with non-depth-1 syms).
