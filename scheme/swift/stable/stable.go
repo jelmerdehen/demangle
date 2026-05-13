@@ -5511,6 +5511,41 @@ func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 				lastConProto = nil
 				continue
 			}
+			// Depth-0 numeric subject: R<kind>?<digit>_ — subject idx N+2
+			// (demangleIndex 'N_' = N+1, then +1 for the implicit base).
+			{
+				saveDigit := p.i
+				kind := byte(0)
+				if (next == 'b' || next == 'p' || next == 's' || next == 'j' ||
+					next == 'm' || next == 't' || next == 'l' || next == 'i') &&
+					p.i+1 < len(p.s) && p.s[p.i+1] >= '0' && p.s[p.i+1] <= '9' {
+					kind = next
+					p.i++ // consume kind
+				}
+				if !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+					num := 0
+					for !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+						num = num*10 + int(p.s[p.i]-'0')
+						p.i++
+					}
+					if !p.eof() && p.s[p.i] == '_' {
+						p.i++
+						subjIdx := num + 2 // demangleIndex('N_') = N+1; +1 for base.
+						if subjIdx < 26 && lastConProto != nil {
+							paramName := string(rune('A' + subjIdx))
+							protoStr := common.Print(lastConProto, common.DefaultPrintOptions())
+							opText := ": "
+							if kind == 's' || kind == 't' {
+								opText = " == "
+							}
+							initConstraints = append(initConstraints, paramName+opText+protoStr)
+						}
+						lastConProto = nil
+						continue
+					}
+				}
+				p.i = saveDigit
+			}
 			var subj byte
 			if (next == 'b' || next == 'p' || next == 's' || next == 'j' ||
 				next == 'm' || next == 't' || next == 'l' || next == 'i') &&
