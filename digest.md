@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 87.18% (55582/63757) — 2026-05-13T01:49:46Z
+**Parity**: 87.24% (55622/63757) — 2026-05-13T01:56:15Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 7948 parse-errors + 227 mismatches
+**Failures**: 7948 parse-errors + 187 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- 98f384f swift-parity: UL operator-binary symmetry normalize 2nd arg to bound-generic head (== infix etc.) — parity 87.19%→87.25% (+40 production)
+- 4eba9cc chore: lock snapshot after UK (parity 55581→55582)
+- a5d2532 chore: update digest.md for UK (parity 55581→55582)
 - 97bbfc7 swift-parity: UK extend mutating-name list to _set* prefix (NSUndoManager setter) — parity 87.19%→87.19% (+1 production)
 - 5bee28e chore: lock snapshot after UJ (parity 55575→55581)
 - a4d9f05 chore: update digest.md for UJ (parity 55575→55581)
@@ -36,9 +39,6 @@
 - 1f8a974 loop: trap lesson for UI decl-name un-push regression
 - 2e44019 chore: lock snapshot after UG..UH (parity 55574→55575)
 - b8a282c chore: update digest.md for UG..UH (parity 55574→55575)
-- 7122e3c swift-parity: UH extractConstraintSig word-sub Rt (s0<wsub>V0<wsub>Rt<subj>) — parity 87.18%→87.18% (+0 production, additive correctness)
-- 76ce54a swift-parity: UG extractConstraintSig word-sub proto name (s0<wordsub>R<subj>) — parity 87.18%→87.18% (+1 production)
-- d7f53c9 chore: lock snapshot after UF (parity 55571→55574)
 
 ## Suggested Next 3 Items
 
