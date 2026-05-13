@@ -171,10 +171,10 @@ Caveman: fire-internal terse OK; commits/code/comments normal.
 ## Lessons / wins (≤800 chars, merge-before-append, drop oldest at cap)
 
 <!-- newest on top -->
+- 2026-05-13 VG: decl/host/label arg-override — Calendar.date 4-arg (to/of) → Date stripped from Sg ret. +3 prod (mirrors distance/formIndex).
 - 2026-05-13 VF: same-type assoc-rewrite at emit — bare-ident ret + extSig has "A.<ident> == X" → sub X. +2 prod RAC.indices getter/prop-desc.
 - 2026-05-13 VE: VD stash + text-rewrite caused double-label `era: era:` in funcEntityFullParams. Guard alreadyLabeled-check. +2 prod Calendar.date.
 - 2026-05-13 VD: tryPostfixCompactTuple wraps `Sb_S2bt` as single Type+BuiltinTypeName — per-child labels lost. Stash swift.labels; gate cfm-terminal off. +1 net.
-- 2026-05-13 VC: A-compact nested-postfix `A<N><L>...` must LOOP; single-step lost Self-ret via tryPath(true) revert. +13 prod Date.FormatStyle.*.
 
 ## Lessons / traps (≤500 chars, merge-before-append, drop oldest at cap)
 
