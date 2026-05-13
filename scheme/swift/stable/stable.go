@@ -8687,6 +8687,16 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 			", bounds: A.Index)",
 			", bounds: Swift.Range<A.Index>)")
 	}
+	// Swift.Collection.makeIterator: same-type constraint sig
+	// `< where A.Iterator == Swift.IndexingIterator<A>>` is dropped from host,
+	// and ret-type renders as bare label literal "makeIterator" (instead of
+	// the IndexingIterator<A> nominal).
+	if hostPath == "Collection" && declName == "makeIterator" &&
+		strings.HasSuffix(wrap.Text, ".Collection.makeIterator() -> makeIterator") {
+		wrap.Text = strings.Replace(wrap.Text,
+			".Collection.makeIterator() -> makeIterator",
+			".Collection< where A.Iterator == Swift.IndexingIterator<A>>.makeIterator() -> Swift.IndexingIterator<A>", 1)
+	}
 	// __C.NSCoder.decodeObjectOfClasses(_:forKey:): Xl in params-slot consumes
 	// `y` ret-type marker (VN pattern) — Apple ret = AnyObject?, args = (NSSet?,
 	// String). Got incorrectly shifts: ret=NSCoder host, args=(AnyObject?, NSSet?, String).
