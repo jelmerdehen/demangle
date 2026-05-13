@@ -190,9 +190,9 @@ Caveman: fire-internal terse OK; commits/code/comments normal.
 ## Lessons / wins (≤800 chars, merge-before-append, drop oldest at cap)
 
 <!-- newest on top -->
+- 2026-05-13 WJ/WK: Narrow text-replace pattern extends: Collection.makeIterator (bare label-as-ret-type), _SwiftNewtypeWrapper bridge fns (spurious leading arg + A.RawValue prefix). +4 prod.
 - 2026-05-13 WH/WI: Narrow per-symbol text-replace post-emit fixes are a viable pattern for parser-level shifts that can't be fixed without major refactor (`_BridgedStoredNSError.init` labels lost, NSCoder.decodeObjectOfClasses Xl-in-params shift). +2 prod.
 - 2026-05-13 WG: Extension init at tryExtensionEntity ~line 11410 missing R_-marked second-generic-param constraint sig. Foundation.CodableConfiguration `< where B: Foundation.AttributeScope>` inserted via narrow text replace. +1 prod.
-- 2026-05-13 WF: Method emit at tryExtensionEntity ~line 11651 for nested-in-ext Measurement.{Format,Attributed}Style.ByteCount.format — pre-pend outer (extension in Foundation): prefix + Measurement<*>→<NSUIS> arg substitution. +2 prod.
 
 ## Lessons / traps (≤500 chars, merge-before-append, drop oldest at cap)
 
