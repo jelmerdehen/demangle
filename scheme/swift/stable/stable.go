@@ -7147,6 +7147,11 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 			typeNode2 := common.NewNode(common.KindType)
 			common.AddChildren(typeNode2, nom2)
 			p.subs.Push(typeNode2)
+			// XX: expose the bare-nominal host node so the downstream XS
+			// bound-generic-push branch can fire for s<n><name><kind> hosts
+			// with operator decls (e.g. ArraySlice.==), filling the subs slot
+			// that AD-style back-refs in operator params resolve to.
+			stdlibShortNode = typeNode2
 		}
 
 	case p.i+1 < len(p.s) && p.s[p.i] == 'S' && p.s[p.i+1] != 'o':
