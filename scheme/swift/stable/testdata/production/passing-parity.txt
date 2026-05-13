@@ -1,4 +1,4 @@
-# snapshot-pass-set update 2026-05-13T02:34:45Z — union with previous (high-water)
+# snapshot-pass-set update 2026-05-13T02:37:53Z — union with previous (high-water)
 _$s10Foreground7SwiftUI18LabelGroupStyle_v0PTl
 _$s10Foundation10CocoaErrorV010formattingC0AC4CodeVvgZ
 _$s10Foundation10CocoaErrorV010formattingC0AC4CodeVvpZMV
@@ -37663,6 +37663,7 @@ _$sSD4KeysV2eeoiySbAByxq__G_ADtFZ
 _$sSD4KeysV31_customContainsEquatableElementySbSgxF
 _$sSD4KeysV5countSivg
 _$sSD4KeysV5countSivpMV
+_$sSD4KeysV5index5afterSD5IndexVyxq__GAG_tF
 _$sSD4KeysV7isEmptySbvg
 _$sSD4KeysV7isEmptySbvpMV
 _$sSD4KeysV8IteratorV4nextxSgyF
@@ -37717,6 +37718,7 @@ _$sSD5IndexVyxq__GSQsMc
 _$sSD5IndexVyxq__GSQsWP
 _$sSD5countSivg
 _$sSD5countSivpMV
+_$sSD5index5afterSD5IndexVyxq__GAE_tF
 _$sSD5index6forKeySD5IndexVyxq__GSgx_tF
 _$sSD6ValuesV10startIndexSD0C0Vyxq__Gvg
 _$sSD6ValuesV10startIndexSD0C0Vyxq__GvpMV
@@ -37726,6 +37728,7 @@ _$sSD6ValuesV16debugDescriptionSSvg
 _$sSD6ValuesV16debugDescriptionSSvpMV
 _$sSD6ValuesV5countSivg
 _$sSD6ValuesV5countSivpMV
+_$sSD6ValuesV5index5afterSD5IndexVyxq__GAG_tF
 _$sSD6ValuesV6swapAtyySD5IndexVyxq__G_AFtF
 _$sSD6ValuesV7isEmptySbvg
 _$sSD6ValuesV7isEmptySbvpMV
@@ -37806,6 +37809,7 @@ _$sSD8_VariantV33__specialize_isUniquelyReferencedSbyF
 _$sSD8_VariantV3key2atxSD5IndexVyxq__G_tF
 _$sSD8_VariantV5countSivg
 _$sSD8_VariantV5countSivpMV
+_$sSD8_VariantV5index5afterSD5IndexVyxq__GAG_tF
 _$sSD8_VariantV5index6forKeySD5IndexVyxq__GSgx_tF
 _$sSD8_VariantV5value2atq_SD5IndexVyxq__G_tF
 _$sSD8_VariantV6lookupyq_SgxF
@@ -40390,6 +40394,7 @@ _$sSh5IndexVyx_GSQsMc
 _$sSh5IndexVyx_GSQsWP
 _$sSh5countSivg
 _$sSh5countSivpMV
+_$sSh5index5afterSh5IndexVyx_GAE_tF
 _$sSh6_cocoaShyxGs10__CocoaSetVn_tcfC
 _$sSh6insertySb8inserted_x17memberAfterInserttxnF
 _$sSh6remove2atxSh5IndexVyx_G_tF
@@ -40432,6 +40437,7 @@ _$sSh8_VariantV20isUniquelyReferencedSbyF
 _$sSh8_VariantV5countSivg
 _$sSh8_VariantV5countSivpMV
 _$sSh8_VariantV5index3forSh5IndexVyx_GSgx_tF
+_$sSh8_VariantV5index5afterSh5IndexVyx_GAG_tF
 _$sSh8_VariantV6insertySb8inserted_x17memberAfterInserttxnF
 _$sSh8_VariantV6insertySb8inserted_x17memberAfterInserttxnFSS_Ts5
 _$sSh8_VariantV6insertySb8inserted_x17memberAfterInserttxnFs11AnyHashableV_Ts5
@@ -55329,23 +55335,29 @@ _$ss8RangeSetV10isDisjointySbAByxGF
 _$ss8RangeSetV10isSuperset2ofSbAByxG_tF
 _$ss8RangeSetV11descriptionSSvg
 _$ss8RangeSetV11descriptionSSvpMV
+_$ss8RangeSetV11subtractingyAByxGADF
+_$ss8RangeSetV12intersectionyAByxGADF
 _$ss8RangeSetV14_orderedRangesAByxGSaySnyxGG_tcfC
 _$ss8RangeSetV14isStrictSubset2ofSbAByxG_tF
 _$ss8RangeSetV16_checkInvariantsyyF
 _$ss8RangeSetV16formIntersectionyyAByxGF
 _$ss8RangeSetV16isStrictSuperset2ofSbAByxG_tF
+_$ss8RangeSetV19symmetricDifferenceyAByxGADnF
 _$ss8RangeSetV23formSymmetricDifferenceyyAByxGnF
 _$ss8RangeSetV2eeoiySbAByxG_ADtFZ
+_$ss8RangeSetV5unionyAByxGADnF
 _$ss8RangeSetV6RangesV010_unorderedC0ADyx_GSaySnyxGG_tcfC
 _$ss8RangeSetV6RangesV10startIndexSivg
 _$ss8RangeSetV6RangesV10startIndexSivpMV
 _$ss8RangeSetV6RangesV11descriptionSSvg
 _$ss8RangeSetV6RangesV11descriptionSSvpMV
+_$ss8RangeSetV6RangesV13_intersectionyADyx_GAFF
 _$ss8RangeSetV6RangesV2eeoiySbADyx_G_AFtFZ
 _$ss8RangeSetV6RangesV5_gaps9boundedByADyx_GSnyxG_tF
 _$ss8RangeSetV6RangesV5countSivg
 _$ss8RangeSetV6RangesV5countSivpMV
 _$ss8RangeSetV6RangesV6_rangeADyx_GSnyxG_tcfC
+_$ss8RangeSetV6RangesV6_unionyADyx_GAFF
 _$ss8RangeSetV6RangesV7_insert10contentsOfSbSnyxG_tF
 _$ss8RangeSetV6RangesV7_rangesADyx_GSaySnyxGG_tcfC
 _$ss8RangeSetV6RangesV7_remove10contentsOfySnyxG_tF
