@@ -11400,18 +11400,10 @@ func (p *parser) tryGlobalAssocConformanceDescriptor() (*demangle.Node, bool) {
 	p.i += 2 // consume "Tn"
 	// Build qualified display names. Apple's convention:
 	//   - Foundation hosts/constraints → module-qualified ("Foundation.X").
-	//   - Compact-S<letter> stdlib (BuildStdlibNominal name) → "Swift.X".
+	//   - Swift-stdlib first-level (S<letter>) → "Swift.X".
+	//   - Swift-stdlib s<digit><name> path → "Swift.X" (matches above).
 	//   - Sc<letter> level-2 concurrency → NO module prefix.
-	//   - Other paths (Combine, SwiftUI, UIKit, s<digit><name>) → NO prefix.
-	isCompactStdlibName := func(name string) bool {
-		found := false
-		common.EachStdlibSubstitution(func(_ byte, e common.StdlibEntry) {
-			if e.Name == name {
-				found = true
-			}
-		})
-		return found
-	}
+	//   - Other modules (Combine, SwiftUI, UIKit, …) → NO module prefix.
 	qualifyProto := func(n *demangle.Node) string {
 		mod := ""
 		name := ""
@@ -11430,25 +11422,13 @@ func (p *parser) tryGlobalAssocConformanceDescriptor() (*demangle.Node, bool) {
 		if isConcurrency {
 			return name
 		}
-		if mod == "Foundation" {
-			return mod + "." + name
-		}
-		if mod == "Swift" && isCompactStdlibName(name) {
+		if mod == "Foundation" || mod == "Swift" {
 			return mod + "." + name
 		}
 		return name
 	}
 	hostName := qualifyProto(hostInner)
 	constraintName := qualifyProto(cInner)
-	// When the host is unqualified (Combine/SwiftUI/UIKit/Sc and the
-	// `s<digit><name>` full-path Swift form), Apple also strips the
-	// module qualifier from the constraint. Detect: if hostName lacks
-	// a '.' qualifier (single-segment), strip any leading "Swift." or
-	// "Foundation." from constraintName.
-	if !strings.Contains(hostName, ".") {
-		constraintName = strings.TrimPrefix(constraintName, "Swift.")
-		constraintName = strings.TrimPrefix(constraintName, "Foundation.")
-	}
 	if hostName == "" || constraintName == "" {
 		revert()
 		return nil, false
