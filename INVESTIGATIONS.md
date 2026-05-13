@@ -24,7 +24,15 @@ Pattern: `_$sSC<n><name>V...` — `SC` = `__C_Synthesized` module prefix (Apple 
 
 ### lufc-multi-tuple-failable-init [SortDescriptor + ~26 syms `_5order` cluster]
 
-Pattern: `<host>V _<lbl1>...<ret-type><multi-tuple-params> So<class>C Rb z l u fC`. Failable init `init?` returning Optional, with multi-element labeled tuple params and `Rb` (AnyObject) constraint on T binding to __C class. Apple expected: `Foundation.SortDescriptor.init<A where A: __C.NSObject>(_: KeyPath<A, Date>, order: SortOrder) -> SortDescriptor<A>`. tryInitDeinitEntity advances through most of body but bails near `lufC`. Need to verify `lufC` (lowercase-l generic-sig-end + u failable + fC alloc) is parsed correctly with multi-tuple params.
+Pattern: `<host>V _<lbl1>...<ret-type><multi-tuple-params> So<class>C Rb z l u fC`. CLOSED by XH (R-multichar fix unlocked the `Rb z` constraint parse). Cluster drained.
+
+### simd-stdlib-protocol-ext-tuple-params [SF6ScalarRpzrl bucket, ~24 syms, multi-fire]
+
+Pattern: `s<n><proto>P sSF6ScalarRpzrlE <decl> y y <type1> _ <type2> t F`. Swift stdlib SIMD protocol extension where A.Scalar: FloatingPoint. tryTypeFirstExtensionEntity processes host, constraint-bytes, decl, retType, first param BUT bails at the tuple-separator `_` in multi-param tuple. The label loop's `yy` consume eats first y (empty-label-list) AND the second y as void-return — leaves p.i past the actual ret-type byte. Needs label-loop revision to leave second y for separate result-type parse OR distinguish single-empty-y from yy-pattern.
+
+### combine-publisher-optional-closure-arg [Sq7CombineE9PublisherV bucket, 40 syms, multi-fire]
+
+Pattern: `Sq 7CombineE 9PublisherV <decl> <labels> AC y x_G <closure-arg> _t F`. Optional<A>.Publisher extension methods like `max(by:)` taking closure `(A, A) -> Bool` @escaping. tryTypeFirstExtensionEntity bails at `XE_tF` — the @escaping convention marker after closure params. parseType in param slot doesn't recognize the function-type signature (result Sb, params x_xt, conv XE) as a single closure argument. Needs proper function-type-as-arg parser at the params loop entry, recognizing pattern `<result-type> <params-type> X<conv>`.
 
 ### property-descriptor [7 syms post-SC, bespoke each]
 
