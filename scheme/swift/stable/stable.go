@@ -5648,7 +5648,25 @@ func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 	}
 	pathStr := strings.Join(pathParts, ".")
 	var lbls []string
-	if common.NodeKind(paramsType.Kind) == common.KindTypeList {
+	// tryPostfixCompactTuple may have wrapped a multi-element compact-stdlib
+	// tuple (e.g. Sb_S2bt) into a single KindType with a BuiltinTypeName
+	// "(Bool, Bool, Bool)" child — the per-element label assignment at the
+	// labels-loop above has nothing to attach to. When labels has multiple
+	// entries, use the labels list directly here.
+	if len(labels) > 1 &&
+		common.NodeKind(paramsType.Kind) == common.KindType &&
+		len(paramsType.Children) == 1 &&
+		common.NodeKind(paramsType.Children[0].Kind) == common.KindBuiltinTypeName &&
+		strings.HasPrefix(paramsType.Children[0].Text, "(") &&
+		strings.HasSuffix(paramsType.Children[0].Text, ")") {
+		for _, lbl := range labels {
+			if lbl == "" || lbl == "_" {
+				lbls = append(lbls, "_:")
+			} else {
+				lbls = append(lbls, lbl+":")
+			}
+		}
+	} else if common.NodeKind(paramsType.Kind) == common.KindTypeList {
 		for _, el := range paramsType.Children {
 			lbl := ""
 			if el.Attrs != nil {
@@ -13697,6 +13715,22 @@ func funcEntityFullParams(args *demangle.Node, opts common.PrintOptions) string 
 // args is the parsed args node (KindTypeList or a single type node).
 func funcEntityLabels(args *demangle.Node) string {
 	var b strings.Builder
+	// Pre-rendered tuple-as-BuiltinTypeName (from tryPostfixCompactTuple)
+	// with stashed multi-label list. Emit labels directly.
+	if args.Attrs != nil {
+		if combined := args.Attrs["swift.labels"]; combined != "" {
+			parts := strings.Split(combined, "\x00")
+			for _, lbl := range parts {
+				if lbl != "" && lbl != "_" {
+					b.WriteString(lbl)
+					b.WriteByte(':')
+				} else {
+					b.WriteString("_:")
+				}
+			}
+			return b.String()
+		}
+	}
 	if common.NodeKind(args.Kind) == common.KindTypeList {
 		for _, c := range args.Children {
 			lbl := ""
@@ -15396,10 +15430,14 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 			break
 		}
 		// Accept 'F' or 'cfm' (macro-entity fn terminator — plain fn
-		// display, no prefix).
+		// display, no prefix). Macro-entity terminal suppresses label
+		// emission: Apple renders these with a single '_:' regardless
+		// of the encoded labels (e.g. myColorLiteral(_:)).
+		localCfm := false
 		if p.i+2 < len(p.s) && p.s[p.i] == 'c' && p.s[p.i+1] == 'f' &&
 			p.s[p.i+2] == 'm' {
 			p.i += 3
+			localCfm = true
 		} else if p.eof() || p.s[p.i] != 'F' {
 			revert()
 			return false
@@ -15409,7 +15447,7 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 		// Apply labels to BuiltinTypeName-wrapped tuple params by
 		// rewriting its text with 'label: type' pairs. Labels of "_"
 		// emit as "_: " to match Apple's unnamed-positional convention.
-		if a != nil && len(a.Children) > 0 &&
+		if !localCfm && a != nil && len(a.Children) > 0 &&
 			common.NodeKind(a.Children[0].Kind) == common.KindBuiltinTypeName &&
 			len(pathLabels) > 0 {
 			text := a.Children[0].Text
@@ -15425,6 +15463,14 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 						}
 					}
 					a.Children[0].Text = "(" + strings.Join(parts, ", ") + ")"
+					// Stash labels list on the args node for simplified-display
+					// readers (funcEntityLabels) that can't re-parse the text.
+					if len(pathLabels) > 1 {
+						if a.Attrs == nil {
+							a.Attrs = map[string]string{}
+						}
+						a.Attrs["swift.labels"] = strings.Join(pathLabels, "\x00")
+					}
 				}
 			}
 		}
