@@ -171,10 +171,10 @@ Caveman: fire-internal terse OK; commits/code/comments normal.
 ## Lessons / wins (≤800 chars, merge-before-append, drop oldest at cap)
 
 <!-- newest on top -->
-- 2026-05-13 VD: tryPostfixCompactTuple wraps `Sb_S2bt` as single Type+BuiltinTypeName — per-child labels lost. Stash in args.Attrs["swift.labels"]; gate cfm-terminal off. +1 net.
-- 2026-05-13 VC: A-compact nested-postfix `A<N><L>...` must LOOP — single-step left orphan, tryPath(true) revert lost Self-ret. +13 prod Date.FormatStyle.*.
-- 2026-05-13 VB: captureWords dedup + restore p.words on try* reverts — duplicates shifted word-sub idx by N; +12 prod once dedup'd (DropWhileSequence, Mirror).
-- 2026-05-13 UL: op-binary symmetry — args[1]=bare base of args[0]'s bg→rewrite. +40 prod; avoids subs surgery.
+- 2026-05-13 VE: VD stash + text-rewrite caused double-label `era: era: Int` in funcEntityFullParams. Guard with alreadyLabeled-check. +2 prod Calendar.date(era:year:...).
+- 2026-05-13 VD: tryPostfixCompactTuple wraps `Sb_S2bt` as single Type+BuiltinTypeName — per-child labels lost. Stash swift.labels; gate cfm-terminal off. +1 net.
+- 2026-05-13 VC: A-compact nested-postfix `A<N><L>...` must LOOP; single-step lost Self-ret via tryPath(true) revert. +13 prod Date.FormatStyle.*.
+- 2026-05-13 VB: captureWords dedup + restore p.words on try* reverts — dup shifted word-sub idx. +12 prod (DropWhileSeq, Mirror).
 
 ## Lessons / traps (≤500 chars, merge-before-append, drop oldest at cap)
 
