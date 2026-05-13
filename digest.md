@@ -29,16 +29,16 @@
 
 ## Last 10 Commits
 
+- bebc77b swift-parity: XJ tryTypeFirstExtensionEntity speculative-y-as-label notTypeEnd add _ and t terminators — prevents misclassifying first tuple-elem as result when y was void-result marker -- parity 87.91%->87.92% (+4 production)
+- a9a9931 chore: INVESTIGATIONS — XJ closed lufc cluster (XH drained), opened simd-stdlib-tuple + combine-optional-closure surveys
+- b0baa7c chore: LOOP_PARSE_ERRORS retro for XI
+- 77e3416 chore: lock snapshot after XI (parity 56049 to 56050)
+- 3505b5f chore: update digest.md for XI (parity 56049 to 56050)
 - 89c738c swift-parity: XI tryFunctionEntity R-handler accept multi-char R<kind><subj> (Rb/Rs/Rm/Rt/Rl/Ri) before reqKind dispatch — mirrors XH fix in tryInitDeinitEntity -- parity 87.91%->87.91% (+1 production)
 - 4af3121 chore: LOOP_PARSE_ERRORS retro for XH
 - 4b42fc2 chore: lock snapshot after XH (parity 56016 to 56049)
 - f665320 chore: update digest.md for XH (parity 56016 to 56049)
 - 716ea62 swift-parity: XH tryInitDeinitEntity constraint-loop R-handler accept multi-char R<kind><subj> (Rb/Rs/Rj/Rm/Rp/Rt/Rl/Ri) when subject follows — was only handling single-char R<subj> -- parity 87.86%->87.91% (+33 production)
-- e0ef0d9 chore: LOOP_PARSE_ERRORS retro for XG
-- 0895b35 chore: lock snapshot after XG (parity 55907 to 56016)
-- 908a410 chore: update digest.md for XG (parity 55907 to 56016)
-- 16913bb swift-parity: XG tryTypeFirstExtensionEntity consume optional K throws marker before F terminal; render " throws" in verbose output -- parity 87.69%->87.86% (+109 production)
-- 070fcd1 chore: LOOP_PARSE_ERRORS retro for XF
 
 ## Suggested Next 3 Items
 
