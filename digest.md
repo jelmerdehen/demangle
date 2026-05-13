@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 87.17% (55574/63757) — 2026-05-13T01:17:14Z
+**Parity**: 87.17% (55575/63757) — 2026-05-13T01:30:46Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 7948 parse-errors + 235 mismatches
+**Failures**: 7948 parse-errors + 234 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,16 +29,16 @@
 
 ## Last 10 Commits
 
+- 4421090 chore: lock snapshot after UG..UH (parity 55574→55575)
+- f3f7bb0 chore: update digest.md for UG..UH (parity 55574→55575)
+- 7122e3c swift-parity: UH extractConstraintSig word-sub Rt (s0<wsub>V0<wsub>Rt<subj>) — parity 87.18%→87.18% (+0 production, additive correctness)
+- 76ce54a swift-parity: UG extractConstraintSig word-sub proto name (s0<wordsub>R<subj>) — parity 87.18%→87.18% (+1 production)
+- d7f53c9 chore: lock snapshot after UF (parity 55571→55574)
+- 5f94929 chore: update digest.md for UF (parity 55571→55574)
 - 54b7721 swift-parity: UF nested-init verbose ret-type emit extension-qualified self (Self=(extension in Swift):Swift.<Base><A><sig>.<Nested>) — parity 87.17%→87.18% (+3 production)
 - 16f837f chore: lock snapshot after UD..UE (parity 55569→55571)
 - 41b133f chore: update digest.md for UD..UE (parity 55569→55571)
 - 2891005 swift-parity: UE tryStdlibExtensionAllocator fall back to extractConstraintSigFullOpts (handles Rp/RP) — parity 87.17%→87.17% (+1 production)
-- 9f3099c swift-parity: UD tryInitDeinitEntity verbose init emit-extSig (Swift-on-Swift extension init) — parity 87.16%→87.17% (+1 production)
-- 92a004f chore: lock snapshot after UC (parity 55567→55569)
-- b83bb74 chore: update digest.md for UC (parity 55567→55569)
-- b298b1f swift-parity: UC extractConstraintSig dep-member-conformance with back-ref subject (s<N><proto>A<L>_<N><assoc>S<L>RPz) — parity 87.15%→87.16% (+2 production)
-- 46cf6c8 chore: lock snapshot after UB (parity 55564→55567)
-- c82cc07 chore: update digest.md for UB (parity 55564→55567)
 
 ## Suggested Next 3 Items
 
