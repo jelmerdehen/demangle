@@ -58,9 +58,13 @@ Drained by XP — operator-designator handler in tryTypeFirstExtensionEntity nes
 
 PAAE pattern same-mod allowance in tryTypeFirstExtensionEntity (line 7761 check): `modName != extHostMod` exception unlocks +85 parity but breaks 295 roundtrip — remangler doesn't roundtrip the new emit path. Needs paired remangler fix.
 
-### dict-array-optional-equatable-second-param-resolution [Dict/Array/Optional == infix, 20+ syms]
+### dict-array-optional-equatable-second-param-resolution [CLOSED by XR+XS]
 
-Pattern: `S<letter><sSQR<subj>rl>E2eeoi y Sb <host-bound-generic> _ AB t FZ`. Equatable `==` operator extensions on stdlib-shorthand hosts. Got: second param emits "Swift" (Module). Want: bound-generic host like `[A : B]`, `[A]`, `A?`. AB sub-ref resolves to subs[1] but parsing path doesn't push bound-generic to subs at that index — parseType skips push when parsedRawStdlib=true (followed by 'y') and tryBoundGeneric's push goes to wrong slot relative to deferred module push.
+Drained by XR (skip Identifier push for op-decl) + XS (push bound-generic host for stdlib-shorthand op-decl extensions).
+
+### digit-led-host-equatable-bound-generic-resolution [ArraySlice/ContiguousArray/etc. == infix, ~10 syms]
+
+Same pattern as XR+XS but for digit-led host case (`s<n><name>V`, not `S<letter>` shorthand). Host already pushed at subs[1] but as BARE type (e.g., Swift.ArraySlice without generic args). AB ref resolves to bare type, expected bound-generic (ArraySlice<A>). Fix needs `p.subs.Replace(1, boundGeneric)` — current Substitution API doesn't support replace; either add the API or restructure case `s<digit>` host parsing to push bound-generic when constraint sig follows.
 
 ### depth-1-generic-bucket [~500+ syms across receive, withUnsafeBytes, alert, observe, ...]
 
