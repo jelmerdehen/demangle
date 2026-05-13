@@ -1,4 +1,4 @@
-# snapshot-pass-set update 2026-05-13T02:18:22Z — union with previous (high-water)
+# snapshot-pass-set update 2026-05-13T02:22:42Z — union with previous (high-water)
 _$s10Foreground7SwiftUI18LabelGroupStyle_v0PTl
 _$s10Foundation10CocoaErrorV010formattingC0AC4CodeVvgZ
 _$s10Foundation10CocoaErrorV010formattingC0AC4CodeVvpZMV
@@ -47154,6 +47154,7 @@ _$ss13AnyCollectionV4_boxs01_aB3BoxCyxGvg
 _$ss13AnyCollectionV4_boxs01_aB3BoxCyxGvpMV
 _$ss13AnyCollectionV5countSivg
 _$ss13AnyCollectionV5countSivpMV
+_$ss13AnyCollectionV5index_8offsetBy07limitedE0s0A5IndexVSgAG_SiAGtF
 _$ss13AnyCollectionV6_boxIDSOvg
 _$ss13AnyCollectionV6_boxIDSOvpMV
 _$ss13AnyCollectionV6prefixyAByxGSiF
@@ -50274,6 +50275,7 @@ _$ss25AnyRandomAccessCollectionV4_boxs01_abcD3BoxCyxGvg
 _$ss25AnyRandomAccessCollectionV4_boxs01_abcD3BoxCyxGvpMV
 _$ss25AnyRandomAccessCollectionV5countSivg
 _$ss25AnyRandomAccessCollectionV5countSivpMV
+_$ss25AnyRandomAccessCollectionV5index_8offsetBy07limitedG0s0A5IndexVSgAG_SiAGtF
 _$ss25AnyRandomAccessCollectionV6_boxIDSOvg
 _$ss25AnyRandomAccessCollectionV6_boxIDSOvpMV
 _$ss25AnyRandomAccessCollectionV6prefixyAByxGSiF
@@ -50398,6 +50400,7 @@ _$ss26AnyBidirectionalCollectionV4_boxs01_abC3BoxCyxGvg
 _$ss26AnyBidirectionalCollectionV4_boxs01_abC3BoxCyxGvpMV
 _$ss26AnyBidirectionalCollectionV5countSivg
 _$ss26AnyBidirectionalCollectionV5countSivpMV
+_$ss26AnyBidirectionalCollectionV5index_8offsetBy07limitedF0s0A5IndexVSgAG_SiAGtF
 _$ss26AnyBidirectionalCollectionV6_boxIDSOvg
 _$ss26AnyBidirectionalCollectionV6_boxIDSOvpMV
 _$ss26AnyBidirectionalCollectionV6prefixyAByxGSiF
@@ -52558,6 +52561,7 @@ _$ss5SliceV5_basexvM
 _$ss5SliceV5_basexvg
 _$ss5SliceV5_basexvpMV
 _$ss5SliceV5_basexvs
+_$ss5SliceV5index_8offsetBy07limitedD05IndexQzSgAG_SiAGtF
 _$ss5SliceV7_boundsSny5IndexQzGvpMV
 _$ss5SliceV7indices7IndicesQzvg
 _$ss5SliceV7indices7IndicesQzvpMV
