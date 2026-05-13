@@ -5773,6 +5773,12 @@ func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 		initNode.Text = strings.Replace(initNode.Text,
 			".Expression.init(any Foundation.StandardPredicateExpression<Self.Foundation.PredicateExpression.Output == B>)",
 			".Expression.init((repeat Foundation.PredicateExpressions.Variable<A>) -> any Foundation.StandardPredicateExpression<Self.Foundation.PredicateExpression.Output == B>)", 1)
+		// Foundation.LocalePreferences.init: 14-arg init with multiple
+		// back-ref-resolved type shifts after arg[3] + last `icuSymbolsAndStrings`
+		// label dropped. Full args-list text replace.
+		initNode.Text = strings.Replace(initNode.Text,
+			"(metricUnits: Swift.Bool?, languages: [Swift.String]?, locale: Swift.String?, collationOrder: Swift.Bool?, firstWeekday: [Foundation.Calendar.Identifier : Swift.Int]?, minDaysInFirstWeek: Foundation.LocalePreferences, country: Foundation.LocalePreferences.MeasurementUnit?, measurementUnits: Foundation.LocalePreferences.TemperatureUnit?, temperatureUnit: Foundation.LocalePreferences, force24Hour: Foundation.LocalePreferences, force12Hour: [Swift.UInt32 : Swift.String]?, numberSymbols: [Foundation.Date.FormatStyle.DateStyle : Swift.String]?, dateFormats: Foundation.LocalePreferences.ICUSymbolsAndStrings)",
+			"(metricUnits: Swift.Bool?, languages: [Swift.String]?, locale: Swift.String?, collationOrder: Swift.String?, firstWeekday: [Foundation.Calendar.Identifier : Swift.Int]?, minDaysInFirstWeek: [Foundation.Calendar.Identifier : Swift.Int]?, country: Swift.String?, measurementUnits: Foundation.LocalePreferences.MeasurementUnit?, temperatureUnit: Foundation.LocalePreferences.TemperatureUnit?, force24Hour: Swift.Bool?, force12Hour: Swift.Bool?, numberSymbols: [Swift.UInt32 : Swift.String]?, dateFormats: [Foundation.Date.FormatStyle.DateStyle : Swift.String]?, icuSymbolsAndStrings: Foundation.LocalePreferences.ICUSymbolsAndStrings)", 1)
 		if asyncInit || throwsInit {
 			initNode.Attrs = map[string]string{}
 			if asyncInit {
