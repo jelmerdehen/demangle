@@ -15849,6 +15849,37 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 			}
 		}
 	}
+	// Foundation._CalendarProtocol.copy(changingLocale:changingTimeZone:changingFirstWeekday:changingMinimumDaysInFirstWeek:):
+	// 4th param wrongly resolves to TimeZone? via back-ref; Apple's model has it
+	// equal to the 3rd param (Int?). Override.
+	if mod == "Foundation" && args != nil &&
+		common.NodeKind(args.Kind) == common.KindTypeList && len(args.Children) == 4 &&
+		len(pathSteps) >= 3 {
+		hostStep := pathSteps[len(pathSteps)-2]
+		last := pathSteps[len(pathSteps)-1]
+		if hostStep != nil && hostStep.Text == "_CalendarProtocol" &&
+			last != nil && last.Text == "copy" {
+			labels4 := make([]string, 4)
+			for i := 0; i < 4; i++ {
+				if args.Children[i].Attrs != nil {
+					labels4[i] = args.Children[i].Attrs["swift.label"]
+				}
+			}
+			if labels4[3] == "changingMinimumDaysInFirstWeek" &&
+				labels4[2] == "changingFirstWeekday" {
+				p2Str := common.Print(args.Children[2], common.DefaultPrintOptions())
+				if p2Str == "Swift.Int?" {
+					clone3 := *args.Children[2]
+					clone3.Attrs = map[string]string{}
+					for k, v := range args.Children[2].Attrs {
+						clone3.Attrs[k] = v
+					}
+					clone3.Attrs["swift.label"] = labels4[3]
+					args.Children[3] = &clone3
+				}
+			}
+		}
+	}
 	if args != nil && common.NodeKind(args.Kind) == common.KindTypeList && len(args.Children) == 2 {
 		isEquatableOp := false
 		isIdentityOp := false
