@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 87.55% (55820/63757) — 2026-05-13T11:08:12Z
+**Parity**: 87.55% (55821/63757) — 2026-05-13T11:10:53Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 7911 parse-errors + 26 mismatches
+**Failures**: 7911 parse-errors + 25 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -19,7 +19,6 @@
 - Foundation.PredicateExpressions.ExpressionEvaluate… 1
 - Foundation.PredicateExpressions.PredicateEvaluate.… 1
 - Gesture<>.values(_:)                       1
-- Swift._StringObject.init(pointerBits: Swift.UInt64… 1
 - TabView<>.init(content:)                   1
 - ToolbarItem<>.init(id:placement:showsByDefault:con… 1
 - opaque type descriptor                     1
@@ -27,6 +26,9 @@
 
 ## Last 10 Commits
 
+- c921800 swift-parity: WV Swift._StringObject.init restore lost countAndFlags label via narrow text replace — parity 87.57%→87.58% (+1 production)
+- fcc8bf9 chore: lock snapshot after WU (parity 55819 to 55820)
+- 8f4231a chore: update digest.md for WU (parity 55819 to 55820)
 - a1f9e09 swift-parity: WU Foundation.WeekendRange.init compact-label  end-label drop restore via narrow text replace — parity 87.57%→87.57% (+1 production)
 - 4f4168e chore: lock snapshot after WT (parity 55817→55819)
 - 1366070 chore: update digest.md for WT (parity 55817→55819)
@@ -34,9 +36,6 @@
 - 77baaad chore: lock snapshot after WR..WS (parity 55815→55817)
 - 04a83c6 chore: update digest.md for WR..WS (parity 55815→55817)
 - 28f5368 swift-parity: WS Dispatch.dispatch_data_create_subrange restore 3 labels (parser collapsed 3 args to 1) via narrow text replace — parity 87.56%→87.56% (+1 production)
-- 8820faf swift-parity: WR Combine.Scheduler.schedule(after:interval:_:) trailing-_ label drop in simplified ext-method emit — parity 87.56%→87.56% (+1 production)
-- e48697f chore: lock snapshot after WQ (parity 55814→55815)
-- 9d03efb chore: update digest.md for WQ (parity 55814→55815)
 
 ## Suggested Next 3 Items
 
