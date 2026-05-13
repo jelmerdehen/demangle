@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 87.32% (55673/63757) — 2026-05-13T02:37:51Z
+**Parity**: 87.32% (55675/63757) — 2026-05-13T02:45:29Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 7948 parse-errors + 136 mismatches
+**Failures**: 7948 parse-errors + 134 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- 3c6ce91 swift-parity: UW tryTypeFirstExtensionEntity fluent-builder ret bare for flat __C hosts (NSComparisonResult.withOrder et al.) — parity 87.32%→87.32% (+2 production)
+- b029014 chore: lock snapshot after UV (parity 55661→55673)
+- 652a36f chore: update digest.md for UV (parity 55661→55673)
 - aec4d03 swift-parity: UV tryFunctionEntity single-arg bare→ret bg-head normalize (RangeSet methods et al.) — parity 87.30%→87.32% (+12 production, +2 roundtrip)
 - 5d9e90a chore: lock snapshot after UU (parity 55660→55661)
 - 2ba2894 chore: update digest.md for UU (parity 55660→55661)
@@ -36,9 +39,6 @@
 - 5360c0b chore: lock snapshot after UT (parity 55655→55660)
 - 4bd9366 chore: update digest.md for UT (parity 55655→55660)
 - 176df93 swift-parity: UT tryInitDeinitEntity binary-init arg[1] = arg[0] when args[1] bare base of args[0]'s bound-generic (SIMD splitter inits) — parity 87.30%→87.30% (+5 production)
-- 15e7340 chore: lock snapshot after US (parity 55647→55655)
-- b01a291 chore: update digest.md for US (parity 55647→55655)
-- cd97524 swift-parity: US ext-path formIndex(_:offsetBy:limitedBy:) + distance(from:to:) post-process — parity 87.28%→87.30% (+8 production)
 
 ## Suggested Next 3 Items
 
