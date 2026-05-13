@@ -11752,6 +11752,13 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 		wrap.Text = strings.ReplaceAll(wrap.Text, ": Foundation)", ": Swift.Duration)")
 		wrap.Text = strings.ReplaceAll(wrap.Text, " -> Foundation?", " -> Swift.Duration?")
 	}
+	// _StringProcessing.RegexComponent.iso8601WithTimeZone: assoc-type
+	// references render as bare `Swift.ObjectIdentifier.<X>` (back-ref to
+	// constraint same-type RHS Foundation.Date.ISO8601FormatStyle.<X>).
+	if hostName == "RegexComponent" && declName == "iso8601WithTimeZone" {
+		wrap.Text = strings.ReplaceAll(wrap.Text,
+			"Swift.ObjectIdentifier", "Foundation.Date.ISO8601FormatStyle")
+	}
 	// Foundation.Measurement.{FormatStyle,AttributedStyle}<NSUIS>.ByteCount.format:
 	// (1) missing outer (extension in Foundation): prefix for nested-in-ext;
 	// (2) arg `Measurement<wrong>` should be `Measurement<__C.NSUnitInformationStorage>`.
