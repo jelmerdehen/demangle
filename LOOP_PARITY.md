@@ -164,6 +164,25 @@ Hard rules:
 - `digest.md` reports `parity_pass ≥ 63 600` (corpus near-drained).
 - File at cap and can't trim.
 
+### Empty-fire ceiling — terminate, do NOT reschedule
+
+A fire is **empty** if it lands zero sub-commits AND adds zero new
+`INVESTIGATIONS.md` Active entries. Idle loops burn user attention.
+
+State file `.loop-empty-fires` (gitignored) tracks the consecutive
+count:
+- Empty fire → `echo $((N+1)) > .loop-empty-fires`.
+- Successful fire (≥1 sub-commit) → `rm -f .loop-empty-fires`.
+- Counter `≥ 3` at end of fire → **terminate**: do NOT call
+  `ScheduleWakeup`. Send `PushNotification` with the consecutive-empty
+  count + last-fix ID. Operator re-launches by `rm .loop-empty-fires`
+  and re-invoking `/loop @LOOP_PARITY.md`.
+
+Empty fires must ALSO add a one-line note to `INVESTIGATIONS.md`
+Active explaining what category was surveyed and why no fix landed.
+"Surveyed, no tractable pattern" is not acceptable on its own — name
+the category and the blocker.
+
 ---
 Caveman: fire-internal terse OK; commits/code/comments normal.
 ---
