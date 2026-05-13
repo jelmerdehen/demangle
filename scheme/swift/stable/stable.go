@@ -7919,11 +7919,16 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 	}
 	if retNode == nil {
 		// Result type: 'y' = void, else parseType.
+		// Exception: 'yp' is the existential Any type (and 'yX<l>' is similar
+		// existential form). Defer those to parseType so the result is parsed
+		// as Any, not consumed as a void marker.
 		if p.eof() {
 			restore()
 			return nil, false, nil
 		}
-		if p.s[p.i] == 'y' {
+		isExistentialAny := p.s[p.i] == 'y' && p.i+1 < len(p.s) &&
+			(p.s[p.i+1] == 'p' || p.s[p.i+1] == 'X')
+		if p.s[p.i] == 'y' && !isExistentialAny {
 			p.i++
 		} else {
 			t, terr := p.parseType()
