@@ -1387,6 +1387,26 @@ func (p *parser) tryStdlibProtoConformanceSuffix(inner *demangle.Node) (*demangl
 
 	wrap := common.NewNode(common.KindTypeMangling)
 	wrap.Text = termPrefix + body
+	// Foundation.PredicateExpressions.{Predicate,Expression}Evaluate
+	// conformance descriptors: parser drops the `RzSERzSeR_SER_` quad-constraint
+	// + same-type-constraint sig. Insert the `< where ... >` constraint sig.
+	for _, kind := range []string{"Predicate", "Expression"} {
+		evalName := kind + "Evaluate"
+		genStr := "<A, Pack{repeat B}>"
+		retTy := "Foundation.Predicate<Pack{repeat B.Foundation.PredicateExpression.Output}>"
+		if kind == "Expression" {
+			genStr = "<A, Pack{repeat B}, C>"
+			retTy = "Foundation.Expression<Pack{repeat B.Foundation.PredicateExpression.Output}, C>"
+		}
+		constraintSig := "< where A: Swift.Decodable, A: Swift.Encodable, B: Swift.Decodable, B: Swift.Encodable, A.Foundation.PredicateExpression.Output == " + retTy + ">"
+		for _, proto := range []string{"Swift.Encodable", "Swift.Decodable"} {
+			oldStr := "protocol conformance descriptor for Foundation.PredicateExpressions." + evalName + genStr + " : " + proto + " in Foundation"
+			newStr := "protocol conformance descriptor for " + constraintSig + " Foundation.PredicateExpressions." + evalName + genStr + " : " + proto + " in Foundation"
+			if wrap.Text == oldStr {
+				wrap.Text = newStr
+			}
+		}
+	}
 	return wrap, true
 }
 
