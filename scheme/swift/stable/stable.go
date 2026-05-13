@@ -5468,6 +5468,49 @@ func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 				continue
 			}
 			next := p.s[p.i]
+			// Depth-1 with kind byte: R<kind>d<demIdx><demIdx>.
+			// Same-type → opText " == ", others keep ": ".
+			if (next == 'b' || next == 'p' || next == 's' || next == 'j' ||
+				next == 'm' || next == 't' || next == 'l' || next == 'i') &&
+				p.i+1 < len(p.s) && p.s[p.i+1] == 'd' {
+				kind := next
+				p.i += 2 // consume kind + 'd'
+				readDemIdx := func() int {
+					if p.eof() {
+						return 0
+					}
+					if p.s[p.i] == '_' {
+						p.i++
+						return 0
+					}
+					if p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+						num := int(p.s[p.i] - '0')
+						p.i++
+						for !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+							num = num*10 + int(p.s[p.i]-'0')
+							p.i++
+						}
+						if !p.eof() && p.s[p.i] == '_' {
+							p.i++
+						}
+						return num + 1
+					}
+					return 0
+				}
+				depthIdx := readDemIdx()
+				paramIdx := readDemIdx()
+				if paramIdx < 26 && lastConProto != nil {
+					paramName := string(rune('A'+paramIdx)) + itoa(depthIdx+1)
+					protoStr := common.Print(lastConProto, common.DefaultPrintOptions())
+					opText := ": "
+					if kind == 's' || kind == 't' {
+						opText = " == "
+					}
+					initConstraints = append(initConstraints, paramName+opText+protoStr)
+				}
+				lastConProto = nil
+				continue
+			}
 			var subj byte
 			if (next == 'b' || next == 'p' || next == 's' || next == 'j' ||
 				next == 'm' || next == 't' || next == 'l' || next == 'i') &&
