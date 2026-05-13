@@ -267,7 +267,8 @@ Caveman: fire-internal terse OK; commits/code/comments normal.
 ## Lessons / wins (≤800 chars, merge-before-append, drop oldest at cap)
 
 <!-- newest on top -->
-- XP: tryTypeFirstExtensionEntity nested-type-loop missing operator designator handling (oi/op/oP). After declName set, peek for `o<kind>` and call decodeOperatorName + " infix/prefix/postfix". Logic mirrors tryFunctionEntity (line 14786). +189 prod — biggest XE..XP win. Lesson: operator-infix decls are common across extensions (FormatStyle ==, SIMD /, Foundation Equatable impls) — any path that builds decl names needs this handler.
+- XQ: tryTypeFirstExtensionEntity ext-mod parsing missing A<letter>E back-ref branch. PAAE pattern (Combine.Publisher / SwiftUI.View protocol same-module ext) needs `AA` to resolve to host module from subs[0]. Added branch before existing digit-led/'s' shorthand parsing. Only +1 prod — most PAAE bodies use depth-1 generics that bail later.
+- XP: tryTypeFirstExtensionEntity nested-type-loop missing operator designator (oi/op/oP). Added decodeOperatorName + " infix/prefix/postfix" suffix after declName. +189 prod — operator-infix on extension hosts is pervasive (FormatStyle ==, SIMD /, etc.).
 - XO: tryFunctionEntity constraint loop missed `<concrete-type><N><assoc-name>Rt<subj>` same-type assoc-type. Peek for length-prefixed ident + Rt<subj> after parseType returns concrete; emit `<subj>.<assoc> == <concrete>`. +35 prod.
 - XN: XI's multi-char R-consume discarded kind byte. Rs/Rt same-type rendered as conformance ":". Preserve opText = " == " for s/t. +2 prod.
 - XM: tryInitDeinitEntity isUFCTerminal genParamsStr only walked retType for DependentGenericParamType, missing concrete-bound generic inits (AppStorage<URL>). Derive maxIdx from initConstraints. +21 prod.
