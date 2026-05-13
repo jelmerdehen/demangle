@@ -190,9 +190,9 @@ Caveman: fire-internal terse OK; commits/code/comments normal.
 ## Lessons / wins (≤800 chars, merge-before-append, drop oldest at cap)
 
 <!-- newest on top -->
+- 2026-05-13 XB: Full-args-list text replace at tryInitDeinitEntity verbose-init covers wide multi-arg back-ref shifts (LocalePreferences 14-arg init w/ icuSymbolsAndStrings label lost + many wrong types). +1 prod.
 - 2026-05-13 XA: tryTypeFirstExtensionEntity init (~line 8538) accepts full-text equality replace for FlattenSequence.Index.init; Slice.remove(at:) method narrow text-replace for `<<opaque type>>` arg drop. +2 prod.
 - 2026-05-13 WZ: Init verbose render accepts narrow text-replace for variadic-pack closure wrappers. PredicateEvaluate/ExpressionEvaluate.init pack-expand collapsed back; Predicate/Expression.init closure body re-wrapped with `(repeat Variable<A>) -> ...`. +4 prod.
-- 2026-05-13 WY: protocol-conformance-descriptor at tryStdlibProtoConformanceSuffix wrap.Text tail accepts narrow text-replace for PredicateEvaluate/ExpressionEvaluate where parser drops same-type-constraint sig. +4 prod.
 
 ## Lessons / traps (≤500 chars, merge-before-append, drop oldest at cap)
 
