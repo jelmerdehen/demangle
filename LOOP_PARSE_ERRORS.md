@@ -267,6 +267,7 @@ Caveman: fire-internal terse OK; commits/code/comments normal.
 ## Lessons / wins (≤800 chars, merge-before-append, drop oldest at cap)
 
 <!-- newest on top -->
+- XF: tryTypeFirstExtensionEntity result-type slot `if p.s[p.i] == 'y' { void }` shortcut wrongly consumed `y` when `yp` (existential Any) or `yX<l>` followed. Defer those to parseType. +4 production. Oracle (`ssh claude@kodo xcrun swift-demangle`) wired up to verify expected outputs before fix attempts.
 - XE: pure grammar gap in tryInitDeinitEntity — stdlib-shorthand host (S<letter>) was missing nested-type chain support. `Sd12SIMD2StorageVABycfC` shape couldn't continue past `Sd`. Added <n><name>V/C/O/P loop + gated the 3-entry stdlib sub push on `!hasNested` (Apple skips it when nested follows). +57 production from a narrow 2-loc fix. Lesson: probe the EOF position; if parser stops right after host kind-byte, it likely missed a nested-type chain continuation.
 
 ## Lessons / traps (≤500 chars, merge-before-append, drop oldest at cap)
