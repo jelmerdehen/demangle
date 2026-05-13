@@ -15418,6 +15418,59 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 			}
 		}
 	}
+	// Single-arg method bare-arg→bound-generic ret normalization: when args is
+	// a single bare nominal whose head matches ret's bound-generic head,
+	// override args with ret. Catches methods like RangeSet.subtracting/union/
+	// intersection/symmetricDifference where the back-ref under-resolves the
+	// arg to the bare base of the host's bound-generic version.
+	if args != nil && ret != nil {
+		var argNode *demangle.Node
+		var argHost *demangle.Node // node to mutate when replacing
+		if common.NodeKind(args.Kind) == common.KindTypeList && len(args.Children) == 1 {
+			argNode = args.Children[0]
+		} else if common.NodeKind(args.Kind) == common.KindType {
+			argNode = args
+		}
+		if argNode != nil {
+			retBg := boundGenericHeadName(ret)
+			bare := bareNominalName(argNode)
+			if retBg != "" && bare != "" && retBg == bare {
+				// Preserve label (and any ownership modifiers) from argNode.
+				lbl := ""
+				ownerAttrs := map[string]string{}
+				if argNode.Attrs != nil {
+					lbl = argNode.Attrs["swift.label"]
+					for k, v := range argNode.Attrs {
+						if k != "swift.label" {
+							ownerAttrs[k] = v
+						}
+					}
+				}
+				newArg := ret
+				if len(ownerAttrs) > 0 || lbl != "" {
+					clone := *ret
+					newAttrs := map[string]string{}
+					for k, v := range ret.Attrs {
+						newAttrs[k] = v
+					}
+					for k, v := range ownerAttrs {
+						newAttrs[k] = v
+					}
+					if lbl != "" {
+						newAttrs["swift.label"] = lbl
+					}
+					clone.Attrs = newAttrs
+					newArg = &clone
+				}
+				if common.NodeKind(args.Kind) == common.KindTypeList {
+					args.Children[0] = newArg
+				} else {
+					args = newArg
+				}
+				_ = argHost
+			}
+		}
+	}
 	// Collection.formIndex(_:offsetBy:limitedBy:) → (inout Index, Int, Index) -> Bool.
 	// The mangled back-ref for arg[2] commonly resolves to the return Bool or
 	// offsetBy Int; Apple's model has it equal to the Index of arg[0] (sans
