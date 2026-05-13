@@ -8726,7 +8726,10 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 		}
 		return strings.HasPrefix(name, "form") || strings.HasPrefix(name, "_set")
 	}
+	// Skip fluent-builder rewrite for throws functions: they typically return
+	// void (Encodable.encode(to:) throws is the canonical case).
 	if modName == "Foundation" && extHostMod != "" && retNode == nil && len(paramTypes) > 0 &&
+		!throwsFunc &&
 		!strings.HasSuffix(hostPath, ".StringInterpolation") &&
 		!isMutatingMethodName(declName) {
 		hasInoutParam := false
