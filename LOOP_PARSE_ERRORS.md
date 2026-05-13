@@ -267,9 +267,10 @@ Caveman: fire-internal terse OK; commits/code/comments normal.
 ## Lessons / wins (≤800 chars, merge-before-append, drop oldest at cap)
 
 <!-- newest on top -->
-- XG: tryTypeFirstExtensionEntity F-terminal check at line 8658 didn't consume optional `K` throws marker. `<host>P sE <decl> y <ret> <param> K F` patterns (Swift stdlib protocol ext throws methods) bailed. Added K-consume + `" throws"` rendering in two of the three wrap.Text branches (verbose Swift, Foundation ext). +109 production from a 12-LOC change. Key insight: pre-F entity attribute bytes (K/Y for throws/async/etc.) gate entire entity acceptance — missing one byte = entire bucket bails.
-- XF: tryTypeFirstExtensionEntity result-type slot `if p.s[p.i] == 'y' { void }` shortcut wrongly consumed `y` when `yp` (existential Any) or `yX<l>` followed. Defer those to parseType. +4 production. Oracle (`ssh claude@kodo xcrun swift-demangle`) wired up to verify expected outputs before fix attempts.
-- XE: pure grammar gap in tryInitDeinitEntity — stdlib-shorthand host (S<letter>) was missing nested-type chain support. `Sd12SIMD2StorageVABycfC` shape couldn't continue past `Sd`. Added <n><name>V/C/O/P loop + gated the 3-entry stdlib sub push on `!hasNested` (Apple skips it when nested follows). +57 production from a narrow 2-loc fix. Lesson: probe the EOF position; if parser stops right after host kind-byte, it likely missed a nested-type chain continuation.
+- XH: tryInitDeinitEntity constraint-loop R-handler accepted only `R<subj>` (single-char), not `R<kind><subj>` (Rb/Rs/Rj/Rm/Rp/Rt/Rl/Ri). For `Rb z` (where A: AnyObject/class), 'b' was wrongly read as subj. Added kind-byte peek + multi-char consume when subject follows. +33 prod. Multi-char R-markers are pervasive in Apple's generic-sig grammar.
+- XG: tryTypeFirstExtensionEntity F-terminal at 8658 didn't consume optional `K` throws marker. Added K-consume + `" throws"` rendering in verbose/Foundation wrap.Text branches. +109 prod from 12-LOC. Key insight: pre-F entity attribute bytes (K/Y for throws/async) gate entire entity acceptance — missing one = entire bucket bails.
+- XF: tryTypeFirstExtensionEntity result-type slot `if y { void }` shortcut wrongly consumed `y` when `yp` (Any) or `yX<l>` followed. Defer those to parseType. +4 prod. Oracle (`ssh claude@kodo xcrun swift-demangle`) wired up for expected-output verification.
+- XE: tryInitDeinitEntity stdlib-shorthand host (S<letter>) was missing nested-type chain. `Sd12SIMD2StorageVABycfC` couldn't continue past `Sd`. Added <n><name>V/C/O/P loop + gated 3-entry stdlib sub push on `!hasNested`. +57 prod from 2-LOC.
 
 ## Lessons / traps (≤500 chars, merge-before-append, drop oldest at cap)
 
