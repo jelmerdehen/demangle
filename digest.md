@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 87.28% (55644/63757) — 2026-05-13T02:22:40Z
+**Parity**: 87.28% (55647/63757) — 2026-05-13T02:25:15Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 7948 parse-errors + 165 mismatches
+**Failures**: 7948 parse-errors + 162 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- 4e24856 swift-parity: UR Collection.formIndex(_:offsetBy:limitedBy:) clone arg[0] sans inout to arg[2] — parity 87.28%→87.28% (+3 production)
+- 7bd2103 chore: lock snapshot after UQ (parity 55639→55644)
+- 3c6621c chore: update digest.md for UQ (parity 55639→55644)
 - dba1429 swift-parity: UQ Collection.index(_:offsetBy:limitedBy:) strip outer Optional from args[0]/args[2] — parity 87.27%→87.28% (+5 production)
 - d9da284 chore: lock snapshot after UP (parity 55634→55639)
 - 759bf38 chore: update digest.md for UP (parity 55634→55639)
@@ -36,9 +39,6 @@
 - 42d9c1d chore: lock snapshot after UO (parity 55632→55634)
 - 811af14 chore: update digest.md for UO (parity 55632→55634)
 - ce1841c swift-parity: UO single-arg fn-name-as-param fixup — replace arg with ret when arg==declName (Set.intersection, Set.subtracting) — parity 87.27%→87.27% (+2 production)
-- 7b250a6 chore: lock snapshot after UN (parity 55630→55632)
-- 5e5fb42 chore: update digest.md for UN (parity 55630→55632)
-- be0ea5a swift-parity: UN identity-operator (===/!== infix) force args[1] = args[0] — parity 87.26%→87.27% (+2 production)
 
 ## Suggested Next 3 Items
 
