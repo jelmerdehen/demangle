@@ -177,7 +177,7 @@ Caveman: fire-internal terse OK; commits/code/comments normal.
 ## Lessons / traps (≤500 chars, merge-before-append, drop oldest at cap)
 
 <!-- newest on top -->
+- 2026-05-13 UI: un-push decl-name on Type methods (+2 Set) regresses Bidir.index `..AD` (-2). Sub-layout differs by host.
 - 2026-05-13 UC: dropping Sg-inner-push regressed Foundation Date `SgAE` (-3). Subs-table dup is load-bearing for back-ref alignment.
 - 2026-05-13 TS: decl-name rollback for non-op module free fn broke Apple curated 153→146 (-7). Reverted.
-- 2026-05-13 TP: funcEntityLabels split BuiltinTypeName-tuple per-elem '_:' broke curated (myColorLiteral.materialize). materialize ≠ fn tuple.
-- 2026-05-13 TI/TJ: TG/TH compact-expand in tryInitDeinitEntity regressed -2/-3. Init shape ≠ tuple-expand.
+- 2026-05-13 TP: funcEntityLabels split BuiltinTypeName-tuple per-elem '_:' broke curated. materialize ≠ fn tuple.
