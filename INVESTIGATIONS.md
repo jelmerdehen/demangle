@@ -42,6 +42,10 @@ Pattern: `<host>V AA So<n><class>C Rbz rl E <nested>V <decl>...`. Foundation.Mea
 
 Pattern: `So 17UITraitCollection C 5UIKit E _<lbl1> 5value AB xm _12CoreGraphics... tc AC 0A10Definition Rz AH 5Value Rtz l u fC`. UIKit-extension failable init with same-type+conformance constraints. tryTypeFirstExtensionEntity reaches gen-sig constraint loop but bails: `AC` resolves to Module(UIKit) but next byte `0` (word-sub mode) isn't recognized as continuation of the constraint type (UITraitDefinition). Needs word-sub-ident handling INSIDE constraint type position in tryTypeFirstExtensionEntity gen-sig loop.
 
+### swiftui-appstorage-init-generic-params [19 mismatches AppStorage/SceneStorage]
+
+Pattern: `<host>V <labels><ret-bound-gen><params>tc AH Rsz l u fC`. Failable init on SwiftUI.AppStorage / SceneStorage where the host has 1 generic param A bound to concrete (e.g. Foundation.URL) via `AH Rsz` (same-type subj=A). got=`AppStorage.init(wrappedValue:_:store:)` want=`AppStorage.init<A>(wrappedValue:_:store:)`. Fix: in tryInitDeinitEntity non-verbose output path at line ~5995, when isUFCTerminal and ret-type contains a bound-generic wrapping a host that matches the path's last step, emit `<A,B,...>` based on the bound-generic args count (regardless of whether DependentGenericParamType is present in retType — concrete-bound generics still need the param signature).
+
 ### property-descriptor [7 syms post-SC, bespoke each]
 
 Remaining are all subs-table / multi-constraint / sugar-form issues. No shared root. Recommended: defer until Top-20 simpler categories drained.
