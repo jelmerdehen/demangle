@@ -12693,6 +12693,65 @@ func extractConstraintSigFullOpts(b []byte, includeObjCRequirements bool, words 
 		}
 	}
 
+	// Scan for s0<wsub-type><kind>0<wsub-assoc>Rt<subj> — assoc-type same-type
+	// constraint where BOTH the concrete-type and the assoc-type names are
+	// encoded via word-sub identifiers.
+	// E.g. s07DefaultcD0V0cD0Rtz with words=[Expressible,By,String,Interpolation] →
+	// "A.StringInterpolation == Swift.DefaultStringInterpolation".
+	if includeObjCRequirements && len(words) > 0 {
+		seenRtWSWS := map[string]bool{}
+		for pos := 0; pos+2 < len(s); pos++ {
+			if s[pos] != 's' || s[pos+1] != '0' {
+				continue
+			}
+			j := pos + 2
+			typeName, j2, ok1 := decodeWordSubAt(s, j, words)
+			if !ok1 || typeName == "" {
+				continue
+			}
+			j = j2
+			if j >= len(s) {
+				continue
+			}
+			kind := s[j]
+			if kind != 'V' && kind != 'C' && kind != 'O' {
+				continue
+			}
+			j++
+			if j >= len(s) || s[j] != '0' {
+				continue
+			}
+			j++
+			assocName, j3, ok2 := decodeWordSubAt(s, j, words)
+			if !ok2 || assocName == "" {
+				continue
+			}
+			j = j3
+			if j+1 >= len(s) || s[j] != 'R' || s[j+1] != 't' {
+				continue
+			}
+			j += 2
+			if j >= len(s) {
+				continue
+			}
+			var paramName string
+			switch s[j] {
+			case 'z':
+				paramName = "A"
+			case '_':
+				paramName = "B"
+			}
+			if paramName == "" {
+				continue
+			}
+			key := paramName + "." + assocName + " == Swift." + typeName
+			if !seenRtWSWS[key] {
+				seenRtWSWS[key] = true
+				constraints = append(constraints, key)
+			}
+		}
+	}
+
 	// Scan for <N><name>V/C/O 0<word-sub>Rt<subj> — module-nominal same-type assoc-type constraint
 	// where the concrete type is a bare length-prefixed nominal (no 's' Swift prefix).
 	// Used for Foundation-module types like Foundation.Date in constraint bytes like
