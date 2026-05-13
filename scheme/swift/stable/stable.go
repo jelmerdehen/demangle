@@ -11398,20 +11398,37 @@ func (p *parser) tryGlobalAssocConformanceDescriptor() (*demangle.Node, bool) {
 		return nil, false
 	}
 	p.i += 2 // consume "Tn"
-	// Build display name for host and constraint (simplified: just the
-	// protocol's identifier text, no module qualifier — matches Apple).
-	hostName := ""
-	for _, ch := range hostInner.Children {
-		if common.NodeKind(ch.Kind) == common.KindIdentifier {
-			hostName = ch.Text
+	// Build qualified display names. Apple's convention:
+	//   - Foundation hosts/constraints → module-qualified ("Foundation.X").
+	//   - Swift-stdlib first-level (S<letter>) → "Swift.X".
+	//   - Swift-stdlib s<digit><name> path → "Swift.X" (matches above).
+	//   - Sc<letter> level-2 concurrency → NO module prefix.
+	//   - Other modules (Combine, SwiftUI, UIKit, …) → NO module prefix.
+	qualifyProto := func(n *demangle.Node) string {
+		mod := ""
+		name := ""
+		isConcurrency := false
+		if n.Attrs != nil && n.Attrs["swift.concurrency"] == "true" {
+			isConcurrency = true
 		}
-	}
-	constraintName := ""
-	for _, ch := range cInner.Children {
-		if common.NodeKind(ch.Kind) == common.KindIdentifier {
-			constraintName = ch.Text
+		for _, ch := range n.Children {
+			switch common.NodeKind(ch.Kind) {
+			case common.KindModule:
+				mod = ch.Text
+			case common.KindIdentifier:
+				name = ch.Text
+			}
 		}
+		if isConcurrency {
+			return name
+		}
+		if mod == "Foundation" || mod == "Swift" {
+			return mod + "." + name
+		}
+		return name
 	}
+	hostName := qualifyProto(hostInner)
+	constraintName := qualifyProto(cInner)
 	if hostName == "" || constraintName == "" {
 		revert()
 		return nil, false
