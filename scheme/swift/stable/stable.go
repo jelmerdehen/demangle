@@ -12180,6 +12180,140 @@ func extractConstraintSigFullOpts(b []byte, includeObjCRequirements bool, words 
 		}
 	}
 
+	// Scan for s<NL><proto>A<L>_<NA><assoc>S<L2>RP<subj> — dependent-member
+	// conformance constraint with explicit subject back-ref:
+	//   "<param>.<first-assoc>.Swift.<L2>.<assoc>: Swift.<proto>".
+	// The A<L>_ back-ref refers to a previously-defined assoc of <param>
+	// (collected via earlier S<L><N><assoc>Rp<subj> scans).
+	// E.g. s17FixedWidthIntegerAC_14RawSignificandSBRPz with prior SB6ScalarRpz →
+	//   "A.Scalar.Swift.BinaryFloatingPoint.RawSignificand: Swift.FixedWidthInteger".
+	if includeObjCRequirements {
+		// Build assocByParam pool from earlier S<L><N><assoc>Rp<subj> scans.
+		assocByParam := map[string][]string{}
+		for pos := 0; pos+3 <= len(s); pos++ {
+			if s[pos] != 'S' {
+				continue
+			}
+			if _, ok := common.StdlibLookup(s[pos+1]); !ok {
+				continue
+			}
+			j := pos + 2
+			if j >= len(s) || !(s[j] >= '1' && s[j] <= '9') {
+				continue
+			}
+			aLenStart := j
+			for j < len(s) && s[j] >= '0' && s[j] <= '9' {
+				j++
+			}
+			alen := 0
+			for k := aLenStart; k < j; k++ {
+				alen = alen*10 + int(s[k]-'0')
+			}
+			if j+alen > len(s) {
+				continue
+			}
+			assocName := s[j : j+alen]
+			j += alen
+			if j+1 >= len(s) || s[j] != 'R' || s[j+1] != 'p' {
+				continue
+			}
+			j += 2
+			if j >= len(s) {
+				continue
+			}
+			var pName string
+			switch s[j] {
+			case 'z':
+				pName = "A"
+			case '_':
+				pName = "B"
+			}
+			if pName != "" {
+				assocByParam[pName] = append(assocByParam[pName], assocName)
+			}
+		}
+		seenRPDep := map[string]bool{}
+		for pos := 0; pos+1 < len(s); pos++ {
+			if s[pos] != 's' || !(s[pos+1] >= '1' && s[pos+1] <= '9') {
+				continue
+			}
+			j := pos + 1
+			lenStart := j
+			for j < len(s) && s[j] >= '0' && s[j] <= '9' {
+				j++
+			}
+			plen := 0
+			for k := lenStart; k < j; k++ {
+				plen = plen*10 + int(s[k]-'0')
+			}
+			if j+plen > len(s) {
+				continue
+			}
+			protoName := s[j : j+plen]
+			j += plen
+			// Expect A<upper>_<N><name>S<L>RP<subj>.
+			if j+5 > len(s) || s[j] != 'A' {
+				continue
+			}
+			if !(s[j+1] >= 'A' && s[j+1] <= 'Z') || s[j+2] != '_' {
+				continue
+			}
+			j += 3
+			if j >= len(s) || !(s[j] >= '1' && s[j] <= '9') {
+				continue
+			}
+			aLenStart := j
+			for j < len(s) && s[j] >= '0' && s[j] <= '9' {
+				j++
+			}
+			alen := 0
+			for k := aLenStart; k < j; k++ {
+				alen = alen*10 + int(s[k]-'0')
+			}
+			if j+alen > len(s) {
+				continue
+			}
+			assocName := s[j : j+alen]
+			j += alen
+			if j+3 > len(s) || s[j] != 'S' {
+				continue
+			}
+			letter2 := s[j+1]
+			ent2, ok2 := common.StdlibLookup(letter2)
+			if !ok2 {
+				continue
+			}
+			j += 2
+			if s[j] != 'R' || s[j+1] != 'P' {
+				continue
+			}
+			j += 2
+			if j >= len(s) {
+				continue
+			}
+			var paramName string
+			switch s[j] {
+			case 'z':
+				paramName = "A"
+			case '_':
+				paramName = "B"
+			}
+			if paramName == "" {
+				continue
+			}
+			assocs := assocByParam[paramName]
+			if len(assocs) == 0 {
+				continue
+			}
+			subj := paramName + "." + assocs[0]
+			out := subj + ".Swift." + ent2.Name + "." + assocName + ": Swift." + protoName
+			if !seenRPDep[out] {
+				seenRPDep[out] = true
+				constraints = append(constraints, out)
+			}
+		}
+	}
+
 	// Scan for S<L1>y<args>G<N><assoc>Rt<subj> — bound-generic concrete value
 	// same-type constraint. Args between 'y' and 'G' may include back-refs
 	// like 'A<letter>' that resolve to previously defined assoc-types in
