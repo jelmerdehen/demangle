@@ -8210,6 +8210,24 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 					retOverride = " -> (extension in Swift):Swift." + baseHostPath + "<A>" + extSig + nestedSuffix
 				}
 			}
+			// Module-as-param fixup: a Module node (e.g. "Swift") as a single
+			// init arg indicates the back-ref under-resolved. When retNode is
+			// non-nil, override the param to retType.
+			if len(paramTypes) >= 1 && retNode != nil &&
+				common.NodeKind(paramTypes[0].Kind) == common.KindModule {
+				clone := *retNode
+				if paramTypes[0].Attrs != nil {
+					newAttrs := map[string]string{}
+					for k, v := range retNode.Attrs {
+						newAttrs[k] = v
+					}
+					if lbl := paramTypes[0].Attrs["swift.label"]; lbl != "" {
+						newAttrs["swift.label"] = lbl
+					}
+					clone.Attrs = newAttrs
+				}
+				paramTypes[0] = &clone
+			}
 			wrap := common.NewNode(common.KindTypeMangling)
 			if verbose {
 				retStr := verboseRetStr(true)
