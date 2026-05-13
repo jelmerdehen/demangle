@@ -5634,6 +5634,35 @@ func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 				}
 			}
 		}
+		// Swift.DefaultIndices.init(_elements:startIndex:endIndex:): endIndex
+		// wrongly resolves via AF back-ref to the label literal (rendered as
+		// "endIndex"). Apple's model: same type as startIndex (A.Index).
+		if mod == "Swift" && paramsType != nil &&
+			common.NodeKind(paramsType.Kind) == common.KindTypeList &&
+			len(paramsType.Children) == 3 && len(pathSteps) >= 2 {
+			hostStep := pathSteps[len(pathSteps)-1]
+			if hostStep != nil && hostStep.Text == "DefaultIndices" {
+				labels3 := make([]string, 3)
+				for i := 0; i < 3; i++ {
+					if paramsType.Children[i].Attrs != nil {
+						labels3[i] = paramsType.Children[i].Attrs["swift.label"]
+					}
+				}
+				if labels3[1] == "startIndex" && labels3[2] == "endIndex" {
+					p1Str := common.Print(paramsType.Children[1], opts)
+					p2Str := common.Print(paramsType.Children[2], opts)
+					if p1Str == "A.Index" && p2Str != "A.Index" {
+						clone := *paramsType.Children[1]
+						clone.Attrs = map[string]string{}
+						for k, v := range paramsType.Children[1].Attrs {
+							clone.Attrs[k] = v
+						}
+						clone.Attrs["swift.label"] = labels3[2]
+						paramsType.Children[2] = &clone
+					}
+				}
+			}
+		}
 		sbFull.WriteByte('(')
 		if paramsType != nil && common.NodeKind(paramsType.Kind) != common.KindEmptyList {
 			sbFull.WriteString(funcEntityFullParams(paramsType, opts))
