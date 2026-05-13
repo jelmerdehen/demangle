@@ -6427,6 +6427,11 @@ func (p *parser) tryStdlibExtensionAllocator() (*demangle.Node, bool, error) {
 
 	// Extract extension constraint sig from raw bytes.
 	extConstraint := extractStdlibExtConstraintSig(constraintBytes)
+	if extConstraint == "" {
+		// Fall through to the broader scanner pool (Rp-with-assoc, RPz, etc.).
+		fullSig, _ := extractConstraintSigFullOpts([]byte(constraintBytes), true, p.words, "Swift")
+		extConstraint = fullSig
+	}
 
 	// Parse the function body manually as "y <result-type> <params-type> c"
 	// to avoid tryPostfixFunctionTypeWithParams greedily consuming the
