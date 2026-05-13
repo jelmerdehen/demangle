@@ -13597,20 +13597,48 @@ func funcEntityFullParams(args *demangle.Node, opts common.PrintOptions) string 
 		if strings.HasPrefix(t, "(") && strings.HasSuffix(t, ")") {
 			inner := t[1 : len(t)-1]
 			if lblStr := args.Attrs["swift.labels"]; lblStr != "" {
-				// Re-split tuple parts and apply per-position labels.
+				// Re-split tuple parts and apply per-position labels — but only
+				// when parts aren't already labeled (the tryFunctionEntity rewrite
+				// block bakes labels directly into the BuiltinTypeName text, in
+				// which case re-applying would produce "label: label: Type").
 				lbls := strings.Split(lblStr, "\x00")
 				parts := splitTopLevelComma(inner)
 				if len(parts) == len(lbls) {
-					out := make([]string, len(parts))
-					for i, p := range parts {
-						p = strings.TrimSpace(p)
-						if lbls[i] != "" && lbls[i] != "_" {
-							out[i] = lbls[i] + ": " + p
-						} else {
-							out[i] = p
+					alreadyLabeled := false
+					if first := strings.TrimSpace(parts[0]); first != "" {
+						if idx := strings.Index(first, ": "); idx > 0 {
+							pfx := first[:idx]
+							isSimple := pfx == "_"
+							if !isSimple && len(pfx) > 0 {
+								isSimple = true
+								for i := 0; i < len(pfx); i++ {
+									c := pfx[i]
+									if !((c >= 'a' && c <= 'z') ||
+										(c >= 'A' && c <= 'Z') ||
+										(c >= '0' && c <= '9') ||
+										c == '_') {
+										isSimple = false
+										break
+									}
+								}
+							}
+							if isSimple {
+								alreadyLabeled = true
+							}
 						}
 					}
-					return strings.Join(out, ", ")
+					if !alreadyLabeled {
+						out := make([]string, len(parts))
+						for i, p := range parts {
+							p = strings.TrimSpace(p)
+							if lbls[i] != "" && lbls[i] != "_" {
+								out[i] = lbls[i] + ": " + p
+							} else {
+								out[i] = p
+							}
+						}
+						return strings.Join(out, ", ")
+					}
 				}
 			}
 			return inner
