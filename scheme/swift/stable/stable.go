@@ -13997,6 +13997,105 @@ func extractConstraintSigFullOpts(b []byte, includeObjCRequirements bool, words 
 		}
 	}
 
+	// Scan for Rt same-type constraint with defining-proto and assoc-name:
+	//   s<N><name>V/C/O <M><assoc-name> S<proto-letter> R t <subj>
+	// Renders as: "<subj>.Swift.<ProtoName>.<assoc-name> == Swift.<name>"
+	// Example: s5Int16V8RawValueSYRtz → "A.Swift.RawRepresentable.RawValue == Swift.Int16"
+	if includeObjCRequirements {
+		seenRt := map[string]bool{}
+		for pos := 0; pos+2 < len(s); pos++ {
+			if s[pos] != 'R' || s[pos+1] != 't' {
+				continue
+			}
+			subjByte := s[pos+2]
+			var paramName string
+			switch subjByte {
+			case 'z':
+				paramName = "A"
+			case '_':
+				paramName = "B"
+			}
+			if paramName == "" {
+				continue
+			}
+			if pos < 2 || s[pos-2] != 'S' {
+				continue
+			}
+			protoLetter := s[pos-1]
+			protoEntry, pok := common.StdlibLookup(protoLetter)
+			if !pok {
+				continue
+			}
+			i := pos - 3
+			for i >= 0 && ((s[i] >= 'a' && s[i] <= 'z') || (s[i] >= 'A' && s[i] <= 'Z') || s[i] == '_') {
+				if (s[i] == 'V' || s[i] == 'C' || s[i] == 'O' || s[i] == 'P') &&
+					i > 0 && s[i-1] >= '0' && s[i-1] <= '9' {
+					break
+				}
+				i--
+			}
+			nameStart := i + 1
+			digEnd := nameStart
+			digStart := digEnd
+			for digStart > 0 && s[digStart-1] >= '0' && s[digStart-1] <= '9' {
+				digStart--
+			}
+			if digStart == digEnd {
+				continue
+			}
+			alen := 0
+			for k := digStart; k < digEnd; k++ {
+				alen = alen*10 + int(s[k]-'0')
+			}
+			if digEnd+alen != pos-2 {
+				continue
+			}
+			assocName := s[nameStart : nameStart+alen]
+			if digStart < 1 {
+				continue
+			}
+			lhsKindByte := s[digStart-1]
+			if lhsKindByte != 'V' && lhsKindByte != 'C' && lhsKindByte != 'O' {
+				continue
+			}
+			lhsKindPos := digStart - 1
+			lhsFound := false
+			lhsName := ""
+			for cand := lhsKindPos - 1; cand >= 0; cand-- {
+				if s[cand] != 's' {
+					continue
+				}
+				digStartL := cand + 1
+				digEndL := digStartL
+				for digEndL < len(s) && s[digEndL] >= '0' && s[digEndL] <= '9' {
+					digEndL++
+				}
+				if digEndL == digStartL {
+					continue
+				}
+				n := 0
+				for k := digStartL; k < digEndL; k++ {
+					n = n*10 + int(s[k]-'0')
+				}
+				if digEndL+n == lhsKindPos && n > 0 {
+					lhsName = s[digEndL : digEndL+n]
+					lhsFound = true
+					break
+				}
+			}
+			if !lhsFound {
+				continue
+			}
+			concreteStr := "Swift." + lhsName
+			rhsPath := paramName + ".Swift." + protoEntry.Name + "." + assocName
+			cstr := rhsPath + " == " + concreteStr
+			if !seenRt[cstr] {
+				seenRt[cstr] = true
+				constraints = append(constraints, cstr)
+			}
+		}
+	}
+
 	if len(constraints) == 0 {
 		return "", ""
 	}
