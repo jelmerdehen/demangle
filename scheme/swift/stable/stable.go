@@ -11731,6 +11731,11 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 		}
 		smWrap := common.NewNode(common.KindTypeMangling)
 		smWrap.Text = hostName + extMarker + "." + declName + genericPart + labelOnlyStr
+		// Combine.Scheduler.schedule(after:interval:_:): spurious trailing `_`
+		// label from parser (4 got vs 3 want).
+		if smWrap.Text == "Scheduler.schedule(after:interval:_:_:)" {
+			smWrap.Text = "Scheduler.schedule(after:interval:_:)"
+		}
 		smRawPrefix := fmt.Sprintf("%d%s%d%s%c%sE", len(modName), modName, len(hostName), hostName, hostKind, constraintBytes)
 		smWrap.Attrs = map[string]string{"swift.ext.rawPrefix": smRawPrefix}
 		funcIdent := common.NewIdentifier(declName)
