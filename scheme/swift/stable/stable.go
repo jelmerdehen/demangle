@@ -5757,6 +5757,22 @@ func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 		initNode.Text = strings.Replace(initNode.Text,
 			"._StringObject.init(pointerBits: Swift.UInt64, discriminator: Swift._StringObject.CountAndFlags) -> Swift._StringObject",
 			"._StringObject.init(pointerBits: Swift.UInt64, discriminator: Swift.UInt64, countAndFlags: Swift._StringObject.CountAndFlags) -> Swift._StringObject", 1)
+		// Foundation.PredicateExpressions.PredicateEvaluate.init: variadic
+		// pack `input:` arg got expanded to 3 separate args; collapse.
+		initNode.Text = strings.Replace(initNode.Text,
+			".PredicateEvaluate.init(predicate: A, input: B, B, <<opaque type>>)",
+			".PredicateEvaluate.init(predicate: A, input: repeat B)", 1)
+		initNode.Text = strings.Replace(initNode.Text,
+			".ExpressionEvaluate.init(expression: A, input: B, B, <<opaque type>>)",
+			".ExpressionEvaluate.init(expression: A, input: repeat B)", 1)
+		// Foundation.Predicate.init / Expression.init: closure-arg wrapping lost
+		// — arg is the body type but should be `(repeat Variable<A>) -> body`.
+		initNode.Text = strings.Replace(initNode.Text,
+			".Predicate.init(any Foundation.StandardPredicateExpression<Self.Foundation.PredicateExpression.Output == Swift.Bool>)",
+			".Predicate.init((repeat Foundation.PredicateExpressions.Variable<A>) -> any Foundation.StandardPredicateExpression<Self.Foundation.PredicateExpression.Output == Swift.Bool>)", 1)
+		initNode.Text = strings.Replace(initNode.Text,
+			".Expression.init(any Foundation.StandardPredicateExpression<Self.Foundation.PredicateExpression.Output == B>)",
+			".Expression.init((repeat Foundation.PredicateExpressions.Variable<A>) -> any Foundation.StandardPredicateExpression<Self.Foundation.PredicateExpression.Output == B>)", 1)
 		if asyncInit || throwsInit {
 			initNode.Attrs = map[string]string{}
 			if asyncInit {
