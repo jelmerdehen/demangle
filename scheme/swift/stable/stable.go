@@ -5940,6 +5940,21 @@ func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 	if isUFCTerminal {
 		maxIdx := -1
 		maxLocalIdx := -1
+		// Derive generic-param count from collected constraints: each entry's
+		// leading letter ("A: ...", "B: ...") indicates a subject. Use the
+		// max letter as the generic param count. This handles the case where
+		// retType is a bound-generic with CONCRETE args (no DependentGenericParamType
+		// to walk) but the init still has generic params bound via same-type
+		// constraints (e.g. SwiftUI.AppStorage<URL> with `A == URL`).
+		for _, c := range initConstraints {
+			if len(c) > 0 && c[0] >= 'A' && c[0] <= 'Z' {
+				if len(c) == 1 || c[1] == ':' || c[1] == ' ' {
+					if idx := int(c[0] - 'A'); idx > maxIdx {
+						maxIdx = idx
+					}
+				}
+			}
+		}
 		var collectGP func(n *demangle.Node)
 		collectGP = func(n *demangle.Node) {
 			if n == nil {
