@@ -190,9 +190,9 @@ Caveman: fire-internal terse OK; commits/code/comments normal.
 ## Lessons / wins (≤800 chars, merge-before-append, drop oldest at cap)
 
 <!-- newest on top -->
+- 2026-05-13 WE: hostPath at tryExtensionEntity getter+vpMV emit EMBEDS inner constraint sig for nested-in-ext (Measurement.FormatStyle<NSUIS>.ByteCount) — match via HasPrefix+HasSuffix, not literal `==`. +2 prod.
 - 2026-05-13 WD: Foundation-on-Foundation extension property accessors (Measurement.FormatStyle.attributed) route through tryExtensionEntity getter+vpMV. Constraint-RHS leaks into ret type (`__C.NSDimension`) instead of nested ext type. Post-emit sub. +2 prod.
 - 2026-05-13 WC: Swift stdlib extensions (DiscontiguousSlice, Collection, ExpressibleByStringInterpolation) route through tryTypeFirstExtensionEntity at `(extension in Swift):Swift.<host>` emit (~line 8484 init, ~line 8671 method). Post-emit sub on wrap.Text. +3 prod.
-- 2026-05-13 WB: V-then-E user-module-host property getter+desc routes through `tryExtensionEntity` (~line 11086, 11214), NOT tryTypeFirstExtensionEntity. Post-emit sub on `text` var. +4 prod.
 
 ## Lessons / traps (≤500 chars, merge-before-append, drop oldest at cap)
 
