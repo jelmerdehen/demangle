@@ -1,4 +1,4 @@
-# snapshot-pass-set update 2026-05-13T05:44:44Z — union with previous (high-water)
+# snapshot-pass-set update 2026-05-13T08:52:43Z — union with previous (high-water)
 _$s10Foreground7SwiftUI18LabelGroupStyle_v0PTl
 _$s10Foundation10CocoaErrorV010formattingC0AC4CodeVvgZ
 _$s10Foundation10CocoaErrorV010formattingC0AC4CodeVvpZMV
@@ -38297,6 +38297,7 @@ _$sSOSQsMc
 _$sSOSQsWP
 _$sSOs28CustomDebugStringConvertiblesMc
 _$sSOs28CustomDebugStringConvertiblesWP
+_$sSOySOyXlcfC
 _$sSP10deallocateyyF
 _$sSP16_cVarArgEncodingSaySiGvg
 _$sSP16_cVarArgEncodingSaySiGvpMV
@@ -49218,6 +49219,7 @@ _$ss18_CocoaArrayWrapperVSksMc
 _$ss18_CocoaArrayWrapperVSksWP
 _$ss18_CocoaArrayWrapperVSlsMc
 _$ss18_CocoaArrayWrapperVSlsWP
+_$ss18_CocoaArrayWrapperVyAByXlcfC
 _$ss18_CocoaArrayWrapperVys12_SliceBufferVyyXlGSnySiGcig
 _$ss18_CocoaArrayWrapperVys12_SliceBufferVyyXlGSnySiGcipMV
 _$ss18_DictionaryBuilderV15_requestedCountSivg
@@ -51574,6 +51576,7 @@ _$ss5ErrorPsE9_userInfoyXlSgvpMV
 _$ss5ErrorPsSYRzs17FixedWidthInteger8RawValueSYRpzrlE5_codeSivg
 _$ss5ErrorPsSYRzs17FixedWidthInteger8RawValueSYRpzrlE5_codeSivpMV
 _$ss5ErrorTL
+_$ss5ErrorWS
 _$ss5Int16V10Foundation18_FormatSpecifiableACMc
 _$ss5Int16V10Foundation18_FormatSpecifiableACWP
 _$ss5Int16V10FoundationE10truncatingABSo8NSNumberCh_tcfC

@@ -171,6 +171,7 @@ Caveman: fire-internal terse OK; commits/code/comments normal.
 ## Lessons / wins (≤800 chars, merge-before-append, drop oldest at cap)
 
 <!-- newest on top -->
+- 2026-05-13 VN: `Xl` = ProtocolListWithAnyObject — pops preceding empty-proto-list `y` from stack. At function-entity params-slot, consume `y` for `yXl` pattern before parseType, else mis-parses `yXlc` as function-type. WS terminal = "protocol self-conformance witness table for". +3 prod.
 - 2026-05-13 VM: NSFileHandle.ConnectionAcceptedMessage Result<> restore-1st-arg substitution (5 sym across init/getter/setter/modify/property descriptor). +5 prod.
 - 2026-05-13 VL: Foundation.NSDecimal<*> args strip extra UMP-wrap (SP<Sp<NSDecimal>> → SP<NSDecimal>). +7 prod across NSDecimalAdd/Power/Round/Divide/Multiply/Subtract/MultiplyByPowerOf10.
 - 2026-05-13 VK: _<Foo>Box.__copyContents arg[0] UMP<AnyIterator<X>> → UMP<X>. +4 prod (4 host variants share emit-path).
