@@ -16103,6 +16103,47 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 			}
 		}
 	}
+	// Swift.Result.flatMap / flatMapError: closure-arg return type loses its
+	// bound-generic args (rendered as bare "Swift.Result") even though the
+	// outer ret-type carries them. Apple's model has closure ret == outer ret.
+	// Replace the closure's return slot with a copy of the func ret.
+	if mod == "Swift" && args != nil && ret != nil && len(pathSteps) >= 3 {
+		hostStep := pathSteps[len(pathSteps)-2]
+		last := pathSteps[len(pathSteps)-1]
+		if hostStep != nil && hostStep.Text == "Result" &&
+			last != nil && (last.Text == "flatMap" || last.Text == "flatMapError") {
+			retStr := common.Print(ret, common.DefaultPrintOptions())
+			if strings.HasPrefix(retStr, "Swift.Result<") {
+				// Find the FunctionType node (closure). args is either
+				// Type-wrap-FunctionType (single-arg closure) or
+				// TypeList[Type-wrap-FunctionType] (closure inside list).
+				var ft *demangle.Node
+				if common.NodeKind(args.Kind) == common.KindType && len(args.Children) == 1 &&
+					common.NodeKind(args.Children[0].Kind) == common.KindFunctionType {
+					ft = args.Children[0]
+				} else if common.NodeKind(args.Kind) == common.KindTypeList && len(args.Children) == 1 {
+					a0 := args.Children[0]
+					if common.NodeKind(a0.Kind) == common.KindType && len(a0.Children) == 1 &&
+						common.NodeKind(a0.Children[0].Kind) == common.KindFunctionType {
+						ft = a0.Children[0]
+					}
+				}
+				if ft != nil && len(ft.Children) >= 2 {
+					ftRet := ft.Children[0]
+					ftRetStr := common.Print(ftRet, common.DefaultPrintOptions())
+					if ftRetStr == "Swift.Result" {
+						retClone := *ret
+						retClone.Attrs = map[string]string{}
+						for k, v := range ret.Attrs {
+							retClone.Attrs[k] = v
+						}
+						delete(retClone.Attrs, "swift.label")
+						ft.Children[0] = &retClone
+					}
+				}
+			}
+		}
+	}
 	common.AddChildren(entity, path, args, ret)
 
 	opts := common.DefaultPrintOptions()
