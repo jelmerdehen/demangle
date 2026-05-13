@@ -10,7 +10,23 @@ fast loop fires — avoids re-deriving path/cause each fire. Bounded
 
 Pattern: `s<n><name>VsSQ<n><assoc>Rpzr|lE<op>oi y Sb <args>FZ` — Swift module struct ext with associated-type constraint AND op-decl (DiscontiguousSlice ==, LazyPrefixWhileSequence.Index ==/<, ClosedRange.Index ==/<, FlattenSequence.Index ==/<). s<n> case pushes Module+Type → subs[0,1]. XS pushes BG host → subs[2]. Constraint-bytes processing line 7405 pushes ANOTHER Module(Swift) → subs[3] (duplicate). AF-style back-refs in args shift by 1 → resolve to Bool result instead of host BG. XZ skip-duplicate-Module attempt regressed 11 property_descriptor tests (descriptors depend on the doubled module slot for A<n>-based identifier resolution). Needs holistic subs.Set alignment or per-path-aware push gating.
 
-### loop-status [cumulative XE..XX = +502 prod, XY+XZ+YA empty (3/3 ceiling, terminated). ZA probe-only, multi-fire plan landed]
+### loop-status [cumulative XE..XX = +502 prod; ZA..ZE landed +295 prod (depth-1 primitives); ZF empty fire]
+
+ZA-ZE depth-1 primitives landed (2026-05-13):
+- ZA (+109): tryDependentMemberType direct-form `Qyd<idx>_` depth-1 → A1.<chain>/B1.<chain>.
+- ZB (+51): tryFunctionEntity assoc-Rt depth-1 `Rtd<demIdx><demIdx>` (subj A1/B1/...).
+- ZC (+119): tryInitDeinitEntity bare `Rd<demIdx><demIdx>` depth-1 conformance.
+- ZD (+14): tryInitDeinitEntity assoc-Rt depth-0/depth-1 (<concrete><N><assoc>Rt<subj>).
+- ZE (+2): tryInitDeinitEntity `R<kind>d<demIdx><demIdx>` depth-1 with kind byte.
+- ZF empty: bare-position function-entity R-handler Rd<demIdx><demIdx>/R<kind>d<...> extension unlocks 0 syms (no syms hit that path standalone). Reverted.
+
+Remaining ZA-plan items deferred to multi-fire:
+- ZA-1 trailer `_l` count consumption (high-blast, shared with non-depth-1 syms).
+- ZA-4 constraint-sig renderer multi-type `<type1><type2>Rt<subj>` chain (Combine `<concrete>AI<sub>Rtz` shape — needs two-type same-type handler).
+- ZA-5 end-to-end Combine receive(subscriber:) — blocked on ZA-4.
+- Extension entity depth-1 R-handler (separate code path, ~62+24+20 syms).
+
+Combine target syms in LOOP_DEPTH1_GENERICS.md: Combine.Fail.receive now demangles partially (`Fail.receive<A>(subscriber:)`), missing constraint sig + return + module prefix. IgnoreOutput/AllSatisfy still error at offset 39/37 (need ZA-4 multi-type Rt).
 
 YA surveyed remaining ≥20-sym buckets: 10Founda (Foundation user-mod ext, blocked per XY), 5UIKitE1 (mixed Foundation-user-mod + __C ext, blocked per XY/Dispatch), 7SwiftUI (Foundation user-mod ext, blocked per XY), AASo11NS (Measurement+__C constraint, complex), 6decode_ (depth-1 generics), 8CoreDat (NSManagedObject void-y-vs-yp, multi-fire), AAE10sea (PAAE same-mod backref, multi-fire), 7Combine offset-17 cluster (all depth-1 generics qd_/Rd_), nested-Index subs alignment (XZ-attempted, 11 property_descriptor regressions). All remaining buckets need multi-fire refactors. Operator re-launches by `rm .loop-empty-fires`.
 
