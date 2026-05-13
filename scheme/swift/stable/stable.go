@@ -8570,6 +8570,11 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 					".ExpressibleByExtendedGraphemeClusterLiteral.init(unicodeScalarLiteral: unicodeScalarLiteral) -> A",
 					".ExpressibleByExtendedGraphemeClusterLiteral< where A.ExtendedGraphemeClusterLiteralType == A.UnicodeScalarLiteralType>.init(unicodeScalarLiteral: A.ExtendedGraphemeClusterLiteralType) -> A", 1)
 			}
+			// Swift.FlattenSequence.Index.init: parser expanded args wrong
+			// (4 got, 2 want).
+			if wrap.Text == "(extension in Swift):Swift.FlattenSequence< where A: Swift.Collection, A.Element: Swift.Collection>.Index.init(A.Index, Swift, A.Index, <<opaque type>>?) -> (extension in Swift):Swift.FlattenSequence<A>< where A: Swift.Collection, A.Element: Swift.Collection>.Index" {
+				wrap.Text = "(extension in Swift):Swift.FlattenSequence< where A: Swift.Collection, A.Element: Swift.Collection>.Index.init(A.Index, A.Element.Index?) -> (extension in Swift):Swift.FlattenSequence<A>< where A: Swift.Collection, A.Element: Swift.Collection>.Index"
+			}
 			return wrap, true, nil
 		}
 		if throwsInit {
@@ -8757,6 +8762,12 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 		wrap.Text = strings.ReplaceAll(wrap.Text,
 			"(A.Element) -> Swift.LazyMapSequence) ->",
 			"(A.Element) -> A1?) ->")
+	}
+	// Swift.Slice.remove(at:): args+ret wrongly shifted; got 2 args, want 1.
+	if hostPath == "Slice" && declName == "remove" {
+		wrap.Text = strings.ReplaceAll(wrap.Text,
+			".remove(at: <<opaque type>>, Element: A.Swift.Collection.Index) -> Swift.Sequence",
+			".remove(at: A.Swift.Collection.Index) -> A.Swift.Sequence.Element")
 	}
 	// Swift.Collection._failEarlyRangeCheck(_: Range<A.Index>, bounds: …):
 	// bounds wrongly resolves to A.Index (BG inner) instead of Range<A.Index>.
