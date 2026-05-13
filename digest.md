@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 87.54% (55814/63757) — 2026-05-13T10:51:59Z
+**Parity**: 87.54% (55815/63757) — 2026-05-13T10:55:38Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 7911 parse-errors + 32 mismatches
+**Failures**: 7911 parse-errors + 31 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- 0bec078 swift-parity: WQ SwiftUI._ViewListOutputs.mapKitUnaryViewList(view:inputs:) restore lost 2-label split in simplified emit — parity 87.56%→87.56% (+1 production)
+- 6a30c16 chore: lock snapshot after WP (parity 55813→55814)
+- 980da78 chore: update digest.md for WP (parity 55813→55814)
 - 9036f1b swift-parity: WP Foundation._StringProcessing.RegexComponent.iso8601WithTimeZone Swift.ObjectIdentifier→Foundation.Date.ISO8601FormatStyle assoc-type substitution — parity 87.56%→87.56% (+1 production)
 - 0cbdfa9 chore: lock snapshot after WO (parity 55812→55813)
 - 207271d chore: update digest.md for WO (parity 55812→55813)
@@ -36,9 +39,6 @@
 - 6096684 chore: lock snapshot after WM..WN (parity 55810→55812)
 - cd4c8d1 chore: update digest.md for WM..WN (parity 55810→55812)
 - 1ea5ae3 swift-parity: WN Swift._ArrayBufferProtocol._forceCreateUniqueMutableBufferImpl 3-tuple-arg split to 3 separate labeled params — parity 87.56%→87.56% (+1 production)
-- ff45a65 swift-parity: WM Swift.StringProtocol.rangeOf restore lost locale: label + range:-arg type — parity 87.56%→87.56% (+1 production)
-- c50fffa chore: lock snapshot after WL (parity 55808→55810)
-- 888c112 chore: update digest.md for WL (parity 55808→55810)
 
 ## Suggested Next 3 Items
 
