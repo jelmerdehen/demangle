@@ -7533,7 +7533,26 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 				for _, d := range p.s[p.i+1 : j] {
 					n = n*10 + int(d-'0')
 				}
-				if n == 2 && j+1 < len(p.s) && p.s[j+1] >= '1' && p.s[j+1] <= '9' {
+				// No-nested-ident case: S<2><letter> directly followed by 'F'
+				// (no params), 'tF', '_tF' etc. Result = base, single param = base.
+				if n == 2 && j+1 < len(p.s) {
+					tb := p.s[j+1]
+					var consumeAhead int
+					if tb == 'F' {
+						consumeAhead = 1
+					} else if tb == 't' {
+						consumeAhead = 1
+					} else if tb == '_' && j+2 < len(p.s) && p.s[j+2] == 't' {
+						consumeAhead = 2
+					}
+					if consumeAhead > 0 {
+						p.i = j + 1 // advance past letter
+						retNode = base
+						compactNFirstParam = base
+					}
+					_ = consumeAhead
+				}
+				if n == 2 && retNode == nil && j+1 < len(p.s) && p.s[j+1] >= '1' && p.s[j+1] <= '9' {
 					// Try nested ident + kind byte.
 					p.i = j + 1
 					nestedIdent, nerr := p.parseIdentifier()
