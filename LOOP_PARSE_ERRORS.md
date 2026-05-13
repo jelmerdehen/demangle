@@ -267,8 +267,9 @@ Caveman: fire-internal terse OK; commits/code/comments normal.
 ## Lessons / wins (≤800 chars, merge-before-append, drop oldest at cap)
 
 <!-- newest on top -->
-- XR: tryTypeFirstExtensionEntity nested-type-loop pushed Identifier even for operator decl-names — Apple bypasses subs for operator decls (mangleOperator path). Added isOpDecl peek (next bytes `o<kind>`) and skip push. +1 prod alone; combined with bound-generic-host-push for stdlib-shorthand-hosts (not committed — broke category test by shifting subs index for non-operator paths). Lesson: subs-table additions need PRECISE index alignment vs other pushes.
-- XQ: tryTypeFirstExtensionEntity ext-mod parsing missing A<letter>E back-ref branch. PAAE same-mod ext needs AA→subs[0] resolution. +1 prod (small — PAAE bodies have complex generic).
+- XS: build on XR by pushing bound-generic host (Dictionary<A,B>, [A], A?) to subs for stdlib-shorthand-host operator-decl extensions. XR freed the subs slot by skipping Identifier push; XS fills it. AB sub-ref now resolves to bound-generic instead of Module(Swift). Gated on declIsOp && stdlibShortNode (no regression on non-op paths). +5 prod (Dict/Array/Opt == infix cluster).
+- XR: tryTypeFirstExtensionEntity nested-type-loop skip Identifier push when op-decl follows. +1 prod alone (paired with XS for +5).
+- XQ: tryTypeFirstExtensionEntity ext-mod parsing missing A<letter>E back-ref branch. PAAE same-mod ext needs AA→subs[0]. +1 prod.
 - XP: tryTypeFirstExtensionEntity nested-type-loop missing operator designator (oi/op/oP). Added decodeOperatorName + " infix/prefix/postfix" suffix after declName. +189 prod — operator-infix on extension hosts is pervasive (FormatStyle ==, SIMD /, etc.).
 - XO: tryFunctionEntity constraint loop missed `<concrete-type><N><assoc-name>Rt<subj>` same-type assoc-type. Peek for length-prefixed ident + Rt<subj> after parseType returns concrete; emit `<subj>.<assoc> == <concrete>`. +35 prod.
 - XN: XI's multi-char R-consume discarded kind byte. Rs/Rt same-type rendered as conformance ":". Preserve opText = " == " for s/t. +2 prod.
