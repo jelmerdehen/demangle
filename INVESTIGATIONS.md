@@ -10,7 +10,7 @@ fast loop fires — avoids re-deriving path/cause each fire. Bounded
 
 Pattern: `s<n><name>VsSQ<n><assoc>Rpzr|lE<op>oi y Sb <args>FZ` — Swift module struct ext with associated-type constraint AND op-decl (DiscontiguousSlice ==, LazyPrefixWhileSequence.Index ==/<, ClosedRange.Index ==/<, FlattenSequence.Index ==/<). s<n> case pushes Module+Type → subs[0,1]. XS pushes BG host → subs[2]. Constraint-bytes processing line 7405 pushes ANOTHER Module(Swift) → subs[3] (duplicate). AF-style back-refs in args shift by 1 → resolve to Bool result instead of host BG. XZ skip-duplicate-Module attempt regressed 11 property_descriptor tests (descriptors depend on the doubled module slot for A<n>-based identifier resolution). Needs holistic subs.Set alignment or per-path-aware push gating.
 
-### loop-status [cumulative XE..XX = +502 prod, XY+XZ+YA empty (3/3 ceiling, terminated)]
+### loop-status [cumulative XE..XX = +502 prod, XY+XZ+YA empty (3/3 ceiling, terminated). ZA probe-only, multi-fire plan landed]
 
 YA surveyed remaining ≥20-sym buckets: 10Founda (Foundation user-mod ext, blocked per XY), 5UIKitE1 (mixed Foundation-user-mod + __C ext, blocked per XY/Dispatch), 7SwiftUI (Foundation user-mod ext, blocked per XY), AASo11NS (Measurement+__C constraint, complex), 6decode_ (depth-1 generics), 8CoreDat (NSManagedObject void-y-vs-yp, multi-fire), AAE10sea (PAAE same-mod backref, multi-fire), 7Combine offset-17 cluster (all depth-1 generics qd_/Rd_), nested-Index subs alignment (XZ-attempted, 11 property_descriptor regressions). All remaining buckets need multi-fire refactors. Operator re-launches by `rm .loop-empty-fires`.
 
@@ -87,6 +87,23 @@ XT/XU attempts: added `SubstitutionTable.Set` + tracking-vars + bound-generic Se
 ### depth-1-generic-bucket [~500+ syms across receive, withUnsafeBytes, alert, observe, ...]
 
 Pattern: methods/inits taking depth-1 generic params (qd__, qd_0_) with constraints (Rd__, Rt_, Rtz). Apple grammar: `<gen-sig>` may introduce d-params (depth-1 type params) per Apple's demangler. Our parser doesn't push depth-1 params to subs correctly, and constraint loop doesn't handle `Rd__` (where Rd is the depth-1 conformance kind). Affects Combine.Publisher.* method bodies, SwiftUI.View.alert, UIKit.UITypedKeyObservable.observe, and many more. Multi-fire requires designing depth-1 param tracking in tryFunctionEntity + tryTypeFirstExtensionEntity.
+
+**ZA probe (2026-05-13)**: 4-primitive surface in `LOOP_DEPTH1_GENERICS.md` underestimates the scope. Probe of 3 fire-plan target syms (Combine receive(subscriber:) IgnoreOutput/AllSatisfy/Fail) and 7 narrowed variants reveals:
+- Primitive 1 (`parseGenericParam` `qd_`/`qd__`) **already works** — sym `_$s7Combine10PublishersO12IgnoreOutputV7receiveyqd__lF` parses to `Publishers.IgnoreOutput.receive<A>(_:)`. Code at `stable.go:18641-18684` already supports depth-1 idx-0 form.
+- Labeled `qd___t_lF` (no constraints) **fails** — parser parses params tuple `qd__` + `_t`, then trailer loop at `stable.go:16051` doesn't consume `_l` (single underscore as generic-param-counts marker before `l`). Trailer recognises `l`, `<digit>l`, `r<N>_l` but NOT bare `_l`.
+- Adding constraints `Rd__lF` (one R-d req, no Qyd__): **works** but degraded — output `receive<A>(subscriber:)` (labels-only, no A1 type info). Constraint chain consumed via unknown rescue path; depth-1 sig info dropped.
+- Adding `_lF` after `Rd__` (`Rd___lF`): **fails** — same `_l` trailer gap.
+- Adding `7FailureQyd__` chain: **fails** — Qyd__ dependent-member access on depth-1 param not parsed (`parseOpaqueType:18741` switch lacks `y`+`d_` combo for `Qyd__` form; existing `Qy<N>_` at line 17402 handles depth-0 only).
+- `Rd<depth-idx><param-idx>` constraint subject IS handled at `stable.go:16327` but only inside `c == 's' || (c >= '0' && c <= '9')` digit-led-ident branch. The R-handler at line 16054 (the entry for bare `R<kind>` in arbitrary subject positions like after AA back-ref) consumes only 2 bytes — doesn't recognise `Rd<...>` extended form for non-digit-led subjects.
+
+**Revised fire surface (5 commits min, not 1-3)**:
+- ZA-1: trailer `_l` count consumption — accept leading `_` in trailer loop as generic-param-counts marker, increment depth-tracking, then expect `l`. Probe-only patch first (smoke at risk: trailer is shared with non-depth-1 syms).
+- ZA-2: `parseOpaqueType` Qyd__ form — add `y` + `d_` + `<idx>_` branch returning depth-1 dependent-member type node. Display as "A1.<assoc>".
+- ZA-3: R-handler depth-1 in bare position — extend `c == 'R'` at line 16054 to recognise `Rd<demIdx><demIdx>` and `Rtd<demIdx><demIdx>` forms. Mirror line 16327 readDemIdx logic.
+- ZA-4: constraint-sig renderer depth-1 — `renderGenericSigWithConstraints` (search) produces `<A where ...>` from `constraints []string`. Already accepts free-form constraint strings (e.g. `"A1: Subscriber"`). Verify ZA-3 emits these strings.
+- ZA-5: end-to-end smoke + ratchet check.
+
+**Risk**: ZA-1 trailer change is high-blast-radius (touches every generic function). ZA-2/ZA-3 narrower. Recommend ZA-2 first (additive, no shared-code impact), then ZA-3, then ZA-1 with targeted probe corpus. If ZA-1 regresses smoke, gate behind `depthMax>=1` flag set when `qd_`/`Rd<d>` seen earlier in parse.
 
 ### property-descriptor [7 syms post-SC, bespoke each]
 
