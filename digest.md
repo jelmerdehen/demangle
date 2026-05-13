@@ -9,6 +9,9 @@
 
 ## Last 10 Commits
 
+- 4037521 swift-parity: XE init/deinit entity nested-type chain after stdlib shorthand host (Sd12SIMD2StorageVABycfC and friends) -- parity 87.59%->87.68% (+57 production)
+- 2cf32d1 chore: lock snapshot after XD (parity 55840 to 55846)
+- 111aab7 chore: update digest.md for XD (parity 55840 to 55846)
 - 18b6366 swift-parity: XD Foundation.AttributedString.LocalizationValue.init 6 variants dispatch on mangling content (FormattingOptions vs LocalizationOptions, with/without localization label) -- parity 87.62%->87.62% (+6 production)
 - 280c3e8 chore: lock snapshot after XC (parity 55838 to 55840)
 - 41ce801 chore: update digest.md for XC (parity 55838 to 55840)
@@ -16,9 +19,6 @@
 - b122ec8 chore: lock snapshot after XB (parity 55837 to 55838)
 - 9b9f668 chore: update digest.md for XB (parity 55837 to 55838)
 - c9f41d4 swift-parity: XB Foundation.LocalePreferences.init 14-arg args-list shift restore via full-text replace -- parity 87.61%->87.61% (+1 production)
-- fe9efb1 chore: lock snapshot after XA (parity 55835 to 55837)
-- fdeac63 chore: update digest.md for XA (parity 55835 to 55837)
-- 67f8849 swift-parity: XA Swift.FlattenSequence.Index.init + Slice.remove(at:) narrow text-replace -- parity 87.60%->87.61% (+2 production)
 
 ## Suggested Next 3 Items
 
