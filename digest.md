@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 88.36% (56338/63757) — 2026-05-13T13:57:16Z
+**Parity**: 88.37% (56339/63757) — 2026-05-13T14:02:22Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 7399 parse-errors + 20 mismatches
+**Failures**: 7398 parse-errors + 20 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -16,16 +16,16 @@
 
 ## Last 10 Commits
 
+- 017b3f8 swift-parity: XR tryTypeFirstExtensionEntity nested-type-loop skip Identifier push when operator designator (oi/op/oP) follows — Apple bypasses subs for operator decls -- parity 88.37%->88.37% (+1 production)
+- 46dd45d chore: INVESTIGATIONS — XR (retry) opened dict-array-optional-equatable second-param-resolution survey
+- 4746378 chore: INVESTIGATIONS — XR closed simd-operator-infix (XP drained); opened paae-same-mod-allowance-roundtrip-regression (parity +85 but roundtrip -295)
+- 03eb71b chore: LOOP_PARSE_ERRORS retro for XQ
+- 272d8cc chore: lock snapshot after XQ (parity 56338 to 56339)
+- 72ce581 chore: update digest.md for XQ (parity 56338 to 56339)
 - b0a0655 swift-parity: XQ tryTypeFirstExtensionEntity ext-mod parsing add A<letter>E back-ref branch — resolves PAAE protocol-extension-same-module-backref pattern (Combine.Publisher etc.); only the narrowest cases unlock since most PAAE bodies use depth-1 generics -- parity 88.36%->88.36% (+1 production)
 - ed20b19 chore: LOOP_PARSE_ERRORS retro for XP
 - ad4e2c4 chore: lock snapshot after XP (parity 56149 to 56338)
 - 9cdbaad chore: update digest.md for XP (parity 56149 to 56338)
-- 0ccc287 swift-parity: XP tryTypeFirstExtensionEntity nested-type-loop add operator designator handling (oi/op/oP) — translates <n><opname-chars>o<kind> via decodeOperatorName + ' infix/prefix/postfix' suffix (was only in tryFunctionEntity) -- parity 88.07%->88.36% (+189 production)
-- 7acd9cd chore: INVESTIGATIONS — XP opened simd-operator-infix (21 syms) + depth-1-generic bucket (~500+ syms across receive/withUnsafeBytes/alert/observe)
-- 9df8373 chore: INVESTIGATIONS — XP Rt-no-proto handler in extractConstraintSigFullOpts regresses -46 syms when gated on AAs prefix; needs caller-context gating
-- 917c899 chore: INVESTIGATIONS — XP closed AppStorage (drained by XM); opened combine-publisher-failure-never cluster ~80 syms
-- d47c51b chore: LOOP_PARSE_ERRORS retro for XO
-- 1f6f2ab chore: lock snapshot after XO (parity 56114 to 56149)
 
 ## Suggested Next 3 Items
 
