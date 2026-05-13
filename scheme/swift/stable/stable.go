@@ -8713,6 +8713,13 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 			".Collection.makeIterator() -> makeIterator",
 			".Collection< where A.Iterator == Swift.IndexingIterator<A>>.makeIterator() -> Swift.IndexingIterator<A>", 1)
 	}
+	// Swift.StringProtocol.rangeOf(_:options:range:locale:): `locale:` label
+	// lost, `range:` arg type shifted to Locale?.
+	if hostPath == "StringProtocol" && declName == "rangeOf" {
+		wrap.Text = strings.Replace(wrap.Text,
+			", range: Foundation.Locale?) -> Swift.Range<Swift.String.Index>?",
+			", range: Swift.Range<Swift.String.Index>?, locale: Foundation.Locale?) -> Swift.Range<Swift.String.Index>?", 1)
+	}
 	// Swift._SwiftNewtypeWrapper bridge fns: spurious `_ObjectiveCBridgeable`
 	// leading arg and `A._ObjectiveCType` should be `A.RawValue._ObjectiveCType`.
 	// The 2-arg force/conditionally variants additionally lose the `inout` label
