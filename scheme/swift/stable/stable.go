@@ -11662,6 +11662,22 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 		wrap.Text = strings.ReplaceAll(wrap.Text, ": Foundation)", ": Swift.Duration)")
 		wrap.Text = strings.ReplaceAll(wrap.Text, " -> Foundation?", " -> Swift.Duration?")
 	}
+	// Foundation.Measurement.{FormatStyle,AttributedStyle}<NSUIS>.ByteCount.format:
+	// (1) missing outer (extension in Foundation): prefix for nested-in-ext;
+	// (2) arg `Measurement<wrong>` should be `Measurement<__C.NSUnitInformationStorage>`.
+	if hostName == "Measurement" && declName == "format" &&
+		(strings.Contains(wrap.Text, ".FormatStyle< where A == __C.NSUnitInformationStorage>.ByteCount.format") ||
+			strings.Contains(wrap.Text, ".AttributedStyle< where A == __C.NSUnitInformationStorage>.ByteCount.format")) {
+		wrap.Text = strings.Replace(wrap.Text,
+			"(extension in Foundation):Foundation.Measurement",
+			"(extension in Foundation):(extension in Foundation):Foundation.Measurement", 1)
+		wrap.Text = strings.ReplaceAll(wrap.Text,
+			"Foundation.Measurement<Swift.String>",
+			"Foundation.Measurement<__C.NSUnitInformationStorage>")
+		wrap.Text = strings.ReplaceAll(wrap.Text,
+			"Foundation.Measurement<Foundation.AttributedString>",
+			"Foundation.Measurement<__C.NSUnitInformationStorage>")
+	}
 	// Store raw mangled prefix so the remangler can round-trip without
 	// having to re-derive the length-prefixed identifiers + constraint bytes.
 	rawPrefix := fmt.Sprintf("%d%s%d%s%c%sE", len(modName), modName, len(hostName), hostName, hostKind, constraintBytes)
