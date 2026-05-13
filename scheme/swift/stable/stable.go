@@ -16144,6 +16144,41 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 			}
 		}
 	}
+	// Foundation.Calendar.dateComponents(_: Set<Component>, from: …, to: …):
+	// from/to wrongly resolve via back-ref to Calendar.Component (inner of Set)
+	// instead of the ret-type Foundation.DateComponents. Override.
+	if mod == "Foundation" && args != nil && ret != nil &&
+		common.NodeKind(args.Kind) == common.KindTypeList && len(args.Children) == 3 &&
+		len(pathSteps) >= 3 {
+		hostStep := pathSteps[len(pathSteps)-2]
+		last := pathSteps[len(pathSteps)-1]
+		if hostStep != nil && hostStep.Text == "Calendar" &&
+			last != nil && last.Text == "dateComponents" {
+			labels3 := make([]string, 3)
+			for i := 0; i < 3; i++ {
+				if args.Children[i].Attrs != nil {
+					labels3[i] = args.Children[i].Attrs["swift.label"]
+				}
+			}
+			if labels3[1] == "from" && labels3[2] == "to" {
+				retStr := common.Print(ret, common.DefaultPrintOptions())
+				if retStr == "Foundation.DateComponents" {
+					for _, i := range []int{1, 2} {
+						p := common.Print(args.Children[i], common.DefaultPrintOptions())
+						if p != retStr {
+							clone := *ret
+							clone.Attrs = map[string]string{}
+							for k, v := range ret.Attrs {
+								clone.Attrs[k] = v
+							}
+							clone.Attrs["swift.label"] = labels3[i]
+							args.Children[i] = &clone
+						}
+					}
+				}
+			}
+		}
+	}
 	common.AddChildren(entity, path, args, ret)
 
 	opts := common.DefaultPrintOptions()
