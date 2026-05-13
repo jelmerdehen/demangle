@@ -48,7 +48,15 @@ Drained by XM: derived genParamsStr from initConstraints leading letter.
 
 ### combine-publisher-failure-never-ext [PAAE Rtz Failure cluster, ~80 syms, multi-fire]
 
-Pattern: `<host>P AA <concrete-type><N><assoc>Rtz <constraints>... rl E <decl>...`. Combine.Publisher protocol extension constrained `where A.Failure == Swift.Never` (or similar). Format: `s5NeverO 7Failure Rtz`. XP attempt: added Rt-no-proto handler in extractConstraintSigFullOpts gated to `len>=3 && startsWith("AAs")`. Standalone probe correct (`A.Failure == Swift.Never`) but smoke regressed -46 syms across UIKit.UITextEffectViewDelegate, Foundation NSDecimalCompare, etc. The "AAs" gate is too broad — many non-Combine constraintBytes start with AAs and rely on the existing `extMarker = "<>"` rendering matching Apple's expected (whose output also drops the constraint detail for those clusters). Real fix needs caller-context (module/host) to gate properly, OR Apple's snapshot for those 46 syms is genuinely missing the constraint and we shouldn't override.
+Pattern: `<host>P AA <concrete-type><N><assoc>Rtz <constraints>... rl E <decl>...`. Combine.Publisher protocol extension constrained `where A.Failure == Swift.Never` (or similar). XP attempt: Rt-no-proto handler in extractConstraintSigFullOpts gated on "AAs" prefix. Probes correct, but smoke -46 across UIKit/Foundation. Needs caller-context (module/host) gating.
+
+### simd-floatingpoint-operator-infix [SIMD `/` operator and similar, ~21 syms, multi-fire]
+
+Pattern: `s<N><proto>PsS<letter><M><assoc>R<kind><subj>rl E <opname-chars>oi y <result> <params> FZ`. SIMD protocol extension with `where A.Scalar: FloatingPoint` adding operator infix declarations (e.g. `/` = "d", `==` = "ee"). tryTypeFirstExtensionEntity nested-type loop parses the opname chars as a 1-char identifier (declName="d") then bails — the `oi` infix marker isn't consumed. Apple's `<decl-name> 'oi'` for infix operators needs special handler that translates letter mapping (d→/, e→=, etc.) and appends " infix" to declName.
+
+### depth-1-generic-bucket [~500+ syms across receive, withUnsafeBytes, alert, observe, ...]
+
+Pattern: methods/inits taking depth-1 generic params (qd__, qd_0_) with constraints (Rd__, Rt_, Rtz). Apple grammar: `<gen-sig>` may introduce d-params (depth-1 type params) per Apple's demangler. Our parser doesn't push depth-1 params to subs correctly, and constraint loop doesn't handle `Rd__` (where Rd is the depth-1 conformance kind). Affects Combine.Publisher.* method bodies, SwiftUI.View.alert, UIKit.UITypedKeyObservable.observe, and many more. Multi-fire requires designing depth-1 param tracking in tryFunctionEntity + tryTypeFirstExtensionEntity.
 
 ### property-descriptor [7 syms post-SC, bespoke each]
 
