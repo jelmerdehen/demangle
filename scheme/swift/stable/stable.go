@@ -16146,9 +16146,15 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 				// next byte as actual subject. Kinds: b (AnyObject), s
 				// (same-type), m (member), t, l, i. (Rj and Rp are
 				// handled earlier with their own special logic.)
+				// Track original kind to choose operator: Rs/Rt → " == ",
+				// Rb/Rp → ": " (default).
+				opText := ": "
 				if (reqKind == 'b' || reqKind == 's' || reqKind == 'm' ||
 					reqKind == 't' || reqKind == 'l' || reqKind == 'i') &&
 					!p.eof() && (p.s[p.i] == 'z' || p.s[p.i] == '_') {
+					if reqKind == 's' || reqKind == 't' {
+						opText = " == "
+					}
 					reqKind = p.s[p.i]
 					p.i++
 				}
@@ -16160,12 +16166,12 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 				// Apple's demangleIndex: '_'→0, 'N_'→N+1; subject = idx+1.
 				if reqKind == 'z' {
 					cstr := common.Print(constraint, common.DefaultPrintOptions())
-					localConstraints = append(localConstraints, "A: "+cstr)
+					localConstraints = append(localConstraints, "A"+opText+cstr)
 				} else if reqKind == '_' {
 					// 'R_' — demangleIndex '_' = 0, subject = param at idx 1 = B.
 					subj := "B"
 					cstr := common.Print(constraint, common.DefaultPrintOptions())
-					localConstraints = append(localConstraints, subj+": "+cstr)
+					localConstraints = append(localConstraints, subj+opText+cstr)
 				} else if reqKind >= '0' && reqKind <= '9' {
 					// 'R<digit>..._' — collect all digits, consume '_', map to param.
 					// demangleIndex("N_") = N+1; subject = demangleIndex+1 = N+2.
@@ -16181,7 +16187,7 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 					if subjIdx < 26 {
 						subj := string(rune('A' + subjIdx))
 						cstr := common.Print(constraint, common.DefaultPrintOptions())
-						localConstraints = append(localConstraints, subj+": "+cstr)
+						localConstraints = append(localConstraints, subj+opText+cstr)
 					}
 				} else if reqKind == 'd' {
 					// 'Rd<depth-idx><param-idx>' — depth-indexed generic param.
