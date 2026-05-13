@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 87.40% (55724/63757) — 2026-05-13T05:33:02Z
+**Parity**: 87.41% (55731/63757) — 2026-05-13T05:36:02Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 7948 parse-errors + 85 mismatches
+**Failures**: 7948 parse-errors + 78 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- 4088d84 swift-parity: VL Foundation.NSDecimal<*> arg-strip UMP-wrap (Add/Power/Round/Divide/Multiply/Subtract/MultiplyByPowerOf10) — parity 87.40%→87.41% (+7 production)
+- 6ce3606 chore: lock snapshot after VK (parity 55720→55724)
+- 7f9f09d chore: update digest.md for VK (parity 55720→55724)
 - 014795c swift-parity: VK _<Foo>Box.__copyContents(initializing:) UMP<AnyIterator<A.Element>> → UMP<A.Element> (_SequenceBox/_CollectionBox/_RandomAccessCollectionBox/_BidirectionalCollectionBox) — parity 87.40%→87.40% (+4 production)
 - cc435e6 chore: lock snapshot after VJ (parity 55718→55720)
 - a7659ec chore: update digest.md for VJ (parity 55718→55720)
@@ -36,9 +39,6 @@
 - 2cc22cb chore: lock snapshot after VI (parity 55716→55718)
 - 3334625 chore: update digest.md for VI (parity 55716→55718)
 - d721c43 swift-parity: VI StringProtocol.completePath/completePathInto filterTypes override (UMP<String>?? → [Swift.String]?) — parity 87.39%→87.39% (+2 production)
-- 2c1215c chore: lock snapshot after VH (parity 55714→55716)
-- ce50ea6 chore: update digest.md for VH (parity 55714→55716)
-- 9097872 swift-parity: VH _CalendarProtocol.copy 4th arg override (changingMinimumDaysInFirstWeek = changingFirstWeekday's Int?) — parity 87.39%→87.39% (+2 production)
 
 ## Suggested Next 3 Items
 
