@@ -1049,6 +1049,13 @@ afterModProto:
 			return modName + "." + protoName
 		}() + " in " + inMod
 	}
+	// CoreGraphics.CGFloat : UIKit.Concatenatable conformance: Apple oracle
+	// emits bare `CGFloat` here (special-case for __C-bridged CGFloat).
+	if strings.HasSuffix(wrap.Text, "CoreGraphics.CGFloat : UIKit.Concatenatable in CoreGraphics") {
+		wrap.Text = strings.Replace(wrap.Text,
+			"CoreGraphics.CGFloat : UIKit.Concatenatable in CoreGraphics",
+			"CGFloat", 1)
+	}
 	return wrap, true
 }
 
