@@ -8,7 +8,11 @@ fast loop fires — avoids re-deriving path/cause each fire. Bounded
 
 ### loop-status [cumulative XE..XS = +499 prod, 4 investigation-only attempts since]
 
-XE-XS productive fires drained 499 syms (87.59% → 88.38%). XQ-XU each attempted advanced fixes (PAAE same-mod allowance, dict-array-opt second-param replace) but yielded -1/+1 swings with subtle snapshot regressions. Remaining buckets need: depth-1 generic param tracking (qd_/Rd_, ~500+ syms), complex constraint conformance descriptors (Mc with Apple-Decodable nested, ~200+), or careful subs.Set alignment with bigger refactors. Each subsequent fire yields ≤+5 prod max.
+XE-XS productive fires drained 499 syms (87.59% → 88.38%). XQ-XV each attempted advanced fixes (PAAE same-mod allowance, dict-array-opt second-param replace) but yielded -1/+1 swings with subtle snapshot regressions. Remaining buckets need: depth-1 generic param tracking (qd_/Rd_, ~500+ syms), complex constraint conformance descriptors (Mc with Apple-Decodable nested, ~200+), or careful subs.Set alignment with bigger refactors. Each subsequent fire yields ≤+5 prod max.
+
+### nested-host-paae-extension [Combine.Publishers.<Inner>V AA E op-decl, ~111 syms, multi-fire]
+
+Pattern: `<mod><type-outer>O <n><type-inner>V AA <constraints>E<n><opchars>oi<sig>FZ` — host is nested enum-of-struct (Publishers.IgnoreOutput, Publishers.CombineLatest, etc.), then same-module PAAE ext. tryTypeFirstExtensionEntity case-digit user-mod path parses ONE type+kind, can't handle nested host. Bails at offset right after V of inner type. Needs case-digit-nested-host support OR new case for `<mod><outer-type><outer-kind><n><inner-type><inner-kind>` pattern.
 
 ### paae-protocol-extension-same-module-backref [~731 syms, multi-fire]
 
