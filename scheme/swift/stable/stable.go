@@ -11313,65 +11313,63 @@ func (p *parser) tryGlobalAssocConformanceDescriptor() (*demangle.Node, bool) {
 		revert()
 		return nil, false
 	}
-	// Parse one or more dot-separated assoc names. Each is either a
-	// length-prefixed ident or a compact stdlib (S<L>) rendered by name.
-	var assocParts []string
+	// Parse alternating (assoc-name, middle-protocol-type) pairs.
+	// Format: <host> <seg1> '_' [<seg2>] <constraint> 'Tn'
+	// where '_' appears once after seg1; if a digit follows '_' it
+	// starts seg2; otherwise it's the constraint type directly.
+	type assocSeg struct {
+		assoc       string
+		middleInner *demangle.Node
+	}
+	var segs []assocSeg
 	for p.i < end {
-		if p.s[p.i] >= '0' && p.s[p.i] <= '9' {
-			id, err := p.parseIdentifier()
-			if err != nil {
+		// Need assoc-name (length-prefixed).
+		if !(p.s[p.i] >= '0' && p.s[p.i] <= '9') {
+			break
+		}
+		assocName, err := p.parseIdentifier()
+		if err != nil {
+			revert()
+			return nil, false
+		}
+		if p.i >= end {
+			revert()
+			return nil, false
+		}
+		// Next: middle protocol Type (back-ref or compact-stdlib or s-path).
+		mt, mtErr := p.parseType()
+		if mtErr != nil {
+			revert()
+			return nil, false
+		}
+		mtInner := mt
+		if common.NodeKind(mtInner.Kind) == common.KindType && len(mtInner.Children) > 0 {
+			mtInner = mtInner.Children[0]
+		}
+		if common.NodeKind(mtInner.Kind) != common.KindProtocol {
+			revert()
+			return nil, false
+		}
+		segs = append(segs, assocSeg{assoc: assocName, middleInner: mtInner})
+		// After first segment, consume the mandatory '_' once. If a
+		// digit follows, parse another segment; otherwise the next
+		// token is the constraint type.
+		if len(segs) == 1 {
+			if p.i >= end || p.s[p.i] != '_' {
 				revert()
 				return nil, false
 			}
-			assocParts = append(assocParts, id)
-		} else {
-			break
-		}
-		// Stop at the '_' constraint separator OR when the next byte
-		// begins a TYPE that names the assoc's owning protocol (the
-		// "middle" segment of Apple's output).
-		if p.i < end && p.s[p.i] == '_' {
-			break
-		}
-		// If next byte begins a parseType token, stop assoc-name loop —
-		// next token is the middle protocol type.
-		if p.i < end {
-			b := p.s[p.i]
-			if b == 'A' || b == 'S' || b == 's' {
-				break
+			p.i++
+			if p.i < end && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+				continue
 			}
 		}
+		break
 	}
-	if len(assocParts) == 0 {
+	if len(segs) == 0 {
 		revert()
 		return nil, false
 	}
-	// Parse the middle protocol Type (the owner of the assoc), which is
-	// either a back-ref to the host or a separate protocol (e.g. SY =
-	// RawRepresentable when host is _UIKitNumericRawRepresentable).
-	if p.i >= end {
-		revert()
-		return nil, false
-	}
-	middle, merr := p.parseType()
-	if merr != nil {
-		revert()
-		return nil, false
-	}
-	middleInner := middle
-	if common.NodeKind(middleInner.Kind) == common.KindType && len(middleInner.Children) > 0 {
-		middleInner = middleInner.Children[0]
-	}
-	if common.NodeKind(middleInner.Kind) != common.KindProtocol {
-		revert()
-		return nil, false
-	}
-	// Expect '_' then constraint protocol type.
-	if p.i >= end || p.s[p.i] != '_' {
-		revert()
-		return nil, false
-	}
-	p.i++
 	constraint, cerr := p.parseType()
 	if cerr != nil {
 		revert()
@@ -11453,15 +11451,29 @@ func (p *parser) tryGlobalAssocConformanceDescriptor() (*demangle.Node, bool) {
 		return name
 	}
 	hostName := qualifyProto(hostInner)
-	middleName := qualifyProto(middleInner)
 	constraintName := qualifyProto(cInner)
-	if hostName == "" || middleName == "" || constraintName == "" {
+	if hostName == "" || constraintName == "" {
 		revert()
 		return nil, false
 	}
-	assocPath := strings.Join(assocParts, ".")
+	var b strings.Builder
+	b.WriteString("associated conformance descriptor for ")
+	b.WriteString(hostName)
+	for _, seg := range segs {
+		mn := qualifyProto(seg.middleInner)
+		if mn == "" {
+			revert()
+			return nil, false
+		}
+		b.WriteByte('.')
+		b.WriteString(mn)
+		b.WriteByte('.')
+		b.WriteString(seg.assoc)
+	}
+	b.WriteString(": ")
+	b.WriteString(constraintName)
 	wrap := common.NewNode(common.KindTypeMangling)
-	wrap.Text = "associated conformance descriptor for " + hostName + "." + middleName + "." + assocPath + ": " + constraintName
+	wrap.Text = b.String()
 	wrap.Attrs = map[string]string{"swift.suffix": "Tn", "swift.prerendered": "true"}
 	return wrap, true
 }
