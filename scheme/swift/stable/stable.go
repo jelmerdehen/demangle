@@ -15348,6 +15348,49 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 			}
 		}
 	}
+	// Collection.formIndex(_:offsetBy:limitedBy:) → (inout Index, Int, Index) -> Bool.
+	// The mangled back-ref for arg[2] commonly resolves to the return Bool or
+	// offsetBy Int; Apple's model has it equal to the Index of arg[0] (sans
+	// inout). Detect: 3-arg method named "formIndex" with labels
+	// _/offsetBy/limitedBy where arg[0] has swift.inout=true. Override arg[2]
+	// to a clone of arg[0] without the inout marker.
+	if args != nil && common.NodeKind(args.Kind) == common.KindTypeList &&
+		len(args.Children) == 3 && len(pathSteps) > 0 {
+		last := pathSteps[len(pathSteps)-1]
+		if last != nil && common.NodeKind(last.Kind) == common.KindIdentifier && last.Text == "formIndex" {
+			labels0, labels1, labels2 := "", "", ""
+			if args.Children[0].Attrs != nil {
+				labels0 = args.Children[0].Attrs["swift.label"]
+			}
+			if args.Children[1].Attrs != nil {
+				labels1 = args.Children[1].Attrs["swift.label"]
+			}
+			if args.Children[2].Attrs != nil {
+				labels2 = args.Children[2].Attrs["swift.label"]
+			}
+			combined := ""
+			if args.Attrs != nil {
+				combined = args.Attrs["swift.labels"]
+			}
+			if combined != "" && labels0 == "" && labels1 == "" && labels2 == "" {
+				parts := strings.Split(combined, "\x00")
+				if len(parts) >= 3 {
+					labels0, labels1, labels2 = parts[0], parts[1], parts[2]
+				}
+			}
+			if (labels0 == "_" || labels0 == "") && labels1 == "offsetBy" && labels2 == "limitedBy" &&
+				args.Children[0].Attrs != nil && args.Children[0].Attrs["swift.inout"] == "true" {
+				clone2 := *args.Children[0]
+				clone2.Attrs = map[string]string{}
+				for k, v := range args.Children[0].Attrs {
+					clone2.Attrs[k] = v
+				}
+				delete(clone2.Attrs, "swift.inout")
+				clone2.Attrs["swift.label"] = labels2
+				args.Children[2] = &clone2
+			}
+		}
+	}
 	// Collection.index(_:offsetBy:limitedBy:) → (Index, Int, Index) -> Index?
 	// The mangled `Sg` attaches to the Index sub which back-refs use for both
 	// arg[0] and arg[2]; Apple's model has Sg on the result only. Detect a
