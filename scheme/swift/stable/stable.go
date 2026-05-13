@@ -7641,6 +7641,11 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 		// same nested type differs by 1.  By making BOTH pushes carry the full path,
 		// both index variants resolve to the right string.
 		var fullNtPath string
+		// Skip pushing the identifier to subs when the next bytes are an
+		// operator designator (oi/op/oP): operator decl-names bypass the
+		// substitution table in Apple's demangler (mangleOperator path).
+		isOpDecl := !p.eof() && p.i+1 < len(p.s) && p.s[p.i] == 'o' &&
+			(p.s[p.i+1] == 'i' || p.s[p.i+1] == 'p' || p.s[p.i+1] == 'P')
 		if modName == "Foundation" && extHostMod != "" {
 			fullNtPath = "(extension in Foundation):" + extHostMod + "." + hostPath
 			for _, prevNt := range nestedTypes {
@@ -7649,8 +7654,10 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 			fullNtPath += "." + ident
 			ntPathNode := common.NewNode(common.KindTypeMangling)
 			ntPathNode.Text = fullNtPath
-			p.subs.Push(ntPathNode)
-		} else {
+			if !isOpDecl {
+				p.subs.Push(ntPathNode)
+			}
+		} else if !isOpDecl {
 			p.subs.Push(common.NewIdentifier(ident))
 		}
 		if !p.eof() && (p.s[p.i] == 'V' || p.s[p.i] == 'C' ||
