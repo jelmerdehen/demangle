@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 88.82% (56627/63757) — 2026-05-13T18:04:02Z
+**Parity**: 88.84% (56641/63757) — 2026-05-13T18:09:31Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 7088 parse-errors + 42 mismatches
+**Failures**: 7074 parse-errors + 42 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- ba37324 chore: lock snapshot after ZC commit (parity 56508 to 56627)
+- a8acaeb chore: update digest.md for ZC commit (parity 88.63->88.82)
+- a9abe15 swift-parity: ZC tryInitDeinitEntity depth-1 Rd<demIdx><demIdx> conformance — parity 88.63%->88.82% (+119 production)
 - 641c337 chore: lock snapshot after ZB commit (parity 56457 to 56508)
 - a3c5de6 chore: update digest.md for ZB commit (parity 88.55->88.63)
 - 8af79ea swift-parity: ZB tryFunctionEntity assoc-Rt depth-1 Rtd<demIdx><demIdx> — parity 88.55%->88.63% (+51 production)
@@ -36,9 +39,6 @@
 - 5b8ec17 chore: update digest.md for ZA commit (parity 88.38->88.55)
 - d556231 swift-parity: ZA tryDependentMemberType direct-form Qyd<idx>_ depth-1 — parity 88.38%->88.55% (+109 production)
 - 0a5d2ed chore: INVESTIGATIONS — ZA depth-1 probe, 5-commit multi-fire plan
-- 60682a5 chore: INVESTIGATIONS — YA empty fire, loop terminated (3/3 empty-fire ceiling)
-- c8b3183 chore: INVESTIGATIONS — XZ empty fire, sn-host-constraint-ident-subs-shift opened
-- 5d537cb chore: INVESTIGATIONS — XY empty fire, foundation-user-mod-ext-method-shadow opened
 
 ## Suggested Next 3 Items
 
