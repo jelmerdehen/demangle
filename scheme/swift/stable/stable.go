@@ -21285,6 +21285,14 @@ func (p *parser) tryDependentMemberType() (*demangle.Node, bool) {
 		case 'z', 'Z':
 			paramName = "A"
 		case 'y', 'Y':
+			// Depth-1 extension: 'Qyd<idx>_' / 'Qyd__' encodes
+			// A1.<chain>/B1.<chain>/... — mirrors genericParam(1, idx)
+			// naming ('A'+idx + "1").
+			depth := 0
+			if !p.eof() && p.s[p.i] == 'd' {
+				depth = 1
+				p.i++
+			}
 			start := p.i
 			for !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
 				p.i++
@@ -21301,7 +21309,15 @@ func (p *parser) tryDependentMemberType() (*demangle.Node, bool) {
 				n++
 			}
 			p.i++ // '_'
-			paramName = string(rune('B' + byte(n)))
+			if depth == 1 {
+				// 'Qyd__' (no idx digits) has a second '_' (pack-index zero).
+				if n == 0 && !p.eof() && p.s[p.i] == '_' {
+					p.i++
+				}
+				paramName = string(rune('A'+byte(n))) + "1"
+			} else {
+				paramName = string(rune('B' + byte(n)))
+			}
 		}
 		wrap := common.NewNode(common.KindType)
 		tn := common.NewNode(common.KindBuiltinTypeName)
