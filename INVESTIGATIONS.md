@@ -14,6 +14,18 @@ fast loop fires — avoids re-deriving path/cause each fire. Bounded
 
 `s<n><name>V sSlRzrlE <decl>...F` (LazySequence/LazyMapSequence Collection-constrained ext). E-scan in tryTypeFirstExtensionEntity rejects `Ey<type>` (accept-set is `[0-9]|_`). Post-E label loop doesn't consume bare `y` as empty-label marker (only `yy`). Tangled with property-suffix path.
 
+### void-y-vs-yp-any-result [CoreData NSManagedObject subscripts, multi-fire]
+
+tryTypeFirstExtensionEntity post-label-loop result-type check (`if p.s[p.i] == 'y' { p.i++ /*void*/}`) consumes lone `y` as void marker WITHOUT first checking for `yp` (existential `Any`). Pattern: `_$sSo<n><name>C<extMod>E yyp<postfix><Result>cig` (subscript getter on ObjC class in user-mod extension). Diff: when label-loop consumed `yy` as label-empty marker, the second `y` was a misread — should have left for `yp` Any parse. Fix needs label-loop tightening AND/OR result-type-check `yp`-lookahead. Also need subscript-suffix (`cig`/`cis`/`cipMV`) entity handler — currently not in tryTypeFirstExtensionEntity post-E paths.
+
+### sc-c_synthesized-module-prefix [4 syms, multi-fire]
+
+Pattern: `_$sSC<n><name>V...` — `SC` = `__C_Synthesized` module prefix (Apple convention for Synthesized ObjC types). parseStdlibSubstitution does NOT handle uppercase 'C' (only 'o' for `__C` and 'c' for concurrency). Surveyed XF: adding `case 'C':` in parseStdlibSubstitution gets past offset-4 error but next blocker is `L<disc>` private-decl-name marker in identifier path (e.g. `UIApplicationCategoryDefaultErrorCodeLe` is followed by `V` but the `Le` is actually `L<e>` discriminator, not part of ident).
+
+### lufc-multi-tuple-failable-init [SortDescriptor + ~26 syms `_5order` cluster]
+
+Pattern: `<host>V _<lbl1>...<ret-type><multi-tuple-params> So<class>C Rb z l u fC`. Failable init `init?` returning Optional, with multi-element labeled tuple params and `Rb` (AnyObject) constraint on T binding to __C class. Apple expected: `Foundation.SortDescriptor.init<A where A: __C.NSObject>(_: KeyPath<A, Date>, order: SortOrder) -> SortDescriptor<A>`. tryInitDeinitEntity advances through most of body but bails near `lufC`. Need to verify `lufC` (lowercase-l generic-sig-end + u failable + fC alloc) is parsed correctly with multi-tuple params.
+
 ### property-descriptor [7 syms post-SC, bespoke each]
 
 Remaining are all subs-table / multi-constraint / sugar-form issues. No shared root. Recommended: defer until Top-20 simpler categories drained.
