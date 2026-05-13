@@ -6,9 +6,13 @@ fast loop fires — avoids re-deriving path/cause each fire. Bounded
 
 ## Active targets
 
-### loop-status [cumulative XE..XS = +499 prod, 4 investigation-only attempts since]
+### loop-status [cumulative XE..XX = +502 prod, XY empty (1st of 3)]
 
-XE-XS productive fires drained 499 syms (87.59% → 88.38%). XQ-XV each attempted advanced fixes (PAAE same-mod allowance, dict-array-opt second-param replace) but yielded -1/+1 swings with subtle snapshot regressions. Remaining buckets need: depth-1 generic param tracking (qd_/Rd_, ~500+ syms), complex constraint conformance descriptors (Mc with Apple-Decodable nested, ~200+), or careful subs.Set alignment with bigger refactors. Each subsequent fire yields ≤+5 prod max.
+XE-XX productive fires drained 502 syms (87.59% → 88.38%). XY tried Foundation-user-mod-host F-terminal unlock (relax bail at line 7839 to permit modName=="Foundation"): +23 demangle parity but -40 parity (UIKit/Foundation top-level funcs misrouted into tryTypeFirstExtensionEntity producing wrong/hard-error output) and -6 roundtrip (FormatStyle.locale etc. correct demangle but mangler can't reverse new tree shape). Net regression. Reverted. Foundation user-mod F-terminal unlock blocked by entity-dispatch-shadowing — tryTypeFirstExtensionEntity match steals symbols from tryExtensionEntity/tryFunctionEntity even though gate-bail intended to keep them separate. Needs careful entity-dispatch refactor or much tighter gate (e.g. require specific F/cfC suffix + extHostMod in known-good set).
+
+### foundation-user-mod-ext-method-shadow [799 syms, multi-fire]
+
+`<host-mod-len><host-mod><host-type><kind>10FoundationE<decl>...F` — Foundation extending non-Foundation host (CoreGraphics.CGFloat etc.). tryTypeFirstExtensionEntity case-digit-user-mod parses host correctly, post-switch parses Foundation mod + E. Bails at line 7839 (`extHostMod != "Swift" && extHostMod != "__C"`). Removing the bail: 35-40 unrelated Foundation/UIKit syms misrouted (tryTypeFirstExtensionEntity steals from tryFunctionEntity for `10Foundation16NSDecimalCompare` etc.). Removing-with-`modName=="Foundation"`-gate: still regresses 35+ because non-extension Foundation symbols match the relaxed condition spuriously. Needs deeper dispatch fix.
 
 ### nested-host-paae-extension [Combine.Publishers.<Inner>V AA E op-decl, ~111 syms, multi-fire]
 
