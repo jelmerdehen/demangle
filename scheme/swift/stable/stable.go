@@ -5725,6 +5725,11 @@ func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 		initNode.Text = strings.Replace(initNode.Text,
 			".WeekendRange.init(onsetTime: Swift.Double?, ceaseTime: Foundation.WeekendRange, start: Swift.Int) -> Foundation.WeekendRange",
 			".WeekendRange.init(onsetTime: Swift.Double?, ceaseTime: Swift.Double?, start: Swift.Int, end: Swift.Int) -> Foundation.WeekendRange", 1)
+		// Swift._StringObject.init: compact-label sequence collapsed 3 args to
+		// 2 (lost `countAndFlags`). Restore.
+		initNode.Text = strings.Replace(initNode.Text,
+			"._StringObject.init(pointerBits: Swift.UInt64, discriminator: Swift._StringObject.CountAndFlags) -> Swift._StringObject",
+			"._StringObject.init(pointerBits: Swift.UInt64, discriminator: Swift.UInt64, countAndFlags: Swift._StringObject.CountAndFlags) -> Swift._StringObject", 1)
 		if asyncInit || throwsInit {
 			initNode.Attrs = map[string]string{}
 			if asyncInit {
