@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- 14279ae swift-parity: UA tryGlobalAssocConformanceDescriptor multi-segment chains (host.assoc.middle.assoc...) — parity 87.14%→87.14% (full count at fire end)
+- ff9a551 chore: lock snapshot after TY..TZ (parity 55520→55559)
+- b343e7e chore: update digest.md for TY..TZ (parity 55520→55559)
 - dc234a2 swift-parity: TZ Tn host-qualifier rule: Foundation/Swift (non-concurrency) qualified, others unqualified — parity 87.08%→87.08% (full count at fire end)
 - cfc9ec1 swift-parity: TY tryGlobalAssocConformanceDescriptor parse middle as type + host-based qualifier rule — parity 87.08%→87.08% (full count at fire end)
 - 37e60b8 Revert "swift-parity: TY tryGlobalAssocConformanceDescriptor parse middle as type + host-based qualifier rule — parity 87.08%→87.08% (full count at fire end)"
@@ -36,9 +39,6 @@
 - 9fc6359 Revert "swift-parity: TW Tn constraint qualifier follows host (strip Swift/Foundation when host unqualified) — parity 87.08%→87.08% (full count at fire end)"
 - 78e4c0a swift-parity: TW Tn constraint qualifier follows host (strip Swift/Foundation when host unqualified) — parity 87.08%→87.08% (full count at fire end)
 - 1486173 chore: lock snapshot after TV (parity 55483→55520)
-- 6bfd520 chore: update digest.md for TV (parity 55483→55520)
-- f7b6540 swift-parity: TV tryGlobalAssocConformanceDescriptor module-qualify Foundation/Swift only (not SwiftUI/Combine/UIKit/Sc) — parity 87.02%→87.02% (full count at fire end)
-- 76fe3ac chore: lock snapshot after TU (parity 55383→55483)
 
 ## Suggested Next 3 Items
 
