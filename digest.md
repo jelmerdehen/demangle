@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 87.24% (55622/63757) — 2026-05-13T01:56:15Z
+**Parity**: 87.25% (55630/63757) — 2026-05-13T01:59:48Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 7948 parse-errors + 187 mismatches
+**Failures**: 7948 parse-errors + 179 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- c5e7a88 swift-parity: UM extend operator-binary symmetry — args[1] == ret triggers args[1] = args[0] (Dictionary/Set/Range comparators) — parity 87.25%→87.26% (+8 production)
+- 3272419 chore: lock snapshot after UL (parity 55582→55622)
+- 3b45c8f chore: update digest.md for UL (parity 55582→55622)
 - 98f384f swift-parity: UL operator-binary symmetry normalize 2nd arg to bound-generic head (== infix etc.) — parity 87.19%→87.25% (+40 production)
 - 4eba9cc chore: lock snapshot after UK (parity 55581→55582)
 - a5d2532 chore: update digest.md for UK (parity 55581→55582)
@@ -36,9 +39,6 @@
 - 5bee28e chore: lock snapshot after UJ (parity 55575→55581)
 - a4d9f05 chore: update digest.md for UJ (parity 55575→55581)
 - 18e0e58 swift-parity: UJ narrow fluent-builder exclude for mutating-name methods (add/subtract/multiply/divide/form*) — parity 87.18%→87.19% (+6 production)
-- 1f8a974 loop: trap lesson for UI decl-name un-push regression
-- 2e44019 chore: lock snapshot after UG..UH (parity 55574→55575)
-- b8a282c chore: update digest.md for UG..UH (parity 55574→55575)
 
 ## Suggested Next 3 Items
 
