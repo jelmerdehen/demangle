@@ -190,9 +190,9 @@ Caveman: fire-internal terse OK; commits/code/comments normal.
 ## Lessons / wins (≤800 chars, merge-before-append, drop oldest at cap)
 
 <!-- newest on top -->
+- 2026-05-13 WR/WS: Same-module simplified ext-method emit at tryExtensionEntity ~line 11733 + tryFunctionEntity simplified ~line 16748 — narrow text-replaces drop spurious labels (Scheduler.schedule 4→3) or restore lost labels (dispatch_data_create_subrange 1→3). +2 prod.
 - 2026-05-13 WQ: SwiftUI simplified function-entity emit at tryFunctionEntity ~line 16748 takes narrow text-replace at end of sb.String for `mapKitUnaryViewList<A>(_:)`→`(view:inputs:)`. +1 prod.
 - 2026-05-13 WP: Foundation extension on non-Foundation, non-Swift host (_StringProcessing.RegexComponent) routes through tryExtensionEntity method emit at line ~11748. Assoc-type RHS-substitution applied via narrow text-replace. +1 prod.
-- 2026-05-13 WO: UIKit simplified-output extension method route at tryExtensionEntity ~line 11674 (`hostPath + nestedExtMarker + . + declName + labelOnlyStr`). UITextEffectView.Text..→TextEffect via narrow replace. +1 prod.
 
 ## Lessons / traps (≤500 chars, merge-before-append, drop oldest at cap)
 
