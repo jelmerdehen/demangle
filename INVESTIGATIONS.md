@@ -34,6 +34,14 @@ Pattern: `s<n><proto>P sSF6ScalarRpzrlE <decl> y y <type1> _ <type2> t F`. Swift
 
 Pattern: `Sq 7CombineE 9PublisherV <decl> <labels> AC y x_G <closure-arg> _t F`. Optional<A>.Publisher extension methods like `max(by:)` taking closure `(A, A) -> Bool` @escaping. tryTypeFirstExtensionEntity bails at `XE_tF` — the @escaping convention marker after closure params. parseType in param slot doesn't recognize the function-type signature (result Sb, params x_xt, conv XE) as a single closure argument. Needs proper function-type-as-arg parser at the params loop entry, recognizing pattern `<result-type> <params-type> X<conv>`.
 
+### aa-backref-constraint-ext-foundation-measurement [AASo11NSDimensio bucket, 63 syms, multi-fire]
+
+Pattern: `<host>V AA So<n><class>C Rbz rl E <nested>V <decl>...`. Foundation.Measurement<UnitType: NSDimension> extension with nested type. Host is flat (`10Foundation11MeasurementV`). After host, `AA` is back-ref to host module (subs[0]=Foundation). Then `So<n><class>C Rbz` is class-binding constraint. `rl E` ends gen-sig. tryExtensionEntity enters but bails — the constraint-bytes processing doesn't handle the `0<word-sub>` patterns within identifier chunks. XK survey: tryExtensionEntity is entered (digit-led host parsing works) but restores. Needs constraint-bytes processing extension to recognize word-sub-ident inside `<sub-ref><wordsub-ident>R<kind><subj>` for class-binding constraints.
+
+### uitraitcollection-constraint-wordsub [5UIKitE_5valueAB bucket, 32 syms, multi-fire]
+
+Pattern: `So 17UITraitCollection C 5UIKit E _<lbl1> 5value AB xm _12CoreGraphics... tc AC 0A10Definition Rz AH 5Value Rtz l u fC`. UIKit-extension failable init with same-type+conformance constraints. tryTypeFirstExtensionEntity reaches gen-sig constraint loop but bails: `AC` resolves to Module(UIKit) but next byte `0` (word-sub mode) isn't recognized as continuation of the constraint type (UITraitDefinition). Needs word-sub-ident handling INSIDE constraint type position in tryTypeFirstExtensionEntity gen-sig loop.
+
 ### property-descriptor [7 syms post-SC, bespoke each]
 
 Remaining are all subs-table / multi-constraint / sugar-form issues. No shared root. Recommended: defer until Top-20 simpler categories drained.
