@@ -16129,6 +16129,30 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 					p.i = saveAssoc
 					p.subs = saveSubsAssoc
 				}
+				// Same-type assoc-type requirement: <concrete-type> <N><assoc-name> R t <subj>
+				// Apple's grammar: concrete + assoc-ident, then Rt<subj> binds
+				// <subj>.<assoc-name> == <concrete>. Recognize the assoc-name
+				// length-prefixed ident immediately before Rt.
+				if !p.eof() && p.s[p.i] >= '1' && p.s[p.i] <= '9' {
+					saveAt := p.i
+					assocName2, aerr2 := p.parseIdentifier()
+					if aerr2 == nil && p.i+1 < len(p.s) &&
+						p.s[p.i] == 'R' && p.s[p.i+1] == 't' {
+						p.i += 2 // consume Rt
+						if !p.eof() && (p.s[p.i] == 'z' || p.s[p.i] == '_') {
+							subj := "A"
+							if p.s[p.i] == '_' {
+								subj = "B"
+							}
+							p.i++
+							concreteStr := common.Print(constraint, common.DefaultPrintOptions())
+							localConstraints = append(localConstraints,
+								subj+"."+assocName2+" == "+concreteStr)
+							continue
+						}
+					}
+					p.i = saveAt
+				}
 				if p.eof() || p.s[p.i] != 'R' {
 					p.i = saveReq
 					p.subs = saveSubsReq
