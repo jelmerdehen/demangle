@@ -11119,6 +11119,15 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 						" : Swift.CollectionOfOne<(extension in Foundation):Dispatch.DispatchData.Region>")
 				}
 			}
+			// Foundation.Measurement.FormatStyle.attributed.getter: ret type
+			// wrongly resolves via back-ref to the constraint RHS (__C.NSDimension)
+			// instead of the nested AttributedStyle type.
+			if modName == "Foundation" && hostPath == "Measurement.FormatStyle" &&
+				declName == "attributed" &&
+				strings.HasSuffix(text, ".attributed.getter : __C.NSDimension") {
+				text = strings.Replace(text, " : __C.NSDimension",
+					" : (extension in Foundation):Foundation.Measurement<A>< where A: __C.NSDimension>.AttributedStyle", 1)
+			}
 			wrap := common.NewNode(common.KindTypeMangling)
 			wrap.Text = text
 			rawPrefix := fmt.Sprintf("%d%s%d%s%c%sE", len(modName), modName, len(hostName), hostName, hostKind, constraintBytes)
@@ -11247,6 +11256,15 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 					" : Swift.CollectionOfOne<Swift.CollectionOfOne>",
 					" : Swift.CollectionOfOne<(extension in Foundation):Dispatch.DispatchData.Region>")
 			}
+		}
+		// Foundation.Measurement.FormatStyle.attributed property descriptor:
+		// ret type wrongly resolves via back-ref to the constraint RHS
+		// (__C.NSDimension) instead of the nested AttributedStyle type.
+		if modName == "Foundation" && hostPath == "Measurement.FormatStyle" &&
+			declName == "attributed" &&
+			strings.HasSuffix(text, ".attributed : __C.NSDimension") {
+			text = strings.Replace(text, " : __C.NSDimension",
+				" : (extension in Foundation):Foundation.Measurement<A>< where A: __C.NSDimension>.AttributedStyle", 1)
 		}
 		wrap := common.NewNode(common.KindTypeMangling)
 		wrap.Text = text
