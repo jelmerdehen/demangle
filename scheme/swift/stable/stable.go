@@ -8687,6 +8687,14 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 			", bounds: A.Index)",
 			", bounds: Swift.Range<A.Index>)")
 	}
+	// __C.NSCoder.decodeObjectOfClasses(_:forKey:): Xl in params-slot consumes
+	// `y` ret-type marker (VN pattern) — Apple ret = AnyObject?, args = (NSSet?,
+	// String). Got incorrectly shifts: ret=NSCoder host, args=(AnyObject?, NSSet?, String).
+	if extHostMod == "__C" && hostPath == "NSCoder" && declName == "decodeObjectOfClasses" {
+		wrap.Text = strings.ReplaceAll(wrap.Text,
+			"(_: Swift.AnyObject?, forKey: __C.NSSet?, Swift.String) -> __C.NSCoder",
+			"(_: __C.NSSet?, forKey: Swift.String) -> Swift.AnyObject?")
+	}
 	return wrap, true, nil
 }
 
