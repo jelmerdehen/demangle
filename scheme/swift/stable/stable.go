@@ -8500,6 +8500,22 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 				strings.Contains(wrap.Text, "A.StringInterpolation == Swift.DefaultStringInterpolation") {
 				wrap.Text = strings.ReplaceAll(wrap.Text, ": Default)", ": Swift.DefaultStringInterpolation)")
 			}
+			// Swift.Result.init(catching:): missing constraint and bare
+			// "Swift.Swift" should be "Swift.Error" in ret BG arg.
+			if hostPath == "Result" &&
+				strings.HasSuffix(wrap.Text, ".Result.init(catching: () throws -> A) -> Swift.Result<A, Swift.Swift>") {
+				wrap.Text = strings.Replace(wrap.Text,
+					".Result.init(catching: () throws -> A) -> Swift.Result<A, Swift.Swift>",
+					".Result< where B == Swift.Error>.init(catching: () throws -> A) -> Swift.Result<A, Swift.Error>", 1)
+			}
+			// Swift.ExpressibleByExtendedGraphemeClusterLiteral.init: missing
+			// same-type constraint + bare label-as-type "unicodeScalarLiteral".
+			if hostPath == "ExpressibleByExtendedGraphemeClusterLiteral" &&
+				strings.HasSuffix(wrap.Text, ".ExpressibleByExtendedGraphemeClusterLiteral.init(unicodeScalarLiteral: unicodeScalarLiteral) -> A") {
+				wrap.Text = strings.Replace(wrap.Text,
+					".ExpressibleByExtendedGraphemeClusterLiteral.init(unicodeScalarLiteral: unicodeScalarLiteral) -> A",
+					".ExpressibleByExtendedGraphemeClusterLiteral< where A.ExtendedGraphemeClusterLiteralType == A.UnicodeScalarLiteralType>.init(unicodeScalarLiteral: A.ExtendedGraphemeClusterLiteralType) -> A", 1)
+			}
 			return wrap, true, nil
 		}
 		if throwsInit {
