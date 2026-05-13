@@ -267,11 +267,12 @@ Caveman: fire-internal terse OK; commits/code/comments normal.
 ## Lessons / wins (≤800 chars, merge-before-append, drop oldest at cap)
 
 <!-- newest on top -->
-- XI: same multi-char R<kind><subj> fix as XH applied to tryFunctionEntity R-handler. +1 prod. Mostly redundant with XH because passing-via-this-path syms already parse. Lesson: when a fix unlocks a big bucket, scan for OTHER call sites of the same handler/pattern in the same file — they often have the same bug but smaller blast radius.
-- XH: tryInitDeinitEntity R-handler took only single-char R<subj>. For `Rb z` (where A: AnyObject), 'b' wrongly read as subj. Added multi-char Rb/Rs/Rj/Rm/Rp/Rt/Rl/Ri peek. +33 prod.
-- XG: tryTypeFirstExtensionEntity F-terminal didn't consume optional `K` throws marker. Added K-consume + " throws" rendering. +109 prod from 12-LOC. Pre-F entity attribute bytes (K/Y) gate entire entity acceptance.
-- XF: tryTypeFirstExtensionEntity result-slot `if y { void }` wrongly consumed `y` when `yp`/`yX<l>` followed. Defer to parseType. +4 prod. Oracle (ssh claude@kodo xcrun swift-demangle) wired up.
-- XE: tryInitDeinitEntity stdlib-shorthand host (S<letter>) missing nested-type chain. Added <n><name>V/C/O/P loop + gated 3-entry stdlib sub push on `!hasNested`. +57 prod.
+- XJ: tryTypeFirstExtensionEntity speculative y-as-label was too greedy: it consumed `y` (void-result marker) when the next type was followed by `_` (tuple separator) or `t` (tuple end), misclassifying first tuple-element as result. Added _ and t to notTypeEnd so spec backs off and lets the standard `y → void retNode` path fire. +4 prod (SIMD addProduct cluster).
+- XI: same multi-char R<kind><subj> fix as XH on tryFunctionEntity R-handler. +1 prod (mostly redundant with XH).
+- XH: tryInitDeinitEntity R-handler took only single-char R<subj>. For `Rb z`, 'b' wrongly read as subj. Multi-char Rb/Rs/Rj/Rm/Rp/Rt/Rl/Ri peek. +33 prod.
+- XG: tryTypeFirstExtensionEntity F-terminal didn't consume optional `K` throws. Added K-consume + " throws" rendering. +109 prod from 12-LOC.
+- XF: tryTypeFirstExtensionEntity result-slot `if y { void }` wrongly consumed `y` for `yp`/`yX<l>`. Defer to parseType. +4 prod. Oracle (ssh claude@kodo xcrun swift-demangle) wired up.
+- XE: tryInitDeinitEntity stdlib-shorthand host missing nested-type chain. +57 prod.
 
 ## Lessons / traps (≤500 chars, merge-before-append, drop oldest at cap)
 
