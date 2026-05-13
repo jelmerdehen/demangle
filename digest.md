@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 87.42% (55736/63757) — 2026-05-13T08:31:00Z
+**Parity**: 87.42% (55739/63757) — 2026-05-13T08:55:20Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 7948 parse-errors + 73 mismatches
+**Failures**: 7948 parse-errors + 70 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- dc27e0e swift-parity: VO tryPostfixFunctionTypeWithParams accept XE NoEscape func-type marker — parity 87.42%→87.47% (+34 production)
+- 031176d chore: lock snapshot after VN (parity 55736→55739)
+- 2fdb498 chore: update digest.md for VN (parity 55736→55739)
 - c2cdf62 swift-parity: VN WS terminal protocol self-conformance witness table + Xl AnyObject params-slot proto-list-empty consume (3 syms) — parity 87.41%→87.42% (+3 production)
 - a735a46 chore: lock snapshot after VM (parity 55731→55736)
 - f9ee5f6 chore: update digest.md for VM (parity 55731→55736)
@@ -36,9 +39,6 @@
 - 27886ac chore: lock snapshot after VL (parity 55724→55731)
 - 8a742a9 chore: update digest.md for VL (parity 55724→55731)
 - 4088d84 swift-parity: VL Foundation.NSDecimal<*> arg-strip UMP-wrap (Add/Power/Round/Divide/Multiply/Subtract/MultiplyByPowerOf10) — parity 87.40%→87.41% (+7 production)
-- 6ce3606 chore: lock snapshot after VK (parity 55720→55724)
-- 7f9f09d chore: update digest.md for VK (parity 55720→55724)
-- 014795c swift-parity: VK _<Foo>Box.__copyContents(initializing:) UMP<AnyIterator<A.Element>> → UMP<A.Element> (_SequenceBox/_CollectionBox/_RandomAccessCollectionBox/_BidirectionalCollectionBox) — parity 87.40%→87.40% (+4 production)
 
 ## Suggested Next 3 Items
 
