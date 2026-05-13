@@ -11424,6 +11424,14 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 				text = strings.Replace(text, ".CodableConfiguration.init",
 					".CodableConfiguration< where B: Foundation.AttributeScope>.init", 1)
 			}
+			// Foundation._BridgedStoredNSError.init: labels lost (`_:` and
+			// `userInfo:`). Apple emits them; restore.
+			if hostName == "_BridgedStoredNSError" &&
+				strings.Contains(text, "._BridgedStoredNSError.init(A.Code, [Swift.String : Any])") {
+				text = strings.Replace(text,
+					"._BridgedStoredNSError.init(A.Code, [Swift.String : Any])",
+					"._BridgedStoredNSError.init(_: A.Code, userInfo: [Swift.String : Any])", 1)
+			}
 			wrap := common.NewNode(common.KindTypeMangling)
 			wrap.Text = text
 			rawPrefix := fmt.Sprintf("%d%s%d%s%c%sE", len(modName), modName, len(hostName), hostName, hostKind, constraintBytes)
