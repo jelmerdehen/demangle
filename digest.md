@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 87.16% (55569/63757) — 2026-05-13T01:03:50Z
+**Parity**: 87.16% (55571/63757) — 2026-05-13T01:12:44Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 7948 parse-errors + 240 mismatches
+**Failures**: 7948 parse-errors + 238 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,16 +29,16 @@
 
 ## Last 10 Commits
 
+- 2891005 swift-parity: UE tryStdlibExtensionAllocator fall back to extractConstraintSigFullOpts (handles Rp/RP) — parity 87.17%→87.17% (+1 production)
+- 9f3099c swift-parity: UD tryInitDeinitEntity verbose init emit-extSig (Swift-on-Swift extension init) — parity 87.16%→87.17% (+1 production)
+- 92a004f chore: lock snapshot after UC (parity 55567→55569)
+- b83bb74 chore: update digest.md for UC (parity 55567→55569)
 - b298b1f swift-parity: UC extractConstraintSig dep-member-conformance with back-ref subject (s<N><proto>A<L>_<N><assoc>S<L>RPz) — parity 87.15%→87.16% (+2 production)
 - 46cf6c8 chore: lock snapshot after UB (parity 55564→55567)
 - c82cc07 chore: update digest.md for UB (parity 55564→55567)
 - a6eb397 swift-parity: UB extractConstraintSig stdlib-protocol-qualified self-same-type (<N><Ident>S<L>QzRsz) — parity 87.14%→87.15% (+3 production)
 - 7bc38f8 chore: lock snapshot after UA (parity 55559→55564)
 - abbbd21 chore: update digest.md for UA (parity 55559→55564)
-- 14279ae swift-parity: UA tryGlobalAssocConformanceDescriptor multi-segment chains (host.assoc.middle.assoc...) — parity 87.14%→87.14% (full count at fire end)
-- ff9a551 chore: lock snapshot after TY..TZ (parity 55520→55559)
-- b343e7e chore: update digest.md for TY..TZ (parity 55520→55559)
-- dc234a2 swift-parity: TZ Tn host-qualifier rule: Foundation/Swift (non-concurrency) qualified, others unqualified — parity 87.08%→87.08% (full count at fire end)
 
 ## Suggested Next 3 Items
 
