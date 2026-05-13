@@ -8159,8 +8159,20 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 	// StringInterpolation methods (appendLiteral / appendInterpolation) conform
 	// to the StringInterpolationProtocol contract which mandates void return —
 	// the heuristic mis-classifies them as fluent.
+	// Mutating value-type methods conventionally use 'form*' prefix or
+	// arithmetic verbs (add/subtract/multiply/divide). These return void at
+	// the Swift level even when the ABI uses sret. The fluent-builder
+	// heuristic must not fire for them.
+	isMutatingMethodName := func(name string) bool {
+		switch name {
+		case "add", "subtract", "multiply", "divide":
+			return true
+		}
+		return strings.HasPrefix(name, "form")
+	}
 	if modName == "Foundation" && extHostMod != "" && retNode == nil && len(paramTypes) > 0 &&
-		!strings.HasSuffix(hostPath, ".StringInterpolation") {
+		!strings.HasSuffix(hostPath, ".StringInterpolation") &&
+		!isMutatingMethodName(declName) {
 		hasInoutParam := false
 		hasUMPParam := false
 		for _, pt := range paramTypes {
