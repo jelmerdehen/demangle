@@ -171,6 +171,7 @@ Caveman: fire-internal terse OK; commits/code/comments normal.
 ## Lessons / wins (≤800 chars, merge-before-append, drop oldest at cap)
 
 <!-- newest on top -->
+- 2026-05-13 VO: tryPostfixFunctionTypeWithParams missed `XE` (NoEscape) func-type marker — only accepted `c`. Extending to also accept XE unlocked closure-arg-in-tuple emit (Filter/SequenceAllSatisfy/ContainsWhere + 31 more). +34 prod.
 - 2026-05-13 VN: `Xl` = ProtocolListWithAnyObject — pops preceding empty-proto-list `y` from stack. At function-entity params-slot, consume `y` for `yXl` pattern before parseType, else mis-parses `yXlc` as function-type. WS terminal = "protocol self-conformance witness table for". +3 prod.
 - 2026-05-13 VM: NSFileHandle.ConnectionAcceptedMessage Result<> restore-1st-arg substitution (5 sym across init/getter/setter/modify/property descriptor). +5 prod.
 - 2026-05-13 VL: Foundation.NSDecimal<*> args strip extra UMP-wrap (SP<Sp<NSDecimal>> → SP<NSDecimal>). +7 prod across NSDecimalAdd/Power/Round/Divide/Multiply/Subtract/MultiplyByPowerOf10.
