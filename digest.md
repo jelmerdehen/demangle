@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 87.30% (55660/63757) — 2026-05-13T02:30:58Z
+**Parity**: 87.30% (55661/63757) — 2026-05-13T02:34:43Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 7948 parse-errors + 149 mismatches
+**Failures**: 7948 parse-errors + 148 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- 8b8abc9 swift-parity: UU tryInitDeinitEntity per-arg bare→retType normalization (_ContiguousArrayBuffer.init et al.) — parity 87.30%→87.30% (+1 production, +1 roundtrip)
+- 5360c0b chore: lock snapshot after UT (parity 55655→55660)
+- 4bd9366 chore: update digest.md for UT (parity 55655→55660)
 - 176df93 swift-parity: UT tryInitDeinitEntity binary-init arg[1] = arg[0] when args[1] bare base of args[0]'s bound-generic (SIMD splitter inits) — parity 87.30%→87.30% (+5 production)
 - 15e7340 chore: lock snapshot after US (parity 55647→55655)
 - b01a291 chore: update digest.md for US (parity 55647→55655)
@@ -36,9 +39,6 @@
 - 774ac0c chore: lock snapshot after UR (parity 55644→55647)
 - 42a26fe chore: update digest.md for UR (parity 55644→55647)
 - 4e24856 swift-parity: UR Collection.formIndex(_:offsetBy:limitedBy:) clone arg[0] sans inout to arg[2] — parity 87.28%→87.28% (+3 production)
-- 7bd2103 chore: lock snapshot after UQ (parity 55639→55644)
-- 3c6621c chore: update digest.md for UQ (parity 55639→55644)
-- dba1429 swift-parity: UQ Collection.index(_:offsetBy:limitedBy:) strip outer Optional from args[0]/args[2] — parity 87.27%→87.28% (+5 production)
 
 ## Suggested Next 3 Items
 
