@@ -5473,6 +5473,52 @@ func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 				sbFull.WriteByte('>')
 			}
 		}
+		// Self-init bound-generic normalization: when paramsType prints as a
+		// bare nominal whose head matches the bound-generic in retType,
+		// override to retType (Apple model: Self-from-Self inits like
+		// UnsafeMutablePointer.init(Sp<A>) -> Sp<A>).
+		if paramsType != nil && retType != nil {
+			retBg := boundGenericHeadName(retType)
+			// Strip outer Optional `?` for the head-name compare so Sg-wrapped
+			// retType (e.g. Sp<A>?) still matches a bare Sp param.
+			retBgInner := ""
+			if retBg == "Optional" || retBg == "" {
+				if common.NodeKind(retType.Kind) == common.KindType && len(retType.Children) > 0 {
+					inner := retType.Children[0]
+					if common.NodeKind(inner.Kind) == common.KindBoundGenericEnum &&
+						len(inner.Children) > 1 {
+						tl := inner.Children[1]
+						if len(tl.Children) > 0 {
+							retBgInner = boundGenericHeadName(tl.Children[0])
+						}
+					}
+				}
+			}
+			normalize := func(node *demangle.Node) *demangle.Node {
+				// A bare Module (KindModule) as a param is always wrong for
+				// Self-init shapes: override to retType.
+				if common.NodeKind(node.Kind) == common.KindModule {
+					return retType
+				}
+				bare := bareNominalName(node)
+				if bare == "" {
+					return nil
+				}
+				if bare == retBg || (retBgInner != "" && bare == retBgInner) {
+					return retType
+				}
+				return nil
+			}
+			if common.NodeKind(paramsType.Kind) != common.KindTypeList {
+				if rep := normalize(paramsType); rep != nil {
+					paramsType = rep
+				}
+			} else if len(paramsType.Children) == 1 {
+				if rep := normalize(paramsType.Children[0]); rep != nil {
+					paramsType.Children[0] = rep
+				}
+			}
+		}
 		sbFull.WriteByte('(')
 		if paramsType != nil && common.NodeKind(paramsType.Kind) != common.KindEmptyList {
 			sbFull.WriteString(funcEntityFullParams(paramsType, opts))
