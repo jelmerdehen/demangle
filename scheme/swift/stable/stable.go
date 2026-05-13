@@ -11416,6 +11416,14 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 					"Swift.Result<Foundation.POSIXError>",
 					"Swift.Result<__C.NSFileHandle, Foundation.POSIXError>")
 			}
+			// Foundation.CodableConfiguration.init(wrappedValue:from:): missing
+			// `< where B: Foundation.AttributeScope>` constraint on host (the
+			// R_-marked second-generic-param constraint). Insert before .init.
+			if hostName == "CodableConfiguration" &&
+				strings.Contains(text, ".CodableConfiguration.init(wrappedValue:") {
+				text = strings.Replace(text, ".CodableConfiguration.init",
+					".CodableConfiguration< where B: Foundation.AttributeScope>.init", 1)
+			}
 			wrap := common.NewNode(common.KindTypeMangling)
 			wrap.Text = text
 			rawPrefix := fmt.Sprintf("%d%s%d%s%c%sE", len(modName), modName, len(hostName), hostName, hostKind, constraintBytes)
