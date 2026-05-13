@@ -8259,6 +8259,33 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 			retNode = selfT
 		}
 	}
+	// Collection.formIndex(_:offsetBy:limitedBy:) → arg[2] equals arg[0] type
+	// sans inout. The back-ref under-resolves to the return Bool / offsetBy
+	// Int; Apple's model has arg[2] = Index.
+	if declName == "formIndex" && len(paramTypes) == 3 && len(labels) >= 3 &&
+		(labels[0] == "" || labels[0] == "_") && labels[1] == "offsetBy" && labels[2] == "limitedBy" &&
+		paramTypes[0] != nil && paramTypes[0].Attrs != nil &&
+		paramTypes[0].Attrs["swift.inout"] == "true" {
+		clone2 := *paramTypes[0]
+		clone2.Attrs = map[string]string{}
+		for k, v := range paramTypes[0].Attrs {
+			clone2.Attrs[k] = v
+		}
+		delete(clone2.Attrs, "swift.inout")
+		paramTypes[2] = &clone2
+	}
+	// Collection.distance(from:to:) → arg[1] equals arg[0]. Back-ref
+	// under-resolves to ret Int; Apple's model has arg[1] = Index.
+	if (declName == "distance" || declName == "_distance") &&
+		len(paramTypes) == 2 && len(labels) >= 2 &&
+		labels[0] == "from" && labels[1] == "to" &&
+		paramTypes[0] != nil && paramTypes[1] != nil && retNode != nil {
+		a1Str := common.Print(paramTypes[1], common.DefaultPrintOptions())
+		retStr := common.Print(retNode, common.DefaultPrintOptions())
+		if a1Str == retStr {
+			paramTypes[1] = paramTypes[0]
+		}
+	}
 	wrap := common.NewNode(common.KindTypeMangling)
 	genericPart := ""
 	genericPartFoundation := ""
