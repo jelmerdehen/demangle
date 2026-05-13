@@ -8095,6 +8095,14 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 			// Opaque/unknown type — omit rather than emit wrong text.
 			return ""
 		}
+		// NSFileHandle.ConnectionAcceptedMessage.fileHandleItem.* — Result<>
+		// drops the first generic arg via wrong AbC parse; Apple's model has
+		// 2 args (NSFileHandle, POSIXError).
+		if extHostMod == "__C" &&
+			strings.HasPrefix(hostPath, "NSFileHandle") &&
+			s == "Swift.Result<Foundation.POSIXError>" {
+			s = "Swift.Result<__C.NSFileHandle, Foundation.POSIXError>"
+		}
 		// Bare assoc-type name (no dot, no angle bracket) matched against
 		// a same-type constraint in extSig: substitute with the concrete
 		// type. Pattern: extSig contains "A.<s> == <RHS>" — replace s with
@@ -8354,6 +8362,12 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 				wrap.Text = "(extension in Swift):Swift." + baseHostPath + extSig + nestedSuffix + ".init" + verboseParamStr(labels) + retStr
 			} else if modName == "Foundation" && extHostMod != "" {
 				wrap.Text = "(extension in Foundation):" + extHostMod + "." + hostPath + ".init" + verboseParamStr(labels) + verboseRetStr(true)
+				if extHostMod == "__C" && strings.HasPrefix(hostPath, "NSFileHandle") &&
+					strings.Contains(wrap.Text, "Swift.Result<Foundation.POSIXError>") {
+					wrap.Text = strings.ReplaceAll(wrap.Text,
+						"Swift.Result<Foundation.POSIXError>",
+						"Swift.Result<__C.NSFileHandle, Foundation.POSIXError>")
+				}
 			} else {
 				wrap.Text = hostPath + ".init" + makeLabelStr(paramCount)
 			}
@@ -11186,6 +11200,15 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 					text = "(extension in " + extInModInit + "):" + hostQualified + sig +
 						".init" + localSig + initParamsStr + retStr
 				}
+			}
+			// NSFileHandle.ConnectionAcceptedMessage.init: Swift.Result<>
+			// drops first generic arg via wrong AbC parse; restore the
+			// 2-arg form Apple emits.
+			if hostName == "NSFileHandle" &&
+				strings.Contains(text, "Swift.Result<Foundation.POSIXError>") {
+				text = strings.ReplaceAll(text,
+					"Swift.Result<Foundation.POSIXError>",
+					"Swift.Result<__C.NSFileHandle, Foundation.POSIXError>")
 			}
 			wrap := common.NewNode(common.KindTypeMangling)
 			wrap.Text = text
