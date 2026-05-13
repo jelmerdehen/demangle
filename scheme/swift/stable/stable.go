@@ -4868,7 +4868,8 @@ func (p *parser) tryCompactStdlibInitEntity() (*demangle.Node, bool, error) {
 func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 	save := p.i
 	saveSubs := p.subs
-	restore := func() { p.i = save; p.subs = saveSubs }
+	saveWords := p.words
+	restore := func() { p.i = save; p.subs = saveSubs; p.words = saveWords }
 	// Accept 's' (Swift module shorthand), 'So'/'SC' (Obj-C importer),
 	// 'S<letter>' (stdlib known-type abbreviation), or digit-led module.
 	var mod string
@@ -13734,9 +13735,11 @@ func funcEntityLabels(args *demangle.Node) string {
 func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 	save := p.i
 	saveSubs := p.subs
+	saveWords := p.words
 	restore := func() {
 		p.i = save
 		p.subs = saveSubs
+		p.words = saveWords
 	}
 
 	if p.eof() {
@@ -14017,9 +14020,11 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 	tryPath := func(assumeLabelList bool) bool {
 		savePath := p.i
 		saveSubsLocal := p.subs
+		saveWordsLocal := p.words
 		revert := func() {
 			p.i = savePath
 			p.subs = saveSubsLocal
+			p.words = saveWordsLocal
 		}
 		var localThrowsType string
 		var localThrowsFromTyped bool
@@ -19623,7 +19628,17 @@ func (p *parser) captureWords(s string) {
 			}
 			if atEnd {
 				if i-wordStart >= 2 && len(p.words) < 26 {
-					p.words = append(p.words, s[wordStart:i])
+					w := s[wordStart:i]
+					dup := false
+					for _, ex := range p.words {
+						if ex == w {
+							dup = true
+							break
+						}
+					}
+					if !dup {
+						p.words = append(p.words, w)
+					}
 				}
 				wordStart = -1
 			}
