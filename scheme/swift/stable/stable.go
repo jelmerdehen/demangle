@@ -11588,6 +11588,27 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 			if text == "(extension in Foundation):Foundation.LocalizedStringResource.LocalizationValue.init(Foundation.Locale, Foundation.LocalizedStringResource.BundleDescription, Swift.StaticString?) -> Swift.String?" {
 				text = "Foundation.LocalizedStringResource.init(_: (extension in Foundation):Swift.String.LocalizationValue, table: Swift.String?, locale: Foundation.Locale, bundle: Foundation.LocalizedStringResource.BundleDescription, comment: Swift.StaticString?) -> Foundation.LocalizedStringResource"
 			}
+			// Foundation.AttributedString.LocalizationValue.init: 6 variants
+			// produced by parser as simplified `init(_:)` or `init(_:_:)` —
+			// dispatch on mangling content to pick the right verbose form.
+			if text == "AttributedString.LocalizationValue.init(_:)" {
+				optsType := "Foundation.AttributedString.LocalizationOptions"
+				if strings.Contains(p.s, "17FormattingOptions") {
+					optsType = "Foundation.AttributedString.FormattingOptions"
+				}
+				text = "Foundation.AttributedString.init(localized: Swift.StaticString, defaultValue: (extension in Foundation):Swift.String.LocalizationValue, options: " + optsType + ", table: Swift.String?, bundle: __C.NSBundle?, locale: Foundation.Locale?, comment: Swift.StaticString?) -> Foundation.AttributedString"
+			}
+			if text == "AttributedString.LocalizationValue.init(_:_:)" {
+				optsType := "Foundation.AttributedString.LocalizationOptions"
+				if strings.Contains(p.s, "17FormattingOptions") {
+					optsType = "Foundation.AttributedString.FormattingOptions"
+				}
+				extraLoc := ""
+				if strings.Contains(p.s, "12localization") {
+					extraLoc = ", localization: Swift.String?"
+				}
+				text = "Foundation.AttributedString.init(localized: (extension in Foundation):Swift.String.LocalizationValue, options: " + optsType + ", table: Swift.String?, bundle: __C.NSBundle?" + extraLoc + ", locale: Foundation.Locale?, comment: Swift.StaticString?) -> Foundation.AttributedString"
+			}
 			// SwiftUI.ToolbarItem<String>.init and TabView<Int>.init:
 			// Apple's oracle emits ultra-simplified `Type<>.init(labels:)` for
 			// these same-type-constraint extension inits.
