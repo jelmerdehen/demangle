@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 87.35% (55693/63757) — 2026-05-13T03:19:55Z
+**Parity**: 87.37% (55706/63757) — 2026-05-13T03:46:06Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 7948 parse-errors + 116 mismatches
+**Failures**: 7948 parse-errors + 103 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- c1954c4 swift-parity: VC A-compact nested-postfix loop multi-level nests (Date.FormatStyle.<symbol>.Symbol.<Foo> builder methods) — parity 87.36%→87.38% (+13 production)
+- 64c27c4 chore: lock snapshot after VB (parity 55681→55693)
+- f2ae2fd chore: update digest.md for VB (parity 55681→55693)
 - 5c082bc swift-parity: VB captureWords dedup + restore p.words on try* function reverts (DropWhileSequence, Mirror, etc. word-sub decode) — parity 87.34%→87.36% (+12 production)
 - 41d8b63 chore: lock snapshot after VA (parity 55679→55681)
 - 1e7e132 chore: update digest.md for VA (parity 55679→55681)
@@ -36,9 +39,6 @@
 - f755b98 chore: lock snapshot after UZ (parity 55678→55679)
 - 27221b1 chore: update digest.md for UZ (parity 55678→55679)
 - 2831d55 swift-parity: UZ compact-N S<2><letter> direct-terminator (S2SF for appendingPathComponent) — parity 87.33%→87.33% (+1 production)
-- dd674f1 chore: lock snapshot after UY (parity 55676→55678)
-- 3b526dd chore: update digest.md for UY (parity 55676→55678)
-- 5dcfe23 swift-parity: UY tryInitDeinitEntity ufC localSig detect gen-param refs in BuiltinTypeName text (String/Substring.init<A>) — parity 87.32%→87.33% (+2 production)
 
 ## Suggested Next 3 Items
 
