@@ -1,4 +1,4 @@
-# snapshot-pass-set update 2026-05-13T02:11:42Z — union with previous (high-water)
+# snapshot-pass-set update 2026-05-13T02:18:22Z — union with previous (high-water)
 _$s10Foreground7SwiftUI18LabelGroupStyle_v0PTl
 _$s10Foundation10CocoaErrorV010formattingC0AC4CodeVvgZ
 _$s10Foundation10CocoaErrorV010formattingC0AC4CodeVvpZMV
@@ -45025,7 +45025,9 @@ _$sSp9hashValueSivg
 _$sSp9hashValueSivpMV
 _$sSpMa
 _$sSpMn
+_$sSpySpyxGAAcfC
 _$sSpySpyxGBpcfC
+_$sSpySpyxGSgABcfC
 _$sSpyxGSHsMc
 _$sSpyxGSHsWP
 _$sSpyxGSLsMc
@@ -47165,6 +47167,7 @@ _$ss13AnyCollectionV9formIndex5afterys0aD0Vz_tF
 _$ss13AnyCollectionV9formIndex_8offsetByys0aD0Vz_SitF
 _$ss13AnyCollectionVMa
 _$ss13AnyCollectionVMn
+_$ss13AnyCollectionVyAByxGACcfC
 _$ss13AnyCollectionVyAByxGSnys0A5IndexVGcig
 _$ss13AnyCollectionVyAByxGSnys0A5IndexVGcipMV
 _$ss13AnyCollectionVyAByxGs0a12RandomAccessB0VyxGcfC
@@ -50285,6 +50288,7 @@ _$ss25AnyRandomAccessCollectionV9formIndex6beforeys0aF0Vz_tF
 _$ss25AnyRandomAccessCollectionV9formIndex_8offsetByys0aF0Vz_SitF
 _$ss25AnyRandomAccessCollectionVMa
 _$ss25AnyRandomAccessCollectionVMn
+_$ss25AnyRandomAccessCollectionVyAByxGACcfC
 _$ss25AnyRandomAccessCollectionVyAByxGSgs0a13BidirectionalD0VyxGcfC
 _$ss25AnyRandomAccessCollectionVyAByxGSgs0aD0VyxGcfC
 _$ss25AnyRandomAccessCollectionVyAByxGSnys0A5IndexVGcig
@@ -50408,6 +50412,7 @@ _$ss26AnyBidirectionalCollectionV9formIndex6beforeys0aE0Vz_tF
 _$ss26AnyBidirectionalCollectionV9formIndex_8offsetByys0aE0Vz_SitF
 _$ss26AnyBidirectionalCollectionVMa
 _$ss26AnyBidirectionalCollectionVMn
+_$ss26AnyBidirectionalCollectionVyAByxGACcfC
 _$ss26AnyBidirectionalCollectionVyAByxGSgs0aC0VyxGcfC
 _$ss26AnyBidirectionalCollectionVyAByxGSnys0A5IndexVGcig
 _$ss26AnyBidirectionalCollectionVyAByxGSnys0A5IndexVGcipMV
