@@ -5663,6 +5663,43 @@ func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 				}
 			}
 		}
+		// Foundation.URL.init(template:variables:): variables dict K/V host
+		// wrongly resolves to Foundation.URL? via back-ref instead of
+		// Foundation.URL.Template (matches template arg type). Substitute
+		// Foundation.URL?. → Foundation.URL.Template. in the printed dict.
+		if mod == "Foundation" && paramsType != nil &&
+			common.NodeKind(paramsType.Kind) == common.KindTypeList &&
+			len(paramsType.Children) == 2 && len(pathSteps) >= 2 {
+			hostStep := pathSteps[len(pathSteps)-1]
+			if hostStep != nil && hostStep.Text == "URL" {
+				labels2 := make([]string, 2)
+				for i := 0; i < 2; i++ {
+					if paramsType.Children[i].Attrs != nil {
+						labels2[i] = paramsType.Children[i].Attrs["swift.label"]
+					}
+				}
+				if labels2[0] == "template" && labels2[1] == "variables" {
+					p0Str := common.Print(paramsType.Children[0], opts)
+					p1Str := common.Print(paramsType.Children[1], opts)
+					if p0Str == "Foundation.URL.Template" &&
+						strings.Contains(p1Str, "Foundation.URL?.") {
+						replaced := strings.ReplaceAll(p1Str, "Foundation.URL?.", "Foundation.URL.Template.")
+						tn := common.NewNode(common.KindBuiltinTypeName)
+						tn.Text = replaced
+						w := common.NewNode(common.KindType)
+						common.AddChildren(w, tn)
+						w.Attrs = map[string]string{}
+						if paramsType.Children[1].Attrs != nil {
+							for k, v := range paramsType.Children[1].Attrs {
+								w.Attrs[k] = v
+							}
+						}
+						w.Attrs["swift.label"] = labels2[1]
+						paramsType.Children[1] = w
+					}
+				}
+			}
+		}
 		sbFull.WriteByte('(')
 		if paramsType != nil && common.NodeKind(paramsType.Kind) != common.KindEmptyList {
 			sbFull.WriteString(funcEntityFullParams(paramsType, opts))
