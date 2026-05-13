@@ -15870,6 +15870,33 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 			}
 		}
 	}
+	// Swift._<Foo>Box.__copyContents(initializing:): args[0] wrongly wrapped as
+	// UnsafeMutableBufferPointer<AnyIterator<A.Element>>; Apple's model has it
+	// as UnsafeMutableBufferPointer<A.Element> (the AnyIterator layer is the
+	// iterator-producing inner type from ret, not the pointed element).
+	if mod == "Swift" && args != nil && ret != nil &&
+		common.NodeKind(args.Kind) == common.KindTypeList && len(args.Children) == 1 &&
+		len(pathSteps) >= 3 {
+		hostStep := pathSteps[len(pathSteps)-2]
+		last := pathSteps[len(pathSteps)-1]
+		if last != nil && last.Text == "__copyContents" &&
+			hostStep != nil && strings.HasSuffix(hostStep.Text, "Box") {
+			got0 := common.Print(args.Children[0], common.DefaultPrintOptions())
+			if got0 == "Swift.UnsafeMutableBufferPointer<Swift.AnyIterator<A.Element>>" {
+				tn := common.NewNode(common.KindBuiltinTypeName)
+				tn.Text = "Swift.UnsafeMutableBufferPointer<A.Element>"
+				wrap0 := common.NewNode(common.KindType)
+				common.AddChildren(wrap0, tn)
+				if args.Children[0].Attrs != nil {
+					wrap0.Attrs = map[string]string{}
+					for k, v := range args.Children[0].Attrs {
+						wrap0.Attrs[k] = v
+					}
+				}
+				args.Children[0] = wrap0
+			}
+		}
+	}
 	// Foundation.parseError(_:exampleFormattedString:extendedDescription:): 3rd
 	// labeled arg "extendedDescription" wrongly resolves to bare String via AG;
 	// Apple's model has it = Swift.String? (matching exampleFormattedString).
