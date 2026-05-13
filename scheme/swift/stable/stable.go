@@ -8697,6 +8697,26 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 			".Collection.makeIterator() -> makeIterator",
 			".Collection< where A.Iterator == Swift.IndexingIterator<A>>.makeIterator() -> Swift.IndexingIterator<A>", 1)
 	}
+	// Swift._SwiftNewtypeWrapper bridge fns: spurious `_ObjectiveCBridgeable`
+	// leading arg and `A._ObjectiveCType` should be `A.RawValue._ObjectiveCType`.
+	// The 2-arg force/conditionally variants additionally lose the `inout` label
+	// from arg[2].
+	if hostPath == "_SwiftNewtypeWrapper" {
+		switch declName {
+		case "_forceBridgeFromObjectiveC":
+			wrap.Text = strings.ReplaceAll(wrap.Text,
+				"(_: _ObjectiveCBridgeable, result: A._ObjectiveCType, inout A?) -> ()",
+				"(_: A.RawValue._ObjectiveCType, result: inout A?) -> ()")
+		case "_conditionallyBridgeFromObjectiveC":
+			wrap.Text = strings.ReplaceAll(wrap.Text,
+				"(_: _ObjectiveCBridgeable, result: A._ObjectiveCType, inout A?) -> Swift.Bool",
+				"(_: A.RawValue._ObjectiveCType, result: inout A?) -> Swift.Bool")
+		case "_unconditionallyBridgeFromObjectiveC":
+			wrap.Text = strings.ReplaceAll(wrap.Text,
+				"(_ObjectiveCBridgeable, A._ObjectiveCType?) -> A",
+				"(A.RawValue._ObjectiveCType?) -> A")
+		}
+	}
 	// __C.NSCoder.decodeObjectOfClasses(_:forKey:): Xl in params-slot consumes
 	// `y` ret-type marker (VN pattern) — Apple ret = AnyObject?, args = (NSSet?,
 	// String). Got incorrectly shifts: ret=NSCoder host, args=(AnyObject?, NSSet?, String).
