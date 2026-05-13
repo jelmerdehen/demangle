@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 87.39% (55720/63757) — 2026-05-13T05:28:31Z
+**Parity**: 87.40% (55724/63757) — 2026-05-13T05:33:02Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 7948 parse-errors + 89 mismatches
+**Failures**: 7948 parse-errors + 85 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- 014795c swift-parity: VK _<Foo>Box.__copyContents(initializing:) UMP<AnyIterator<A.Element>> → UMP<A.Element> (_SequenceBox/_CollectionBox/_RandomAccessCollectionBox/_BidirectionalCollectionBox) — parity 87.40%→87.40% (+4 production)
+- cc435e6 chore: lock snapshot after VJ (parity 55718→55720)
+- a7659ec chore: update digest.md for VJ (parity 55718→55720)
 - e3a29ef swift-parity: VJ parseError/OptionalComparator.compare arg-override (Sg-wrap missing on Aletter back-ref) — parity 87.39%→87.40% (+2 production)
 - 2cc22cb chore: lock snapshot after VI (parity 55716→55718)
 - 3334625 chore: update digest.md for VI (parity 55716→55718)
@@ -36,9 +39,6 @@
 - 2c1215c chore: lock snapshot after VH (parity 55714→55716)
 - ce50ea6 chore: update digest.md for VH (parity 55714→55716)
 - 9097872 swift-parity: VH _CalendarProtocol.copy 4th arg override (changingMinimumDaysInFirstWeek = changingFirstWeekday's Int?) — parity 87.39%→87.39% (+2 production)
-- 731492b chore: lock snapshot after VG (parity 55711→55714)
-- 97c5c46 chore: update digest.md for VG (parity 55711→55714)
-- 42fc88f swift-parity: VG Calendar.date(byAdding:value:to:.../bySettingUnit:value:of:...) — 3rd labeled param (to/of) override to Date stripped from Sg-Optional ret — parity 87.39%→87.39% (+3 production)
 
 ## Suggested Next 3 Items
 
