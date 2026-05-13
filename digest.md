@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 87.27% (55639/63757) — 2026-05-13T02:18:20Z
+**Parity**: 87.28% (55644/63757) — 2026-05-13T02:22:40Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 7948 parse-errors + 170 mismatches
+**Failures**: 7948 parse-errors + 165 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- dba1429 swift-parity: UQ Collection.index(_:offsetBy:limitedBy:) strip outer Optional from args[0]/args[2] — parity 87.27%→87.28% (+5 production)
+- d9da284 chore: lock snapshot after UP (parity 55634→55639)
+- 759bf38 chore: update digest.md for UP (parity 55634→55639)
 - 37588a6 swift-parity: UP tryInitDeinitEntity self-init bound-generic normalize param (bare base/Module → retType) — parity 87.27%→87.27% (+5 production)
 - 42d9c1d chore: lock snapshot after UO (parity 55632→55634)
 - 811af14 chore: update digest.md for UO (parity 55632→55634)
@@ -36,9 +39,6 @@
 - 7b250a6 chore: lock snapshot after UN (parity 55630→55632)
 - 5e5fb42 chore: update digest.md for UN (parity 55630→55632)
 - be0ea5a swift-parity: UN identity-operator (===/!== infix) force args[1] = args[0] — parity 87.26%→87.27% (+2 production)
-- d06d85b chore: lock snapshot after UM (parity 55622→55630)
-- 89b5822 chore: update digest.md for UM (parity 55622→55630)
-- c5e7a88 swift-parity: UM extend operator-binary symmetry — args[1] == ret triggers args[1] = args[0] (Dictionary/Set/Range comparators) — parity 87.25%→87.26% (+8 production)
 
 ## Suggested Next 3 Items
 
