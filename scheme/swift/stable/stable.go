@@ -5719,6 +5719,12 @@ func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 		}
 		initNode := common.NewNode(nodeKind)
 		initNode.Text = sbFull.String()
+		// Foundation.WeekendRange.init: compact-label `05ceaseE0` consumes
+		// trailing `end` label, collapsing 4 args to 3 and shifting ceaseTime
+		// to wrong type. Narrow text restore.
+		initNode.Text = strings.Replace(initNode.Text,
+			".WeekendRange.init(onsetTime: Swift.Double?, ceaseTime: Foundation.WeekendRange, start: Swift.Int) -> Foundation.WeekendRange",
+			".WeekendRange.init(onsetTime: Swift.Double?, ceaseTime: Swift.Double?, start: Swift.Int, end: Swift.Int) -> Foundation.WeekendRange", 1)
 		if asyncInit || throwsInit {
 			initNode.Attrs = map[string]string{}
 			if asyncInit {
