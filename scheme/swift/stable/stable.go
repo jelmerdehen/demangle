@@ -5524,13 +5524,43 @@ func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 				}
 				return nil
 			}
+			// Recursive normalize for nested bg-args (e.g. Slice<bare-X> when
+			// retType bg head matches X — Apple expects Slice<X<A>>).
+			var normalizeNested func(n *demangle.Node)
+			normalizeNested = func(n *demangle.Node) {
+				if n == nil {
+					return
+				}
+				switch common.NodeKind(n.Kind) {
+				case common.KindBoundGenericStructure, common.KindBoundGenericClass,
+					common.KindBoundGenericEnum, common.KindBoundGenericProtocol:
+					if len(n.Children) >= 2 {
+						tl := n.Children[1]
+						for i, c := range tl.Children {
+							if rep := normalize(c); rep != nil {
+								tl.Children[i] = rep
+							} else {
+								normalizeNested(c)
+							}
+						}
+					}
+					return
+				}
+				for _, c := range n.Children {
+					normalizeNested(c)
+				}
+			}
 			if common.NodeKind(paramsType.Kind) != common.KindTypeList {
 				if rep := normalize(paramsType); rep != nil {
 					paramsType = rep
+				} else {
+					normalizeNested(paramsType)
 				}
 			} else if len(paramsType.Children) == 1 {
 				if rep := normalize(paramsType.Children[0]); rep != nil {
 					paramsType.Children[0] = rep
+				} else {
+					normalizeNested(paramsType.Children[0])
 				}
 			} else if len(paramsType.Children) >= 2 {
 				// Binary inits like SIMD4.init(lowHalf: SIMD2<A>, highHalf: SIMD2):
