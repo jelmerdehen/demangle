@@ -15870,6 +15870,51 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 			}
 		}
 	}
+	// Foundation.parseError(_:exampleFormattedString:extendedDescription:): 3rd
+	// labeled arg "extendedDescription" wrongly resolves to bare String via AG;
+	// Apple's model has it = Swift.String? (matching exampleFormattedString).
+	if mod == "Foundation" && args != nil &&
+		common.NodeKind(args.Kind) == common.KindTypeList && len(args.Children) == 3 &&
+		len(pathSteps) == 2 {
+		last := pathSteps[len(pathSteps)-1]
+		if last != nil && last.Text == "parseError" {
+			labels3 := make([]string, 3)
+			for i := 0; i < 3; i++ {
+				if args.Children[i].Attrs != nil {
+					labels3[i] = args.Children[i].Attrs["swift.label"]
+				}
+			}
+			if labels3[1] == "exampleFormattedString" && labels3[2] == "extendedDescription" {
+				p1Str := common.Print(args.Children[1], common.DefaultPrintOptions())
+				p2Str := common.Print(args.Children[2], common.DefaultPrintOptions())
+				if p1Str == "Swift.String?" && p2Str == "Swift.String" {
+					clone2 := *args.Children[1]
+					clone2.Attrs = map[string]string{}
+					for k, v := range args.Children[1].Attrs {
+						clone2.Attrs[k] = v
+					}
+					clone2.Attrs["swift.label"] = labels3[2]
+					args.Children[2] = &clone2
+				}
+			}
+		}
+	}
+	// Foundation.OptionalComparator.compare(A.Compared?, A.Compared): 2nd arg
+	// wrongly resolves via AI to base A.Compared; Apple's model: both args same.
+	if mod == "Foundation" && args != nil &&
+		common.NodeKind(args.Kind) == common.KindTypeList && len(args.Children) == 2 &&
+		len(pathSteps) >= 3 {
+		hostStep := pathSteps[len(pathSteps)-2]
+		last := pathSteps[len(pathSteps)-1]
+		if hostStep != nil && hostStep.Text == "OptionalComparator" &&
+			last != nil && last.Text == "compare" {
+			p0Str := common.Print(args.Children[0], common.DefaultPrintOptions())
+			p1Str := common.Print(args.Children[1], common.DefaultPrintOptions())
+			if strings.HasSuffix(p0Str, "?") && p0Str == p1Str+"?" {
+				args.Children[1] = args.Children[0]
+			}
+		}
+	}
 	// Foundation._CalendarProtocol.copy(changingLocale:changingTimeZone:changingFirstWeekday:changingMinimumDaysInFirstWeek:):
 	// 4th param wrongly resolves to TimeZone? via back-ref; Apple's model has it
 	// equal to the 3rd param (Int?). Override.
