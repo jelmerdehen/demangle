@@ -11424,17 +11424,22 @@ func (p *parser) tryGlobalAssocConformanceDescriptor() (*demangle.Node, bool) {
 		}
 		return mod, name, isConcurrency
 	}
-	// hostQualified: when host is Foundation OR Swift-compact-stdlib (e.g.
-	// SB=BinaryFloatingPoint), Apple emits module-qualified names for all
-	// segments. Otherwise (user modules, concurrency, s<digit><name> path)
-	// all segments are unqualified.
+	// hostQualified: Apple's qualifier rule:
+	//   - Foundation host → all qualified.
+	//   - Swift compact-stdlib host (S<letter>) → all qualified.
+	//   - Swift host (s<digit><name>) → qualified UNLESS name is a
+	//     concurrency runtime type (e.g. GlobalActor).
+	//   - Sc<letter> concurrency host → all unqualified.
+	//   - Other user modules → all unqualified.
 	hMod, hName, hConcurrency := extractModName(hostInner)
 	hostQualified := false
 	if !hConcurrency {
 		if hMod == "Foundation" {
 			hostQualified = true
-		} else if hMod == "Swift" && isCompactStdlibName(hName) {
-			hostQualified = true
+		} else if hMod == "Swift" {
+			if isCompactStdlibName(hName) || !swiftConcurrencyRuntimeTypes[hName] {
+				hostQualified = true
+			}
 		}
 	}
 	qualifyProto := func(n *demangle.Node) string {
