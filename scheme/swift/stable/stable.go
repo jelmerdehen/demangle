@@ -7060,6 +7060,7 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 
 	var hostPath string
 	var extHostMod string // module of the extended type ("Swift", "__C", etc.)
+	var stdlibShortNode *demangle.Node // for S<letter> shorthand: the bare nominal node
 
 	switch {
 	case p.i+1 < len(p.s) && p.s[p.i] == 'S' && p.s[p.i+1] == 'o':
@@ -7170,6 +7171,7 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 		}
 		hostPath = typeName
 		extHostMod = "Swift"
+		stdlibShortNode = stdNode
 		// Apple's demangler does NOT push any substitutions for S<letter>
 		// stdlib shorthand types — the host type is recorded internally only.
 		// Pushing Module/Identifier/Type here shifts all subsequent subs indices
@@ -7621,6 +7623,7 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 	// declName stays "" and the init/function terminal handles it.
 	var nestedTypes []string
 	var declName string
+	declIsOp := false
 	for {
 		if p.eof() || !(p.s[p.i] >= '0' && p.s[p.i] <= '9') {
 			// Non-digit after E (or after nested types): no more
@@ -7699,6 +7702,7 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 				if opKind == 'i' || opKind == 'p' || opKind == 'P' {
 					p.i += 2
 					decoded := decodeOperatorName(ident)
+					declIsOp = true
 					switch opKind {
 					case 'i':
 						declName = decoded + " infix"
@@ -7723,6 +7727,68 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 	// type entries, making A<n>Qz back-refs (e.g. ACQz → "A.Index") resolve correctly.
 	if moduleAlreadyPushed && !hasConstraintIdents {
 		p.subs.Push(common.NewModule(modName))
+	}
+
+	// For stdlib-shorthand hosts (SD/Sa/Sq/etc.) with R-subj constraints AND
+	// operator decl-name: push bound-generic host (Dictionary<A,B>, [A], A?)
+	// so AB-style back-refs in operator params resolve correctly. Operator
+	// decls skip the Identifier sub-push above (mangleOperator), leaving the
+	// next subs slot available for the bound-generic host.
+	if declIsOp && stdlibShortNode != nil && len(constraintBytes) > 0 {
+		maxSubjIdx := -1
+		for ci := 0; ci+1 < len(constraintBytes); ci++ {
+			if constraintBytes[ci] != 'R' {
+				continue
+			}
+			next := constraintBytes[ci+1]
+			subj := byte(0)
+			if next == 'z' || next == '_' {
+				subj = next
+			} else if (next == 'b' || next == 'p' || next == 's' || next == 'j' ||
+				next == 'm' || next == 't' || next == 'l' || next == 'i') &&
+				ci+2 < len(constraintBytes) {
+				sb := constraintBytes[ci+2]
+				if sb == 'z' || sb == '_' {
+					subj = sb
+				}
+			}
+			switch subj {
+			case 'z':
+				if 0 > maxSubjIdx {
+					maxSubjIdx = 0
+				}
+			case '_':
+				if 1 > maxSubjIdx {
+					maxSubjIdx = 1
+				}
+			}
+		}
+		if maxSubjIdx >= 0 {
+			var bgKind common.NodeKind
+			inner := stdlibShortNode
+			if common.NodeKind(inner.Kind) == common.KindType && len(inner.Children) > 0 {
+				inner = inner.Children[0]
+			}
+			switch common.NodeKind(inner.Kind) {
+			case common.KindStructure:
+				bgKind = common.KindBoundGenericStructure
+			case common.KindClass:
+				bgKind = common.KindBoundGenericClass
+			case common.KindEnum:
+				bgKind = common.KindBoundGenericEnum
+			}
+			if bgKind != 0 {
+				typeList := common.NewNode(common.KindTypeList)
+				for i := 0; i <= maxSubjIdx; i++ {
+					typeList.Children = append(typeList.Children, p.genericParam(0, i))
+				}
+				bgNode := common.NewNode(bgKind)
+				common.AddChildren(bgNode, stdlibShortNode, typeList)
+				bgType := common.NewNode(common.KindType)
+				common.AddChildren(bgType, bgNode)
+				p.subs.Push(bgType)
+			}
+		}
 	}
 
 	// Entity-suffix terminal (Ma, Mn, N, Mc, etc.) or conformance suffix
