@@ -190,9 +190,9 @@ Caveman: fire-internal terse OK; commits/code/comments normal.
 ## Lessons / wins (≤800 chars, merge-before-append, drop oldest at cap)
 
 <!-- newest on top -->
+- 2026-05-13 VW/VX: ufC simplified-init genParamsStr must emit ONLY local generics (`^[A-Z][0-9]+$`=qd__) when present — host BG depth-0 inherited, not redisplayed (AlertScene `<A,B>`→`<A>`). +3 prod.
 - 2026-05-13 VU/VV: Init `cfC` routes through tryInitDeinitEntity, NOT tryFunctionEntity — post-emit fixups go at ~line 5635 with `paramsType`/`retType`/`pathSteps`. DefaultIndices endIndex←startIndex; URL.init variables dict URL?→URL.Template. +2 prod.
 - 2026-05-13 VR/VS/VT: arg back-ref under-resolves to nearby type when it should equal ret-type. Foundation.Calendar.dateComponents from/to←ret; Data.range in:←ret; Platform.copyCString src strips extra UMP wrap (NSDecimal-VL pattern). +3 prod.
-- 2026-05-13 VP/VQ: Single-arg closure args = `KindType[FunctionType]`, NOT `KindTypeList[…]`. Post-emit closure-ret restore from outer-ret recovers BG args dropped on AD back-refs. +3 prod.
 
 ## Lessons / traps (≤500 chars, merge-before-append, drop oldest at cap)
 
