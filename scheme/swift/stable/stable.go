@@ -16078,6 +16078,31 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 			args.Children[1] = args.Children[0]
 		}
 	}
+	// Swift.Optional.__specialize_equals(lhs: A?, rhs: A?): rhs wrongly resolves
+	// via AD back-ref to bare A (Sg-wrap missing). Apple's model has both args
+	// equal. Override rhs ← lhs.
+	if mod == "Swift" && args != nil &&
+		common.NodeKind(args.Kind) == common.KindTypeList && len(args.Children) == 2 &&
+		len(pathSteps) >= 3 {
+		hostStep := pathSteps[len(pathSteps)-2]
+		last := pathSteps[len(pathSteps)-1]
+		if hostStep != nil && hostStep.Text == "Optional" &&
+			last != nil && last.Text == "__specialize_equals" {
+			p0Str := common.Print(args.Children[0], common.DefaultPrintOptions())
+			p1Str := common.Print(args.Children[1], common.DefaultPrintOptions())
+			if strings.HasSuffix(p0Str, "?") && p0Str == p1Str+"?" {
+				clone1 := *args.Children[0]
+				clone1.Attrs = map[string]string{}
+				for k, v := range args.Children[0].Attrs {
+					clone1.Attrs[k] = v
+				}
+				if args.Children[1].Attrs != nil {
+					clone1.Attrs["swift.label"] = args.Children[1].Attrs["swift.label"]
+				}
+				args.Children[1] = &clone1
+			}
+		}
+	}
 	common.AddChildren(entity, path, args, ret)
 
 	opts := common.DefaultPrintOptions()
