@@ -2858,22 +2858,34 @@ func (p *parser) tryPostfixFunctionTypeWithParams(node *demangle.Node) (*demangl
 		sendingResultFlag = true
 		p.i += 2
 	}
-	if p.eof() || p.s[p.i] != 'c' {
+	// Function-type marker: 'c' (escaping) or 'XE' (NoEscape).
+	isXE := false
+	if p.eof() {
 		revert()
 		return node, false
 	}
-	// Disambiguate: 'cfm' is the macro-entity terminator (fn-entity
-	// result-slot context), not a fn-type escape marker. Also cf<X>
-	// init/deinit suffix. 'cfu<N>_' is an implicit-closure entity
-	// marker — not a function-type convention byte.
-	if p.i+2 < len(p.s) && p.s[p.i+1] == 'f' {
-		nxt := p.s[p.i+2]
-		if nxt == 'm' || nxt == 'C' || nxt == 'c' || nxt == 'D' || nxt == 'd' || nxt == 'u' {
-			revert()
-			return node, false
+	switch {
+	case p.s[p.i] == 'c':
+		// Disambiguate: 'cfm' is the macro-entity terminator (fn-entity
+		// result-slot context), not a fn-type escape marker. Also cf<X>
+		// init/deinit suffix. 'cfu<N>_' is an implicit-closure entity
+		// marker — not a function-type convention byte.
+		if p.i+2 < len(p.s) && p.s[p.i+1] == 'f' {
+			nxt := p.s[p.i+2]
+			if nxt == 'm' || nxt == 'C' || nxt == 'c' || nxt == 'D' || nxt == 'd' || nxt == 'u' {
+				revert()
+				return node, false
+			}
 		}
+		p.i++
+	case p.i+1 < len(p.s) && p.s[p.i] == 'X' && p.s[p.i+1] == 'E':
+		isXE = true
+		p.i += 2
+	default:
+		revert()
+		return node, false
 	}
-	p.i++
+	_ = isXE
 	// Build a structured KindFunctionType for the default (non-sending) case
 	// so the remangler can encode it correctly. For the rare sending-result
 	// case, fall back to a text blob (printer/remangler don't yet handle the
