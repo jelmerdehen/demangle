@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 87.26% (55632/63757) — 2026-05-13T02:02:52Z
+**Parity**: 87.26% (55634/63757) — 2026-05-13T02:11:40Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 7948 parse-errors + 177 mismatches
+**Failures**: 7948 parse-errors + 175 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- ce1841c swift-parity: UO single-arg fn-name-as-param fixup — replace arg with ret when arg==declName (Set.intersection, Set.subtracting) — parity 87.27%→87.27% (+2 production)
+- 7b250a6 chore: lock snapshot after UN (parity 55630→55632)
+- 5e5fb42 chore: update digest.md for UN (parity 55630→55632)
 - be0ea5a swift-parity: UN identity-operator (===/!== infix) force args[1] = args[0] — parity 87.26%→87.27% (+2 production)
 - d06d85b chore: lock snapshot after UM (parity 55622→55630)
 - 89b5822 chore: update digest.md for UM (parity 55622→55630)
@@ -36,9 +39,6 @@
 - 3272419 chore: lock snapshot after UL (parity 55582→55622)
 - 3b45c8f chore: update digest.md for UL (parity 55582→55622)
 - 98f384f swift-parity: UL operator-binary symmetry normalize 2nd arg to bound-generic head (== infix etc.) — parity 87.19%→87.25% (+40 production)
-- 4eba9cc chore: lock snapshot after UK (parity 55581→55582)
-- a5d2532 chore: update digest.md for UK (parity 55581→55582)
-- 97bbfc7 swift-parity: UK extend mutating-name list to _set* prefix (NSUndoManager setter) — parity 87.19%→87.19% (+1 production)
 
 ## Suggested Next 3 Items
 
