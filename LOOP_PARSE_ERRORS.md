@@ -267,7 +267,8 @@ Caveman: fire-internal terse OK; commits/code/comments normal.
 ## Lessons / wins (≤800 chars, merge-before-append, drop oldest at cap)
 
 <!-- newest on top -->
-- XJ: tryTypeFirstExtensionEntity speculative y-as-label was too greedy: it consumed `y` (void-result marker) when the next type was followed by `_` (tuple separator) or `t` (tuple end), misclassifying first tuple-element as result. Added _ and t to notTypeEnd so spec backs off and lets the standard `y → void retNode` path fire. +4 prod (SIMD addProduct cluster).
+- XK: extractConstraintSigFullOpts missing Rt same-type-with-defining-proto handler. Pattern `s<N><name>V <M><assoc> S<proto> Rt<subj>` → emit `<subj>.Swift.<Proto>.<assoc> == Swift.<name>`. Tricky walk-back: assoc-name body avoids V/C/O/P-after-digit (LHS kind byte); LHS name body may contain digits (Int8), so 's' module marker found by forward-parse from candidates. +10 prod (RawRepresentable.RawValue == IntN cluster).
+- XJ: tryTypeFirstExtensionEntity speculative y-as-label was too greedy: consumed `y` (void-result) when followed by type then `_`/`t` (tuple). Added _ and t to notTypeEnd. +4 prod (SIMD addProduct).
 - XI: same multi-char R<kind><subj> fix as XH on tryFunctionEntity R-handler. +1 prod (mostly redundant with XH).
 - XH: tryInitDeinitEntity R-handler took only single-char R<subj>. For `Rb z`, 'b' wrongly read as subj. Multi-char Rb/Rs/Rj/Rm/Rp/Rt/Rl/Ri peek. +33 prod.
 - XG: tryTypeFirstExtensionEntity F-terminal didn't consume optional `K` throws. Added K-consume + " throws" rendering. +109 prod from 12-LOC.
