@@ -267,7 +267,8 @@ Caveman: fire-internal terse OK; commits/code/comments normal.
 ## Lessons / wins (≤800 chars, merge-before-append, drop oldest at cap)
 
 <!-- newest on top -->
-- XQ: tryTypeFirstExtensionEntity ext-mod parsing missing A<letter>E back-ref branch. PAAE pattern (Combine.Publisher / SwiftUI.View protocol same-module ext) needs `AA` to resolve to host module from subs[0]. Added branch before existing digit-led/'s' shorthand parsing. Only +1 prod — most PAAE bodies use depth-1 generics that bail later.
+- XR: tryTypeFirstExtensionEntity nested-type-loop pushed Identifier even for operator decl-names — Apple bypasses subs for operator decls (mangleOperator path). Added isOpDecl peek (next bytes `o<kind>`) and skip push. +1 prod alone; combined with bound-generic-host-push for stdlib-shorthand-hosts (not committed — broke category test by shifting subs index for non-operator paths). Lesson: subs-table additions need PRECISE index alignment vs other pushes.
+- XQ: tryTypeFirstExtensionEntity ext-mod parsing missing A<letter>E back-ref branch. PAAE same-mod ext needs AA→subs[0] resolution. +1 prod (small — PAAE bodies have complex generic).
 - XP: tryTypeFirstExtensionEntity nested-type-loop missing operator designator (oi/op/oP). Added decodeOperatorName + " infix/prefix/postfix" suffix after declName. +189 prod — operator-infix on extension hosts is pervasive (FormatStyle ==, SIMD /, etc.).
 - XO: tryFunctionEntity constraint loop missed `<concrete-type><N><assoc-name>Rt<subj>` same-type assoc-type. Peek for length-prefixed ident + Rt<subj> after parseType returns concrete; emit `<subj>.<assoc> == <concrete>`. +35 prod.
 - XN: XI's multi-char R-consume discarded kind byte. Rs/Rt same-type rendered as conformance ":". Preserve opText = " == " for s/t. +2 prod.
