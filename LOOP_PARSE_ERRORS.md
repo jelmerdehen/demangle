@@ -267,7 +267,8 @@ Caveman: fire-internal terse OK; commits/code/comments normal.
 ## Lessons / wins (≤800 chars, merge-before-append, drop oldest at cap)
 
 <!-- newest on top -->
-- XM: tryInitDeinitEntity isUFCTerminal genParamsStr was only walking retType for DependentGenericParamType, missing concrete-bound generic inits (AppStorage<URL>) where A==<concrete> binds param A but retType has no gen-param-node. Added: derive maxIdx from initConstraints leading letters (A:, B:, ...). +21 prod (AppStorage/SceneStorage cluster).
+- XN: XI's multi-char R<kind><subj> consume in tryFunctionEntity discarded the kind byte before emit. For `Rsz` both Rs and Rt are same-type but were rendered as conformance ": " instead of " == ". Preserve op semantics: track opText = " == " when Rs/Rt, ": " otherwise. +2 prod.
+- XM: tryInitDeinitEntity isUFCTerminal genParamsStr only walked retType for DependentGenericParamType, missing concrete-bound generic inits (AppStorage<URL>). Derive maxIdx from initConstraints leading letters. +21 prod.
 - XL: Foundation fluent-builder heuristic in tryTypeFirstExtensionEntity wrongly fired for throws methods. Added !throwsFunc guard. +27 prod.
 - XK: extractConstraintSigFullOpts new Rt handler `s<N><name>V<M><assoc>S<proto>Rt<subj>` → `<subj>.Swift.<Proto>.<assoc> == Swift.<name>`. +10 prod.
 - XJ: tryTypeFirstExtensionEntity spec y-as-label consumed `y` (void-result) when followed by type then `_`/`t` tuple. Added _ and t to notTypeEnd. +4 prod.
