@@ -20,6 +20,9 @@ ZA-ZE depth-1 primitives landed (2026-05-13):
 - ZE (+2): tryInitDeinitEntity `R<kind>d<demIdx><demIdx>` depth-1 with kind byte.
 - ZF empty: bare-position function-entity R-handler Rd<demIdx><demIdx>/R<kind>d<...> extension unlocks 0 syms (no syms hit that path standalone). Reverted.
 - ZG empty: function-entity R<kind>d<demIdx><demIdx> form (line ~16464 kind-byte path) extension unlocks 0 syms. Either no syms hit that exact pattern in function-entity, or they have co-blockers. Reverted.
+- ZH (+5): tryInitDeinitEntity R<kind>?<digit>_ depth-0 numeric subject (idx N+2 = letter A+N+1).
+- ZI (+50): tryConformanceDescriptorMc accepts S<letter> stdlib proto (Se/SE/SQ/SH/SL etc.) with digit-led implementation module. Render-path uses existing uiTypeMods strip branch.
+- ZJ empty/regressed: tryConformanceDescriptorMc render-path adding `__C + Swift.<proto>` full-format gate (`__C.<Type> : Swift.<Proto> in <Module>`) regressed -32 unrelated UIKit/Foundation syms (UITextEffectView, NSDecimalCompare, etc. — likely changed render path for syms that should stay simplified). Reverted. Render-path split for Mc requires per-conformer/proto inspection, not a typeMod-only gate.
 
 Remaining ZA-plan items deferred to multi-fire:
 - ZA-1 trailer `_l` count consumption (high-blast, shared with non-depth-1 syms).
