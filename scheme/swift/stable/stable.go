@@ -12677,6 +12677,67 @@ func extractConstraintSigFullOpts(b []byte, includeObjCRequirements bool, words 
 		}
 	}
 
+	// Scan for <N><Ident><S><letter>QzRs<subj> — self-same-type constraint with
+	// stdlib-protocol-qualified dep-member: "A == A.Swift.<Proto>.<Ident>".
+	// Example: 11SubSequenceSlQzRsz → "A == A.Swift.Collection.SubSequence".
+	//          8IteratorSTQzRsz     → "A == A.Swift.Sequence.Iterator".
+	if includeObjCRequirements {
+		seenSelfSameProto := map[string]bool{}
+		for pos := 1; pos+4 < len(s); pos++ {
+			if s[pos] != 'Q' || s[pos+1] != 'z' {
+				continue
+			}
+			if s[pos+2] != 'R' || s[pos+3] != 's' {
+				continue
+			}
+			var paramName string
+			switch s[pos+4] {
+			case 'z':
+				paramName = "A"
+			case '_':
+				paramName = "B"
+			}
+			if paramName == "" {
+				continue
+			}
+			// Expect S<letter> directly before Qz.
+			if pos < 2 || s[pos-2] != 'S' {
+				continue
+			}
+			ent, eok := common.StdlibLookup(s[pos-1])
+			if !eok {
+				continue
+			}
+			// Identifier <N><name> precedes the S<letter>.
+			identEnd := pos - 2
+			i := identEnd - 1
+			for i >= 0 && ((s[i] >= 'a' && s[i] <= 'z') || (s[i] >= 'A' && s[i] <= 'Z') || s[i] == '_') {
+				i--
+			}
+			digEnd := i + 1
+			digStart := digEnd
+			for digStart > 0 && s[digStart-1] >= '0' && s[digStart-1] <= '9' {
+				digStart--
+			}
+			if digStart >= digEnd {
+				continue
+			}
+			n := 0
+			for k := digStart; k < digEnd; k++ {
+				n = n*10 + int(s[k]-'0')
+			}
+			if n <= 0 || digEnd+n != identEnd {
+				continue
+			}
+			identName := s[digEnd:identEnd]
+			key := paramName + " == " + paramName + ".Swift." + ent.Name + "." + identName
+			if !seenSelfSameProto[key] {
+				seenSelfSameProto[key] = true
+				constraints = append(constraints, key)
+			}
+		}
+	}
+
 	// Scan for S<letter>[y<x>G]<N><Ident>Rtz — assoc-type same-type with stdlib type.
 	// Base form: SS7ElementRtzrl → "A.Element == Swift.String"
 	// Bound-generic form: SIyxG7IndicesRtz → "A.Indices == Swift.DefaultIndices<A>"
