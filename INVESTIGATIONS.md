@@ -46,9 +46,9 @@ Pattern: `So 17UITraitCollection C 5UIKit E _<lbl1> 5value AB xm _12CoreGraphics
 
 Drained by XM: derived genParamsStr from initConstraints leading letter.
 
-### combine-publisher-failure-never-ext [PAAE Rtz Failure cluster, ~80 syms]
+### combine-publisher-failure-never-ext [PAAE Rtz Failure cluster, ~80 syms, multi-fire]
 
-Pattern: `<host>P AA <concrete-type><N><assoc>Rtz <constraints>... rl E <decl>...`. Combine.Publisher protocol extension constrained `where A.Failure == Swift.Never` (or similar same-type assoc-type binding). Format: `s5NeverO 7Failure Rtz` etc. tryExtensionEntity needs the same XO-style `<concrete><N><assoc>Rt<subj>` handler in its constraint-bytes processing (currently only in tryFunctionEntity's gen-sig loop).
+Pattern: `<host>P AA <concrete-type><N><assoc>Rtz <constraints>... rl E <decl>...`. Combine.Publisher protocol extension constrained `where A.Failure == Swift.Never` (or similar). Format: `s5NeverO 7Failure Rtz`. XP attempt: added Rt-no-proto handler in extractConstraintSigFullOpts gated to `len>=3 && startsWith("AAs")`. Standalone probe correct (`A.Failure == Swift.Never`) but smoke regressed -46 syms across UIKit.UITextEffectViewDelegate, Foundation NSDecimalCompare, etc. The "AAs" gate is too broad — many non-Combine constraintBytes start with AAs and rely on the existing `extMarker = "<>"` rendering matching Apple's expected (whose output also drops the constraint detail for those clusters). Real fix needs caller-context (module/host) to gate properly, OR Apple's snapshot for those 46 syms is genuinely missing the constraint and we shouldn't override.
 
 ### property-descriptor [7 syms post-SC, bespoke each]
 
