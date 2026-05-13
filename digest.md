@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 87.38% (55711/63757) — 2026-05-13T04:35:13Z
+**Parity**: 87.38% (55714/63757) — 2026-05-13T05:16:31Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 7948 parse-errors + 98 mismatches
+**Failures**: 7948 parse-errors + 95 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- 42fc88f swift-parity: VG Calendar.date(byAdding:value:to:.../bySettingUnit:value:of:...) — 3rd labeled param (to/of) override to Date stripped from Sg-Optional ret — parity 87.39%→87.39% (+3 production)
+- 94e9470 chore: lock snapshot after VF (parity 55709→55711)
+- eb598ad chore: update digest.md for VF (parity 55709→55711)
 - e8871d8 swift-parity: VF same-type assoc-rewrite in verboseRetStr (RAC.indices getter/property-descriptor: 'Indices' → 'Swift.Range<A.Index>' via extSig same-type constraint) — parity 87.38%→87.39% (+2 production)
 - b4e5191 chore: log VF trap lesson (AttribStr.init false-E abort needs fallback)
 - 73dff96 chore: lock snapshot after VE (parity 55707→55709)
@@ -36,9 +39,6 @@
 - 1e7013b swift-parity: VE funcEntityFullParams skip label re-apply when text pre-labeled (Calendar.date(era:year:month:...) 8-Int compact-tuple) — parity 87.38%→87.38% (+2 production)
 - b0a156b chore: lock snapshot after VD (parity 55706→55707)
 - 7bb58ea chore: update digest.md for VD (parity 55706→55707)
-- bafb9f4 swift-parity: VD simplified-emit pre-rendered tuple labels (DragConfig.OperationsWithinApp/OperationsOutsideApp.init, AnimatedValueKeyframe.InterpolationParameters.kochanekBartels) — parity 87.38%→87.38% (+1 production net; gated cfm-terminal to preserve macro-entity _:)
-- 2c73f56 chore: lock snapshot after VC (parity 55693→55706)
-- 31562b0 chore: update digest.md for VC (parity 55693→55706)
 
 ## Suggested Next 3 Items
 
