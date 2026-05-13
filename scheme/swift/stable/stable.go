@@ -7750,6 +7750,20 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 				p.i+1 < len(p.s) && p.s[p.i+1] == 't' {
 				p.i += 2
 			}
+			// Operator-binary symmetry: for `X<A>.== infix(X<A>, X) -> Bool`-shape
+			// mismatches, the second arg's back-ref under-resolves to the bare
+			// base when Apple resolves it to the same bound-generic as the first
+			// arg. Normalize the 2nd param to match the 1st when its nominal is
+			// the bare base of the 1st's bound-generic head.
+			if paramCount == 2 && len(paramTypes) == 2 {
+				p0 := paramTypes[0]
+				p1 := paramTypes[1]
+				bg := boundGenericHeadName(p0)
+				bare := bareNominalName(p1)
+				if bg != "" && bare != "" && bg == bare {
+					paramTypes[1] = p0
+				}
+			}
 			// tryPostfixCompactTuple may have merged Sf_S<N>f...t into a single
 			// "(T1, T2, ...)" KindBuiltinTypeName node. Recover the true element
 			// count so makeLabelStr emits all labels, not just the first.
@@ -15262,6 +15276,18 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 		genericSigStr = renderGenericSigWithConstraints(genericCount, constraints)
 		entity.Attrs["swift.generic"] = genericSigStr
 	}
+	// Operator-binary symmetry: when args has exactly 2 typed children where
+	// the first is a BoundGeneric of some base and the second is the bare
+	// base, rewrite the second to match the first. The mangling encodes the
+	// second arg as a back-ref that should resolve to the same bound-generic
+	// version but commonly falls off-by-one to the bare base.
+	if args != nil && common.NodeKind(args.Kind) == common.KindTypeList && len(args.Children) == 2 {
+		bg := boundGenericHeadName(args.Children[0])
+		bare := bareNominalName(args.Children[1])
+		if bg != "" && bg == bare {
+			args.Children[1] = args.Children[0]
+		}
+	}
 	common.AddChildren(entity, path, args, ret)
 
 	opts := common.DefaultPrintOptions()
@@ -20063,6 +20089,55 @@ func (p *parser) runHCMiniStack(typeNode *demangle.Node) (*demangle.Node, bool) 
 		return nil, false
 	}
 	return result, true
+}
+
+// boundGenericHeadName returns the base nominal name when n is a Type
+// wrapping a BoundGeneric{Structure,Class,Enum,Protocol} whose first child
+// is a nominal with an Identifier — or "" when n is not such a node.
+func boundGenericHeadName(n *demangle.Node) string {
+	if n == nil || common.NodeKind(n.Kind) != common.KindType || len(n.Children) == 0 {
+		return ""
+	}
+	inner := n.Children[0]
+	switch common.NodeKind(inner.Kind) {
+	case common.KindBoundGenericStructure, common.KindBoundGenericClass,
+		common.KindBoundGenericEnum, common.KindBoundGenericProtocol:
+	default:
+		return ""
+	}
+	if len(inner.Children) == 0 {
+		return ""
+	}
+	headType := inner.Children[0]
+	if common.NodeKind(headType.Kind) == common.KindType && len(headType.Children) > 0 {
+		headType = headType.Children[0]
+	}
+	for _, c := range headType.Children {
+		if common.NodeKind(c.Kind) == common.KindIdentifier {
+			return c.Text
+		}
+	}
+	return ""
+}
+
+// bareNominalName returns the nominal name when n is a Type wrapping a
+// non-bound-generic nominal (Structure/Class/Enum/Protocol) — or "" otherwise.
+func bareNominalName(n *demangle.Node) string {
+	if n == nil || common.NodeKind(n.Kind) != common.KindType || len(n.Children) == 0 {
+		return ""
+	}
+	inner := n.Children[0]
+	switch common.NodeKind(inner.Kind) {
+	case common.KindStructure, common.KindClass, common.KindEnum, common.KindProtocol:
+	default:
+		return ""
+	}
+	for _, c := range inner.Children {
+		if common.NodeKind(c.Kind) == common.KindIdentifier {
+			return c.Text
+		}
+	}
+	return ""
 }
 
 func init() {
