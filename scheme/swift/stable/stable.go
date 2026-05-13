@@ -15802,6 +15802,53 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 			}
 		}
 	}
+	// Foundation.Calendar.date(byAdding:value:to:...) / .date(bySettingUnit:value:of:...):
+	// 3rd labeled param (to/of) wrongly resolves via back-ref to a non-Date type
+	// (Calendar / NSCalendarUnit). Apple's model has it equal to the Date type
+	// stripped from the Sg-Optional return. Override.
+	if mod == "Foundation" && args != nil && ret != nil &&
+		common.NodeKind(args.Kind) == common.KindTypeList && len(args.Children) == 4 &&
+		len(pathSteps) >= 3 {
+		hostStep := pathSteps[len(pathSteps)-2]
+		last := pathSteps[len(pathSteps)-1]
+		if hostStep != nil && hostStep.Text == "Calendar" &&
+			last != nil && last.Text == "date" {
+			labels4 := make([]string, 4)
+			for i := 0; i < 4; i++ {
+				if args.Children[i].Attrs != nil {
+					labels4[i] = args.Children[i].Attrs["swift.label"]
+				}
+			}
+			if labels4[2] == "to" || labels4[2] == "of" {
+				stripOpt := func(n *demangle.Node) *demangle.Node {
+					if common.NodeKind(n.Kind) != common.KindType || len(n.Children) == 0 {
+						return n
+					}
+					inner := n.Children[0]
+					if common.NodeKind(inner.Kind) != common.KindBoundGenericEnum ||
+						len(inner.Children) < 2 {
+						return n
+					}
+					tl := inner.Children[1]
+					if common.NodeKind(tl.Kind) != common.KindTypeList || len(tl.Children) == 0 {
+						return n
+					}
+					return tl.Children[0]
+				}
+				innerRet := stripOpt(ret)
+				retStr := common.Print(innerRet, common.DefaultPrintOptions())
+				if retStr == "Foundation.Date" && innerRet != ret {
+					clone2 := *innerRet
+					clone2.Attrs = map[string]string{}
+					for k, v := range innerRet.Attrs {
+						clone2.Attrs[k] = v
+					}
+					clone2.Attrs["swift.label"] = labels4[2]
+					args.Children[2] = &clone2
+				}
+			}
+		}
+	}
 	if args != nil && common.NodeKind(args.Kind) == common.KindTypeList && len(args.Children) == 2 {
 		isEquatableOp := false
 		isIdentityOp := false
