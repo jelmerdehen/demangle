@@ -267,10 +267,11 @@ Caveman: fire-internal terse OK; commits/code/comments normal.
 ## Lessons / wins (≤800 chars, merge-before-append, drop oldest at cap)
 
 <!-- newest on top -->
-- XH: tryInitDeinitEntity constraint-loop R-handler accepted only `R<subj>` (single-char), not `R<kind><subj>` (Rb/Rs/Rj/Rm/Rp/Rt/Rl/Ri). For `Rb z` (where A: AnyObject/class), 'b' was wrongly read as subj. Added kind-byte peek + multi-char consume when subject follows. +33 prod. Multi-char R-markers are pervasive in Apple's generic-sig grammar.
-- XG: tryTypeFirstExtensionEntity F-terminal at 8658 didn't consume optional `K` throws marker. Added K-consume + `" throws"` rendering in verbose/Foundation wrap.Text branches. +109 prod from 12-LOC. Key insight: pre-F entity attribute bytes (K/Y for throws/async) gate entire entity acceptance — missing one = entire bucket bails.
-- XF: tryTypeFirstExtensionEntity result-type slot `if y { void }` shortcut wrongly consumed `y` when `yp` (Any) or `yX<l>` followed. Defer those to parseType. +4 prod. Oracle (`ssh claude@kodo xcrun swift-demangle`) wired up for expected-output verification.
-- XE: tryInitDeinitEntity stdlib-shorthand host (S<letter>) was missing nested-type chain. `Sd12SIMD2StorageVABycfC` couldn't continue past `Sd`. Added <n><name>V/C/O/P loop + gated 3-entry stdlib sub push on `!hasNested`. +57 prod from 2-LOC.
+- XI: same multi-char R<kind><subj> fix as XH applied to tryFunctionEntity R-handler. +1 prod. Mostly redundant with XH because passing-via-this-path syms already parse. Lesson: when a fix unlocks a big bucket, scan for OTHER call sites of the same handler/pattern in the same file — they often have the same bug but smaller blast radius.
+- XH: tryInitDeinitEntity R-handler took only single-char R<subj>. For `Rb z` (where A: AnyObject), 'b' wrongly read as subj. Added multi-char Rb/Rs/Rj/Rm/Rp/Rt/Rl/Ri peek. +33 prod.
+- XG: tryTypeFirstExtensionEntity F-terminal didn't consume optional `K` throws marker. Added K-consume + " throws" rendering. +109 prod from 12-LOC. Pre-F entity attribute bytes (K/Y) gate entire entity acceptance.
+- XF: tryTypeFirstExtensionEntity result-slot `if y { void }` wrongly consumed `y` when `yp`/`yX<l>` followed. Defer to parseType. +4 prod. Oracle (ssh claude@kodo xcrun swift-demangle) wired up.
+- XE: tryInitDeinitEntity stdlib-shorthand host (S<letter>) missing nested-type chain. Added <n><name>V/C/O/P loop + gated 3-entry stdlib sub push on `!hasNested`. +57 prod.
 
 ## Lessons / traps (≤500 chars, merge-before-append, drop oldest at cap)
 
