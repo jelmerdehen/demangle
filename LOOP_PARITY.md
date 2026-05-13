@@ -190,9 +190,9 @@ Caveman: fire-internal terse OK; commits/code/comments normal.
 ## Lessons / wins (≤800 chars, merge-before-append, drop oldest at cap)
 
 <!-- newest on top -->
+- 2026-05-13 WB: V-then-E user-module-host property getter+desc routes through `tryExtensionEntity` (~line 11086, 11214), NOT tryTypeFirstExtensionEntity. Post-emit sub on `text` var. +4 prod.
 - 2026-05-13 WA: Two distinct ext entity renderers — `tryTypeFirstExtensionEntity` (line ~6900) and `tryExtensionEntity` (line ~8700). Some protocol-extension methods (e.g. DiscreteFormatStyle.input) route through THE LATTER at ~line 11579 where wrap.Text is built; post-emit fixups must land THERE. +2 prod.
 - 2026-05-13 VY/VZ: BG-arg back-ref under-resolves to BG-head-of-self rather than BG-inner. `ContiguousArray<ContiguousArray>` → `ContiguousArray<inner-from-arg[0]>`; `UMP<X>.Type` → `X.Type`. Rebuild via BuiltinTypeName text. +2 prod.
-- 2026-05-13 VW/VX: ufC simplified-init genParamsStr must emit ONLY local generics (`^[A-Z][0-9]+$`=qd__) when present — host BG depth-0 inherited, not redisplayed (AlertScene `<A,B>`→`<A>`). +3 prod.
 
 ## Lessons / traps (≤500 chars, merge-before-append, drop oldest at cap)
 
