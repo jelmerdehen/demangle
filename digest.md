@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 87.54% (55812/63757) — 2026-05-13T10:43:56Z
+**Parity**: 87.54% (55813/63757) — 2026-05-13T10:48:00Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 7911 parse-errors + 34 mismatches
+**Failures**: 7911 parse-errors + 33 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- 97d1bc3 swift-parity: WO UIKit.UITextEffectView.TextEffect compact-ident 0X<digit> recovery via narrow text replace — parity 87.56%→87.56% (+1 production)
+- 6096684 chore: lock snapshot after WM..WN (parity 55810→55812)
+- cd4c8d1 chore: update digest.md for WM..WN (parity 55810→55812)
 - 1ea5ae3 swift-parity: WN Swift._ArrayBufferProtocol._forceCreateUniqueMutableBufferImpl 3-tuple-arg split to 3 separate labeled params — parity 87.56%→87.56% (+1 production)
 - ff45a65 swift-parity: WM Swift.StringProtocol.rangeOf restore lost locale: label + range:-arg type — parity 87.56%→87.56% (+1 production)
 - c50fffa chore: lock snapshot after WL (parity 55808→55810)
@@ -36,9 +39,6 @@
 - d315aa6 swift-parity: WL Swift.Result.init(catching:) + ExpressibleByExtendedGraphemeClusterLiteral.init same-type constraint sig + assoc-type RHS substitution — parity 87.56%→87.56% (+2 production)
 - ad92633 chore: lock snapshot after WJ..WK (parity 55804→55808)
 - 7c9618a chore: update digest.md for WJ..WK (parity 55804→55808)
-- 1a5eb3f swift-parity: WK Swift._SwiftNewtypeWrapper {_force,_conditionally,_unconditionally}BridgeFromObjectiveC spurious-leading-arg + A.RawValue prefix restore — parity 87.55%→87.56% (+3 production)
-- 21c8cf8 swift-parity: WJ Swift.Collection.makeIterator restore < where A.Iterator == IndexingIterator<A>> constraint + ret type (bare 'makeIterator' label leaks as type) — parity 87.55%→87.55% (+1 production)
-- 737f6f2 chore: lock snapshot after WH..WI (parity 55802→55804)
 
 ## Suggested Next 3 Items
 
