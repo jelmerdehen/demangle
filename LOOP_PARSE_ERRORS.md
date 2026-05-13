@@ -267,9 +267,10 @@ Caveman: fire-internal terse OK; commits/code/comments normal.
 ## Lessons / wins (≤800 chars, merge-before-append, drop oldest at cap)
 
 <!-- newest on top -->
-- XL: Foundation fluent-builder heuristic in tryTypeFirstExtensionEntity wrongly fired for throws methods. Encodable.encode(to:) throws returns void, not self. Added !throwsFunc guard. +27 prod. Lesson: review heuristics each time entity-attribute parsing (K throws / Y async) lands — they may interact incorrectly with assumption-based output rewrites.
-- XK: extractConstraintSigFullOpts add Rt same-type-with-defining-proto handler. `s<N><name>V<M><assoc>S<proto>Rt<subj>` → `<subj>.Swift.<Proto>.<assoc> == Swift.<name>`. +10 prod.
-- XJ: tryTypeFirstExtensionEntity speculative y-as-label too greedy: consumed `y` (void-result) when followed by type then `_`/`t` tuple. Added _ and t to notTypeEnd. +4 prod.
+- XM: tryInitDeinitEntity isUFCTerminal genParamsStr was only walking retType for DependentGenericParamType, missing concrete-bound generic inits (AppStorage<URL>) where A==<concrete> binds param A but retType has no gen-param-node. Added: derive maxIdx from initConstraints leading letters (A:, B:, ...). +21 prod (AppStorage/SceneStorage cluster).
+- XL: Foundation fluent-builder heuristic in tryTypeFirstExtensionEntity wrongly fired for throws methods. Added !throwsFunc guard. +27 prod.
+- XK: extractConstraintSigFullOpts new Rt handler `s<N><name>V<M><assoc>S<proto>Rt<subj>` → `<subj>.Swift.<Proto>.<assoc> == Swift.<name>`. +10 prod.
+- XJ: tryTypeFirstExtensionEntity spec y-as-label consumed `y` (void-result) when followed by type then `_`/`t` tuple. Added _ and t to notTypeEnd. +4 prod.
 - XI: same multi-char R<kind><subj> fix as XH on tryFunctionEntity R-handler. +1 prod (mostly redundant with XH).
 - XH: tryInitDeinitEntity R-handler took only single-char R<subj>. For `Rb z`, 'b' wrongly read as subj. Multi-char Rb/Rs/Rj/Rm/Rp/Rt/Rl/Ri peek. +33 prod.
 - XG: tryTypeFirstExtensionEntity F-terminal didn't consume optional `K` throws. Added K-consume + " throws" rendering. +109 prod from 12-LOC.
