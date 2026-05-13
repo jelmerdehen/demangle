@@ -8654,6 +8654,13 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 		}
 	}
 
+	// Optional 'K' throws marker before the function terminal.
+	throwsFunc := false
+	if !p.eof() && p.s[p.i] == 'K' {
+		throwsFunc = true
+		p.i++
+	}
+	_ = throwsFunc // emitted by ret-rendering further below when wired in
 	// Function terminal 'F': consume and return; outer handles Z/Tj/Tq/WC.
 	if p.eof() || p.s[p.i] != 'F' {
 		restore()
@@ -8815,9 +8822,17 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 			fnNestedSuffix = "." + strings.Join(nestedTypes, ".")
 			fnBaseHostPath = hostPath[:len(hostPath)-len(fnNestedSuffix)]
 		}
-		wrap.Text = "(extension in Swift):Swift." + fnBaseHostPath + extSig + fnNestedSuffix + "." + declName + genericPart + verboseParamStr(labels) + verboseRetStr(true)
+		throwsStr := ""
+		if throwsFunc {
+			throwsStr = " throws"
+		}
+		wrap.Text = "(extension in Swift):Swift." + fnBaseHostPath + extSig + fnNestedSuffix + "." + declName + genericPart + verboseParamStr(labels) + throwsStr + verboseRetStr(true)
 	} else if modName == "Foundation" && extHostMod != "" {
-		wrap.Text = "(extension in Foundation):" + extHostMod + "." + hostPath + "." + declName + genericPartFoundation + verboseParamStr(labels) + verboseRetStr(true)
+		throwsStr := ""
+		if throwsFunc {
+			throwsStr = " throws"
+		}
+		wrap.Text = "(extension in Foundation):" + extHostMod + "." + hostPath + "." + declName + genericPartFoundation + verboseParamStr(labels) + throwsStr + verboseRetStr(true)
 	} else {
 		wrap.Text = hostPath + "." + declName + genericPart + makeLabelStr(paramCount)
 	}
