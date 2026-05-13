@@ -16261,6 +16261,42 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 								subj+"."+assocName2+" == "+concreteStr)
 							continue
 						}
+						// Depth-1 same-type: Rtd<demIdx><demIdx>
+						// — depthIdx/paramIdx via demangleIndex ('_'→0, 'N_'→N+1).
+						if !p.eof() && p.s[p.i] == 'd' {
+							p.i++ // consume 'd'
+							readDemIdx := func() int {
+								if p.eof() {
+									return 0
+								}
+								if p.s[p.i] == '_' {
+									p.i++
+									return 0
+								}
+								if p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+									num := int(p.s[p.i] - '0')
+									p.i++
+									for !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+										num = num*10 + int(p.s[p.i]-'0')
+										p.i++
+									}
+									if !p.eof() && p.s[p.i] == '_' {
+										p.i++
+									}
+									return num + 1
+								}
+								return 0
+							}
+							depthIdx := readDemIdx()
+							paramIdx := readDemIdx()
+							if paramIdx < 26 {
+								subj := string(rune('A'+paramIdx)) + itoa(depthIdx+1)
+								concreteStr := common.Print(constraint, common.DefaultPrintOptions())
+								localConstraints = append(localConstraints,
+									subj+"."+assocName2+" == "+concreteStr)
+								continue
+							}
+						}
 					}
 					p.i = saveAt
 				}
