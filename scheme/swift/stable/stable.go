@@ -865,10 +865,14 @@ func (p *parser) tryConformanceDescriptorMc(inner *demangle.Node) (*demangle.Nod
 	if p.eof() {
 		return inner, false
 	}
-	// Accept 's' (Swift module shortcut) or digit-led module identifier.
+	// Accept 's' (Swift module shortcut), 'S<letter>' (known stdlib proto), or
+	// digit-led module identifier.
 	swiftProto := false
+	stdlibShortProto := false
 	if p.s[p.i] == 's' {
 		swiftProto = true
+	} else if p.s[p.i] == 'S' && p.i+1 < len(p.s) {
+		stdlibShortProto = true
 	} else if !(p.s[p.i] >= '0' && p.s[p.i] <= '9') {
 		return inner, false
 	}
@@ -899,6 +903,37 @@ func (p *parser) tryConformanceDescriptorMc(inner *demangle.Node) (*demangle.Nod
 		// Wrap protoName with Swift prefix so emit produces "Swift.<proto>".
 		protoName = "Swift." + protoName
 		// Skip past the normal modName/protoName lookup branch below.
+		goto afterModProto
+	}
+	if stdlibShortProto {
+		p.i++ // consume 'S'
+		letter := p.s[p.i]
+		p.i++
+		nomNode, ok := common.BuildStdlibNominal(letter)
+		if !ok {
+			revert()
+			return inner, false
+		}
+		// Extract proto name from the built Type node.
+		nameNode := nomNode
+		if common.NodeKind(nameNode.Kind) == common.KindType && len(nameNode.Children) > 0 {
+			nameNode = nameNode.Children[0]
+		}
+		if len(nameNode.Children) < 2 {
+			revert()
+			return inner, false
+		}
+		protoName = "Swift." + nameNode.Children[1].Text
+		if p.eof() || !(p.s[p.i] >= '0' && p.s[p.i] <= '9') {
+			revert()
+			return inner, false
+		}
+		mname, merr := p.parseIdentifier()
+		if merr != nil {
+			revert()
+			return inner, false
+		}
+		modName = mname
 		goto afterModProto
 	}
 	{
