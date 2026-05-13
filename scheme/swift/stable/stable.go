@@ -11969,6 +11969,47 @@ func extractConstraintSigFullOpts(b []byte, includeObjCRequirements bool, words 
 		}
 	}
 
+	// Scan for s0<wordsub>R<subj> — Swift-module protocol conformance where the
+	// proto name uses the word-sub identifier form (leading 0 + words+literals).
+	// E.g. s01_ab7BuiltincD0Rzrl with words=[Expressible,By,Integer,Literal] →
+	// "A: Swift._ExpressibleByBuiltinIntegerLiteral".
+	if includeObjCRequirements && len(words) > 0 {
+		seenSwiftProtoWS := map[string]bool{}
+		for pos := 0; pos+2 < len(s); pos++ {
+			if s[pos] != 's' || s[pos+1] != '0' {
+				continue
+			}
+			j := pos + 2
+			protoName, j2, ok := decodeWordSubAt(s, j, words)
+			if !ok || protoName == "" {
+				continue
+			}
+			j = j2
+			if j >= len(s) || s[j] != 'R' {
+				continue
+			}
+			j++
+			if j >= len(s) {
+				continue
+			}
+			var paramName string
+			switch s[j] {
+			case 'z':
+				paramName = "A"
+			case '_':
+				paramName = "B"
+			}
+			if paramName == "" {
+				continue
+			}
+			key := paramName + ": Swift." + protoName
+			if !seenSwiftProtoWS[key] {
+				seenSwiftProtoWS[key] = true
+				constraints = append(constraints, key)
+			}
+		}
+	}
+
 	// Scan for s<N><name><kind>Rs<subj> — Swift-module type same-type constraint.
 	// Pattern: 's' digits name kind 'Rs' ('z'=A | '_'=B).
 	// E.g. s5UInt8VRszl = "A == Swift.UInt8".
