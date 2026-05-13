@@ -1,6 +1,6 @@
 # Swift Production Digest
 
-**Parity**: 87.42% (55736/63757) — 2026-05-13T05:44:42Z
+**Parity**: 87.42% (55736/63757) — 2026-05-13T08:31:00Z
 **Round-trip**: 0.00% (0/0) — 
 **Failures**: 7948 parse-errors + 73 mismatches
 
@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- c2cdf62 swift-parity: VN WS terminal protocol self-conformance witness table + Xl AnyObject params-slot proto-list-empty consume (3 syms) — parity 87.41%→87.42% (+3 production)
+- a735a46 chore: lock snapshot after VM (parity 55731→55736)
+- f9ee5f6 chore: update digest.md for VM (parity 55731→55736)
 - 44cf43b swift-parity: VM NSFileHandle.ConnectionAcceptedMessage.fileHandleItem Result<>-arg-restore (getter/setter/modify/property descriptor + init) — parity 87.41%→87.41% (+5 production)
 - 27886ac chore: lock snapshot after VL (parity 55724→55731)
 - 8a742a9 chore: update digest.md for VL (parity 55724→55731)
@@ -36,9 +39,6 @@
 - 6ce3606 chore: lock snapshot after VK (parity 55720→55724)
 - 7f9f09d chore: update digest.md for VK (parity 55720→55724)
 - 014795c swift-parity: VK _<Foo>Box.__copyContents(initializing:) UMP<AnyIterator<A.Element>> → UMP<A.Element> (_SequenceBox/_CollectionBox/_RandomAccessCollectionBox/_BidirectionalCollectionBox) — parity 87.40%→87.40% (+4 production)
-- cc435e6 chore: lock snapshot after VJ (parity 55718→55720)
-- a7659ec chore: update digest.md for VJ (parity 55718→55720)
-- e3a29ef swift-parity: VJ parseError/OptionalComparator.compare arg-override (Sg-wrap missing on Aletter back-ref) — parity 87.39%→87.40% (+2 production)
 
 ## Suggested Next 3 Items
 
