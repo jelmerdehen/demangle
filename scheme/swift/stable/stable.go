@@ -15281,10 +15281,29 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 	// base, rewrite the second to match the first. The mangling encodes the
 	// second arg as a back-ref that should resolve to the same bound-generic
 	// version but commonly falls off-by-one to the bare base.
+	//
+	// Equality / comparison operator extension: for an `==`/`<`/`<=`/`>=`/`!=`
+	// `infix` method, the second arg is conventionally the same type as the
+	// first (Equatable / Comparable contract). When the second-arg back-ref
+	// resolves to the return type or any unrelated type, override to args[0].
 	if args != nil && common.NodeKind(args.Kind) == common.KindTypeList && len(args.Children) == 2 {
+		isEquatableOp := false
+		if len(pathSteps) > 0 {
+			last := pathSteps[len(pathSteps)-1]
+			if last != nil && common.NodeKind(last.Kind) == common.KindIdentifier {
+				name := last.Text
+				switch name {
+				case "== infix", "!= infix", "< infix", "> infix", "<= infix", ">= infix":
+					isEquatableOp = true
+				}
+			}
+		}
 		bg := boundGenericHeadName(args.Children[0])
 		bare := bareNominalName(args.Children[1])
 		if bg != "" && bg == bare {
+			args.Children[1] = args.Children[0]
+		} else if isEquatableOp && ret != nil &&
+			common.Print(args.Children[1], common.DefaultPrintOptions()) == common.Print(ret, common.DefaultPrintOptions()) {
 			args.Children[1] = args.Children[0]
 		}
 	}
