@@ -190,9 +190,9 @@ Caveman: fire-internal terse OK; commits/code/comments normal.
 ## Lessons / wins (≤800 chars, merge-before-append, drop oldest at cap)
 
 <!-- newest on top -->
+- 2026-05-13 VU/VV: Init `cfC` routes through tryInitDeinitEntity, NOT tryFunctionEntity — post-emit fixups go at ~line 5635 with `paramsType`/`retType`/`pathSteps`. DefaultIndices endIndex←startIndex; URL.init variables dict URL?→URL.Template. +2 prod.
 - 2026-05-13 VR/VS/VT: arg back-ref under-resolves to nearby type when it should equal ret-type. Foundation.Calendar.dateComponents from/to←ret; Data.range in:←ret; Platform.copyCString src strips extra UMP wrap (NSDecimal-VL pattern). +3 prod.
 - 2026-05-13 VP/VQ: Single-arg closure args = `KindType[FunctionType]`, NOT `KindTypeList[…]`. Post-emit closure-ret restore from outer-ret recovers BG args dropped on AD back-refs. +3 prod.
-- 2026-05-13 VO: tryPostfixFunctionTypeWithParams missed `XE` (NoEscape) func-type marker — only accepted `c`. Extending to also accept XE unlocked closure-arg-in-tuple emit (Filter/SequenceAllSatisfy/ContainsWhere + 31 more). +34 prod.
 
 ## Lessons / traps (≤500 chars, merge-before-append, drop oldest at cap)
 
