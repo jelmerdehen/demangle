@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 87.51% (55792/63757) — 2026-05-13T10:01:50Z
+**Parity**: 87.51% (55795/63757) — 2026-05-13T10:08:05Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 7911 parse-errors + 54 mismatches
+**Failures**: 7911 parse-errors + 51 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -17,18 +17,21 @@
 - (extension in Foundation):Foundation._BridgedStore… 1
 - (extension in Foundation):Swift.StringProtocol.ran… 1
 - (extension in Foundation):__C.NSCoder.decodeObject… 1
-- (extension in Swift):Swift.Collection._failEarlyRa… 1
 - (extension in Swift):Swift.Collection< where A.Ite… 1
-- (extension in Swift):Swift.DiscontiguousSlice< whe… 1
 - (extension in Swift):Swift.ExpressibleByExtendedGr… 1
-- (extension in Swift):Swift.ExpressibleByStringInte… 1
 - (extension in Swift):Swift.FlattenSequence< where … 1
 - (extension in Swift):Swift.LazySequenceProtocol.co… 1
 - (extension in Swift):Swift.LazySequenceProtocol.fl… 1
 - (extension in Swift):Swift.Result< where B == Swif… 1
+- (extension in Swift):Swift.Slice< where A: Swift.B… 1
+- (extension in Swift):Swift._ArrayBufferProtocol._f… 1
+- Foundation.Expression.init((repeat Foundation.Pred… 1
 
 ## Last 10 Commits
 
+- 76d2c02 swift-parity: WC tryTypeFirstExtensionEntity post-emit assoc-type substitutions — ExpressibleByStringInterpolation.init bare Default→DefaultStringInterpolation; DiscontiguousSlice.index host BG <A> restore; Collection._failEarlyRangeCheck bounds←arg[0] — parity 87.53%→87.54% (+3 production)
+- c6d8aed chore: lock snapshot after WB (parity 55788→55792)
+- c60c5ee chore: update digest.md for WB (parity 55788→55792)
 - c24fa58 swift-parity: WB Dispatch.DispatchData{.Region,}.regions getter+property descriptor BG-inner restore via post-emit string sub in tryExtensionEntity — parity 87.52%→87.53% (+4 production)
 - 5842c7f chore: lock snapshot after WA (parity 55786→55788)
 - 6d632bf chore: update digest.md for WA (parity 55786→55788)
@@ -36,9 +39,6 @@
 - 2ca6ce2 chore: lock snapshot after VY..VZ (parity 55784→55786)
 - b838254 chore: update digest.md for VY..VZ (parity 55784→55786)
 - 3e15d0f swift-parity: VZ Swift.UnsafeMutableRawPointer.initializeMemory(as:from:) as: strip outer UnsafeMutablePointer<>.Type wrap (AE back-ref to BG-inner not BG-self) — parity 87.51%→87.52% (+1 production)
-- e400517 swift-parity: VY Swift.RangeSet.Ranges._indicesOfRange in: ContiguousArray<Range<A>> inner restore via BuiltinTypeName — parity 87.51%→87.51% (+1 production)
-- 61587d9 chore: lock snapshot after VW..VX (parity 55781→55784)
-- 274936b chore: update digest.md for VW..VX (parity 55781→55784)
 
 ## Suggested Next 3 Items
 
