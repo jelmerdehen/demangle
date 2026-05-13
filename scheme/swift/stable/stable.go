@@ -5517,14 +5517,15 @@ func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 				if rep := normalize(paramsType.Children[0]); rep != nil {
 					paramsType.Children[0] = rep
 				}
-			} else if len(paramsType.Children) == 2 {
+			} else if len(paramsType.Children) >= 2 {
 				// Binary inits like SIMD4.init(lowHalf: SIMD2<A>, highHalf: SIMD2):
-				// when args[0] is BoundGeneric of some base and args[1] is the
-				// bare base with the same head, override args[1] to match args[0].
+				// when args[i] is BoundGeneric of some base and args[j] is the
+				// bare base with the same head, override args[j] to match args[i].
+				// Also: when args[i] is bare base of retType's bg head, override
+				// to retType.
 				bg0 := boundGenericHeadName(paramsType.Children[0])
 				bare1 := bareNominalName(paramsType.Children[1])
 				if bg0 != "" && bg0 == bare1 {
-					// Preserve label.
 					lbl := ""
 					if paramsType.Children[1].Attrs != nil {
 						lbl = paramsType.Children[1].Attrs["swift.label"]
@@ -5539,6 +5540,25 @@ func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 						clone1.Attrs = newAttrs
 					}
 					paramsType.Children[1] = &clone1
+				}
+				// Per-arg: bare match against retType's bg head.
+				for i, child := range paramsType.Children {
+					if rep := normalize(child); rep != nil {
+						lbl := ""
+						if child.Attrs != nil {
+							lbl = child.Attrs["swift.label"]
+						}
+						clone := *rep
+						if lbl != "" {
+							newAttrs := map[string]string{}
+							for k, v := range rep.Attrs {
+								newAttrs[k] = v
+							}
+							newAttrs["swift.label"] = lbl
+							clone.Attrs = newAttrs
+						}
+						paramsType.Children[i] = &clone
+					}
 				}
 			}
 		}
