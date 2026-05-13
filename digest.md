@@ -1,16 +1,16 @@
 # Swift Production Digest
 
-**Parity**: 87.15% (55567/63757) — 2026-05-13T00:52:51Z
+**Parity**: 87.16% (55569/63757) — 2026-05-13T01:03:50Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 7948 parse-errors + 242 mismatches
+**Failures**: 7948 parse-errors + 240 mismatches
 
 ## Top-20 Mismatch Categories
 
 - property descriptor                        6
-- static (extension                          6
 - protocol conformance descriptor            5
 - (extension in Foundation):__C.NSFileHandle.Connect… 4
 - Foundation.AttributedString.init(localized: (exten… 4
+- static (extension                          4
 - (extension in Foundation):(extension in Foundation… 3
 - (extension in Foundation):Foundation.DiscreteForma… 2
 - (extension in Foundation):Swift.StringProtocol.com… 2
@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- b298b1f swift-parity: UC extractConstraintSig dep-member-conformance with back-ref subject (s<N><proto>A<L>_<N><assoc>S<L>RPz) — parity 87.15%→87.16% (+2 production)
+- 46cf6c8 chore: lock snapshot after UB (parity 55564→55567)
+- c82cc07 chore: update digest.md for UB (parity 55564→55567)
 - a6eb397 swift-parity: UB extractConstraintSig stdlib-protocol-qualified self-same-type (<N><Ident>S<L>QzRsz) — parity 87.14%→87.15% (+3 production)
 - 7bc38f8 chore: lock snapshot after UA (parity 55559→55564)
 - abbbd21 chore: update digest.md for UA (parity 55559→55564)
@@ -36,9 +39,6 @@
 - ff9a551 chore: lock snapshot after TY..TZ (parity 55520→55559)
 - b343e7e chore: update digest.md for TY..TZ (parity 55520→55559)
 - dc234a2 swift-parity: TZ Tn host-qualifier rule: Foundation/Swift (non-concurrency) qualified, others unqualified — parity 87.08%→87.08% (full count at fire end)
-- cfc9ec1 swift-parity: TY tryGlobalAssocConformanceDescriptor parse middle as type + host-based qualifier rule — parity 87.08%→87.08% (full count at fire end)
-- 37e60b8 Revert "swift-parity: TY tryGlobalAssocConformanceDescriptor parse middle as type + host-based qualifier rule — parity 87.08%→87.08% (full count at fire end)"
-- 8a6e87e swift-parity: TY tryGlobalAssocConformanceDescriptor parse middle as type + host-based qualifier rule — parity 87.08%→87.08% (full count at fire end)
 
 ## Suggested Next 3 Items
 
