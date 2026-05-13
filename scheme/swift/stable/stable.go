@@ -5426,9 +5426,46 @@ func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 			// directly) is also valid in some shorthand encodings — disambiguate
 			// by peeking: if byte after R is a known kind char and a valid
 			// subject byte follows, it's R<kind><subj>; else it's R<subj>.
+			// Depth-1 extension: R<kind>?d<demIdx><demIdx> encodes a depth-1
+			// subject (paramName = 'A'+paramIdx + (depthIdx+1) digits).
 			p.i++
 			if p.eof() {
 				break
+			}
+			// Depth-1 conformance (no kind byte): Rd<demIdx><demIdx>.
+			if p.s[p.i] == 'd' {
+				p.i++ // consume 'd'
+				readDemIdx := func() int {
+					if p.eof() {
+						return 0
+					}
+					if p.s[p.i] == '_' {
+						p.i++
+						return 0
+					}
+					if p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+						num := int(p.s[p.i] - '0')
+						p.i++
+						for !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+							num = num*10 + int(p.s[p.i]-'0')
+							p.i++
+						}
+						if !p.eof() && p.s[p.i] == '_' {
+							p.i++
+						}
+						return num + 1
+					}
+					return 0
+				}
+				depthIdx := readDemIdx()
+				paramIdx := readDemIdx()
+				if paramIdx < 26 && lastConProto != nil {
+					paramName := string(rune('A'+paramIdx)) + itoa(depthIdx+1)
+					protoStr := common.Print(lastConProto, common.DefaultPrintOptions())
+					initConstraints = append(initConstraints, paramName+": "+protoStr)
+				}
+				lastConProto = nil
+				continue
 			}
 			next := p.s[p.i]
 			var subj byte
