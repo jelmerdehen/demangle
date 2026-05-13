@@ -7795,8 +7795,13 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 			if serr == nil && !p.eof() {
 				nc := p.s[p.i]
 				// Allow nc=='v' when propTermAtEnd: the 'v' is the property terminal, not a type modifier.
+				// nc=='_' indicates tuple separator (multi-element tuple param), meaning
+				// the parsed type is the FIRST PARAM not the result — speculation wrong.
+				// nc=='t' indicates tuple terminator, similar: the parsed type was a
+				// tuple element, not the standalone result.
 				notTypeEnd := nc == 'F' || nc == 'l' || nc == 'K' || nc == 'Y' ||
-					nc == 'r' || nc == 'u' || (nc == 'v' && !propTermAtEnd)
+					nc == 'r' || nc == 'u' || nc == '_' || nc == 't' ||
+					(nc == 'v' && !propTermAtEnd)
 				if !notTypeEnd {
 					labels = append(labels, "_")
 					retNode = specResult
