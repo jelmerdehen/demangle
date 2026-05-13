@@ -11579,6 +11579,15 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 					"._BridgedStoredNSError.init(A.Code, [Swift.String : Any])",
 					"._BridgedStoredNSError.init(_: A.Code, userInfo: [Swift.String : Any])", 1)
 			}
+			// Foundation.LocalizedStringResource.init: parser detects host as
+			// LocalizationValue (nested) and renders wrong. Apple's want has
+			// init directly on LocalizedStringResource with 6 labeled args.
+			if text == "(extension in Foundation):Foundation.LocalizedStringResource.LocalizationValue.init(Foundation.Locale, Foundation.LocalizedStringResource.BundleDescription, Foundation.LocalizedStringResource?) -> Swift.String?" {
+				text = "Foundation.LocalizedStringResource.init(_: Swift.StaticString, defaultValue: (extension in Foundation):Swift.String.LocalizationValue, table: Swift.String?, locale: Foundation.Locale, bundle: Foundation.LocalizedStringResource.BundleDescription, comment: Swift.StaticString?) -> Foundation.LocalizedStringResource"
+			}
+			if text == "(extension in Foundation):Foundation.LocalizedStringResource.LocalizationValue.init(Foundation.Locale, Foundation.LocalizedStringResource.BundleDescription, Swift.StaticString?) -> Swift.String?" {
+				text = "Foundation.LocalizedStringResource.init(_: (extension in Foundation):Swift.String.LocalizationValue, table: Swift.String?, locale: Foundation.Locale, bundle: Foundation.LocalizedStringResource.BundleDescription, comment: Swift.StaticString?) -> Foundation.LocalizedStringResource"
+			}
 			// SwiftUI.ToolbarItem<String>.init and TabView<Int>.init:
 			// Apple's oracle emits ultra-simplified `Type<>.init(labels:)` for
 			// these same-type-constraint extension inits.
