@@ -8296,7 +8296,14 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 		// genuinely void in such cases (e.g. getLineStart/getParagraphStart).
 		if !hasInoutParam && !hasUMPParam {
 			selfTN := common.NewNode(common.KindBuiltinTypeName)
-			selfTN.Text = "(extension in Foundation):" + extHostMod + "." + hostPath
+			// Top-level ObjC-hosted methods (extHostMod="__C", flat hostPath):
+			// Apple renders return as bare "__C.NSDimension", not the
+			// extension form. Nested ObjC hosts keep the prefix.
+			if extHostMod == "__C" && !strings.Contains(hostPath, ".") {
+				selfTN.Text = extHostMod + "." + hostPath
+			} else {
+				selfTN.Text = "(extension in Foundation):" + extHostMod + "." + hostPath
+			}
 			selfT := common.NewNode(common.KindType)
 			common.AddChildren(selfT, selfTN)
 			retNode = selfT
