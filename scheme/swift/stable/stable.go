@@ -11314,8 +11314,7 @@ func (p *parser) tryGlobalAssocConformanceDescriptor() (*demangle.Node, bool) {
 		return nil, false
 	}
 	// Parse one or more dot-separated assoc names. Each is either a
-	// length-prefixed ident or a compact stdlib (S<L>) that we render
-	// by its name.
+	// length-prefixed ident or a compact stdlib (S<L>) rendered by name.
 	var assocParts []string
 	for p.i < end {
 		if p.s[p.i] >= '0' && p.s[p.i] <= '9' {
@@ -11325,51 +11324,45 @@ func (p *parser) tryGlobalAssocConformanceDescriptor() (*demangle.Node, bool) {
 				return nil, false
 			}
 			assocParts = append(assocParts, id)
-		} else if p.s[p.i] == 'S' && p.i+1 < end {
-			if p.s[p.i+1] == 'c' && p.i+2 < end {
-				if e2, ok := common.StdlibLookup2(p.s[p.i+2]); ok {
-					assocParts = append(assocParts, e2.Name)
-					p.i += 3
-					continue
-				}
-			}
-			if e, ok := common.StdlibLookup(p.s[p.i+1]); ok {
-				assocParts = append(assocParts, e.Name)
-				p.i += 2
-				continue
-			}
-			break
 		} else {
 			break
 		}
-		// After parsing one part, check for back-ref marker. Two forms:
-		//   '_<constraint>' — end of assoc chain.
-		//   '<S-letter|Sc-letter|digit-ident>...' — continued assoc chain
-		//     OR host back-ref. Heuristic: stop when current byte is '_'.
+		// Stop at the '_' constraint separator OR when the next byte
+		// begins a TYPE that names the assoc's owning protocol (the
+		// "middle" segment of Apple's output).
 		if p.i < end && p.s[p.i] == '_' {
 			break
 		}
-		// Accept a back-ref form before '_': A<UPPER>, S<letter>, Sc<letter>.
-		// Consume it (it represents the host repeat) then expect '_'.
-		if p.i < end && p.s[p.i] == 'A' && p.i+1 < end &&
-			p.s[p.i+1] >= 'A' && p.s[p.i+1] <= 'Z' {
-			p.i += 2
-			break
-		}
-		if p.i < end && p.s[p.i] == 'S' && p.i+1 < end {
-			if p.s[p.i+1] == 'c' && p.i+2 < end {
-				if _, ok := common.StdlibLookup2(p.s[p.i+2]); ok {
-					p.i += 3
-					break
-				}
-			}
-			if _, ok := common.StdlibLookup(p.s[p.i+1]); ok {
-				p.i += 2
+		// If next byte begins a parseType token, stop assoc-name loop —
+		// next token is the middle protocol type.
+		if p.i < end {
+			b := p.s[p.i]
+			if b == 'A' || b == 'S' || b == 's' {
 				break
 			}
 		}
 	}
 	if len(assocParts) == 0 {
+		revert()
+		return nil, false
+	}
+	// Parse the middle protocol Type (the owner of the assoc), which is
+	// either a back-ref to the host or a separate protocol (e.g. SY =
+	// RawRepresentable when host is _UIKitNumericRawRepresentable).
+	if p.i >= end {
+		revert()
+		return nil, false
+	}
+	middle, merr := p.parseType()
+	if merr != nil {
+		revert()
+		return nil, false
+	}
+	middleInner := middle
+	if common.NodeKind(middleInner.Kind) == common.KindType && len(middleInner.Children) > 0 {
+		middleInner = middleInner.Children[0]
+	}
+	if common.NodeKind(middleInner.Kind) != common.KindProtocol {
 		revert()
 		return nil, false
 	}
@@ -11404,7 +11397,17 @@ func (p *parser) tryGlobalAssocConformanceDescriptor() (*demangle.Node, bool) {
 	//   - Swift-stdlib s<digit><name> path → "Swift.X" (matches above).
 	//   - Sc<letter> level-2 concurrency → NO module prefix.
 	//   - Other modules (Combine, SwiftUI, UIKit, …) → NO module prefix.
-	qualifyProto := func(n *demangle.Node) string {
+	isCompactStdlibName := func(name string) bool {
+		found := false
+		common.EachStdlibSubstitution(func(_ byte, e common.StdlibEntry) {
+			if e.Name == name {
+				found = true
+			}
+		})
+		return found
+	}
+	// extractModName returns (mod, name, isConcurrency) for a Protocol node.
+	extractModName := func(n *demangle.Node) (string, string, bool) {
 		mod := ""
 		name := ""
 		isConcurrency := false
@@ -11419,7 +11422,24 @@ func (p *parser) tryGlobalAssocConformanceDescriptor() (*demangle.Node, bool) {
 				name = ch.Text
 			}
 		}
-		if isConcurrency {
+		return mod, name, isConcurrency
+	}
+	// hostQualified: when host is Foundation OR Swift-compact-stdlib (e.g.
+	// SB=BinaryFloatingPoint), Apple emits module-qualified names for all
+	// segments. Otherwise (user modules, concurrency, s<digit><name> path)
+	// all segments are unqualified.
+	hMod, hName, hConcurrency := extractModName(hostInner)
+	hostQualified := false
+	if !hConcurrency {
+		if hMod == "Foundation" {
+			hostQualified = true
+		} else if hMod == "Swift" && isCompactStdlibName(hName) {
+			hostQualified = true
+		}
+	}
+	qualifyProto := func(n *demangle.Node) string {
+		mod, name, _ := extractModName(n)
+		if !hostQualified {
 			return name
 		}
 		if mod == "Foundation" || mod == "Swift" {
@@ -11428,14 +11448,15 @@ func (p *parser) tryGlobalAssocConformanceDescriptor() (*demangle.Node, bool) {
 		return name
 	}
 	hostName := qualifyProto(hostInner)
+	middleName := qualifyProto(middleInner)
 	constraintName := qualifyProto(cInner)
-	if hostName == "" || constraintName == "" {
+	if hostName == "" || middleName == "" || constraintName == "" {
 		revert()
 		return nil, false
 	}
 	assocPath := strings.Join(assocParts, ".")
 	wrap := common.NewNode(common.KindTypeMangling)
-	wrap.Text = "associated conformance descriptor for " + hostName + "." + hostName + "." + assocPath + ": " + constraintName
+	wrap.Text = "associated conformance descriptor for " + hostName + "." + middleName + "." + assocPath + ": " + constraintName
 	wrap.Attrs = map[string]string{"swift.suffix": "Tn", "swift.prerendered": "true"}
 	return wrap, true
 }
