@@ -267,6 +267,7 @@ Caveman: fire-internal terse OK; commits/code/comments normal.
 ## Lessons / wins (≤800 chars, merge-before-append, drop oldest at cap)
 
 <!-- newest on top -->
+- XX: extend XS bound-generic-host push to case-stdlib `s<n><name><kind>` path (ArraySlice etc.). Set stdlibShortNode=typeNode2 in the s<n> handler so the existing XS branch fires for op-decl ext on Swift-module full-name struct/class/enum hosts. AD-style back-refs in args now resolve to the bound-generic slot. +3 prod (ArraySlice ==, CountedRange ==, etc.).
 - XS: build on XR by pushing bound-generic host (Dictionary<A,B>, [A], A?) to subs for stdlib-shorthand-host operator-decl extensions. XR freed the subs slot by skipping Identifier push; XS fills it. AB sub-ref now resolves to bound-generic instead of Module(Swift). Gated on declIsOp && stdlibShortNode (no regression on non-op paths). +5 prod (Dict/Array/Opt == infix cluster).
 - XR: tryTypeFirstExtensionEntity nested-type-loop skip Identifier push when op-decl follows. +1 prod alone (paired with XS for +5).
 - XQ: tryTypeFirstExtensionEntity ext-mod parsing missing A<letter>E back-ref branch. PAAE same-mod ext needs AA→subs[0]. +1 prod.
