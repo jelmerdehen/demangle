@@ -190,9 +190,9 @@ Caveman: fire-internal terse OK; commits/code/comments normal.
 ## Lessons / wins (≤800 chars, merge-before-append, drop oldest at cap)
 
 <!-- newest on top -->
+- 2026-05-13 WX: SwiftUI same-type-constraint ext entities (ToolbarItem/TabView init, Gesture.values) emit `Type<>.<decl>(labels)` ultra-simplified form per Apple oracle, with cascading opaque-type-descriptor wrap. +4 prod.
 - 2026-05-13 WW: Conformance descriptor + protocol witness table emit at tryConformanceDescriptorMc tail — Apple oracle quirk for CGFloat:UIKit.Concatenatable emits bare CGFloat. +2 prod.
 - 2026-05-13 WU/WV: Init-entity verbose render (tryInitDeinitEntity ~line 5721 sbFull) accepts narrow text-replace; WeekendRange + _StringObject.init compact-label collapse restored. +2 prod.
-- 2026-05-13 WT: Closure ret-type narrow text-replace for back-ref-resolves-to-outer-host pattern. LazySequenceProtocol.compactMap/flatMap closure `LazyMapSequence`→`A1?`. +2 prod.
 
 ## Lessons / traps (≤500 chars, merge-before-append, drop oldest at cap)
 
