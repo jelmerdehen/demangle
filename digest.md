@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 87.55% (55817/63757) — 2026-05-13T11:01:06Z
+**Parity**: 87.55% (55819/63757) — 2026-05-13T11:04:32Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 7911 parse-errors + 29 mismatches
+**Failures**: 7911 parse-errors + 27 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -10,8 +10,6 @@
 - Foundation.AttributedString.init(localized: (exten… 4
 - Foundation.AttributedString.init(localized: Swift.… 2
 - (extension in Swift):Swift.FlattenSequence< where … 1
-- (extension in Swift):Swift.LazySequenceProtocol.co… 1
-- (extension in Swift):Swift.LazySequenceProtocol.fl… 1
 - (extension in Swift):Swift.Slice< where A: Swift.B… 1
 - Foundation.Expression.init((repeat Foundation.Pred… 1
 - Foundation.LocalePreferences.init(metricUnits: Swi… 1
@@ -26,9 +24,13 @@
 - TabView<>.init(content:)                   1
 - ToolbarItem<>.init(id:placement:showsByDefault:con… 1
 - opaque type descriptor                     1
+- protocol witness table                     1
 
 ## Last 10 Commits
 
+- 4714578 swift-parity: WT Swift.LazySequenceProtocol.{compactMap,flatMap} closure ret-type Swift.LazyMapSequence→A1? — parity 87.56%→87.57% (+2 production)
+- 77baaad chore: lock snapshot after WR..WS (parity 55815→55817)
+- 04a83c6 chore: update digest.md for WR..WS (parity 55815→55817)
 - 28f5368 swift-parity: WS Dispatch.dispatch_data_create_subrange restore 3 labels (parser collapsed 3 args to 1) via narrow text replace — parity 87.56%→87.56% (+1 production)
 - 8820faf swift-parity: WR Combine.Scheduler.schedule(after:interval:_:) trailing-_ label drop in simplified ext-method emit — parity 87.56%→87.56% (+1 production)
 - e48697f chore: lock snapshot after WQ (parity 55814→55815)
@@ -36,9 +38,6 @@
 - 0bec078 swift-parity: WQ SwiftUI._ViewListOutputs.mapKitUnaryViewList(view:inputs:) restore lost 2-label split in simplified emit — parity 87.56%→87.56% (+1 production)
 - 6a30c16 chore: lock snapshot after WP (parity 55813→55814)
 - 980da78 chore: update digest.md for WP (parity 55813→55814)
-- 9036f1b swift-parity: WP Foundation._StringProcessing.RegexComponent.iso8601WithTimeZone Swift.ObjectIdentifier→Foundation.Date.ISO8601FormatStyle assoc-type substitution — parity 87.56%→87.56% (+1 production)
-- 0cbdfa9 chore: lock snapshot after WO (parity 55812→55813)
-- 207271d chore: update digest.md for WO (parity 55812→55813)
 
 ## Suggested Next 3 Items
 
