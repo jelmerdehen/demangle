@@ -5793,23 +5793,46 @@ func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 		}
 	}
 	paramsStr := "(" + strings.Join(lbls, "") + ")"
-	// For ufC inits (own generic where-clause), collect depth-0 generic param
-	// names (A, B, C…) from retType + paramsType to display as "<A>", "<A, B>".
-	// cfC inits of generic types inherit type params — no display needed.
+	// For ufC inits (own generic where-clause), collect generic param names from
+	// retType + paramsType to display as "<A>", "<A, B>". Local generics
+	// (depth-1+, e.g. qd__ → "A1") take precedence: when present, Apple only
+	// emits the LOCAL generics (renamed A, B, …) — the host's depth-0 type
+	// generics are inherited and not redisplayed. cfC inits of generic types
+	// inherit type params entirely — no display needed.
 	var genParamsStr string
 	if isUFCTerminal {
 		maxIdx := -1
+		maxLocalIdx := -1
 		var collectGP func(n *demangle.Node)
 		collectGP = func(n *demangle.Node) {
 			if n == nil {
 				return
 			}
-			if common.NodeKind(n.Kind) == common.KindDependentGenericParamType &&
-				len(n.Text) == 1 && n.Text[0] >= 'A' && n.Text[0] <= 'Z' {
-				if idx := int(n.Text[0] - 'A'); idx > maxIdx {
-					maxIdx = idx
+			if common.NodeKind(n.Kind) == common.KindDependentGenericParamType {
+				if len(n.Text) == 1 && n.Text[0] >= 'A' && n.Text[0] <= 'Z' {
+					if idx := int(n.Text[0] - 'A'); idx > maxIdx {
+						maxIdx = idx
+					}
+					return
 				}
-				return
+				if len(n.Text) >= 2 && n.Text[0] >= 'A' && n.Text[0] <= 'Z' {
+					tail := n.Text[1:]
+					allDigits := true
+					for i := 0; i < len(tail); i++ {
+						if tail[i] < '0' || tail[i] > '9' {
+							allDigits = false
+							break
+						}
+					}
+					if allDigits {
+						// Depth-1+ local generic (A1, A2, B1, …). Track unique
+						// names so the local-count rename is stable.
+						idx := int(n.Text[0]-'A') + (len(tail)-1)*26
+						if idx > maxLocalIdx {
+							maxLocalIdx = idx
+						}
+					}
+				}
 			}
 			for _, ch := range n.Children {
 				collectGP(ch)
@@ -5817,7 +5840,14 @@ func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 		}
 		collectGP(retType)
 		collectGP(paramsType)
-		if maxIdx >= 0 {
+		// Local generics present → emit only the local count.
+		if maxLocalIdx >= 0 {
+			names := make([]string, maxLocalIdx+1)
+			for i := range names {
+				names[i] = string(rune('A' + i))
+			}
+			genParamsStr = "<" + strings.Join(names, ", ") + ">"
+		} else if maxIdx >= 0 {
 			names := make([]string, maxIdx+1)
 			for i := range names {
 				names[i] = string(rune('A' + i))
