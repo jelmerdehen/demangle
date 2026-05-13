@@ -1,15 +1,15 @@
 # Swift Production Digest
 
-**Parity**: 87.52% (55797/63757) — 2026-05-13T10:12:17Z
+**Parity**: 87.52% (55799/63757) — 2026-05-13T10:18:23Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 7911 parse-errors + 49 mismatches
+**Failures**: 7911 parse-errors + 47 mismatches
 
 ## Top-20 Mismatch Categories
 
 - protocol conformance descriptor            5
 - Foundation.AttributedString.init(localized: (exten… 4
 - static (extension                          4
-- (extension in Foundation):(extension in Foundation… 3
+- (extension in Foundation):(extension in Foundation… 2
 - Foundation.AttributedString.init(localized: Swift.… 2
 - (extension in Foundation):Foundation.CodableConfig… 1
 - (extension in Foundation):Foundation._BridgedStore… 1
@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- 39b4abe swift-parity: WE Foundation.Measurement.FormatStyle<NSUIS>.ByteCount.attributed.getter/property descriptor ret-type restore to nested AttributedStyle.ByteCount — parity 87.54%→87.55% (+2 production)
+- e811225 chore: lock snapshot after WD (parity 55795→55797)
+- 18d68e9 chore: update digest.md for WD (parity 55795→55797)
 - 447bcd4 swift-parity: WD Foundation.Measurement.FormatStyle.attributed.getter/property descriptor ret-type restore to AttributedStyle nested type — parity 87.54%→87.54% (+2 production)
 - 69d17c4 chore: lock snapshot after WC (parity 55792→55795)
 - 2711326 chore: update digest.md for WC (parity 55792→55795)
@@ -36,12 +39,9 @@
 - c6d8aed chore: lock snapshot after WB (parity 55788→55792)
 - c60c5ee chore: update digest.md for WB (parity 55788→55792)
 - c24fa58 swift-parity: WB Dispatch.DispatchData{.Region,}.regions getter+property descriptor BG-inner restore via post-emit string sub in tryExtensionEntity — parity 87.52%→87.53% (+4 production)
-- 5842c7f chore: lock snapshot after WA (parity 55786→55788)
-- 6d632bf chore: update digest.md for WA (parity 55786→55788)
-- 84e4b2a swift-parity: WA Foundation.DiscreteFormatStyle.input(after/before:) strip duplicate constraint + bare Foundation → Swift.Duration assoc-type substitution — parity 87.52%→87.52% (+2 production)
 
 ## Suggested Next 3 Items
 
 1. P2: protocol conformance descriptor — 5 mismatches
 2. P10: opaque type descriptor — 1 mismatches
-3. P1: property descriptor fix — 1 mismatches
+3. P5: protocol witness table — 1 mismatches
