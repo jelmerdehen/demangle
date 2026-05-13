@@ -8095,9 +8095,25 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 				common.AddChildren(selfT, selfTN)
 				retNode = selfT
 			}
+			// Nested-init in a constrained Swift extension: the return type
+			// (Self) renders verbosely with the full extension-qualified path
+			// "(extension in Swift):Swift.<Base><A><extSig>.<Nested>", not
+			// the bare "Nested<A>" form the bound-generic parser produced.
+			retOverride := ""
+			if verbose && extSig != "" && nestedSuffix != "" && retNode != nil {
+				bareRet := common.Print(retNode, opts)
+				simpleNested := strings.TrimPrefix(nestedSuffix, ".")
+				if bareRet == simpleNested+"<A>" || bareRet == simpleNested {
+					retOverride = " -> (extension in Swift):Swift." + baseHostPath + "<A>" + extSig + nestedSuffix
+				}
+			}
 			wrap := common.NewNode(common.KindTypeMangling)
 			if verbose {
-				wrap.Text = "(extension in Swift):Swift." + baseHostPath + extSig + nestedSuffix + ".init" + verboseParamStr(labels) + verboseRetStr(true)
+				retStr := verboseRetStr(true)
+				if retOverride != "" {
+					retStr = retOverride
+				}
+				wrap.Text = "(extension in Swift):Swift." + baseHostPath + extSig + nestedSuffix + ".init" + verboseParamStr(labels) + retStr
 			} else if modName == "Foundation" && extHostMod != "" {
 				wrap.Text = "(extension in Foundation):" + extHostMod + "." + hostPath + ".init" + verboseParamStr(labels) + verboseRetStr(true)
 			} else {
