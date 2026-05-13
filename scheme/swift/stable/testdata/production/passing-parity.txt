@@ -1,4 +1,4 @@
-# snapshot-pass-set update 2026-05-13T11:10:55Z — union with previous (high-water)
+# snapshot-pass-set update 2026-05-13T11:14:48Z — union with previous (high-water)
 _$s10Foreground7SwiftUI18LabelGroupStyle_v0PTl
 _$s10Foundation10CocoaErrorV010formattingC0AC4CodeVvgZ
 _$s10Foundation10CocoaErrorV010formattingC0AC4CodeVvpZMV
@@ -11957,6 +11957,8 @@ _$s12CoreGraphics7CGFloatV10FoundationE36_unconditionallyBridgeFromObjectiveCyAC
 _$s12CoreGraphics7CGFloatV10FoundationE4_argACvg
 _$s12CoreGraphics7CGFloatV10FoundationE4_argACvpMV
 _$s12CoreGraphics7CGFloatV10FoundationE7exactlyACSgSo8NSNumberCh_tcfC
+_$s12CoreGraphics7CGFloatV5UIKit14ConcatenatableADMc
+_$s12CoreGraphics7CGFloatV5UIKit14ConcatenatableADWP
 _$s12CoreGraphics7CGFloatVs21_ObjectiveCBridgeable10FoundationMc
 _$s12FormatOutput10Foundation0A5StylePTl
 _$s12ItemModifier7SwiftUI17_ScrollableLayoutPTl
