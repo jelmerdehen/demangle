@@ -171,6 +171,7 @@ Caveman: fire-internal terse OK; commits/code/comments normal.
 ## Lessons / wins (≤800 chars, merge-before-append, drop oldest at cap)
 
 <!-- newest on top -->
+- 2026-05-13 VB: captureWords dedup + restore p.words on try* reverts — duplicates in p.words shifted word-sub idx by N; +12 prod once dedup'd (DropWhileSequence, Mirror et al.).
 - 2026-05-13 UL: operator-binary symmetry post-process — when args has 2 typed children and 2nd is bare base of 1st's bound-generic, rewrite 2nd to match 1st. Cheap +40 prod via single rule; avoids subs-alignment surgery.
 - 2026-05-13 TG/TH-meta: tryFunctionEntity param-tuple has TWO sub-loops (`_`-led + contiguous). Compact/expand helpers MUST go in BOTH. TG/TH +2 each only after second loop patched.
 - 2026-05-12 SX/SN: shared subs + mutation = silent contamination. Clone-before-attr/label for tuple-elem mods (+108) and per-elem labels (+2). Audit parseNumericSubstitution-result mutations.
