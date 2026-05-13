@@ -21605,6 +21605,13 @@ func (p *parser) tryDependentMemberType() (*demangle.Node, bool) {
 	case 'z':
 		paramName = "A"
 	case 'y', 'Y':
+		// Depth-1 extension: 'Qyd__' / 'Qyd<N>_' mirrors genericParam(1, idx)
+		// → A1/B1/... at the with-proto-type form.
+		depth := 0
+		if !p.eof() && p.s[p.i] == 'd' {
+			depth = 1
+			p.i++
+		}
 		start := p.i
 		for !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
 			p.i++
@@ -21621,8 +21628,15 @@ func (p *parser) tryDependentMemberType() (*demangle.Node, bool) {
 			n++ // Apple: Qy<digit>_ = idx N+1
 		}
 		p.i++ // '_'
-		// y_/Y_ without digit → idx 1 (B). With digit N → idx N+1.
-		paramName = string(rune('B' + byte(n)))
+		if depth == 1 {
+			if n == 0 && !p.eof() && p.s[p.i] == '_' {
+				p.i++ // optional second '_' for pack-index zero
+			}
+			paramName = string(rune('A'+byte(n))) + "1"
+		} else {
+			// y_/Y_ without digit → idx 1 (B). With digit N → idx N+1.
+			paramName = string(rune('B' + byte(n)))
+		}
 	default:
 		revert()
 		return nil, false
