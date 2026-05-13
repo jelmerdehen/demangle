@@ -5453,6 +5453,21 @@ func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 					}
 					return
 				}
+				// Also detect generic-param references baked into BuiltinTypeName
+				// text (e.g. "A.Type", "A.CodeUnit") — the metatype postfix
+				// collapses the DependentGenericParamType into the literal text.
+				if common.NodeKind(n.Kind) == common.KindBuiltinTypeName && len(n.Text) >= 2 {
+					t := n.Text
+					// Walk through `A.X.Y...` patterns separated by `.`; require
+					// upper-case single-letter then `.`.
+					for i := 0; i+1 < len(t); i++ {
+						if (i == 0 || t[i-1] == '.') && t[i] >= 'A' && t[i] <= 'Z' && t[i+1] == '.' {
+							if idx := int(t[i] - 'A'); idx > maxIdx {
+								maxIdx = idx
+							}
+						}
+					}
+				}
 				for _, ch := range n.Children {
 					collectGPVerbose(ch)
 				}
