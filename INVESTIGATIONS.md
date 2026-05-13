@@ -54,9 +54,13 @@ Pattern: `<host>P AA <concrete-type><N><assoc>Rtz <constraints>... rl E <decl>..
 
 Drained by XP — operator-designator handler in tryTypeFirstExtensionEntity nested-type-loop.
 
-### paae-same-mod-allowance-roundtrip-regression [XR attempt, ~85 parity gain but -295 roundtrip]
+### paae-same-mod-allowance-roundtrip-regression [XR attempt, +85 parity / -295 roundtrip, reverted]
 
-For PAAE protocol-extension-same-module-backref (Combine.Publisher / SwiftUI.View), removing the `extHostMod != "Swift" && extHostMod != "__C"` bail in tryTypeFirstExtensionEntity (adding `modName != extHostMod` allowance) unlocked +85 parity but lost 295 roundtrip syms. Roundtrip emit's remangler doesn't understand the path. Multi-fire: either (a) confirm roundtripping pipeline handles the same-module-ext branch, (b) emit via a different code path that round-trips OK.
+PAAE pattern same-mod allowance in tryTypeFirstExtensionEntity (line 7761 check): `modName != extHostMod` exception unlocks +85 parity but breaks 295 roundtrip — remangler doesn't roundtrip the new emit path. Needs paired remangler fix.
+
+### dict-array-optional-equatable-second-param-resolution [Dict/Array/Optional == infix, 20+ syms]
+
+Pattern: `S<letter><sSQR<subj>rl>E2eeoi y Sb <host-bound-generic> _ AB t FZ`. Equatable `==` operator extensions on stdlib-shorthand hosts. Got: second param emits "Swift" (Module). Want: bound-generic host like `[A : B]`, `[A]`, `A?`. AB sub-ref resolves to subs[1] but parsing path doesn't push bound-generic to subs at that index — parseType skips push when parsedRawStdlib=true (followed by 'y') and tryBoundGeneric's push goes to wrong slot relative to deferred module push.
 
 ### depth-1-generic-bucket [~500+ syms across receive, withUnsafeBytes, alert, observe, ...]
 
