@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 88.93% (56698/63757) — 2026-05-13T18:29:11Z
+**Parity**: 88.93% (56699/63757) — 2026-05-13T18:36:35Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 7016 parse-errors + 43 mismatches
+**Failures**: 7015 parse-errors + 43 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,16 +29,16 @@
 
 ## Last 10 Commits
 
+- af66e77 chore: INVESTIGATIONS — ZH +5 / ZI +50 / ZJ -32 regressed (Mc render gate too broad)
+- 52a8587 chore: lock snapshot after ZI commit (parity 56648 to 56698)
+- 01df0b9 chore: update digest.md for ZI commit (parity 88.85->88.93)
+- e0c423f swift-parity: ZI tryConformanceDescriptorMc S<letter> stdlib proto — parity 88.85%->88.93% (+50 production)
 - d6dcd1f chore: lock snapshot after ZH commit (parity 56643 to 56648)
 - 4e35f31 chore: update digest.md for ZH commit (parity 88.84->88.85 +5)
 - dc11586 swift-parity: ZH tryInitDeinitEntity R<kind>?<digit>_ depth-0 numeric subj — parity 88.84%->88.85% (+5 production)
 - d3ffa72 chore: INVESTIGATIONS — ZG empty (function-entity R<kind>d depth-1 unlocks 0)
 - f810cab chore: INVESTIGATIONS — ZA-ZE landed +295 prod; ZF empty (bare-R depth-1 unlocks 0)
 - 6a0d58b chore: lock snapshot after ZE commit (parity 56641 to 56643)
-- fc25223 chore: update digest.md for ZE commit (parity 88.84->88.84 +2)
-- 989f37e swift-parity: ZE tryInitDeinitEntity R<kind>d depth-1 — parity 88.84%->88.84% (+2 production)
-- fc4c5db chore: lock snapshot after ZD commit (parity 56627 to 56641)
-- b68eb90 chore: update digest.md for ZD commit (parity 88.82->88.84)
 
 ## Suggested Next 3 Items
 
