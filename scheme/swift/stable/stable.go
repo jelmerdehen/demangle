@@ -15348,6 +15348,84 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 			}
 		}
 	}
+	// Collection.index(_:offsetBy:limitedBy:) → (Index, Int, Index) -> Index?
+	// The mangled `Sg` attaches to the Index sub which back-refs use for both
+	// arg[0] and arg[2]; Apple's model has Sg on the result only. Detect a
+	// 3-arg method named "index" with labels _/offsetBy/limitedBy where
+	// args[0] == args[2] == ret and strip outer Optional from arg[0] and arg[2].
+	if args != nil && ret != nil && common.NodeKind(args.Kind) == common.KindTypeList &&
+		len(args.Children) == 3 && len(pathSteps) > 0 {
+		last := pathSteps[len(pathSteps)-1]
+		if last != nil && common.NodeKind(last.Kind) == common.KindIdentifier && last.Text == "index" {
+			combined := ""
+			if args.Attrs != nil {
+				combined = args.Attrs["swift.labels"]
+			}
+			labels0, labels1, labels2 := "", "", ""
+			if args.Children[0].Attrs != nil {
+				labels0 = args.Children[0].Attrs["swift.label"]
+			}
+			if args.Children[1].Attrs != nil {
+				labels1 = args.Children[1].Attrs["swift.label"]
+			}
+			if args.Children[2].Attrs != nil {
+				labels2 = args.Children[2].Attrs["swift.label"]
+			}
+			if combined != "" && labels0 == "" && labels1 == "" && labels2 == "" {
+				parts := strings.Split(combined, "\x00")
+				if len(parts) >= 3 {
+					labels0, labels1, labels2 = parts[0], parts[1], parts[2]
+				}
+			}
+			if (labels0 == "_" || labels0 == "") && labels1 == "offsetBy" && labels2 == "limitedBy" {
+				a0 := common.Print(args.Children[0], common.DefaultPrintOptions())
+				a2 := common.Print(args.Children[2], common.DefaultPrintOptions())
+				r := common.Print(ret, common.DefaultPrintOptions())
+				if a0 == a2 && a0 == r && strings.HasSuffix(a0, "?") {
+					stripOpt := func(n *demangle.Node) *demangle.Node {
+						if common.NodeKind(n.Kind) != common.KindType || len(n.Children) == 0 {
+							return n
+						}
+						inner := n.Children[0]
+						if common.NodeKind(inner.Kind) != common.KindBoundGenericEnum ||
+							len(inner.Children) < 2 {
+							return n
+						}
+						tl := inner.Children[1]
+						if common.NodeKind(tl.Kind) != common.KindTypeList || len(tl.Children) == 0 {
+							return n
+						}
+						return tl.Children[0]
+					}
+					newA0 := stripOpt(args.Children[0])
+					newA2 := stripOpt(args.Children[2])
+					if newA0 != args.Children[0] && newA2 != args.Children[2] {
+						// Clone to avoid mutating a shared sub-back-ref node.
+						clone0 := *newA0
+						clone2 := *newA2
+						clone0.Attrs = map[string]string{}
+						clone2.Attrs = map[string]string{}
+						for k, v := range newA0.Attrs {
+							clone0.Attrs[k] = v
+						}
+						for k, v := range newA2.Attrs {
+							clone2.Attrs[k] = v
+						}
+						if labels0 == "_" {
+							clone0.Attrs["swift.label"] = "_"
+						} else if labels0 != "" {
+							clone0.Attrs["swift.label"] = labels0
+						} else {
+							delete(clone0.Attrs, "swift.label")
+						}
+						clone2.Attrs["swift.label"] = labels2
+						args.Children[0] = &clone0
+						args.Children[2] = &clone2
+					}
+				}
+			}
+		}
+	}
 	if args != nil && common.NodeKind(args.Kind) == common.KindTypeList && len(args.Children) == 2 {
 		isEquatableOp := false
 		isIdentityOp := false
