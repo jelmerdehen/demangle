@@ -16210,6 +16210,33 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 			}
 		}
 	}
+	// Foundation.Platform.copyCString(dst:src:size:): src arg wrongly has an
+	// extra UnsafeMutablePointer wrap (UnsafePointer<UnsafeMutablePointer<Int8>>);
+	// Apple's model has UnsafePointer<Int8> (matching dst's inner). Strip the
+	// extra layer.
+	if mod == "Foundation" && args != nil &&
+		common.NodeKind(args.Kind) == common.KindTypeList && len(args.Children) == 3 &&
+		len(pathSteps) >= 3 {
+		hostStep := pathSteps[len(pathSteps)-2]
+		last := pathSteps[len(pathSteps)-1]
+		if hostStep != nil && hostStep.Text == "Platform" &&
+			last != nil && last.Text == "copyCString" {
+			p1Str := common.Print(args.Children[1], common.DefaultPrintOptions())
+			if p1Str == "Swift.UnsafePointer<Swift.UnsafeMutablePointer<Swift.Int8>>" {
+				tn := common.NewNode(common.KindBuiltinTypeName)
+				tn.Text = "Swift.UnsafePointer<Swift.Int8>"
+				w := common.NewNode(common.KindType)
+				common.AddChildren(w, tn)
+				if args.Children[1].Attrs != nil {
+					w.Attrs = map[string]string{}
+					for k, v := range args.Children[1].Attrs {
+						w.Attrs[k] = v
+					}
+				}
+				args.Children[1] = w
+			}
+		}
+	}
 	common.AddChildren(entity, path, args, ret)
 
 	opts := common.DefaultPrintOptions()
