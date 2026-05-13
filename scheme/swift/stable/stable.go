@@ -5096,16 +5096,30 @@ func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 	// multi-element tuple encoded as <el0> '_' <el1> <el2>... 't'.
 	var paramsType *demangle.Node
 	if !p.eof() && p.s[p.i] == 'y' {
-		// 'y' can be either: empty-params marker, or start of a function-type
-		// argument (e.g. yXlc = (AnyObject) -> ()). Try parseType() which
-		// calls parseFunctionType; fall back to empty-list on failure.
-		saveY := p.i
-		pt, yErr := p.parseType()
-		if yErr == nil {
+		// 'y' can be: (1) empty-params marker, (2) start of a function-type
+		// argument (e.g. yXlc = (AnyObject) -> ()), or (3) the proto-list-empty
+		// marker consumed by a following X-special-form like Xl
+		// (ProtocolListWithAnyObject). Apple's model: Xl pops an EmptyList from
+		// the node stack and produces AnyObject. In our recursive parser, the
+		// `y` is consumed here as part of the params-slot, then `Xl` produces
+		// AnyObject — so the single-arg-tuple is `(AnyObject)`, not a closure.
+		if p.i+2 < len(p.s) && p.s[p.i+1] == 'X' && p.s[p.i+2] == 'l' {
+			p.i++ // consume y as proto-list-empty marker for Xl
+			pt, err := p.parseType()
+			if err != nil {
+				restore()
+				return nil, false, nil
+			}
 			paramsType = pt
 		} else {
-			p.i = saveY + 1 // consume 'y' as empty-params marker
-			paramsType = common.NewNode(common.KindEmptyList)
+			saveY := p.i
+			pt, yErr := p.parseType()
+			if yErr == nil {
+				paramsType = pt
+			} else {
+				p.i = saveY + 1 // consume 'y' as empty-params marker
+				paramsType = common.NewNode(common.KindEmptyList)
+			}
 		}
 	} else {
 		firstParam, err := p.parseType()
@@ -6117,7 +6131,7 @@ func (p *parser) tryEntitySuffix(inner *demangle.Node) (*demangle.Node, bool) {
 				}
 			}
 		case 'S':
-			prefix = "self-conformance witness for "
+			prefix = "protocol self-conformance witness table for "
 		case 'J':
 			// WJ<variant><subset>p<subset>r — differentiability witness.
 			// Mirrors the TJ form but renders as "<variant> mode
