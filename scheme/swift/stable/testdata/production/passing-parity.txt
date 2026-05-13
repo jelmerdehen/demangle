@@ -1,4 +1,4 @@
-# snapshot-pass-set update 2026-05-13T12:53:18Z — union with previous (high-water)
+# snapshot-pass-set update 2026-05-13T13:02:54Z — union with previous (high-water)
 _$s10Foreground7SwiftUI18LabelGroupStyle_v0PTl
 _$s10Foundation10CocoaErrorV010formattingC0AC4CodeVvgZ
 _$s10Foundation10CocoaErrorV010formattingC0AC4CodeVvpZMV
@@ -38334,6 +38334,7 @@ _$sSM6swapAtyy5IndexQz_ACtFTq
 _$sSMMp
 _$sSMTL
 _$sSMsE13moveSubranges_2toSny5IndexQzGs8RangeSetVyADG_ADtF
+_$sSMsE6swapAtyy5IndexQz_ACtF
 _$sSMsSKRzrlE7reverseyyF
 _$sSMsSKRzrlE8_reverse6withinySny5IndexSlQzG_tF
 _$sSMsSkRzSL7ElementSTRpzrlE4sortyyF
@@ -51797,6 +51798,9 @@ _$ss4SIMDPsE9replacing4with5wherex6ScalarQz_s8SIMDMaskVy11MaskStorageQzGtF
 _$ss4SIMDPsE9replacing4with5wherexx_s8SIMDMaskVy11MaskStorageQzGtF
 _$ss4SIMDPsSB6ScalarRpzs17FixedWidthIntegerAC_14RawSignificandSBRPzrlE6random2inxSNyADG_tFZ
 _$ss4SIMDPsSB6ScalarRpzs17FixedWidthIntegerAC_14RawSignificandSBRPzrlE6random2inxSnyADG_tFZ
+_$ss4SIMDPsSF6ScalarRpzrlE10addProductyyAD_xtF
+_$ss4SIMDPsSF6ScalarRpzrlE10addProductyyx_ADtF
+_$ss4SIMDPsSF6ScalarRpzrlE10addProductyyx_xtF
 _$ss4SIMDPsSF6ScalarRpzrlE10squareRootxyF
 _$ss4SIMDPsSF6ScalarRpzrlE13addingProductyxAD_xtF
 _$ss4SIMDPsSF6ScalarRpzrlE13addingProductyxx_ADtF
