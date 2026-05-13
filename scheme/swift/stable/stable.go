@@ -7575,6 +7575,21 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 				ci++
 			}
 		}
+	} else if !p.eof() && p.i+2 < len(p.s) && p.s[p.i] == 'A' &&
+		p.s[p.i+1] >= 'A' && p.s[p.i+1] <= 'Z' && p.s[p.i+2] == 'E' {
+		// A<letter>E: extension module back-reference. Resolve A<letter> to a
+		// Module node already in subs (typically subs[0] = host module for
+		// same-module protocol extensions like PAAE patterns).
+		letter := p.s[p.i+1]
+		idx := int(letter - 'A')
+		sub, sok := p.subs.Get(idx)
+		if !sok || common.NodeKind(sub.Kind) != common.KindModule {
+			restore()
+			return nil, false, nil
+		}
+		modName = sub.Text
+		p.i += 2 // consume A<letter>; leave E for the following consumer
+		moduleAlreadyPushed = true // module already in subs at idx
 	} else if p.eof() || !(p.s[p.i] >= '0' && p.s[p.i] <= '9') {
 		restore()
 		return nil, false, nil
