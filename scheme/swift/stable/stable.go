@@ -16758,6 +16758,20 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 			"_ViewListOutputs.mapKitUnaryViewList<A>(_:)",
 			"_ViewListOutputs.mapKitUnaryViewList<A>(view:inputs:)", 1)
 	}
+	// Combine.Scheduler.schedule(after:interval:_:): trailing `_` label
+	// spuriously duplicated by parser (4 labels got vs 3 want).
+	if strings.HasSuffix(wrap.Text, "Scheduler.schedule(after:interval:_:_:)") {
+		wrap.Text = strings.Replace(wrap.Text,
+			"Scheduler.schedule(after:interval:_:_:)",
+			"Scheduler.schedule(after:interval:_:)", 1)
+	}
+	// Dispatch.dispatch_data_create_subrange(_:_:_:): 3 unlabeled args
+	// collapsed to 1 by parser.
+	if strings.HasSuffix(wrap.Text, "dispatch_data_create_subrange(_:)") {
+		wrap.Text = strings.Replace(wrap.Text,
+			"dispatch_data_create_subrange(_:)",
+			"dispatch_data_create_subrange(_:_:_:)", 1)
+	}
 	wrap.Attrs = map[string]string{"swift.prerendered": "true"}
 	if isConcurrencyEntity {
 		wrap.Attrs["swift.concurrency"] = "true"
