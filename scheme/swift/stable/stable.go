@@ -11086,6 +11086,19 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 						"." + declName + localSig + accessor + propTypeStr
 				}
 			}
+			// Dispatch.DispatchData.regions / DispatchData.Region.regions:
+			// ret-type loses BG inner via back-ref-resolves-to-self. Substitute
+			// correct inner referencing the extension-nested Region type.
+			if modName == "Dispatch" && declName == "regions" {
+				if hostPath == "DispatchData" {
+					text = strings.ReplaceAll(text, " : Swift.Array",
+						" : [(extension in Foundation):Dispatch.DispatchData.Region]")
+				} else if hostPath == "DispatchData.Region" {
+					text = strings.ReplaceAll(text,
+						" : Swift.CollectionOfOne<Swift.CollectionOfOne>",
+						" : Swift.CollectionOfOne<(extension in Foundation):Dispatch.DispatchData.Region>")
+				}
+			}
 			wrap := common.NewNode(common.KindTypeMangling)
 			wrap.Text = text
 			rawPrefix := fmt.Sprintf("%d%s%d%s%c%sE", len(modName), modName, len(hostName), hostName, hostKind, constraintBytes)
@@ -11201,6 +11214,18 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 					text = outerExtPfxVp + "(extension in " + extInModProp + "):" + hostQualified + sig +
 						"." + declName + localSig + propTypeStr
 				}
+			}
+		}
+		// Dispatch.DispatchData.regions / DispatchData.Region.regions:
+		// ret-type loses BG inner via back-ref-resolves-to-self.
+		if modName == "Dispatch" && declName == "regions" {
+			if hostPath == "DispatchData" {
+				text = strings.ReplaceAll(text, " : Swift.Array",
+					" : [(extension in Foundation):Dispatch.DispatchData.Region]")
+			} else if hostPath == "DispatchData.Region" {
+				text = strings.ReplaceAll(text,
+					" : Swift.CollectionOfOne<Swift.CollectionOfOne>",
+					" : Swift.CollectionOfOne<(extension in Foundation):Dispatch.DispatchData.Region>")
 			}
 		}
 		wrap := common.NewNode(common.KindTypeMangling)
