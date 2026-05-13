@@ -190,9 +190,9 @@ Caveman: fire-internal terse OK; commits/code/comments normal.
 ## Lessons / wins (≤800 chars, merge-before-append, drop oldest at cap)
 
 <!-- newest on top -->
+- 2026-05-13 WC: Swift stdlib extensions (DiscontiguousSlice, Collection, ExpressibleByStringInterpolation) route through tryTypeFirstExtensionEntity at `(extension in Swift):Swift.<host>` emit (~line 8484 init, ~line 8671 method). Post-emit sub on wrap.Text. +3 prod.
 - 2026-05-13 WB: V-then-E user-module-host property getter+desc routes through `tryExtensionEntity` (~line 11086, 11214), NOT tryTypeFirstExtensionEntity. Post-emit sub on `text` var. +4 prod.
 - 2026-05-13 WA: Two distinct ext entity renderers — `tryTypeFirstExtensionEntity` (line ~6900) and `tryExtensionEntity` (line ~8700). Some protocol-extension methods (e.g. DiscreteFormatStyle.input) route through THE LATTER at ~line 11579 where wrap.Text is built; post-emit fixups must land THERE. +2 prod.
-- 2026-05-13 VY/VZ: BG-arg back-ref under-resolves to BG-head-of-self rather than BG-inner. `ContiguousArray<ContiguousArray>` → `ContiguousArray<inner-from-arg[0]>`; `UMP<X>.Type` → `X.Type`. Rebuild via BuiltinTypeName text. +2 prod.
 
 ## Lessons / traps (≤500 chars, merge-before-append, drop oldest at cap)
 
