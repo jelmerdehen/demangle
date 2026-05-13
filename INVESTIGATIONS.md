@@ -50,9 +50,13 @@ Drained by XM: derived genParamsStr from initConstraints leading letter.
 
 Pattern: `<host>P AA <concrete-type><N><assoc>Rtz <constraints>... rl E <decl>...`. Combine.Publisher protocol extension constrained `where A.Failure == Swift.Never` (or similar). XP attempt: Rt-no-proto handler in extractConstraintSigFullOpts gated on "AAs" prefix. Probes correct, but smoke -46 across UIKit/Foundation. Needs caller-context (module/host) gating.
 
-### simd-floatingpoint-operator-infix [SIMD `/` operator and similar, ~21 syms, multi-fire]
+### simd-floatingpoint-operator-infix [CLOSED by XP]
 
-Pattern: `s<N><proto>PsS<letter><M><assoc>R<kind><subj>rl E <opname-chars>oi y <result> <params> FZ`. SIMD protocol extension with `where A.Scalar: FloatingPoint` adding operator infix declarations (e.g. `/` = "d", `==` = "ee"). tryTypeFirstExtensionEntity nested-type loop parses the opname chars as a 1-char identifier (declName="d") then bails — the `oi` infix marker isn't consumed. Apple's `<decl-name> 'oi'` for infix operators needs special handler that translates letter mapping (d→/, e→=, etc.) and appends " infix" to declName.
+Drained by XP — operator-designator handler in tryTypeFirstExtensionEntity nested-type-loop.
+
+### paae-same-mod-allowance-roundtrip-regression [XR attempt, ~85 parity gain but -295 roundtrip]
+
+For PAAE protocol-extension-same-module-backref (Combine.Publisher / SwiftUI.View), removing the `extHostMod != "Swift" && extHostMod != "__C"` bail in tryTypeFirstExtensionEntity (adding `modName != extHostMod` allowance) unlocked +85 parity but lost 295 roundtrip syms. Roundtrip emit's remangler doesn't understand the path. Multi-fire: either (a) confirm roundtripping pipeline handles the same-module-ext branch, (b) emit via a different code path that round-trips OK.
 
 ### depth-1-generic-bucket [~500+ syms across receive, withUnsafeBytes, alert, observe, ...]
 
