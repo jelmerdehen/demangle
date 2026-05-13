@@ -15288,6 +15288,7 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 	// resolves to the return type or any unrelated type, override to args[0].
 	if args != nil && common.NodeKind(args.Kind) == common.KindTypeList && len(args.Children) == 2 {
 		isEquatableOp := false
+		isIdentityOp := false
 		if len(pathSteps) > 0 {
 			last := pathSteps[len(pathSteps)-1]
 			if last != nil && common.NodeKind(last.Kind) == common.KindIdentifier {
@@ -15295,6 +15296,8 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 				switch name {
 				case "== infix", "!= infix", "< infix", "> infix", "<= infix", ">= infix":
 					isEquatableOp = true
+				case "=== infix", "!== infix":
+					isIdentityOp = true
 				}
 			}
 		}
@@ -15304,6 +15307,11 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 			args.Children[1] = args.Children[0]
 		} else if isEquatableOp && ret != nil &&
 			common.Print(args.Children[1], common.DefaultPrintOptions()) == common.Print(ret, common.DefaultPrintOptions()) {
+			args.Children[1] = args.Children[0]
+		} else if isIdentityOp &&
+			common.Print(args.Children[0], common.DefaultPrintOptions()) != common.Print(args.Children[1], common.DefaultPrintOptions()) {
+			// Identity operators (===, !==) are by contract (Self, Self) -> Bool;
+			// override args[1] when the back-ref under-resolves.
 			args.Children[1] = args.Children[0]
 		}
 	}
