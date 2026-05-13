@@ -1,13 +1,12 @@
 # Swift Production Digest
 
-**Parity**: 87.56% (55827/63757) — 2026-05-13T11:19:02Z
+**Parity**: 87.57% (55831/63757) — 2026-05-13T11:23:41Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 7911 parse-errors + 19 mismatches
+**Failures**: 7911 parse-errors + 15 mismatches
 
 ## Top-20 Mismatch Categories
 
 - Foundation.AttributedString.init(localized: (exten… 4
-- protocol conformance descriptor            4
 - Foundation.AttributedString.init(localized: Swift.… 2
 - (extension in Swift):Swift.FlattenSequence< where … 1
 - (extension in Swift):Swift.Slice< where A: Swift.B… 1
@@ -21,6 +20,9 @@
 
 ## Last 10 Commits
 
+- 185259a swift-parity: WY Foundation.PredicateExpressions.{Predicate,Expression}Evaluate conformance descriptors insert missing < where A: Decodable, ... > constraint sig -- parity 87.59%->87.60% (+4 production)
+- f6ef653 chore: lock snapshot after WX (parity 55823 to 55827)
+- a344b17 chore: update digest.md for WX (parity 55823 to 55827)
 - a329a38 swift-parity: WX SwiftUI ToolbarItem/TabView/Gesture extension Apple-oracle simplified-empty-bracket emit narrow text replace -- parity 87.58%->87.59% (+4 production)
 - 2101262 chore: lock snapshot after WW (parity 55821 to 55823)
 - 330db8f chore: update digest.md for WW (parity 55821 to 55823)
@@ -28,10 +30,7 @@
 - aaf5985 chore: lock snapshot after WV (parity 55820 to 55821)
 - 042fcbc chore: update digest.md for WV (parity 55820 to 55821)
 - c921800 swift-parity: WV Swift._StringObject.init restore lost countAndFlags label via narrow text replace — parity 87.57%→87.58% (+1 production)
-- fcc8bf9 chore: lock snapshot after WU (parity 55819 to 55820)
-- 8f4231a chore: update digest.md for WU (parity 55819 to 55820)
-- a1f9e09 swift-parity: WU Foundation.WeekendRange.init compact-label  end-label drop restore via narrow text replace — parity 87.57%→87.57% (+1 production)
 
 ## Suggested Next 3 Items
 
-1. P2: protocol conformance descriptor — 4 mismatches
+1. All categories < 10 — re-triage
