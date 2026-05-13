@@ -8092,7 +8092,7 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 			}
 			wrap := common.NewNode(common.KindTypeMangling)
 			if verbose {
-				wrap.Text = "(extension in Swift):Swift." + hostPath + ".init" + verboseParamStr(labels) + verboseRetStr(true)
+				wrap.Text = "(extension in Swift):Swift." + baseHostPath + extSig + nestedSuffix + ".init" + verboseParamStr(labels) + verboseRetStr(true)
 			} else if modName == "Foundation" && extHostMod != "" {
 				wrap.Text = "(extension in Foundation):" + extHostMod + "." + hostPath + ".init" + verboseParamStr(labels) + verboseRetStr(true)
 			} else {
