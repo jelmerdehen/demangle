@@ -14323,14 +14323,18 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 					// subs entry; the trailing '<digits><name><kind>' is then
 					// a nested nominal on that sub. Replace the second copy
 					// with the nested type so result = original sub, param =
-					// <sub>.<NestedName>.
-					nestSave := p.i
-					nestSubsSave := p.subs
-					nestedIdent, niErr := p.parseIdentifier()
-					if niErr != nil || p.eof() {
-						p.i = nestSave
-						p.subs = nestSubsSave
-					} else {
+					// <sub>.<NestedName>. Loop to consume multiple nesting
+					// levels (e.g. Date.FormatStyle.Symbol.Year via two
+					// 6SymbolV + 4YearV postfix steps).
+					for !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+						nestSave := p.i
+						nestSubsSave := p.subs
+						nestedIdent, niErr := p.parseIdentifier()
+						if niErr != nil || p.eof() {
+							p.i = nestSave
+							p.subs = nestSubsSave
+							break
+						}
 						kb := p.s[p.i]
 						var nestKind common.NodeKind
 						switch kb {
@@ -14346,41 +14350,45 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 						if nestKind == 0 {
 							p.i = nestSave
 							p.subs = nestSubsSave
+							break
+						}
+						// Build nested nominal using last compact copy as parent.
+						parent := aCompactTypes[1]
+						if common.NodeKind(parent.Kind) == common.KindType &&
+							len(parent.Children) > 0 {
+							parent = parent.Children[0]
+						}
+						parentOK := false
+						switch common.NodeKind(parent.Kind) {
+						case common.KindStructure, common.KindClass,
+							common.KindEnum, common.KindProtocol,
+							common.KindBoundGenericStructure, common.KindBoundGenericClass,
+							common.KindBoundGenericEnum, common.KindBoundGenericProtocol:
+							parentOK = true
+						}
+						if !parentOK {
+							p.i = nestSave
+							p.subs = nestSubsSave
+							break
+						}
+						p.i++ // consume kind byte
+						identNode := common.NewIdentifier(nestedIdent)
+						p.subs.Push(identNode)
+						nom := common.NewNode(nestKind)
+						common.AddChildren(nom, parent, identNode)
+						newTyp := common.NewNode(common.KindType)
+						common.AddChildren(newTyp, nom)
+						p.subs.Push(newTyp)
+						// Optional bound-generic trailer on the nested
+						// type: <type>y<arg>(_)*G. Apple writes the
+						// nested type's generic args here when it has
+						// any (e.g. ComponentParseStrategy<String> via
+						// 'y__SSG').
+						if bg, bgOk, _ := p.tryBoundGeneric(newTyp); bgOk {
+							aCompactTypes[1] = bg
+							p.subs.Push(bg)
 						} else {
-							// Build nested nominal using last compact copy as parent.
-							parent := aCompactTypes[1]
-							if common.NodeKind(parent.Kind) == common.KindType &&
-								len(parent.Children) > 0 {
-								parent = parent.Children[0]
-							}
-							switch common.NodeKind(parent.Kind) {
-							case common.KindStructure, common.KindClass,
-								common.KindEnum, common.KindProtocol,
-								common.KindBoundGenericStructure, common.KindBoundGenericClass,
-								common.KindBoundGenericEnum, common.KindBoundGenericProtocol:
-								p.i++ // consume kind byte
-								identNode := common.NewIdentifier(nestedIdent)
-								p.subs.Push(identNode)
-								nom := common.NewNode(nestKind)
-								common.AddChildren(nom, parent, identNode)
-								newTyp := common.NewNode(common.KindType)
-								common.AddChildren(newTyp, nom)
-								p.subs.Push(newTyp)
-								// Optional bound-generic trailer on the nested
-								// type: <type>y<arg>(_)*G. Apple writes the
-								// nested type's generic args here when it has
-								// any (e.g. ComponentParseStrategy<String> via
-								// 'y__SSG').
-								if bg, bgOk, _ := p.tryBoundGeneric(newTyp); bgOk {
-									aCompactTypes[1] = bg
-									p.subs.Push(bg)
-								} else {
-									aCompactTypes[1] = newTyp
-								}
-							default:
-								p.i = nestSave
-								p.subs = nestSubsSave
-							}
+							aCompactTypes[1] = newTyp
 						}
 					}
 				}
