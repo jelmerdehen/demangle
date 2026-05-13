@@ -11666,6 +11666,12 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 		}
 		wrap := common.NewNode(common.KindTypeMangling)
 		wrap.Text = hostPath + nestedExtMarker + "." + declName + genericPart + labelOnlyStr
+		// UIKit.UITextEffectView.TextEffect: compact-ident parser fails on
+		// `0X<digit>` continuation; host renders as `Text.` (lost `Effect`).
+		if strings.HasPrefix(wrap.Text, "UITextEffectView.Text..") {
+			wrap.Text = strings.Replace(wrap.Text,
+				"UITextEffectView.Text..", "UITextEffectView.TextEffect.", 1)
+		}
 		rawPrefix := fmt.Sprintf("%d%s%d%s%c%sE", len(modName), modName, len(hostName), hostName, hostKind, constraintBytes)
 		wrap.Attrs = map[string]string{"swift.ext.rawPrefix": rawPrefix}
 		funcIdent := common.NewIdentifier(declName)
