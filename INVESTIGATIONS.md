@@ -6,7 +6,11 @@ fast loop fires — avoids re-deriving path/cause each fire. Bounded
 
 ## Active targets
 
-### loop-status [cumulative XE..XX = +502 prod, XY empty (1st of 3)]
+### sn-host-constraint-ident-subs-shift [7 mismatch syms, blocked]
+
+Pattern: `s<n><name>VsSQ<n><assoc>Rpzr|lE<op>oi y Sb <args>FZ` — Swift module struct ext with associated-type constraint AND op-decl (DiscontiguousSlice ==, LazyPrefixWhileSequence.Index ==/<, ClosedRange.Index ==/<, FlattenSequence.Index ==/<). s<n> case pushes Module+Type → subs[0,1]. XS pushes BG host → subs[2]. Constraint-bytes processing line 7405 pushes ANOTHER Module(Swift) → subs[3] (duplicate). AF-style back-refs in args shift by 1 → resolve to Bool result instead of host BG. XZ skip-duplicate-Module attempt regressed 11 property_descriptor tests (descriptors depend on the doubled module slot for A<n>-based identifier resolution). Needs holistic subs.Set alignment or per-path-aware push gating.
+
+### loop-status [cumulative XE..XX = +502 prod, XY+XZ empty (2nd of 3)]
 
 XE-XX productive fires drained 502 syms (87.59% → 88.38%). XY tried Foundation-user-mod-host F-terminal unlock (relax bail at line 7839 to permit modName=="Foundation"): +23 demangle parity but -40 parity (UIKit/Foundation top-level funcs misrouted into tryTypeFirstExtensionEntity producing wrong/hard-error output) and -6 roundtrip (FormatStyle.locale etc. correct demangle but mangler can't reverse new tree shape). Net regression. Reverted. Foundation user-mod F-terminal unlock blocked by entity-dispatch-shadowing — tryTypeFirstExtensionEntity match steals symbols from tryExtensionEntity/tryFunctionEntity even though gate-bail intended to keep them separate. Needs careful entity-dispatch refactor or much tighter gate (e.g. require specific F/cfC suffix + extHostMod in known-good set).
 
