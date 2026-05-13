@@ -5496,6 +5496,68 @@ func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 			}
 			continue
 		}
+		// Same-type assoc-type requirement on the just-parsed concrete:
+		// <N><assoc-name> R t (z | _ | d<demIdx><demIdx>) — binds
+		// <subj>.<assoc-name> == <lastConProto>. Mirrors the function-entity
+		// shape at stable.go ~16247.
+		if lastConProto != nil && c >= '1' && c <= '9' {
+			saveAt := p.i
+			saveAtSubs := p.subs
+			assocName2, aerr2 := p.parseIdentifier()
+			if aerr2 == nil && p.i+1 < len(p.s) &&
+				p.s[p.i] == 'R' && p.s[p.i+1] == 't' {
+				p.i += 2 // consume Rt
+				if !p.eof() && (p.s[p.i] == 'z' || p.s[p.i] == '_') {
+					subj := "A"
+					if p.s[p.i] == '_' {
+						subj = "B"
+					}
+					p.i++
+					concreteStr := common.Print(lastConProto, common.DefaultPrintOptions())
+					initConstraints = append(initConstraints,
+						subj+"."+assocName2+" == "+concreteStr)
+					lastConProto = nil
+					continue
+				}
+				if !p.eof() && p.s[p.i] == 'd' {
+					p.i++ // consume 'd'
+					readDemIdx := func() int {
+						if p.eof() {
+							return 0
+						}
+						if p.s[p.i] == '_' {
+							p.i++
+							return 0
+						}
+						if p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+							num := int(p.s[p.i] - '0')
+							p.i++
+							for !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+								num = num*10 + int(p.s[p.i]-'0')
+								p.i++
+							}
+							if !p.eof() && p.s[p.i] == '_' {
+								p.i++
+							}
+							return num + 1
+						}
+						return 0
+					}
+					depthIdx := readDemIdx()
+					paramIdx := readDemIdx()
+					if paramIdx < 26 {
+						subj := string(rune('A'+paramIdx)) + itoa(depthIdx+1)
+						concreteStr := common.Print(lastConProto, common.DefaultPrintOptions())
+						initConstraints = append(initConstraints,
+							subj+"."+assocName2+" == "+concreteStr)
+						lastConProto = nil
+						continue
+					}
+				}
+			}
+			p.i = saveAt
+			p.subs = saveAtSubs
+		}
 		if c == 'S' || c == 's' || c == 'x' || c == 'q' || c == 'A' ||
 			c == 'B' || (c >= '0' && c <= '9') {
 			saveCon := p.i
