@@ -4916,6 +4916,7 @@ func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 	lastKind := byte(0)
 	var stdlibDirect bool      // true when S<letter>/Sc<letter> seeds pathSteps+subs inline
 	var stdlibIsConcurrency bool // true when Sc<letter> concurrency type (simplified display)
+	var stdlibHostType *demangle.Node // Type(Swift.X) seed for nested-type chain when stdlibDirect
 	if !p.eof() && p.s[p.i] == 's' {
 		p.i++
 		mod = "Swift"
@@ -4967,12 +4968,21 @@ func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 		default:
 			identNode.Attrs["swift.nominalKind"] = "P"
 		}
-		p.subs.Push(modNode)
-		p.subs.Push(identNode)
-		p.subs.Push(nomNode)
+		// When a nested-type chain follows (<n><name>V/C/O/P), Apple does NOT
+		// push the stdlib shorthand host to user subs — only the nested types
+		// are pushed during identifier+kind-byte parsing. Push the 3-entry
+		// stdlib host only when no nested chain follows; the loop below handles
+		// the nested subs in either case.
+		stdlibHasNested := !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9'
+		if !stdlibHasNested {
+			p.subs.Push(modNode)
+			p.subs.Push(identNode)
+			p.subs.Push(nomNode)
+		}
 		pathSteps = append(pathSteps, modNode, identNode)
 		mod = "Swift"
 		stdlibDirect = true
+		stdlibHostType = nomNode
 	} else if p.eof() || !(p.s[p.i] >= '0' && p.s[p.i] <= '9') {
 		return nil, false, nil
 	} else {
@@ -4981,6 +4991,57 @@ func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 		if err != nil {
 			restore()
 			return nil, false, nil
+		}
+	}
+
+	// Nested-type chain following stdlib shorthand. <n><name>V/C/O/P pairs
+	// add nested type levels onto the stdlib host (e.g. Sd12SIMD2StorageV →
+	// Swift.Double.SIMD2Storage). Push Identifier + cumulative Type to subs
+	// inline so AB-style back-refs resolve to the nested level.
+	if stdlibDirect {
+		accType := stdlibHostType
+		for {
+			if p.eof() || !(p.s[p.i] >= '0' && p.s[p.i] <= '9') {
+				break
+			}
+			identSave := p.i
+			ident, identErr := p.parseIdentifier()
+			if identErr != nil {
+				restore()
+				return nil, false, nil
+			}
+			if p.eof() {
+				restore()
+				return nil, false, nil
+			}
+			peek := p.s[p.i]
+			if peek != 'V' && peek != 'C' && peek != 'O' && peek != 'P' {
+				p.i = identSave
+				break
+			}
+			p.i++
+			lastKind = peek
+			nestedIdent := common.NewIdentifier(ident)
+			nestedIdent.Attrs = map[string]string{"swift.nominalKind": string(peek)}
+			pathSteps = append(pathSteps, nestedIdent)
+			p.subs.Push(nestedIdent)
+			var nomKind common.NodeKind
+			switch peek {
+			case 'V':
+				nomKind = common.KindStructure
+			case 'C':
+				nomKind = common.KindClass
+			case 'O':
+				nomKind = common.KindEnum
+			case 'P':
+				nomKind = common.KindProtocol
+			}
+			nestedNom := common.NewNode(nomKind)
+			common.AddChildren(nestedNom, accType, nestedIdent)
+			nestedType := common.NewNode(common.KindType)
+			common.AddChildren(nestedType, nestedNom)
+			p.subs.Push(nestedType)
+			accType = nestedType
 		}
 	}
 
