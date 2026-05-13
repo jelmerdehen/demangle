@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 87.54% (55813/63757) — 2026-05-13T10:48:00Z
+**Parity**: 87.54% (55814/63757) — 2026-05-13T10:51:59Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 7911 parse-errors + 33 mismatches
+**Failures**: 7911 parse-errors + 32 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- 9036f1b swift-parity: WP Foundation._StringProcessing.RegexComponent.iso8601WithTimeZone Swift.ObjectIdentifier→Foundation.Date.ISO8601FormatStyle assoc-type substitution — parity 87.56%→87.56% (+1 production)
+- 0cbdfa9 chore: lock snapshot after WO (parity 55812→55813)
+- 207271d chore: update digest.md for WO (parity 55812→55813)
 - 97d1bc3 swift-parity: WO UIKit.UITextEffectView.TextEffect compact-ident 0X<digit> recovery via narrow text replace — parity 87.56%→87.56% (+1 production)
 - 6096684 chore: lock snapshot after WM..WN (parity 55810→55812)
 - cd4c8d1 chore: update digest.md for WM..WN (parity 55810→55812)
@@ -36,9 +39,6 @@
 - ff45a65 swift-parity: WM Swift.StringProtocol.rangeOf restore lost locale: label + range:-arg type — parity 87.56%→87.56% (+1 production)
 - c50fffa chore: lock snapshot after WL (parity 55808→55810)
 - 888c112 chore: update digest.md for WL (parity 55808→55810)
-- d315aa6 swift-parity: WL Swift.Result.init(catching:) + ExpressibleByExtendedGraphemeClusterLiteral.init same-type constraint sig + assoc-type RHS substitution — parity 87.56%→87.56% (+2 production)
-- ad92633 chore: lock snapshot after WJ..WK (parity 55804→55808)
-- 7c9618a chore: update digest.md for WJ..WK (parity 55804→55808)
 
 ## Suggested Next 3 Items
 
