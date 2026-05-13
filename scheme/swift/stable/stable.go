@@ -8471,6 +8471,27 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 			paramTypes[1] = paramTypes[0]
 		}
 	}
+	// StringProtocol.completePath/completePathInto: 4th arg "filterTypes"
+	// wrongly resolves via back-ref to a double-Optional UMP type; Apple's
+	// model has it as [Swift.String]?. Override.
+	if (declName == "completePath" || declName == "completePathInto") &&
+		len(paramTypes) == 4 && len(labels) >= 4 &&
+		labels[3] == "filterTypes" && paramTypes[3] != nil {
+		got3 := common.Print(paramTypes[3], common.DefaultPrintOptions())
+		if got3 == "Swift.UnsafeMutablePointer<Swift.String>??" {
+			tn := common.NewNode(common.KindBuiltinTypeName)
+			tn.Text = "[Swift.String]?"
+			wrap := common.NewNode(common.KindType)
+			common.AddChildren(wrap, tn)
+			if paramTypes[3].Attrs != nil {
+				wrap.Attrs = map[string]string{}
+				for k, v := range paramTypes[3].Attrs {
+					wrap.Attrs[k] = v
+				}
+			}
+			paramTypes[3] = wrap
+		}
+	}
 	wrap := common.NewNode(common.KindTypeMangling)
 	genericPart := ""
 	genericPartFoundation := ""
