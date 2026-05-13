@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 87.55% (55819/63757) — 2026-05-13T11:04:32Z
+**Parity**: 87.55% (55820/63757) — 2026-05-13T11:08:12Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 7911 parse-errors + 27 mismatches
+**Failures**: 7911 parse-errors + 26 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -18,7 +18,6 @@
 - Foundation.Predicate.init((repeat Foundation.Predi… 1
 - Foundation.PredicateExpressions.ExpressionEvaluate… 1
 - Foundation.PredicateExpressions.PredicateEvaluate.… 1
-- Foundation.WeekendRange.init(onsetTime: Swift.Doub… 1
 - Gesture<>.values(_:)                       1
 - Swift._StringObject.init(pointerBits: Swift.UInt64… 1
 - TabView<>.init(content:)                   1
@@ -28,6 +27,9 @@
 
 ## Last 10 Commits
 
+- a1f9e09 swift-parity: WU Foundation.WeekendRange.init compact-label  end-label drop restore via narrow text replace — parity 87.57%→87.57% (+1 production)
+- 4f4168e chore: lock snapshot after WT (parity 55817→55819)
+- 1366070 chore: update digest.md for WT (parity 55817→55819)
 - 4714578 swift-parity: WT Swift.LazySequenceProtocol.{compactMap,flatMap} closure ret-type Swift.LazyMapSequence→A1? — parity 87.56%→87.57% (+2 production)
 - 77baaad chore: lock snapshot after WR..WS (parity 55815→55817)
 - 04a83c6 chore: update digest.md for WR..WS (parity 55815→55817)
@@ -35,9 +37,6 @@
 - 8820faf swift-parity: WR Combine.Scheduler.schedule(after:interval:_:) trailing-_ label drop in simplified ext-method emit — parity 87.56%→87.56% (+1 production)
 - e48697f chore: lock snapshot after WQ (parity 55814→55815)
 - 9d03efb chore: update digest.md for WQ (parity 55814→55815)
-- 0bec078 swift-parity: WQ SwiftUI._ViewListOutputs.mapKitUnaryViewList(view:inputs:) restore lost 2-label split in simplified emit — parity 87.56%→87.56% (+1 production)
-- 6a30c16 chore: lock snapshot after WP (parity 55813→55814)
-- 980da78 chore: update digest.md for WP (parity 55813→55814)
 
 ## Suggested Next 3 Items
 
