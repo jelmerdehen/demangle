@@ -7669,6 +7669,24 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 			}
 		} else {
 			declName = ident
+			// Operator designator: 'oi'=infix, 'op'=prefix, 'oP'=postfix.
+			// Follows the decl-name identifier immediately. Translate via
+			// decodeOperatorName and append " infix"/" prefix"/" postfix".
+			if !p.eof() && p.s[p.i] == 'o' && p.i+1 < len(p.s) {
+				opKind := p.s[p.i+1]
+				if opKind == 'i' || opKind == 'p' || opKind == 'P' {
+					p.i += 2
+					decoded := decodeOperatorName(ident)
+					switch opKind {
+					case 'i':
+						declName = decoded + " infix"
+					case 'p':
+						declName = decoded + " prefix"
+					case 'P':
+						declName = decoded + " postfix"
+					}
+				}
+			}
 			break
 		}
 	}
