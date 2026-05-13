@@ -19,6 +19,7 @@ ZA-ZE depth-1 primitives landed (2026-05-13):
 - ZD (+14): tryInitDeinitEntity assoc-Rt depth-0/depth-1 (<concrete><N><assoc>Rt<subj>).
 - ZE (+2): tryInitDeinitEntity `R<kind>d<demIdx><demIdx>` depth-1 with kind byte.
 - ZF empty: bare-position function-entity R-handler Rd<demIdx><demIdx>/R<kind>d<...> extension unlocks 0 syms (no syms hit that path standalone). Reverted.
+- ZG empty: function-entity R<kind>d<demIdx><demIdx> form (line ~16464 kind-byte path) extension unlocks 0 syms. Either no syms hit that exact pattern in function-entity, or they have co-blockers. Reverted.
 
 Remaining ZA-plan items deferred to multi-fire:
 - ZA-1 trailer `_l` count consumption (high-blast, shared with non-depth-1 syms).
