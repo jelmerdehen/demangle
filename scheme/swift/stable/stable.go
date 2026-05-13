@@ -15870,6 +15870,33 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 			}
 		}
 	}
+	// Foundation.NSDecimal<*> free functions: args of type
+	// `Swift.UnsafePointer<Swift.UnsafeMutablePointer<__C.NSDecimal>>` wrongly
+	// wrap an inner Sp via back-ref alignment; Apple's model has the inner be
+	// the bare __C.NSDecimal class. Strip the extra UMP layer.
+	if mod == "Foundation" && args != nil &&
+		common.NodeKind(args.Kind) == common.KindTypeList && len(args.Children) >= 2 &&
+		len(pathSteps) == 2 {
+		last := pathSteps[len(pathSteps)-1]
+		if last != nil && strings.HasPrefix(last.Text, "NSDecimal") {
+			for i, c := range args.Children {
+				got := common.Print(c, common.DefaultPrintOptions())
+				if got == "Swift.UnsafePointer<Swift.UnsafeMutablePointer<__C.NSDecimal>>" {
+					tn := common.NewNode(common.KindBuiltinTypeName)
+					tn.Text = "Swift.UnsafePointer<__C.NSDecimal>"
+					w := common.NewNode(common.KindType)
+					common.AddChildren(w, tn)
+					if c.Attrs != nil {
+						w.Attrs = map[string]string{}
+						for k, v := range c.Attrs {
+							w.Attrs[k] = v
+						}
+					}
+					args.Children[i] = w
+				}
+			}
+		}
+	}
 	// Swift._<Foo>Box.__copyContents(initializing:): args[0] wrongly wrapped as
 	// UnsafeMutableBufferPointer<AnyIterator<A.Element>>; Apple's model has it
 	// as UnsafeMutableBufferPointer<A.Element> (the AnyIterator layer is the
