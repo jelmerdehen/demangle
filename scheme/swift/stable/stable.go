@@ -15286,6 +15286,22 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 	// `infix` method, the second arg is conventionally the same type as the
 	// first (Equatable / Comparable contract). When the second-arg back-ref
 	// resolves to the return type or any unrelated type, override to args[0].
+	// Single-arg fn-name-as-param fixup: when the printed arg equals the
+	// decl-name text (e.g. `intersection(intersection)`), the back-ref
+	// resolved to the decl-name identifier in subs instead of the intended
+	// return type. Override the arg to match ret.
+	if args != nil && ret != nil && len(pathSteps) > 0 {
+		last := pathSteps[len(pathSteps)-1]
+		isSingle := common.NodeKind(args.Kind) != common.KindTypeList ||
+			(common.NodeKind(args.Kind) == common.KindTypeList && len(args.Children) == 1)
+		if isSingle && last != nil && common.NodeKind(last.Kind) == common.KindIdentifier {
+			argStr := common.Print(args, common.DefaultPrintOptions())
+			retStr := common.Print(ret, common.DefaultPrintOptions())
+			if argStr == last.Text && retStr != "" && argStr != retStr {
+				args = ret
+			}
+		}
+	}
 	if args != nil && common.NodeKind(args.Kind) == common.KindTypeList && len(args.Children) == 2 {
 		isEquatableOp := false
 		isIdentityOp := false
