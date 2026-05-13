@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 87.37% (55707/63757) — 2026-05-13T03:59:16Z
+**Parity**: 87.38% (55709/63757) — 2026-05-13T04:09:45Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 7948 parse-errors + 102 mismatches
+**Failures**: 7948 parse-errors + 100 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- 1e7013b swift-parity: VE funcEntityFullParams skip label re-apply when text pre-labeled (Calendar.date(era:year:month:...) 8-Int compact-tuple) — parity 87.38%→87.38% (+2 production)
+- b0a156b chore: lock snapshot after VD (parity 55706→55707)
+- 7bb58ea chore: update digest.md for VD (parity 55706→55707)
 - bafb9f4 swift-parity: VD simplified-emit pre-rendered tuple labels (DragConfig.OperationsWithinApp/OperationsOutsideApp.init, AnimatedValueKeyframe.InterpolationParameters.kochanekBartels) — parity 87.38%→87.38% (+1 production net; gated cfm-terminal to preserve macro-entity _:)
 - 2c73f56 chore: lock snapshot after VC (parity 55693→55706)
 - 31562b0 chore: update digest.md for VC (parity 55693→55706)
@@ -36,9 +39,6 @@
 - 64c27c4 chore: lock snapshot after VB (parity 55681→55693)
 - f2ae2fd chore: update digest.md for VB (parity 55681→55693)
 - 5c082bc swift-parity: VB captureWords dedup + restore p.words on try* function reverts (DropWhileSequence, Mirror, etc. word-sub decode) — parity 87.34%→87.36% (+12 production)
-- 41d8b63 chore: lock snapshot after VA (parity 55679→55681)
-- 1e7e132 chore: update digest.md for VA (parity 55679→55681)
-- e5667ea swift-parity: VA tryInitDeinitEntity recursive nested-bg arg normalize (Slice<bare-X> → Slice<X<A>> for UnsafeBufferPointer.init rebasing) — parity 87.33%→87.34% (+2 production)
 
 ## Suggested Next 3 Items
 
