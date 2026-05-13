@@ -11566,6 +11566,18 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 	wrap := common.NewNode(common.KindTypeMangling)
 	wrap.Text = "(extension in " + extInModF + "):" + hostQualified + sig +
 		"." + declName + localSig + paramsStr + " -> " + retStr
+	// Foundation.DiscreteFormatStyle.input(after/before:): assoc-type
+	// substitution failed — param and ret resolve via back-ref to the bare
+	// Foundation module rather than Swift.Duration (the assoc-type RHS).
+	// The constraint sig also gets duplicated. Strip duplicate constraint
+	// and substitute bare "Foundation" → "Swift.Duration".
+	if hostName == "DiscreteFormatStyle" && declName == "input" &&
+		strings.Contains(wrap.Text, "A.FormatInput == Swift.Duration") {
+		wrap.Text = strings.ReplaceAll(wrap.Text,
+			", A.FormatInput == Foundation.Duration", "")
+		wrap.Text = strings.ReplaceAll(wrap.Text, ": Foundation)", ": Swift.Duration)")
+		wrap.Text = strings.ReplaceAll(wrap.Text, " -> Foundation?", " -> Swift.Duration?")
+	}
 	// Store raw mangled prefix so the remangler can round-trip without
 	// having to re-derive the length-prefixed identifiers + constraint bytes.
 	rawPrefix := fmt.Sprintf("%d%s%d%s%c%sE", len(modName), modName, len(hostName), hostName, hostKind, constraintBytes)
