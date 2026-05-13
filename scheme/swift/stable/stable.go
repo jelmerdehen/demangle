@@ -8493,6 +8493,13 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 			} else {
 				wrap.Text = hostPath + ".init" + makeLabelStr(paramCount)
 			}
+			// Swift.ExpressibleByStringInterpolation.init(stringInterpolation:):
+			// arg type wrongly renders as bare "Default"; Apple's model uses
+			// the full RHS from extSig (Swift.DefaultStringInterpolation).
+			if hostPath == "ExpressibleByStringInterpolation" &&
+				strings.Contains(wrap.Text, "A.StringInterpolation == Swift.DefaultStringInterpolation") {
+				wrap.Text = strings.ReplaceAll(wrap.Text, ": Default)", ": Swift.DefaultStringInterpolation)")
+			}
 			return wrap, true, nil
 		}
 		if throwsInit {
@@ -8666,6 +8673,19 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 		wrap.Text = "(extension in Foundation):" + extHostMod + "." + hostPath + "." + declName + genericPartFoundation + verboseParamStr(labels) + verboseRetStr(true)
 	} else {
 		wrap.Text = hostPath + "." + declName + genericPart + makeLabelStr(paramCount)
+	}
+	// Swift.DiscontiguousSlice.index(before:): arg loses host BG <A>.
+	if hostPath == "DiscontiguousSlice" && declName == "index" {
+		wrap.Text = strings.ReplaceAll(wrap.Text,
+			": Swift.DiscontiguousSlice.Index)",
+			": Swift.DiscontiguousSlice<A>.Index)")
+	}
+	// Swift.Collection._failEarlyRangeCheck(_: Range<A.Index>, bounds: …):
+	// bounds wrongly resolves to A.Index (BG inner) instead of Range<A.Index>.
+	if hostPath == "Collection" && declName == "_failEarlyRangeCheck" {
+		wrap.Text = strings.ReplaceAll(wrap.Text,
+			", bounds: A.Index)",
+			", bounds: Swift.Range<A.Index>)")
 	}
 	return wrap, true, nil
 }
