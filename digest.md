@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 87.54% (55815/63757) — 2026-05-13T10:55:38Z
+**Parity**: 87.55% (55817/63757) — 2026-05-13T11:01:06Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 7911 parse-errors + 31 mismatches
+**Failures**: 7911 parse-errors + 29 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -22,23 +22,23 @@
 - Foundation.PredicateExpressions.PredicateEvaluate.… 1
 - Foundation.WeekendRange.init(onsetTime: Swift.Doub… 1
 - Gesture<>.values(_:)                       1
-- Scheduler.schedule(after:interval:_:)      1
 - Swift._StringObject.init(pointerBits: Swift.UInt64… 1
 - TabView<>.init(content:)                   1
 - ToolbarItem<>.init(id:placement:showsByDefault:con… 1
+- opaque type descriptor                     1
 
 ## Last 10 Commits
 
+- 28f5368 swift-parity: WS Dispatch.dispatch_data_create_subrange restore 3 labels (parser collapsed 3 args to 1) via narrow text replace — parity 87.56%→87.56% (+1 production)
+- 8820faf swift-parity: WR Combine.Scheduler.schedule(after:interval:_:) trailing-_ label drop in simplified ext-method emit — parity 87.56%→87.56% (+1 production)
+- e48697f chore: lock snapshot after WQ (parity 55814→55815)
+- 9d03efb chore: update digest.md for WQ (parity 55814→55815)
 - 0bec078 swift-parity: WQ SwiftUI._ViewListOutputs.mapKitUnaryViewList(view:inputs:) restore lost 2-label split in simplified emit — parity 87.56%→87.56% (+1 production)
 - 6a30c16 chore: lock snapshot after WP (parity 55813→55814)
 - 980da78 chore: update digest.md for WP (parity 55813→55814)
 - 9036f1b swift-parity: WP Foundation._StringProcessing.RegexComponent.iso8601WithTimeZone Swift.ObjectIdentifier→Foundation.Date.ISO8601FormatStyle assoc-type substitution — parity 87.56%→87.56% (+1 production)
 - 0cbdfa9 chore: lock snapshot after WO (parity 55812→55813)
 - 207271d chore: update digest.md for WO (parity 55812→55813)
-- 97d1bc3 swift-parity: WO UIKit.UITextEffectView.TextEffect compact-ident 0X<digit> recovery via narrow text replace — parity 87.56%→87.56% (+1 production)
-- 6096684 chore: lock snapshot after WM..WN (parity 55810→55812)
-- cd4c8d1 chore: update digest.md for WM..WN (parity 55810→55812)
-- 1ea5ae3 swift-parity: WN Swift._ArrayBufferProtocol._forceCreateUniqueMutableBufferImpl 3-tuple-arg split to 3 separate labeled params — parity 87.56%→87.56% (+1 production)
 
 ## Suggested Next 3 Items
 
