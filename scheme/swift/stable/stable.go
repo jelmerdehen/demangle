@@ -16179,6 +16179,37 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 			}
 		}
 	}
+	// Foundation.Data.range(of: Data, options: …, in: Range<Int>?):
+	// `in:` wrongly resolves via back-ref to options' NSDataSearchOptions
+	// instead of Range<Int>? (matches ret-type). Override.
+	if mod == "Foundation" && args != nil && ret != nil &&
+		common.NodeKind(args.Kind) == common.KindTypeList && len(args.Children) == 3 &&
+		len(pathSteps) >= 3 {
+		hostStep := pathSteps[len(pathSteps)-2]
+		last := pathSteps[len(pathSteps)-1]
+		if hostStep != nil && hostStep.Text == "Data" &&
+			last != nil && last.Text == "range" {
+			labels3 := make([]string, 3)
+			for i := 0; i < 3; i++ {
+				if args.Children[i].Attrs != nil {
+					labels3[i] = args.Children[i].Attrs["swift.label"]
+				}
+			}
+			if labels3[2] == "in" {
+				retStr := common.Print(ret, common.DefaultPrintOptions())
+				p2Str := common.Print(args.Children[2], common.DefaultPrintOptions())
+				if strings.HasPrefix(retStr, "Swift.Range<") && p2Str != retStr {
+					clone := *ret
+					clone.Attrs = map[string]string{}
+					for k, v := range ret.Attrs {
+						clone.Attrs[k] = v
+					}
+					clone.Attrs["swift.label"] = labels3[2]
+					args.Children[2] = &clone
+				}
+			}
+		}
+	}
 	common.AddChildren(entity, path, args, ret)
 
 	opts := common.DefaultPrintOptions()
