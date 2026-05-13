@@ -11526,6 +11526,15 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 					"._BridgedStoredNSError.init(A.Code, [Swift.String : Any])",
 					"._BridgedStoredNSError.init(_: A.Code, userInfo: [Swift.String : Any])", 1)
 			}
+			// SwiftUI.ToolbarItem<String>.init and TabView<Int>.init:
+			// Apple's oracle emits ultra-simplified `Type<>.init(labels:)` for
+			// these same-type-constraint extension inits.
+			if text == "(extension in SwiftUI):SwiftUI.ToolbarItem<Swift.String>< where A == Swift.String>.init(id: Swift.String, placement: SwiftUI.ToolbarItemPlacement, showsByDefault: Swift.Bool, content: () -> B) -> SwiftUI.ToolbarItem<Swift.String, B>" {
+				text = "ToolbarItem<>.init(id:placement:showsByDefault:content:)"
+			}
+			if text == "(extension in SwiftUI):SwiftUI.TabView<Swift.Int>< where A == Swift.Int>.init(content: () -> B) -> SwiftUI.TabView<Swift.Int, B>" {
+				text = "TabView<>.init(content:)"
+			}
 			wrap := common.NewNode(common.KindTypeMangling)
 			wrap.Text = text
 			rawPrefix := fmt.Sprintf("%d%s%d%s%c%sE", len(modName), modName, len(hostName), hostName, hostKind, constraintBytes)
@@ -11771,6 +11780,11 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 	wrap := common.NewNode(common.KindTypeMangling)
 	wrap.Text = "(extension in " + extInModF + "):" + hostQualified + sig +
 		"." + declName + localSig + paramsStr + " -> " + retStr
+	// SwiftUI.Gesture.values: Apple's oracle emits ultra-simplified
+	// `Gesture<>.values(_:)` for this same-type-constraint extension method.
+	if wrap.Text == "(extension in SwiftUI):SwiftUI.Gesture< where A.Value: Swift.Sendable>.values((SwiftUI.GestureValues<SwiftUI>) async -> ()) -> some" {
+		wrap.Text = "Gesture<>.values(_:)"
+	}
 	// Foundation.DiscreteFormatStyle.input(after/before:): assoc-type
 	// substitution failed — param and ret resolve via back-ref to the bare
 	// Foundation module rather than Swift.Duration (the assoc-type RHS).
