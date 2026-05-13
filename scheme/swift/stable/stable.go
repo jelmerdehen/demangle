@@ -8696,6 +8696,14 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 			": Swift.DiscontiguousSlice.Index)",
 			": Swift.DiscontiguousSlice<A>.Index)")
 	}
+	// Swift.LazySequenceProtocol.{compactMap,flatMap}: closure ret-type
+	// wrongly renders as bare Swift.LazyMapSequence (back-ref to outer ret-type
+	// host nominal); Apple's model: closure ret = `A1?`.
+	if hostPath == "LazySequenceProtocol" && (declName == "compactMap" || declName == "flatMap") {
+		wrap.Text = strings.ReplaceAll(wrap.Text,
+			"(A.Element) -> Swift.LazyMapSequence) ->",
+			"(A.Element) -> A1?) ->")
+	}
 	// Swift.Collection._failEarlyRangeCheck(_: Range<A.Index>, bounds: …):
 	// bounds wrongly resolves to A.Index (BG inner) instead of Range<A.Index>.
 	if hostPath == "Collection" && declName == "_failEarlyRangeCheck" {
