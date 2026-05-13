@@ -8075,6 +8075,12 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 	verbose := modName == "Swift" && extHostMod == "Swift" && !swiftConcurrencyRuntimeTypes[hostPath]
 	opts := common.DefaultPrintOptions()
 
+	// extSig holds the constraint-signature suffix (e.g.
+	// "< where A.Index: Strideable, A.Indices == Range<A.Index>>") computed
+	// further below; verboseRetStr captures it for same-type assoc-type
+	// substitution on bare-Identifier ret types.
+	var extSig string
+
 	// verboseRetStr returns " : <type>" for property accessors/descriptors,
 	// or " -> <type>" for functions/inits (pass arrow=true).
 	verboseRetStr := func(arrow bool) string {
@@ -8088,6 +8094,35 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 		if strings.HasPrefix(s, "<<") {
 			// Opaque/unknown type — omit rather than emit wrong text.
 			return ""
+		}
+		// Bare assoc-type name (no dot, no angle bracket) matched against
+		// a same-type constraint in extSig: substitute with the concrete
+		// type. Pattern: extSig contains "A.<s> == <RHS>" — replace s with
+		// RHS so e.g. "Indices" → "Swift.Range<A.Index>".
+		if extSig != "" && !strings.ContainsAny(s, ".<>,") {
+			needle := "A." + s + " == "
+			if idx := strings.Index(extSig, needle); idx >= 0 {
+				rhsStart := idx + len(needle)
+				rhsEnd := rhsStart
+				depth := 0
+				for rhsEnd < len(extSig) {
+					c := extSig[rhsEnd]
+					if c == '<' {
+						depth++
+					} else if c == '>' {
+						if depth == 0 {
+							break
+						}
+						depth--
+					} else if c == ',' && depth == 0 {
+						break
+					}
+					rhsEnd++
+				}
+				if rhsEnd > rhsStart {
+					s = extSig[rhsStart:rhsEnd]
+				}
+			}
 		}
 		if arrow {
 			return " -> " + s
@@ -8146,7 +8181,6 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 	// non-verbose generic protocol extensions.
 	// For nested types (hostPath = "Base.Nested"), extSig attaches to the base
 	// only: "(extension in Swift):Swift.Base<extSig>.Nested.decl".
-	extSig := ""
 	extMarker := ""
 	if len(constraintBytes) > 0 {
 		extSig, _ = extractConstraintSigFullOpts(constraintBytes, true, p.words, "Swift", origHostPath)
