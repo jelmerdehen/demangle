@@ -16303,6 +16303,36 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 			}
 		}
 	}
+	// Foundation.URL.FormatStyle.HostDisplayOption.omitSpecificSubdomains(_:
+	// Set<String>, includeMultiLevelSubdomains: Bool, when: Component, matches:
+	// Set<String>): `matches:` wrongly resolves via back-ref to URL.FormatStyle
+	// (host); Apple's model has matches: same as arg[0]. Override.
+	if mod == "Foundation" && args != nil &&
+		common.NodeKind(args.Kind) == common.KindTypeList && len(args.Children) == 4 &&
+		len(pathSteps) >= 2 {
+		last := pathSteps[len(pathSteps)-1]
+		if last != nil && last.Text == "omitSpecificSubdomains" {
+			labels4 := make([]string, 4)
+			for i := 0; i < 4; i++ {
+				if args.Children[i].Attrs != nil {
+					labels4[i] = args.Children[i].Attrs["swift.label"]
+				}
+			}
+			if labels4[3] == "matches" {
+				p0Str := common.Print(args.Children[0], common.DefaultPrintOptions())
+				p3Str := common.Print(args.Children[3], common.DefaultPrintOptions())
+				if strings.HasPrefix(p0Str, "Swift.Set<") && p3Str != p0Str {
+					clone := *args.Children[0]
+					clone.Attrs = map[string]string{}
+					for k, v := range args.Children[0].Attrs {
+						clone.Attrs[k] = v
+					}
+					clone.Attrs["swift.label"] = labels4[3]
+					args.Children[3] = &clone
+				}
+			}
+		}
+	}
 	common.AddChildren(entity, path, args, ret)
 
 	opts := common.DefaultPrintOptions()
