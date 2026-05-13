@@ -62,9 +62,9 @@ PAAE pattern same-mod allowance in tryTypeFirstExtensionEntity (line 7761 check)
 
 Drained by XR (skip Identifier push for op-decl) + XS (push bound-generic host for stdlib-shorthand op-decl extensions).
 
-### digit-led-host-equatable-bound-generic-resolution [ArraySlice/ContiguousArray/etc. == infix, ~10 syms]
+### digit-led-host-equatable-bound-generic-resolution [ArraySlice/ContiguousArray/etc. == infix, ~10 syms, multi-fire]
 
-Same pattern as XR+XS but for digit-led host case (`s<n><name>V`, not `S<letter>` shorthand). Host already pushed at subs[1] but as BARE type (e.g., Swift.ArraySlice without generic args). AB ref resolves to bare type, expected bound-generic (ArraySlice<A>). Fix needs `p.subs.Replace(1, boundGeneric)` — current Substitution API doesn't support replace; either add the API or restructure case `s<digit>` host parsing to push bound-generic when constraint sig follows.
+XT attempt: added `SubstitutionTable.Set` API + tracked `swiftDigitHostSubsIdx` in case `s<digit>` host parse + replaced bare host Type with bound-generic when declIsOp + constraint has R-subj. Tracking-vars track-only (don't change Push call sites). Smoke +0 prod but snapshot-check -43 unrelated syms (UIKit.UITextEffectViewDelegate, NSDecimal*). Reverted. Possible cause: my var-declaration / `_ = unused` patterns at function-scope shifted parser state in ways I didn't anticipate. Needs careful re-attempt with smaller diff + isolated regression testing.
 
 ### depth-1-generic-bucket [~500+ syms across receive, withUnsafeBytes, alert, observe, ...]
 
