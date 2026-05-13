@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 87.33% (55678/63757) — 2026-05-13T03:03:40Z
+**Parity**: 87.33% (55679/63757) — 2026-05-13T03:06:49Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 7948 parse-errors + 131 mismatches
+**Failures**: 7948 parse-errors + 130 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -24,11 +24,14 @@
 - (extension in Foundation):Foundation._BridgedStore… 1
 - (extension in Foundation):Swift.String.Localizatio… 1
 - (extension in Foundation):Swift.String.init(locali… 1
-- (extension in Foundation):Swift.StringProtocol.app… 1
 - (extension in Foundation):Swift.StringProtocol.ran… 1
+- (extension in Foundation):__C.NSCoder.decodeObject… 1
 
 ## Last 10 Commits
 
+- 2831d55 swift-parity: UZ compact-N S<2><letter> direct-terminator (S2SF for appendingPathComponent) — parity 87.33%→87.33% (+1 production)
+- dd674f1 chore: lock snapshot after UY (parity 55676→55678)
+- 3b526dd chore: update digest.md for UY (parity 55676→55678)
 - 5dcfe23 swift-parity: UY tryInitDeinitEntity ufC localSig detect gen-param refs in BuiltinTypeName text (String/Substring.init<A>) — parity 87.32%→87.33% (+2 production)
 - 5c3c033 chore: lock snapshot after UX (parity 55675→55676)
 - b772ef5 chore: update digest.md for UX (parity 55675→55676)
@@ -36,9 +39,6 @@
 - 83b48c3 chore: lock snapshot after UW (parity 55673→55675)
 - 0cff82c chore: update digest.md for UW (parity 55673→55675)
 - 3c6ce91 swift-parity: UW tryTypeFirstExtensionEntity fluent-builder ret bare for flat __C hosts (NSComparisonResult.withOrder et al.) — parity 87.32%→87.32% (+2 production)
-- b029014 chore: lock snapshot after UV (parity 55661→55673)
-- 652a36f chore: update digest.md for UV (parity 55661→55673)
-- aec4d03 swift-parity: UV tryFunctionEntity single-arg bare→ret bg-head normalize (RangeSet methods et al.) — parity 87.30%→87.32% (+12 production, +2 roundtrip)
 
 ## Suggested Next 3 Items
 
