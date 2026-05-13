@@ -5420,13 +5420,29 @@ func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 			break // terminal or throws/async marker
 		}
 		if c == 'R' {
-			// R<subj> — record constraint if we have a pending protocol.
+			// R<kind>?<subj> — Apple uses multi-char R<kind><subj> for class
+			// (Rb), same-type (Rs), member (Rm), inverse (Rj), proto (Rp)
+			// requirements. A bare R<subj> (where the byte after R is 'z'/'_'
+			// directly) is also valid in some shorthand encodings — disambiguate
+			// by peeking: if byte after R is a known kind char and a valid
+			// subject byte follows, it's R<kind><subj>; else it's R<subj>.
 			p.i++
 			if p.eof() {
 				break
 			}
-			subj := p.s[p.i]
-			p.i++
+			next := p.s[p.i]
+			var subj byte
+			if (next == 'b' || next == 'p' || next == 's' || next == 'j' ||
+				next == 'm' || next == 't' || next == 'l' || next == 'i') &&
+				p.i+1 < len(p.s) &&
+				(p.s[p.i+1] == 'z' || p.s[p.i+1] == '_') {
+				p.i++ // consume kind byte
+				subj = p.s[p.i]
+				p.i++
+			} else {
+				subj = next
+				p.i++
+			}
 			if lastConProto != nil {
 				var paramName string
 				switch subj {
