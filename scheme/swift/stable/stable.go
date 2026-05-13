@@ -414,6 +414,8 @@ func (p *parser) parseGlobal() (*demangle.Node, error) {
 		inner = tlNode
 	} else if atdNode, atdOk := p.tryAssocTypeDescriptor(); atdOk {
 		inner = atdNode
+	} else if acdNode, acdOk := p.tryGlobalAssocConformanceDescriptor(); acdOk {
+		inner = acdNode
 	} else if extEntity, ok, err := p.tryTypeFirstExtensionEntity(); err != nil {
 		return nil, err
 	} else if ok {
@@ -11278,6 +11280,146 @@ func (p *parser) tryAssocTypeDescriptor() (*demangle.Node, bool) {
 
 	wrap := common.NewNode(common.KindTypeMangling)
 	wrap.Text = "associated type descriptor for " + qualifiedProto + "." + assocTypeName
+	return wrap, true
+}
+
+// tryGlobalAssocConformanceDescriptor matches the top-level global form:
+//
+//	<host-proto-type> <assoc-name> <host-back-ref> '_' <constraint-proto-type> 'Tn'
+//
+// Renders as "associated conformance descriptor for <host>.<host>.<assoc>: <constraint>".
+// The host appears twice in Apple's output by convention.
+func (p *parser) tryGlobalAssocConformanceDescriptor() (*demangle.Node, bool) {
+	if !strings.HasSuffix(p.s[p.i:], "Tn") {
+		return nil, false
+	}
+	save := p.i
+	saveSubs := p.subs
+	saveWords := p.words
+	revert := func() { p.i = save; p.subs = saveSubs; p.words = saveWords }
+	end := len(p.s) - 2 // strip "Tn"
+
+	// Parse host protocol Type.
+	host, herr := p.parseType()
+	if herr != nil {
+		revert()
+		return nil, false
+	}
+	hostInner := host
+	if common.NodeKind(hostInner.Kind) == common.KindType && len(hostInner.Children) > 0 {
+		hostInner = hostInner.Children[0]
+	}
+	if common.NodeKind(hostInner.Kind) != common.KindProtocol {
+		revert()
+		return nil, false
+	}
+	// Parse one or more dot-separated assoc names. Each is either a
+	// length-prefixed ident or a compact stdlib (S<L>) that we render
+	// by its name.
+	var assocParts []string
+	for p.i < end {
+		if p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+			id, err := p.parseIdentifier()
+			if err != nil {
+				revert()
+				return nil, false
+			}
+			assocParts = append(assocParts, id)
+		} else if p.s[p.i] == 'S' && p.i+1 < end {
+			if p.s[p.i+1] == 'c' && p.i+2 < end {
+				if e2, ok := common.StdlibLookup2(p.s[p.i+2]); ok {
+					assocParts = append(assocParts, e2.Name)
+					p.i += 3
+					continue
+				}
+			}
+			if e, ok := common.StdlibLookup(p.s[p.i+1]); ok {
+				assocParts = append(assocParts, e.Name)
+				p.i += 2
+				continue
+			}
+			break
+		} else {
+			break
+		}
+		// After parsing one part, check for back-ref marker. Two forms:
+		//   '_<constraint>' — end of assoc chain.
+		//   '<S-letter|Sc-letter|digit-ident>...' — continued assoc chain
+		//     OR host back-ref. Heuristic: stop when current byte is '_'.
+		if p.i < end && p.s[p.i] == '_' {
+			break
+		}
+		// Accept a back-ref form before '_': A<UPPER>, S<letter>, Sc<letter>.
+		// Consume it (it represents the host repeat) then expect '_'.
+		if p.i < end && p.s[p.i] == 'A' && p.i+1 < end &&
+			p.s[p.i+1] >= 'A' && p.s[p.i+1] <= 'Z' {
+			p.i += 2
+			break
+		}
+		if p.i < end && p.s[p.i] == 'S' && p.i+1 < end {
+			if p.s[p.i+1] == 'c' && p.i+2 < end {
+				if _, ok := common.StdlibLookup2(p.s[p.i+2]); ok {
+					p.i += 3
+					break
+				}
+			}
+			if _, ok := common.StdlibLookup(p.s[p.i+1]); ok {
+				p.i += 2
+				break
+			}
+		}
+	}
+	if len(assocParts) == 0 {
+		revert()
+		return nil, false
+	}
+	// Expect '_' then constraint protocol type.
+	if p.i >= end || p.s[p.i] != '_' {
+		revert()
+		return nil, false
+	}
+	p.i++
+	constraint, cerr := p.parseType()
+	if cerr != nil {
+		revert()
+		return nil, false
+	}
+	cInner := constraint
+	if common.NodeKind(cInner.Kind) == common.KindType && len(cInner.Children) > 0 {
+		cInner = cInner.Children[0]
+	}
+	if common.NodeKind(cInner.Kind) != common.KindProtocol {
+		revert()
+		return nil, false
+	}
+	// Must be at "Tn" terminator.
+	if p.i != end {
+		revert()
+		return nil, false
+	}
+	p.i += 2 // consume "Tn"
+	// Build display name for host and constraint (simplified: just the
+	// protocol's identifier text, no module qualifier — matches Apple).
+	hostName := ""
+	for _, ch := range hostInner.Children {
+		if common.NodeKind(ch.Kind) == common.KindIdentifier {
+			hostName = ch.Text
+		}
+	}
+	constraintName := ""
+	for _, ch := range cInner.Children {
+		if common.NodeKind(ch.Kind) == common.KindIdentifier {
+			constraintName = ch.Text
+		}
+	}
+	if hostName == "" || constraintName == "" {
+		revert()
+		return nil, false
+	}
+	assocPath := strings.Join(assocParts, ".")
+	wrap := common.NewNode(common.KindTypeMangling)
+	wrap.Text = "associated conformance descriptor for " + hostName + "." + hostName + "." + assocPath + ": " + constraintName
+	wrap.Attrs = map[string]string{"swift.suffix": "Tn", "swift.prerendered": "true"}
 	return wrap, true
 }
 
