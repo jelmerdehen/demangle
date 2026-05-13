@@ -8168,7 +8168,7 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 		case "add", "subtract", "multiply", "divide":
 			return true
 		}
-		return strings.HasPrefix(name, "form")
+		return strings.HasPrefix(name, "form") || strings.HasPrefix(name, "_set")
 	}
 	if modName == "Foundation" && extHostMod != "" && retNode == nil && len(paramTypes) > 0 &&
 		!strings.HasSuffix(hostPath, ".StringInterpolation") &&
