@@ -8714,11 +8714,18 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 			".Collection< where A.Iterator == Swift.IndexingIterator<A>>.makeIterator() -> Swift.IndexingIterator<A>", 1)
 	}
 	// Swift.StringProtocol.rangeOf(_:options:range:locale:): `locale:` label
-	// lost, `range:` arg type shifted to Locale?.
+	// lost, `range:` arg type shifted to Locale?. Restore.
 	if hostPath == "StringProtocol" && declName == "rangeOf" {
 		wrap.Text = strings.Replace(wrap.Text,
 			", range: Foundation.Locale?) -> Swift.Range<Swift.String.Index>?",
 			", range: Swift.Range<Swift.String.Index>?, locale: Foundation.Locale?) -> Swift.Range<Swift.String.Index>?", 1)
+	}
+	// Swift._ArrayBufferProtocol._forceCreateUniqueMutableBufferImpl: tuple-arg
+	// got collapsed to 1 param (3-tuple); want 3 separate labeled params.
+	if hostPath == "_ArrayBufferProtocol" && declName == "_forceCreateUniqueMutableBufferImpl" {
+		wrap.Text = strings.Replace(wrap.Text,
+			"(countForBuffer: (Swift.Int, Swift.Int, Swift.Int))",
+			"(countForBuffer: Swift.Int, minNewCapacity: Swift.Int, requiredCapacity: Swift.Int)", 1)
 	}
 	// Swift._SwiftNewtypeWrapper bridge fns: spurious `_ObjectiveCBridgeable`
 	// leading arg and `A._ObjectiveCType` should be `A.RawValue._ObjectiveCType`.
