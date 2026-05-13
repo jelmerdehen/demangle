@@ -11128,6 +11128,17 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 				text = strings.Replace(text, " : __C.NSDimension",
 					" : (extension in Foundation):Foundation.Measurement<A>< where A: __C.NSDimension>.AttributedStyle", 1)
 			}
+			// Foundation.Measurement.FormatStyle<NSUIS>.ByteCount.attributed.getter:
+			// same ret-type back-ref bug, concrete NSUnitInformationStorage. The
+			// hostPath embeds the inner-extension constraint sig.
+			if modName == "Foundation" &&
+				strings.HasPrefix(hostPath, "Measurement.FormatStyle<") &&
+				strings.HasSuffix(hostPath, ">.ByteCount") &&
+				declName == "attributed" &&
+				strings.HasSuffix(text, ".attributed.getter : __C.NSDimension") {
+				text = strings.Replace(text, " : __C.NSDimension",
+					" : (extension in Foundation):(extension in Foundation):Foundation.Measurement<__C.NSUnitInformationStorage>< where A: __C.NSDimension>.AttributedStyle< where A == __C.NSUnitInformationStorage>.ByteCount", 1)
+			}
 			wrap := common.NewNode(common.KindTypeMangling)
 			wrap.Text = text
 			rawPrefix := fmt.Sprintf("%d%s%d%s%c%sE", len(modName), modName, len(hostName), hostName, hostKind, constraintBytes)
@@ -11265,6 +11276,16 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 			strings.HasSuffix(text, ".attributed : __C.NSDimension") {
 			text = strings.Replace(text, " : __C.NSDimension",
 				" : (extension in Foundation):Foundation.Measurement<A>< where A: __C.NSDimension>.AttributedStyle", 1)
+		}
+		// Foundation.Measurement.FormatStyle<NSUIS>.ByteCount.attributed property descriptor:
+		// same ret-type back-ref bug as getter; hostPath embeds inner constraint sig.
+		if modName == "Foundation" &&
+			strings.HasPrefix(hostPath, "Measurement.FormatStyle<") &&
+			strings.HasSuffix(hostPath, ">.ByteCount") &&
+			declName == "attributed" &&
+			strings.HasSuffix(text, ".attributed : __C.NSDimension") {
+			text = strings.Replace(text, " : __C.NSDimension",
+				" : (extension in Foundation):(extension in Foundation):Foundation.Measurement<__C.NSUnitInformationStorage>< where A: __C.NSDimension>.AttributedStyle< where A == __C.NSUnitInformationStorage>.ByteCount", 1)
 		}
 		wrap := common.NewNode(common.KindTypeMangling)
 		wrap.Text = text
