@@ -6,6 +6,10 @@ fast loop fires — avoids re-deriving path/cause each fire. Bounded
 
 ## Active targets
 
+### loop-status [cumulative XE..XS = +499 prod, 4 investigation-only attempts since]
+
+XE-XS productive fires drained 499 syms (87.59% → 88.38%). XQ-XU each attempted advanced fixes (PAAE same-mod allowance, dict-array-opt second-param replace) but yielded -1/+1 swings with subtle snapshot regressions. Remaining buckets need: depth-1 generic param tracking (qd_/Rd_, ~500+ syms), complex constraint conformance descriptors (Mc with Apple-Decodable nested, ~200+), or careful subs.Set alignment with bigger refactors. Each subsequent fire yields ≤+5 prod max.
+
 ### paae-protocol-extension-same-module-backref [~731 syms, multi-fire]
 
 `<mod><type>P AA E <decl>...F`. AA = host module back-ref (same-module proto extension: Combine.Publisher.*, Cancellable.*, SwiftUI.View.*). XF survey: tryExtensionEntity finds E (constraintBytes="AA", pureARef=true) but bails later in method/label chain — offset error right after P. Needs instrumented trace to pinpoint restore. Many entries also use depth-1 generics (`qd_`, `Rd__`) — distinct gap.
