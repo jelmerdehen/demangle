@@ -16020,6 +16020,16 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 				}
 				reqKind := p.s[p.i]
 				p.i++
+				// Multi-char R<kind><subj>: consume kind byte and treat
+				// next byte as actual subject. Kinds: b (AnyObject), s
+				// (same-type), m (member), t, l, i. (Rj and Rp are
+				// handled earlier with their own special logic.)
+				if (reqKind == 'b' || reqKind == 's' || reqKind == 'm' ||
+					reqKind == 't' || reqKind == 'l' || reqKind == 'i') &&
+					!p.eof() && (p.s[p.i] == 'z' || p.s[p.i] == '_') {
+					reqKind = p.s[p.i]
+					p.i++
+				}
 				// Narrow constraint rendering for common shapes:
 				//   z      → 'A: <constraint>'  (Conforms-to, subject A)
 				//   _      → 'B: <constraint>'  (subject at depth-0 idx 0+1=1=B)
