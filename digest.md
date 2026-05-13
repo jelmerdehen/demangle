@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 87.49% (55781/63757) — 2026-05-13T09:34:15Z
+**Parity**: 87.49% (55784/63757) — 2026-05-13T09:41:59Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 7911 parse-errors + 65 mismatches
+**Failures**: 7911 parse-errors + 62 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -12,7 +12,6 @@
 - static (extension                          4
 - (extension in Foundation):(extension in Foundation… 3
 - (extension in Foundation):Foundation.DiscreteForma… 2
-- AlertScene.init<A>(_:isPresented:presenting:action… 2
 - Foundation.AttributedString.init(localized: Swift.… 2
 - (extension in Foundation):Dispatch.DispatchData.Re… 1
 - (extension in Foundation):Dispatch.DispatchData.re… 1
@@ -26,19 +25,20 @@
 - (extension in Swift):Swift.DiscontiguousSlice< whe… 1
 - (extension in Swift):Swift.ExpressibleByExtendedGr… 1
 - (extension in Swift):Swift.ExpressibleByStringInte… 1
+- (extension in Swift):Swift.FlattenSequence< where … 1
 
 ## Last 10 Commits
 
+- 01f1139 swift-parity: VX ufC simplified-init genParamsStr emit only local generics (qd__/A1) when present, ignoring host BG depth-0 — parity 87.50%→87.51% (+2 production)
+- dbb78a4 swift-parity: VW Foundation.URL.FormatStyle.HostDisplayOption.omitSpecificSubdomains matches: ← arg[0] (Set<String>) override — parity 87.50%→87.50% (+1 production)
+- 9caa7f0 chore: lock snapshot after VU..VV (parity 55779→55781)
+- 31db5bb chore: update digest.md for VU..VV (parity 55779→55781)
 - 452ba7f swift-parity: VV Foundation.URL.init(template:variables:) variables dict K/V Foundation.URL? → Foundation.URL.Template substitution — parity 87.49%→87.50% (+1 production)
 - 60d88b2 swift-parity: VU Swift.DefaultIndices.init(_elements:startIndex:endIndex:) endIndex ← startIndex (A.Index) override — parity 87.49%→87.49% (+1 production)
 - e1185f0 chore: lock snapshot after VR..VT (parity 55776→55779)
 - 77169b9 chore: update digest.md for VR..VT (parity 55776→55779)
 - 41d2c1d swift-parity: VT Foundation.Platform.copyCString src strip extra UnsafeMutablePointer wrap — parity 87.49%→87.49% (+1 production)
 - 7b8fff0 swift-parity: VS Foundation.Data.range(of:options:in:) in: ← Range<Int>? ret-type override — parity 87.49%→87.49% (+1 production)
-- 3395a6b swift-parity: VR Foundation.Calendar.dateComponents(_:from:to:) from/to ← ret-type DateComponents override — parity 87.49%→87.49% (+1 production)
-- 8c49763 chore: lock snapshot after VP..VQ (parity 55773→55776)
-- 6e7be75 chore: update digest.md for VP..VQ (parity 55773→55776)
-- 0d9ad08 swift-parity: VQ Swift.Result.flatMap/flatMapError closure-ret restore from outer ret-type — parity 87.48%→87.49% (+2 production)
 
 ## Suggested Next 3 Items
 
