@@ -16363,6 +16363,44 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 			}
 		}
 	}
+	// Swift.UnsafeMutableRawPointer.initializeMemory<as:from:>: `as:` arg
+	// wrongly resolves via AE back-ref to UnsafeMutablePointer<A.Element>
+	// (the just-built BG) then takes metatype. Apple's model: AE resolves to
+	// A.Element (inner of BG) so metatype is A.Element.Type. Strip outer wrap.
+	if mod == "Swift" && args != nil && ret != nil &&
+		common.NodeKind(args.Kind) == common.KindTypeList && len(args.Children) == 2 &&
+		len(pathSteps) >= 2 {
+		last := pathSteps[len(pathSteps)-1]
+		if last != nil && last.Text == "initializeMemory" {
+			labels2 := make([]string, 2)
+			for i := 0; i < 2; i++ {
+				if args.Children[i].Attrs != nil {
+					labels2[i] = args.Children[i].Attrs["swift.label"]
+				}
+			}
+			if labels2[0] == "as" {
+				p0Str := common.Print(args.Children[0], common.DefaultPrintOptions())
+				retStr := common.Print(ret, common.DefaultPrintOptions())
+				if strings.HasPrefix(retStr, "Swift.UnsafeMutablePointer<") &&
+					strings.HasSuffix(retStr, ">") &&
+					p0Str == retStr+".Type" {
+					inner := retStr[len("Swift.UnsafeMutablePointer<") : len(retStr)-1]
+					tn := common.NewNode(common.KindBuiltinTypeName)
+					tn.Text = inner + ".Type"
+					w := common.NewNode(common.KindType)
+					common.AddChildren(w, tn)
+					w.Attrs = map[string]string{}
+					if args.Children[0].Attrs != nil {
+						for k, v := range args.Children[0].Attrs {
+							w.Attrs[k] = v
+						}
+					}
+					w.Attrs["swift.label"] = labels2[0]
+					args.Children[0] = w
+				}
+			}
+		}
+	}
 	// Swift.RangeSet.Ranges._indicesOfRange(_: Swift.Range<A>, in:
 	// Swift.ContiguousArray<Swift.Range<A>>, includeAdjacent: Swift.Bool):
 	// `in:` wrongly resolves the inner BG arg via back-ref to bare
