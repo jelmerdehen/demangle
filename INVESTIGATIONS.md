@@ -64,7 +64,7 @@ Drained by XR (skip Identifier push for op-decl) + XS (push bound-generic host f
 
 ### digit-led-host-equatable-bound-generic-resolution [ArraySlice/ContiguousArray/etc. == infix, ~10 syms, multi-fire]
 
-XT attempt: added `SubstitutionTable.Set` API + tracked `swiftDigitHostSubsIdx` in case `s<digit>` host parse + replaced bare host Type with bound-generic when declIsOp + constraint has R-subj. Tracking-vars track-only (don't change Push call sites). Smoke +0 prod but snapshot-check -43 unrelated syms (UIKit.UITextEffectViewDelegate, NSDecimal*). Reverted. Possible cause: my var-declaration / `_ = unused` patterns at function-scope shifted parser state in ways I didn't anticipate. Needs careful re-attempt with smaller diff + isolated regression testing.
+XT/XU attempts: added `SubstitutionTable.Set` + tracking-vars + bound-generic Set in tryTypeFirstExtensionEntity (gated on declIsOp + digitHostSubsIdx). Smoke parity -1 prod but snapshot-check -43 unrelated UIKit.UITextEffectViewDelegate/NSDecimal*. Two clean retries both reproduce. Cause unidentified — declIsOp logic should gate-out non-op decls but somehow affects unrelated. Possible: Push() return-value capture changes something subtle, or the new vars affect goroutine-local state. Reverted both times. Deep-trace needed.
 
 ### depth-1-generic-bucket [~500+ syms across receive, withUnsafeBytes, alert, observe, ...]
 
