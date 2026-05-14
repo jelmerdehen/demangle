@@ -6248,13 +6248,16 @@ func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 		initNode.Text = strings.Replace(initNode.Text,
 			"(metricUnits: Swift.Bool?, languages: [Swift.String]?, locale: Swift.String?, collationOrder: Swift.Bool?, firstWeekday: [Foundation.Calendar.Identifier : Swift.Int]?, minDaysInFirstWeek: Foundation.LocalePreferences, country: Foundation.LocalePreferences.MeasurementUnit?, measurementUnits: Foundation.LocalePreferences.TemperatureUnit?, temperatureUnit: Foundation.LocalePreferences, force24Hour: Foundation.LocalePreferences, force12Hour: [Swift.UInt32 : Swift.String]?, numberSymbols: [Foundation.Date.FormatStyle.DateStyle : Swift.String]?, dateFormats: Foundation.LocalePreferences.ICUSymbolsAndStrings)",
 			"(metricUnits: Swift.Bool?, languages: [Swift.String]?, locale: Swift.String?, collationOrder: Swift.String?, firstWeekday: [Foundation.Calendar.Identifier : Swift.Int]?, minDaysInFirstWeek: [Foundation.Calendar.Identifier : Swift.Int]?, country: Swift.String?, measurementUnits: Foundation.LocalePreferences.MeasurementUnit?, temperatureUnit: Foundation.LocalePreferences.TemperatureUnit?, force24Hour: Swift.Bool?, force12Hour: Swift.Bool?, numberSymbols: [Swift.UInt32 : Swift.String]?, dateFormats: [Foundation.Date.FormatStyle.DateStyle : Swift.String]?, icuSymbolsAndStrings: Foundation.LocalePreferences.ICUSymbolsAndStrings)", 1)
-		if asyncInit || throwsInit {
+		if asyncInit || throwsInit || isUFCTerminal {
 			initNode.Attrs = map[string]string{}
 			if asyncInit {
 				initNode.Attrs["swift.async"] = "true"
 			}
 			if throwsInit {
 				initNode.Attrs["swift.throws"] = "true"
+			}
+			if isUFCTerminal {
+				initNode.Attrs["swift.ufc"] = "true"
 			}
 		}
 		common.AddChildren(initNode, pathSteps...)
@@ -6405,13 +6408,16 @@ func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 	// stored in Text so the printer can render it without walking children.
 	initNode := common.NewNode(nodeKind)
 	initNode.Text = display
-	if asyncInit || throwsInit {
+	if asyncInit || throwsInit || isUFCTerminal {
 		initNode.Attrs = map[string]string{}
 		if asyncInit {
 			initNode.Attrs["swift.async"] = "true"
 		}
 		if throwsInit {
 			initNode.Attrs["swift.throws"] = "true"
+		}
+		if isUFCTerminal {
+			initNode.Attrs["swift.ufc"] = "true"
 		}
 	}
 	common.AddChildren(initNode, pathSteps...)

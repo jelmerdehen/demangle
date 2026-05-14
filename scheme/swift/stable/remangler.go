@@ -1411,6 +1411,18 @@ pathDone:
 		}
 	}
 
+	// ufC inits (own generic where-clause with `lu` markers) use the
+	// allocating-conv terminal `lufC`/`lufc` instead of plain `cfC`/`cfc`.
+	// The leading `c` of the standard suffix stays — `l` marks end of
+	// generic-counts, `u` is the allocating-conv discriminator.
+	if n.Attrs != nil && n.Attrs["swift.ufc"] == "true" {
+		switch suffix {
+		case "cfC":
+			suffix = "clufC"
+		case "cfc":
+			suffix = "clufc"
+		}
+	}
 	r.buf.WriteString(suffix)
 	return nil
 }
