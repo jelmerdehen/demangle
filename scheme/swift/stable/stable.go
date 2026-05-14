@@ -607,6 +607,10 @@ func (p *parser) parseGlobal() (*demangle.Node, error) {
 			inner = wrapped
 			continue
 		}
+		if wrapped, ok := p.trySubscriptEntityLabeled(inner); ok {
+			inner = wrapped
+			continue
+		}
 		if wrapped, ok := p.tryNestedPrivateDecl(inner); ok {
 			inner = wrapped
 			continue
@@ -3506,6 +3510,102 @@ func (p *parser) tryProtocolInitMember(inner *demangle.Node) (*demangle.Node, bo
 	}
 	wrap := common.NewNode(common.KindTypeMangling)
 	wrap.Text = termPrefix + body
+	return wrap, true
+}
+
+// trySubscriptEntityLabeled handles the labeled-typed-subscript shape:
+//
+//	<host-Type> <digits><label> <result-type> <param-type> '_' 't' 'c' 'i' <accessor>
+//
+// Mirror of trySubscriptEntityTyped but with an explicit single label
+// instead of the 'y' empty-label marker, and a `_t` single-element
+// tuple terminator after the (single) index type.
+//
+// Renders as:
+//
+//	Swift.<Host>.subscript.<accessor> : (<label>: <param>) -> <result>
+//
+// Drains the `Sr10_unchecked.../SR10_unchecked.../SS<view>10_unchecked...`
+// family on stdlib Pointer / BufferPointer / String view types.
+func (p *parser) trySubscriptEntityLabeled(inner *demangle.Node) (*demangle.Node, bool) {
+	if p.eof() || !(p.s[p.i] >= '1' && p.s[p.i] <= '9') {
+		return inner, false
+	}
+	save := p.i
+	saveSubs := p.subs
+	saveWords := p.words
+	revert := func() { p.i = save; p.subs = saveSubs; p.words = saveWords }
+
+	label, err := p.parseIdentifier()
+	if err != nil || label == "" {
+		revert()
+		return inner, false
+	}
+	// Peek for a typed-subscript body. The next byte must be a type-start
+	// (parseType handles 'x', 'S', digit-led idents, etc.). If parseType
+	// fails or the trailing bytes don't match `<param>_tci<accessor>`,
+	// revert so we don't steal labels that belong to a function entity.
+	p.inSubscriptTypes = true
+	defer func() { p.inSubscriptTypes = false }()
+
+	resultNode, err := p.parseType()
+	if err != nil || resultNode == nil {
+		revert()
+		return inner, false
+	}
+	paramNode, err := p.parseType()
+	if err != nil || paramNode == nil {
+		revert()
+		return inner, false
+	}
+	if p.i+4 >= len(p.s) {
+		revert()
+		return inner, false
+	}
+	if p.s[p.i] != '_' || p.s[p.i+1] != 't' || p.s[p.i+2] != 'c' || p.s[p.i+3] != 'i' {
+		revert()
+		return inner, false
+	}
+	p.i += 4
+	kindByte := p.s[p.i]
+	var accessor string
+	switch kindByte {
+	case 'g':
+		accessor = ".getter"
+	case 's':
+		accessor = ".setter"
+	case 'M':
+		accessor = ".modify"
+	case 'p':
+		accessor = "" // property descriptor — caller must follow with MV
+	default:
+		revert()
+		return inner, false
+	}
+	p.i++
+
+	opts := common.DefaultPrintOptions()
+	ownerStr := common.Print(inner, opts)
+	resultStr := common.Print(resultNode, opts)
+	paramStr := common.Print(paramNode, opts)
+	fullForm := strings.Contains(ownerStr, "Swift.") || strings.Contains(ownerStr, "Foundation.")
+
+	wrap := common.NewNode(common.KindTypeMangling)
+	if kindByte == 'p' {
+		// Property-descriptor variant — expects an outer 'MV' suffix that
+		// the entity-suffix loop wraps into "property descriptor for ...".
+		if fullForm {
+			wrap.Text = ownerStr + ".subscript(" + label + ": " + paramStr + ") -> " + resultStr
+		} else {
+			wrap.Text = ownerStr + ".subscript(" + label + ":)"
+		}
+		return wrap, true
+	}
+	if fullForm {
+		wrap.Text = ownerStr + ".subscript" + accessor + " : (" + label + ": " + paramStr + ") -> " + resultStr
+	} else {
+		wrap.Text = ownerStr + ".subscript" + accessor
+	}
 	return wrap, true
 }
 
