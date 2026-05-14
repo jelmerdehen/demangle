@@ -1,4 +1,4 @@
-# snapshot-pass-set update 2026-05-14T22:29:10Z — union with previous (high-water)
+# snapshot-pass-set update 2026-05-14T22:33:43Z — union with previous (high-water)
 _$s10Foreground7SwiftUI18LabelGroupStyle_v0PTl
 _$s10Foundation10CocoaErrorV010formattingC0AC4CodeVvgZ
 _$s10Foundation10CocoaErrorV010formattingC0AC4CodeVvpZMV
@@ -39245,6 +39245,8 @@ _$sSQ2eeoiySbx_xtFZTq
 _$sSQMp
 _$sSQTL
 _$sSQsE2neoiySbx_xtFZ
+_$sSR10_uncheckedxSi_tcig
+_$sSR10_uncheckedxSi_tcipMV
 _$sSR10deallocateyyF
 _$sSR10startIndexSivg
 _$sSR10startIndexSivpMV
@@ -39797,6 +39799,7 @@ _$sSS8IteratorVN
 _$sSS8IteratorVStsMc
 _$sSS8IteratorVStsWP
 _$sSS8IteratorVyABs11_StringGutsVcfC
+_$sSS8UTF8ViewV10_uncheckeds5UInt8VSS5IndexV_tcipMV
 _$sSS8UTF8ViewV10startIndexSS0D0Vvg
 _$sSS8UTF8ViewV10startIndexSS0D0VvpMV
 _$sSS8UTF8ViewV11descriptionSSvg
@@ -39854,6 +39857,7 @@ _$sSS8distance4from2toSiSS5IndexV_AEtF
 _$sSS8endIndexSS0B0Vvg
 _$sSS8endIndexSS0B0VvpMV
 _$sSS8utf8Spans04UTF8B0Vvg
+_$sSS9UTF16ViewV10_uncheckeds6UInt16VSS5IndexV_tcipMV
 _$sSS9UTF16ViewV10startIndexSS0D0Vvg
 _$sSS9UTF16ViewV10startIndexSS0D0VvpMV
 _$sSS9UTF16ViewV11descriptionSSvg
@@ -46362,6 +46366,10 @@ _$sSqsSQRzlE2eeoiySbxSg_ABtFZ
 _$sSqsSQRzlE2eeoiySbxSg_ABtFZSS_Ts5
 _$sSqsSQRzlE2eeoiySbxSg_ABtFZs11AnyHashableV_Ts5
 _$sSqyxSgxcfC
+_$sSr10_uncheckedxSi_tciM
+_$sSr10_uncheckedxSi_tcig
+_$sSr10_uncheckedxSi_tcipMV
+_$sSr10_uncheckedxSi_tcis
 _$sSr10deallocateyyF
 _$sSr10initialize4from8IteratorQyd___Sitqd___t7ElementQyd__RszSTRd__lF
 _$sSr10initialize9repeatingyx_tF
