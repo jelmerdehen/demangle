@@ -1155,11 +1155,14 @@ func (r *remangler) mangleDependentGenericParamType(n *demangle.Node) error {
 		// index ≥ 2: emit "q<index-2>_"
 		fmt.Fprintf(&r.buf, "q%d_", index-2)
 	case depth == 1 && index == 0:
-		// "qd_": no index digit. Parser: "qd_" -> depth=1, index=0.
-		r.buf.WriteString("qd_")
+		// "qd__": Apple's pack-index-zero form for A1 — two trailing
+		// underscores. Parser accepts both `qd_` and `qd__`, but Apple
+		// emits the double form.
+		r.buf.WriteString("qd__")
 	case depth == 1:
-		// index >= 1: "qd<N>_" where N = index-1. Parser: "qd<N>_" -> index=N+1.
-		fmt.Fprintf(&r.buf, "qd%d_", index-1)
+		// "qd_<N>_": Apple's explicit-index form for depth-1 idx N+1
+		// (B1=qd_0_, C1=qd_1_, etc.). Matches parser's qd_<N>_ branch.
+		fmt.Fprintf(&r.buf, "qd_%d_", index-1)
 	default:
 		return &demangle.Error{
 			Kind:     demangle.ErrUnsupported,
