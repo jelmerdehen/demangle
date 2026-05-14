@@ -2190,8 +2190,11 @@ func (p *parser) trySubscriptEntityTyped(inner *demangle.Node) (*demangle.Node, 
 	kindByte := p.s[p.i]
 	// Apple's 2-byte addressor forms: 'au' = unsafeMutableAddressor,
 	// 'lu' = unsafeAddressor. Detect and consume the trailing 'u' here
-	// so the switch below can branch on kindByte alone.
+	// so the switch below can branch on kindByte alone. Read/yield-borrow/
+	// yield-mutate accessors (r/y/x) map to dot-suffix labels alongside
+	// the existing g/s/M/w/W set.
 	twoByteAddressor := ""
+	suffixOverride := ""
 	switch kindByte {
 	case 'g', 's', 'M', 'a', 'm', 'w', 'W', 'p':
 		if (kindByte == 'a') && p.i+1 < len(p.s) && p.s[p.i+1] == 'u' {
@@ -2204,6 +2207,14 @@ func (p *parser) trySubscriptEntityTyped(inner *demangle.Node) (*demangle.Node, 
 			revert()
 			return inner, false
 		}
+	case 'r':
+		suffixOverride = "read"
+	case 'y':
+		suffixOverride = "yielding_borrow"
+	case 'x':
+		suffixOverride = "yielding_mutate"
+	case 'i':
+		suffixOverride = "init_accessor"
 	default:
 		revert()
 		return inner, false
@@ -2240,6 +2251,14 @@ func (p *parser) trySubscriptEntityTyped(inner *demangle.Node) (*demangle.Node, 
 			wrap.Text = strippedOwner + ".subscript." + twoByteAddressor + " : (" + paramsStr + ") -> " + resultStr
 		} else {
 			wrap.Text = strippedOwner + ".subscript." + twoByteAddressor
+		}
+		return wrap, true
+	}
+	if suffixOverride != "" {
+		if fullForm {
+			wrap.Text = strippedOwner + ".subscript." + suffixOverride + " : (" + paramsStr + ") -> " + resultStr
+		} else {
+			wrap.Text = strippedOwner + ".subscript." + suffixOverride
 		}
 		return wrap, true
 	}
