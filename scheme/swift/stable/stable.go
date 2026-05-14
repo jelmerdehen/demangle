@@ -566,6 +566,10 @@ func (p *parser) parseGlobal() (*demangle.Node, error) {
 			inner = wrapped
 			continue
 		}
+		if wrapped, ok := p.tryAAMultiConformanceSuffix(inner); ok {
+			inner = wrapped
+			continue
+		}
 		if wrapped, ok := p.trySubscriptEntity(inner); ok {
 			inner = wrapped
 			continue
@@ -1785,6 +1789,207 @@ func (p *parser) tryAAConformanceSuffix(inner *demangle.Node) (*demangle.Node, b
 
 	wrap := common.NewNode(common.KindTypeMangling)
 	wrap.Text = termPrefix + body
+	return wrap, true
+}
+
+// tryAAMultiConformanceSuffix matches multi-conformance descriptor /
+// witness-table shape on a bound-generic host where multiple generic
+// params each conform to the same parsed protocol:
+//
+//	<bound-generic>AA<proto-ident> <multi-sub-and-R-reqs>* rl (Mc|WP)
+//
+// Apple's grammar uses A<digit>?<lowercases>*<UPPER> to push protocol
+// refs onto the parse stack, followed by R<kind><subj> requirements
+// that bind subj-param to the most-recent pushed protocol. Since all
+// requirements in this shape bind to the same parsed proto, we can
+// textually scan the chain and emit one constraint per R<subj> req.
+//
+// Emits "<termPrefix>< where A: <Proto>, B: <Proto>...> <inner> :
+// <Proto> in <Module>".
+func (p *parser) tryAAMultiConformanceSuffix(inner *demangle.Node) (*demangle.Node, bool) {
+	if p.eof() || p.i+1 >= len(p.s) {
+		return inner, false
+	}
+	if p.s[p.i] != 'A' || p.s[p.i+1] != 'A' {
+		return inner, false
+	}
+	save := p.i
+	saveSubs := p.subs
+	saveWords := p.words
+	revert := func() { p.i = save; p.subs = saveSubs; p.words = saveWords }
+	// Resolve AA back-ref → module subs[0].
+	modNode, mok := p.subs.Get(0)
+	if !mok || modNode == nil || common.NodeKind(modNode.Kind) != common.KindModule {
+		return inner, false
+	}
+	moduleName := modNode.Text
+	p.i += 2 // consume AA
+	if p.eof() || !(p.s[p.i] >= '0' && p.s[p.i] <= '9') {
+		revert()
+		return inner, false
+	}
+	protoName, err := p.parseIdentifier()
+	if err != nil {
+		revert()
+		return inner, false
+	}
+	// Scan constraint chain: multi-sub pushes (A<digit>?<lowercases>*<UPPER>)
+	// interleaved with R<kind><subj> requirements. Terminate on rl/l.
+	// `rl` means conditional-requirements present; `l` means plain.
+	var subjects []string
+	foundCondReq := false
+	for !p.eof() {
+		if p.i+1 < len(p.s) && p.s[p.i] == 'r' && p.s[p.i+1] == 'l' {
+			p.i += 2
+			foundCondReq = true
+			break
+		}
+		if p.s[p.i] == 'l' {
+			p.i++
+			break
+		}
+		if p.s[p.i] == 'A' {
+			// Multi-sub push: A <digit>? <lowercase>* <UPPER>.
+			p.i++
+			for !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+				p.i++
+			}
+			matched := false
+			for !p.eof() {
+				c := p.s[p.i]
+				if c >= 'a' && c <= 'z' {
+					p.i++
+					continue
+				}
+				if c >= 'A' && c <= 'Z' {
+					p.i++
+					matched = true
+					break
+				}
+				break
+			}
+			if !matched {
+				revert()
+				return inner, false
+			}
+			continue
+		}
+		if p.s[p.i] == 'R' {
+			p.i++ // consume R
+			// Optional kind byte (p / t / B / l / N / m / i / etc.). We only
+			// support the conformance kinds where Rt/Rp/bare-R bind subj to
+			// the most recently pushed proto.
+			if !p.eof() && (p.s[p.i] == 'p' || p.s[p.i] == 't') {
+				p.i++
+			}
+			if p.eof() {
+				revert()
+				return inner, false
+			}
+			subj := ""
+			switch sk := p.s[p.i]; {
+			case sk == 'z':
+				p.i++
+				subj = "A"
+			case sk == '_':
+				p.i++
+				subj = "B"
+			case sk >= '0' && sk <= '9':
+				n := 0
+				for !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+					n = n*10 + int(p.s[p.i]-'0')
+					p.i++
+				}
+				if p.eof() || p.s[p.i] != '_' {
+					revert()
+					return inner, false
+				}
+				p.i++
+				if n+2 < 26 {
+					subj = string(rune('A' + n + 2))
+				}
+			default:
+				revert()
+				return inner, false
+			}
+			if subj != "" {
+				subjects = append(subjects, subj)
+			}
+			continue
+		}
+		// Unknown byte: bail.
+		revert()
+		return inner, false
+	}
+	if len(subjects) < 1 {
+		revert()
+		return inner, false
+	}
+	if p.i+1 >= len(p.s) {
+		revert()
+		return inner, false
+	}
+	var termPrefix string
+	switch {
+	case p.s[p.i] == 'M' && p.s[p.i+1] == 'c':
+		termPrefix = "protocol conformance descriptor for "
+		p.i += 2
+	case p.s[p.i] == 'W' && p.s[p.i+1] == 'P':
+		termPrefix = "protocol witness table for "
+		p.i += 2
+	default:
+		revert()
+		return inner, false
+	}
+	innerStr := common.Print(inner, common.DefaultPrintOptions())
+	protoFull := moduleName + "." + protoName
+	// Deduplicate subjects (in case the same subj appears in multiple reqs).
+	seen := map[string]bool{}
+	parts := make([]string, 0, len(subjects))
+	for _, s := range subjects {
+		if seen[s] {
+			continue
+		}
+		seen[s] = true
+		parts = append(parts, s+": "+protoFull)
+	}
+	wrap := common.NewNode(common.KindTypeMangling)
+	// UI / app-layer modules use simplified Apple output: "<> <TypeName>"
+	// with module prefix stripped and no "<where>" / proto suffix.
+	uiTypeMods := map[string]bool{"SwiftUI": true, "UIKit": true, "Combine": true, "__C": true}
+	typeMod := common.RootModuleOf(inner)
+	if typeMod == "" {
+		if dot := strings.IndexByte(innerStr, '.'); dot > 0 {
+			typeMod = innerStr[:dot]
+		}
+	}
+	if uiTypeMods[moduleName] {
+		stripped := innerStr
+		if typeMod != "" {
+			stripped = strings.TrimPrefix(innerStr, typeMod+".")
+		}
+		// Apple simplified output: `rl` (conditional-requirements) → `<>`,
+		// `l` (plain) → `<subjects>` listing only the constrained params.
+		var clause string
+		if foundCondReq {
+			clause = "<> "
+		} else {
+			uniq := make([]string, 0, len(subjects))
+			seenS := map[string]bool{}
+			for _, s := range subjects {
+				if seenS[s] {
+					continue
+				}
+				seenS[s] = true
+				uniq = append(uniq, s)
+			}
+			clause = "<" + strings.Join(uniq, ", ") + "> "
+		}
+		wrap.Text = termPrefix + clause + stripped
+		return wrap, true
+	}
+	sig := "< where " + strings.Join(parts, ", ") + "> "
+	wrap.Text = termPrefix + sig + innerStr + " : " + protoFull + " in " + moduleName
 	return wrap, true
 }
 
