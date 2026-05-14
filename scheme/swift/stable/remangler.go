@@ -1500,6 +1500,13 @@ pathDone:
 			continue
 		}
 		anyLabel = true
+		// Blank labels in mixed label-lists (e.g. `(x:, _:, y:)`) encode as
+		// the bare `_` byte rather than the 1-char identifier `1_` which
+		// would round-trip to an ident named "_".
+		if lbl == "_" {
+			r.buf.WriteByte('_')
+			continue
+		}
 		if err := r.mangleIdentifier(common.NewIdentifier(lbl)); err != nil {
 			return err
 		}
@@ -1670,9 +1677,12 @@ func (r *remangler) mangleFunctionEntity(n *demangle.Node) error {
 				if child.Attrs != nil {
 					lbl = child.Attrs["swift.label"]
 				}
-				if lbl == "" {
+				switch lbl {
+				case "":
 					r.buf.WriteByte('0') // zero-length = no external label
-				} else {
+				case "_":
+					r.buf.WriteByte('_') // blank-label marker (`_:` source form)
+				default:
 					if err := r.mangleIdentifier(common.NewIdentifier(lbl)); err != nil {
 						return err
 					}
@@ -1684,7 +1694,9 @@ func (r *remangler) mangleFunctionEntity(n *demangle.Node) error {
 			if args.Attrs != nil {
 				lbl = args.Attrs["swift.label"]
 			}
-			if lbl != "" {
+			if lbl == "_" {
+				r.buf.WriteByte('_')
+			} else if lbl != "" {
 				if err := r.mangleIdentifier(common.NewIdentifier(lbl)); err != nil {
 					return err
 				}
