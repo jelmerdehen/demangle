@@ -1,4 +1,4 @@
-# snapshot-pass-set update 2026-05-14T22:25:31Z — union with previous (high-water)
+# snapshot-pass-set update 2026-05-14T22:29:10Z — union with previous (high-water)
 _$s10Foreground7SwiftUI18LabelGroupStyle_v0PTl
 _$s10Foundation10CocoaErrorV010formattingC0AC4CodeVvgZ
 _$s10Foundation10CocoaErrorV010formattingC0AC4CodeVvpZMV
@@ -47527,6 +47527,7 @@ _$ss10_HashTableV8IteratorVMn
 _$ss10_HashTableV8IteratorVN
 _$ss10_HashTableV8IteratorVStsMc
 _$ss10_HashTableV8IteratorVStsWP
+_$ss10_HashTableV8IteratorVyAdBcfC
 _$ss10_HashTableV8nextHole9atOrAfterAB6BucketVAF_tF
 _$ss10_HashTableV9endBucketAB0D0Vvg
 _$ss10_HashTableV9endBucketAB0D0VvpMV
@@ -48931,6 +48932,7 @@ _$ss13_UnsafeBitsetV8IteratorVMn
 _$ss13_UnsafeBitsetV8IteratorVN
 _$ss13_UnsafeBitsetV8IteratorVStsMc
 _$ss13_UnsafeBitsetV8IteratorVStsWP
+_$ss13_UnsafeBitsetV8IteratorVyAdBcfC
 _$ss13_UnsafeBitsetV8capacitySivg
 _$ss13_UnsafeBitsetV8capacitySivpMV
 _$ss13_UnsafeBitsetV9wordCount11forCapacityS2i_tFZ
@@ -49900,6 +49902,7 @@ _$ss16_ValidUTF8BufferV8IteratorVSTsMc
 _$ss16_ValidUTF8BufferV8IteratorVSTsWP
 _$ss16_ValidUTF8BufferV8IteratorVStsMc
 _$ss16_ValidUTF8BufferV8IteratorVStsWP
+_$ss16_ValidUTF8BufferV8IteratorVyAdBcfC
 _$ss16_ValidUTF8BufferV8capacitySivg
 _$ss16_ValidUTF8BufferV8capacitySivgZ
 _$ss16_ValidUTF8BufferV8capacitySivpMV
@@ -52890,6 +52893,7 @@ _$ss4Int8V5WordsVSksMc
 _$ss4Int8V5WordsVSksWP
 _$ss4Int8V5WordsVSlsMc
 _$ss4Int8V5WordsVSlsWP
+_$ss4Int8V5WordsVyAdBcfC
 _$ss4Int8V5WordsVySuSicig
 _$ss4Int8V5WordsVySuSicipMV
 _$ss4Int8V5wordsAB5WordsVvg
@@ -53325,6 +53329,7 @@ _$ss5Int16V5WordsVSksMc
 _$ss5Int16V5WordsVSksWP
 _$ss5Int16V5WordsVSlsMc
 _$ss5Int16V5WordsVSlsWP
+_$ss5Int16V5WordsVyAdBcfC
 _$ss5Int16V5WordsVySuSicig
 _$ss5Int16V5WordsVySuSicipMV
 _$ss5Int16V5wordsAB5WordsVvg
@@ -53581,6 +53586,7 @@ _$ss5Int32V5WordsVSksMc
 _$ss5Int32V5WordsVSksWP
 _$ss5Int32V5WordsVSlsMc
 _$ss5Int32V5WordsVSlsWP
+_$ss5Int32V5WordsVyAdBcfC
 _$ss5Int32V5WordsVySuSicig
 _$ss5Int32V5WordsVySuSicipMV
 _$ss5Int32V5wordsAB5WordsVvg
@@ -53839,6 +53845,7 @@ _$ss5Int64V5WordsVSksMc
 _$ss5Int64V5WordsVSksWP
 _$ss5Int64V5WordsVSlsMc
 _$ss5Int64V5WordsVSlsWP
+_$ss5Int64V5WordsVyAdBcfC
 _$ss5Int64V5WordsVySuSicig
 _$ss5Int64V5WordsVySuSicipMV
 _$ss5Int64V5wordsAB5WordsVvg
@@ -54429,6 +54436,7 @@ _$ss5UInt8V5WordsVSksMc
 _$ss5UInt8V5WordsVSksWP
 _$ss5UInt8V5WordsVSlsMc
 _$ss5UInt8V5WordsVSlsWP
+_$ss5UInt8V5WordsVyAdBcfC
 _$ss5UInt8V5WordsVySuSicig
 _$ss5UInt8V5WordsVySuSicipMV
 _$ss5UInt8V5asciiABs7UnicodeO6ScalarV_tcfC
@@ -55049,6 +55057,7 @@ _$ss6UInt16V5WordsVSksMc
 _$ss6UInt16V5WordsVSksWP
 _$ss6UInt16V5WordsVSlsMc
 _$ss6UInt16V5WordsVSlsWP
+_$ss6UInt16V5WordsVyAdBcfC
 _$ss6UInt16V5WordsVySuSicig
 _$ss6UInt16V5WordsVySuSicipMV
 _$ss6UInt16V5wordsAB5WordsVvg
@@ -55302,6 +55311,7 @@ _$ss6UInt32V5WordsVSksMc
 _$ss6UInt32V5WordsVSksWP
 _$ss6UInt32V5WordsVSlsMc
 _$ss6UInt32V5WordsVSlsWP
+_$ss6UInt32V5WordsVyAdBcfC
 _$ss6UInt32V5WordsVySuSicig
 _$ss6UInt32V5WordsVySuSicipMV
 _$ss6UInt32V5wordsAB5WordsVvg
@@ -55558,6 +55568,7 @@ _$ss6UInt64V5WordsVSksMc
 _$ss6UInt64V5WordsVSksWP
 _$ss6UInt64V5WordsVSlsMc
 _$ss6UInt64V5WordsVSlsWP
+_$ss6UInt64V5WordsVyAdBcfC
 _$ss6UInt64V5WordsVySuSicig
 _$ss6UInt64V5WordsVySuSicipMV
 _$ss6UInt64V5wordsAB5WordsVvg
@@ -55917,6 +55928,7 @@ _$ss7Float16Vs33_ExpressibleByBuiltinFloatLiteralsMc
 _$ss7Float16Vs33_ExpressibleByBuiltinFloatLiteralsWP
 _$ss7Float16Vs35_ExpressibleByBuiltinIntegerLiteralsMc
 _$ss7Float16Vs35_ExpressibleByBuiltinIntegerLiteralsWP
+_$ss7Float16VyA2BcfC
 _$ss7Float16VyABBf16_cfC
 _$ss7Float16VyABSdcfC
 _$ss7Float16VyABSfcfC
@@ -57213,6 +57225,7 @@ _$ss8UTF8SpanV17CharacterIteratorV9codeUnitsABvg
 _$ss8UTF8SpanV17CharacterIteratorVMa
 _$ss8UTF8SpanV17CharacterIteratorVMn
 _$ss8UTF8SpanV17CharacterIteratorVN
+_$ss8UTF8SpanV17CharacterIteratorVyAdBcfC
 _$ss8UTF8SpanV18_unsafeBaseAddressSVSgvM
 _$ss8UTF8SpanV18_unsafeBaseAddressSVSgvg
 _$ss8UTF8SpanV18_unsafeBaseAddressSVSgvs
@@ -57232,6 +57245,7 @@ _$ss8UTF8SpanV21UnicodeScalarIteratorV9codeUnitsABvg
 _$ss8UTF8SpanV21UnicodeScalarIteratorVMa
 _$ss8UTF8SpanV21UnicodeScalarIteratorVMn
 _$ss8UTF8SpanV21UnicodeScalarIteratorVN
+_$ss8UTF8SpanV21UnicodeScalarIteratorVyAdBcfC
 _$ss8UTF8SpanV21isCanonicallyLessThanySbABF
 _$ss8UTF8SpanV21makeCharacterIteratorAB0dE0VyF
 _$ss8UTF8SpanV23isCanonicallyEquivalent2toSbAB_tF
