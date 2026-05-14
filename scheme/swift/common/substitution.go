@@ -81,6 +81,7 @@ var StdlibSubstitutions2 = map[byte]stdlib{
 	'f': {"Swift", "SerialExecutor", KindProtocol},
 	'G': {"Swift", "TaskGroup", KindStructure},
 	'g': {"Swift", "ThrowingTaskGroup", KindStructure},
+	'h': {"Swift", "TaskExecutor", KindProtocol},
 	'I': {"Swift", "AsyncIteratorProtocol", KindProtocol},
 	'i': {"Swift", "AsyncSequence", KindProtocol},
 	'J': {"Swift", "UnownedJob", KindStructure},

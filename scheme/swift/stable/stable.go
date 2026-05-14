@@ -7086,6 +7086,8 @@ func (p *parser) tryEntitySuffix(inner *demangle.Node) (*demangle.Node, bool) {
 			prefix = "class metadata base offset for "
 		case 'Q':
 			prefix = "opaque type descriptor for "
+		case 'S':
+			prefix = "protocol self-conformance descriptor for "
 		}
 	case 'H':
 		switch p.s[p.i+1] {
