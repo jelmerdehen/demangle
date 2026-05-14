@@ -3859,6 +3859,17 @@ func (p *parser) tryNominalCopyInit(inner *demangle.Node) (*demangle.Node, bool)
 		p.i = save
 		return inner, false
 	}
+	// Optional `yXl` (AnyObject) param + `n` (__owned) modifier between the
+	// A-backref and the `cfC` terminator. This covers the
+	// __CocoaSet/__CocoaDictionary `<host>yAByXlncfC` init shape:
+	// init(__owned Swift.AnyObject) -> host. Otherwise the A-backref's
+	// implied param (host or parent) is used.
+	hasYXlOwned := false
+	if p.i+3 < len(p.s) && p.s[p.i] == 'y' && p.s[p.i+1] == 'X' &&
+		p.s[p.i+2] == 'l' && p.s[p.i+3] == 'n' {
+		hasYXlOwned = true
+		p.i += 4
+	}
 	if p.i+2 >= len(p.s) || p.s[p.i] != 'c' || p.s[p.i+1] != 'f' || p.s[p.i+2] != 'C' {
 		p.i = save
 		return inner, false
@@ -3867,7 +3878,9 @@ func (p *parser) tryNominalCopyInit(inner *demangle.Node) (*demangle.Node, bool)
 
 	hostStr := common.Print(inner, common.DefaultPrintOptions())
 	paramStr := hostStr
-	if sawLower && len(innerNom.Children) >= 2 &&
+	if hasYXlOwned {
+		paramStr = "__owned Swift.AnyObject"
+	} else if sawLower && len(innerNom.Children) >= 2 &&
 		common.NodeKind(innerNom.Children[0].Kind) != common.KindModule {
 		// Nested-type host with multi-sub back-ref (e.g. `AdB`): Apple
 		// emits the parent type (first child) as the param. Only fire
