@@ -587,6 +587,10 @@ func (p *parser) parseGlobal() (*demangle.Node, error) {
 			inner = wrapped
 			continue
 		}
+		if wrapped, ok := p.tryNominalCopyInit(inner); ok {
+			inner = wrapped
+			continue
+		}
 		if wrapped, ok := p.tryStdlibProtoConformanceSuffix(inner); ok {
 			inner = wrapped
 			continue
@@ -3580,6 +3584,81 @@ func (p *parser) tryStdlibCopyInit(inner *demangle.Node) (*demangle.Node, bool) 
 		return inner, false
 	}
 	p.i += 3
+	wrap := common.NewNode(common.KindTypeMangling)
+	wrap.Text = hostStr + ".init(" + paramStr + ") -> " + hostStr
+	return wrap, true
+}
+
+// tryNominalCopyInit handles the compact init form where the param
+// and result are both substitutions of the host (or its parent for a
+// nested type), encoded as a single A-prefix back-ref body:
+//
+//	<host-Type> 'y' 'A' (<digit>|<lower>)* <upper> 'c' 'f' 'C'
+//
+// For a single stdlib host (e.g. Float16) result and param are the
+// host itself. For a nested host (Outer.Inner) result is the inner
+// type and param is the outer type. Renders as:
+//
+//	Swift.<Host>.init(<param>) -> Swift.<Host>
+//
+// Apple's compact A<n>B form encodes both slots in one byte run; the
+// handler does not need to resolve the back-ref indices because the
+// host-Type already determines both ends.
+func (p *parser) tryNominalCopyInit(inner *demangle.Node) (*demangle.Node, bool) {
+	if p.i+5 > len(p.s) {
+		return inner, false
+	}
+	innerNom := inner
+	if common.NodeKind(innerNom.Kind) == common.KindType && len(innerNom.Children) > 0 {
+		innerNom = innerNom.Children[0]
+	}
+	switch common.NodeKind(innerNom.Kind) {
+	case common.KindStructure, common.KindClass, common.KindEnum:
+	default:
+		return inner, false
+	}
+	if common.RootModuleOf(inner) != "Swift" {
+		return inner, false
+	}
+	if p.s[p.i] != 'y' || p.s[p.i+1] != 'A' {
+		return inner, false
+	}
+	save := p.i
+	p.i += 2 // 'y' + 'A'
+	// Back-ref body: (digit|lower)* upper.
+	sawUpper := false
+	for !p.eof() {
+		c := p.s[p.i]
+		if (c >= '0' && c <= '9') || (c >= 'a' && c <= 'z') {
+			p.i++
+			continue
+		}
+		if c >= 'A' && c <= 'Z' {
+			p.i++
+			sawUpper = true
+			break
+		}
+		break
+	}
+	if !sawUpper {
+		p.i = save
+		return inner, false
+	}
+	if p.i+2 >= len(p.s) || p.s[p.i] != 'c' || p.s[p.i+1] != 'f' || p.s[p.i+2] != 'C' {
+		p.i = save
+		return inner, false
+	}
+	p.i += 3
+
+	hostStr := common.Print(inner, common.DefaultPrintOptions())
+	paramStr := hostStr
+	if len(innerNom.Children) >= 2 &&
+		common.NodeKind(innerNom.Children[0].Kind) != common.KindModule {
+		// Nested-type host: param is the parent type (first child).
+		parentType := common.NewNode(common.KindType)
+		common.AddChildren(parentType, innerNom.Children[0])
+		paramStr = common.Print(parentType, common.DefaultPrintOptions())
+	}
 	wrap := common.NewNode(common.KindTypeMangling)
 	wrap.Text = hostStr + ".init(" + paramStr + ") -> " + hostStr
 	return wrap, true
