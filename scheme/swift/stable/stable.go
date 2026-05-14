@@ -2176,13 +2176,30 @@ func (p *parser) trySubscriptEntityTyped(inner *demangle.Node) (*demangle.Node, 
 		return inner, false
 	}
 	kindByte := p.s[p.i]
+	// Apple's 2-byte addressor forms: 'au' = unsafeMutableAddressor,
+	// 'lu' = unsafeAddressor. Detect and consume the trailing 'u' here
+	// so the switch below can branch on kindByte alone.
+	twoByteAddressor := ""
 	switch kindByte {
 	case 'g', 's', 'M', 'a', 'm', 'w', 'W', 'p':
+		if (kindByte == 'a') && p.i+1 < len(p.s) && p.s[p.i+1] == 'u' {
+			twoByteAddressor = "unsafeMutableAddressor"
+		}
+	case 'l':
+		if p.i+1 < len(p.s) && p.s[p.i+1] == 'u' {
+			twoByteAddressor = "unsafeAddressor"
+		} else {
+			revert()
+			return inner, false
+		}
 	default:
 		revert()
 		return inner, false
 	}
 	p.i++
+	if twoByteAddressor != "" {
+		p.i++ // consume the trailing 'u'
+	}
 
 	opts := common.DefaultPrintOptions()
 	ownerStr := common.Print(inner, opts)
@@ -2206,6 +2223,14 @@ func (p *parser) trySubscriptEntityTyped(inner *demangle.Node) (*demangle.Node, 
 	}
 
 	wrap := common.NewNode(common.KindTypeMangling)
+	if twoByteAddressor != "" {
+		if fullForm {
+			wrap.Text = strippedOwner + ".subscript." + twoByteAddressor + " : (" + paramsStr + ") -> " + resultStr
+		} else {
+			wrap.Text = strippedOwner + ".subscript." + twoByteAddressor
+		}
+		return wrap, true
+	}
 	switch kindByte {
 	case 'g':
 		if fullForm {
@@ -5090,6 +5115,7 @@ func (p *parser) tryVariableEntity() (*demangle.Node, bool, error) {
 	kindByte := p.s[p.i+1]
 	prefix := ""
 	pathSuffix := "" // accessor-label appended to path as ".<suffix>"
+	extraBytes := 0  // consumed beyond the standard 2-byte 'v<kind>' prefix
 	switch kindByte {
 	case 'p':
 		prefix = ""
@@ -5104,7 +5130,24 @@ func (p *parser) tryVariableEntity() (*demangle.Node, bool, error) {
 	case 'M':
 		pathSuffix = ".modify"
 	case 'a':
-		prefix = "unsafeAddressor for "
+		// Apple's modern 2-byte form: `vau` = .unsafeMutableAddressor as
+		// a property-accessor suffix. Legacy single-byte `va` remains the
+		// entity-level "unsafeAddressor for" prefix form.
+		if p.i+2 < len(p.s) && p.s[p.i+2] == 'u' {
+			pathSuffix = ".unsafeMutableAddressor"
+			extraBytes = 1
+		} else {
+			prefix = "unsafeAddressor for "
+		}
+	case 'l':
+		// Apple's modern 2-byte form: `vlu` = .unsafeAddressor suffix.
+		if p.i+2 < len(p.s) && p.s[p.i+2] == 'u' {
+			pathSuffix = ".unsafeAddressor"
+			extraBytes = 1
+		} else {
+			restore()
+			return nil, false, nil
+		}
 	case 'm':
 		prefix = "unsafeMutableAddressor for "
 	case 'r':
@@ -5119,7 +5162,7 @@ func (p *parser) tryVariableEntity() (*demangle.Node, bool, error) {
 		restore()
 		return nil, false, nil
 	}
-	p.i += 2
+	p.i += 2 + extraBytes
 	// Optional 'Z' marker = static member.
 	staticPrefix := ""
 	if !p.eof() && p.s[p.i] == 'Z' {
@@ -21265,6 +21308,11 @@ func (p *parser) parseFunctionType() (*demangle.Node, error) {
 		case 'B':
 			conv = "block"
 		case 'T':
+			conv = "thin"
+		case 'f':
+			// 'Xf' — modern thin-function-type mangling (Apple). Same
+			// printed convention as XT, but distinguished in the
+			// grammar so the case is explicit.
 			conv = "thin"
 		case 'F':
 			conv = "method"
