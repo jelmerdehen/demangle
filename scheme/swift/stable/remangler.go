@@ -1268,17 +1268,20 @@ func (r *remangler) mangleInitDeinit(n *demangle.Node, suffix string) error {
 	// to nodeSub so the result-type self-ref can resolve via A-sub back-ref.
 	// Mirrors Apple's mangleAnyNominalType which calls addSubstitution after
 	// each nominal emission.
-	var accParent *demangle.Node
-	for _, child := range pathNodes {
-		if err := r.remangleNode(child); err != nil {
-			return err
-		}
+	//
+	// Stdlib-known-type shortcut: when pathNodes is exactly Module("Swift")
+	// + Identifier with a registered compact token (Sd/Sf/Si/SS/etc.),
+	// emit the token directly and skip the long-form `s<N><Name><kind>`
+	// emission. Apple's init mangler prefers the compact form here.
+	if len(pathNodes) == 2 {
+		mod := pathNodes[0]
+		ident := pathNodes[1]
 		nk := ""
-		if child.Attrs != nil {
-			nk = child.Attrs["swift.nominalKind"]
+		if ident.Attrs != nil {
+			nk = ident.Attrs["swift.nominalKind"]
 		}
-		if nk != "" {
-			r.buf.WriteString(nk)
+		if common.NodeKind(mod.Kind) == common.KindModule && mod.Text == "Swift" &&
+			common.NodeKind(ident.Kind) == common.KindIdentifier && nk != "" {
 			var nomKind common.NodeKind
 			switch nk {
 			case "V":
@@ -1290,14 +1293,51 @@ func (r *remangler) mangleInitDeinit(n *demangle.Node, suffix string) error {
 			default:
 				nomKind = common.KindClass
 			}
-			nom := common.NewNode(nomKind)
-			common.AddChildren(nom, accParent, child)
-			r.pushNodeSub(nom)
-			accParent = nom
-		} else if common.NodeKind(child.Kind) == common.KindModule {
-			accParent = child
+			probe := common.NewNode(nomKind)
+			common.AddChildren(probe, mod, ident)
+			if token, ok := r.stdlibToken(probe); ok {
+				r.buf.WriteString(token)
+				// Stdlib compact tokens (S<letter>) are "well-known" and
+				// NOT added to the node-keyed substitution table — Apple
+				// emits them inline at each occurrence rather than via
+				// AB back-refs.
+				goto pathDone
+			}
 		}
 	}
+	{
+		var accParent *demangle.Node
+		for _, child := range pathNodes {
+			if err := r.remangleNode(child); err != nil {
+				return err
+			}
+			nk := ""
+			if child.Attrs != nil {
+				nk = child.Attrs["swift.nominalKind"]
+			}
+			if nk != "" {
+				r.buf.WriteString(nk)
+				var nomKind common.NodeKind
+				switch nk {
+				case "V":
+					nomKind = common.KindStructure
+				case "O":
+					nomKind = common.KindEnum
+				case "P":
+					nomKind = common.KindProtocol
+				default:
+					nomKind = common.KindClass
+				}
+				nom := common.NewNode(nomKind)
+				common.AddChildren(nom, accParent, child)
+				r.pushNodeSub(nom)
+				accParent = nom
+			} else if common.NodeKind(child.Kind) == common.KindModule {
+				accParent = child
+			}
+		}
+	}
+pathDone:
 
 	// Emit label list (one identifier per labeled parameter) before result type.
 	var labels []string
@@ -1315,13 +1355,27 @@ func (r *remangler) mangleInitDeinit(n *demangle.Node, suffix string) error {
 			labels = append(labels, paramsNode.Attrs["swift.label"])
 		}
 	}
+	// Apple emits `y` as the empty-label-list marker when an init has
+	// params but all labels are blank. Track whether any non-blank label
+	// was emitted; if none AND params is non-empty, emit `y` instead.
+	anyLabel := false
 	for _, lbl := range labels {
 		if lbl == "" {
 			continue
 		}
+		anyLabel = true
 		if err := r.mangleIdentifier(common.NewIdentifier(lbl)); err != nil {
 			return err
 		}
+	}
+	if !anyLabel && len(labels) > 0 {
+		r.buf.WriteByte('y')
+	} else if !anyLabel && len(labels) == 0 &&
+		common.NodeKind(paramsNode.Kind) != common.KindEmptyList {
+		// 1-arg init where paramsNode is a bare Type (no labels attr set).
+		// Apple's compact stdlib init form emits `y` between host and result-
+		// type to mark the empty label-list.
+		r.buf.WriteByte('y')
 	}
 
 	// Emit result type.
