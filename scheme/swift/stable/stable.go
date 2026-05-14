@@ -3657,13 +3657,42 @@ func (p *parser) tryStdlibCopyInit(inner *demangle.Node) (*demangle.Node, bool) 
 	if hostLetter == 0 {
 		return inner, false
 	}
-	// Mandatory prefix: 'y' 'S' '2' <hostLetter>.
-	if p.s[p.i] != 'y' || p.s[p.i+1] != 'S' || p.s[p.i+2] != '2' ||
-		p.s[p.i+3] != hostLetter {
+	save := p.i
+	// Optional single label: <digits><label>. Followed by 'S' to enter the
+	// compact-copy body.
+	label := ""
+	if p.s[p.i] >= '1' && p.s[p.i] <= '9' {
+		lblSave := p.i
+		lblSubs := p.subs
+		lblWords := p.words
+		lbl, err := p.parseIdentifier()
+		if err != nil || lbl == "" {
+			p.i = lblSave
+			p.subs = lblSubs
+			p.words = lblWords
+		} else {
+			label = lbl
+		}
+	}
+	if p.i+3 >= len(p.s) || p.s[p.i] != 'y' && label == "" {
+		// No label and no 'y' marker — not a copy-init shape.
+		p.i = save
 		return inner, false
 	}
-	save := p.i
-	p.i += 4
+	// Consume 'y' empty-label-list (absent when an explicit label is parsed).
+	if label == "" {
+		if p.s[p.i] != 'y' {
+			p.i = save
+			return inner, false
+		}
+		p.i++
+	}
+	// Mandatory: 'S' '2' <hostLetter>.
+	if p.i+2 >= len(p.s) || p.s[p.i] != 'S' || p.s[p.i+1] != '2' || p.s[p.i+2] != hostLetter {
+		p.i = save
+		return inner, false
+	}
+	p.i += 3
 	hostStr := common.Print(inner, common.DefaultPrintOptions())
 	paramStr := hostStr
 	// Optional: <digits><nested-ident> 'V' — nested struct on the host
@@ -3679,13 +3708,25 @@ func (p *parser) tryStdlibCopyInit(inner *demangle.Node) (*demangle.Node, bool) 
 			p.i = nestedSave
 		}
 	}
+	// Optional single-arg tuple terminator '_t' (present in labeled form).
+	if label != "" {
+		if p.i+1 >= len(p.s) || p.s[p.i] != '_' || p.s[p.i+1] != 't' {
+			p.i = save
+			return inner, false
+		}
+		p.i += 2
+	}
 	if p.i+2 >= len(p.s) || p.s[p.i] != 'c' || p.s[p.i+1] != 'f' || p.s[p.i+2] != 'C' {
 		p.i = save
 		return inner, false
 	}
 	p.i += 3
 	wrap := common.NewNode(common.KindTypeMangling)
-	wrap.Text = hostStr + ".init(" + paramStr + ") -> " + hostStr
+	if label != "" {
+		wrap.Text = hostStr + ".init(" + label + ": " + paramStr + ") -> " + hostStr
+	} else {
+		wrap.Text = hostStr + ".init(" + paramStr + ") -> " + hostStr
+	}
 	return wrap, true
 }
 
