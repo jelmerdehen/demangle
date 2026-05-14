@@ -583,6 +583,10 @@ func (p *parser) parseGlobal() (*demangle.Node, error) {
 			inner = wrapped
 			continue
 		}
+		if wrapped, ok := p.tryStdlibCopyInit(inner); ok {
+			inner = wrapped
+			continue
+		}
 		if wrapped, ok := p.tryStdlibProtoConformanceSuffix(inner); ok {
 			inner = wrapped
 			continue
@@ -3498,6 +3502,67 @@ func (p *parser) tryProtocolInitMember(inner *demangle.Node) (*demangle.Node, bo
 	}
 	wrap := common.NewNode(common.KindTypeMangling)
 	wrap.Text = termPrefix + body
+	return wrap, true
+}
+
+// tryStdlibCopyInit matches the compact "copy" initializer mangling
+// on a stdlib host where both the result and the single parameter type
+// are the host itself, encoded once as a repeat-count substitution
+// `S<N><letter>` (N=2):
+//
+//	<host=S<letter>> 'y' 'S' '2' <same-letter> 'c' 'f' 'C'
+//
+// Renders as "Swift.X.init(Swift.X) -> Swift.X".
+//
+// Drains the bare-stdlib copy-init cluster (Bool / Double / Float /
+// UnsafeRawBufferPointer / UnsafeMutableRawBufferPointer).
+func (p *parser) tryStdlibCopyInit(inner *demangle.Node) (*demangle.Node, bool) {
+	if p.i+6 > len(p.s) {
+		return inner, false
+	}
+	innerNom := inner
+	if common.NodeKind(innerNom.Kind) == common.KindType && len(innerNom.Children) > 0 {
+		innerNom = innerNom.Children[0]
+	}
+	switch common.NodeKind(innerNom.Kind) {
+	case common.KindStructure, common.KindClass, common.KindEnum:
+	default:
+		return inner, false
+	}
+	if common.RootModuleOf(inner) != "Swift" {
+		return inner, false
+	}
+	// Identify the stdlib letter that built inner by name lookup.
+	var hostLetter byte
+	if len(innerNom.Children) > 1 {
+		typeName := innerNom.Children[1].Text
+		for c := byte('A'); c <= 'z'; c++ {
+			if c > 'Z' && c < 'a' {
+				continue
+			}
+			entry, ok := common.StdlibLookup(c)
+			if !ok {
+				continue
+			}
+			if entry.Module == "Swift" && entry.Name == typeName {
+				hostLetter = c
+				break
+			}
+		}
+	}
+	if hostLetter == 0 {
+		return inner, false
+	}
+	// Match the literal byte sequence: 'y' 'S' '2' <hostLetter> 'c' 'f' 'C'.
+	if p.s[p.i] != 'y' || p.s[p.i+1] != 'S' || p.s[p.i+2] != '2' ||
+		p.s[p.i+3] != hostLetter || p.s[p.i+4] != 'c' ||
+		p.s[p.i+5] != 'f' || p.s[p.i+6] != 'C' {
+		return inner, false
+	}
+	p.i += 7
+	hostStr := common.Print(inner, common.DefaultPrintOptions())
+	wrap := common.NewNode(common.KindTypeMangling)
+	wrap.Text = hostStr + ".init(" + hostStr + ") -> " + hostStr
 	return wrap, true
 }
 
