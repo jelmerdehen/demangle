@@ -1,4 +1,4 @@
-# snapshot-pass-set update 2026-05-14T22:33:43Z — union with previous (high-water)
+# snapshot-pass-set update 2026-05-14T22:36:08Z — union with previous (high-water)
 _$s10Foreground7SwiftUI18LabelGroupStyle_v0PTl
 _$s10Foundation10CocoaErrorV010formattingC0AC4CodeVvgZ
 _$s10Foundation10CocoaErrorV010formattingC0AC4CodeVvpZMV
@@ -39004,6 +39004,7 @@ _$sSJ25customPlaygroundQuickLooks01_bcD0Ovg
 _$sSJ25customPlaygroundQuickLooks01_bcD0OvpMV
 _$sSJ28_builtinUnicodeScalarLiteralSJBi32__tcfC
 _$sSJ2eeoiySbSJ_SJtFZ
+_$sSJ30extendedGraphemeClusterLiteralS2J_tcfC
 _$sSJ38_builtinExtendedGraphemeClusterLiteral17utf8CodeUnitCount7isASCIISJBp_BwBi1_tcfC
 _$sSJ4_strSSvM
 _$sSJ4_strSSvg
@@ -39547,6 +39548,7 @@ _$sSS12customMirrors0B0VvpMV
 _$sSS12makeIteratorSS0B0VyF
 _$sSS13_nfcCodeUnitsSays5UInt8VGvg
 _$sSS13_nfcCodeUnitsSays5UInt8VGvpMV
+_$sSS13stringLiteralS2S_tcfC
 _$sSS14_fromSubstringySSSshFZ
 _$sSS14_nativeStorageSSSgyXl_tcfC
 _$sSS14removeSubrangeyySnySS5IndexVGF
@@ -40405,6 +40407,7 @@ _$sSb11descriptionSSvg
 _$sSb11descriptionSSvpMV
 _$sSb12customMirrors0B0Vvg
 _$sSb12customMirrors0B0VvpMV
+_$sSb14booleanLiteralS2b_tcfC
 _$sSb16_cVarArgEncodingSaySiGvg
 _$sSb16_cVarArgEncodingSaySiGvpMV
 _$sSb1nopyS2bFZ
@@ -40862,6 +40865,7 @@ _$sSd12SIMD8StorageVySdSicipMV
 _$sSd12SIMD8StorageVySdSicis
 _$sSd12customMirrors0B0Vvg
 _$sSd12customMirrors0B0VvpMV
+_$sSd12floatLiteralS2d_tcfC
 _$sSd12signalingNaNSdvgZ
 _$sSd12signalingNaNSdvpZMV
 _$sSd13SIMD16StorageV11scalarCountSivg
@@ -41163,6 +41167,7 @@ _$sSf12SIMD8StorageVySfSicipMV
 _$sSf12SIMD8StorageVySfSicis
 _$sSf12customMirrors0B0Vvg
 _$sSf12customMirrors0B0VvpMV
+_$sSf12floatLiteralS2f_tcfC
 _$sSf12signalingNaNSfvgZ
 _$sSf12signalingNaNSfvpZMV
 _$sSf13SIMD16StorageV11scalarCountSivg
@@ -46761,6 +46766,7 @@ _$sSu13SIMD64StorageVySuSicig
 _$sSu13SIMD64StorageVySuSicipMV
 _$sSu13SIMD64StorageVySuSicis
 _$sSu13_rawHashValue4seedS2i_tF
+_$sSu15_truncatingBitsS2u_tcfC
 _$sSu15nonzeroBitCountSivg
 _$sSu15nonzeroBitCountSivpMV
 _$sSu16_cVarArgEncodingSaySiGvg
