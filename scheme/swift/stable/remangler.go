@@ -1648,6 +1648,15 @@ func (r *remangler) mangleEntitySuffix(n *demangle.Node) error {
 				inner = inner.Children[0]
 			}
 			if common.NodeKind(inner.Kind) == common.KindProtocol {
+				// Stdlib-known protocols (Decodable=Se, Encodable=SE,
+				// BinaryFloatingPoint=SB, etc.) have a compact S<letter>
+				// token. Apple emits the token directly for pure-protocol
+				// suffixes instead of the long-form `s<N><name>`.
+				if token, ok := r.stdlibToken(inner); ok {
+					r.buf.WriteString(token)
+					r.buf.WriteString(suffix)
+					return nil
+				}
 				for _, c := range inner.Children {
 					if err := r.remangleNode(c); err != nil {
 						return err
