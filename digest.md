@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 90.06% (57417/63757) — 2026-05-14T22:33:17Z
+**Parity**: 90.07% (57423/63757) — 2026-05-14T22:35:45Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 6266 parse-errors + 74 mismatches
+**Failures**: 6260 parse-errors + 74 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- 0148425 swift-parity: BAB labeled stdlib copy-init — parity 90.06%->90.07% (+6 production)
+- 375b95e chore: lock snapshot after BAA commit (parity 57409 to 57417)
+- 2825d14 chore: update digest.md for BAA commit (parity 90.04%->90.06% +8)
 - e0c7225 swift-parity: BAA labeled typed-subscript on stdlib hosts — parity 90.04%->90.06% (+8 production)
 - a20d959 chore: lock snapshot after AAZ commit (parity 57395 to 57409)
 - 160963b chore: update digest.md for AAZ commit (parity 90.02%->90.04% +14)
@@ -36,9 +39,6 @@
 - e11b4f8 chore: lock snapshot after AAY commit (parity 57389 to 57395)
 - ac2120c chore: update digest.md for AAY commit (parity 90.01%->90.02% +6)
 - 02231b9 swift-parity: AAY stdlib copy-init with nested view param — parity 90.01%->90.02% (+6 production)
-- 5add9d3 chore: lock snapshot after AAX commit (parity 57384 to 57389)
-- ee587b0 chore: update digest.md for AAX commit (parity 90.00%->90.01% +5)
-- 6a74005 swift-parity: AAX stdlib bare-type copy init — parity 90.00%->90.01% (+5 production)
 
 ## Suggested Next 3 Items
 
