@@ -19191,8 +19191,12 @@ func (p *parser) parseGenericParam() (*demangle.Node, error) {
 		return nil, p.grammarErr("'_' terminating generic param")
 	}
 	p.i++
-	// Optional second '_' for pack-index-zero (qd__, q__, etc.).
-	if !p.eof() && p.s[p.i] == '_' {
+	// Optional second '_' for pack-index-zero. Restrict to depth >= 1 —
+	// at depth 0 the q_<followed by _> sequence collides with the `_t`
+	// single-labeled-arg-tuple marker in init params (e.g.
+	// `q_ _t` for `init(error: B)`). Apple's depth-0 `q_` never carries
+	// the second underscore; only `qd__` (depth-1 pack-index-zero) does.
+	if depth >= 1 && !p.eof() && p.s[p.i] == '_' {
 		p.i++
 	}
 	return p.genericParam(depth, index), nil
