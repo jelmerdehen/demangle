@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 90.01% (57389/63757) — 2026-05-14T22:21:15Z
+**Parity**: 90.02% (57395/63757) — 2026-05-14T22:25:02Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 6326 parse-errors + 42 mismatches
+**Failures**: 6320 parse-errors + 42 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- 02231b9 swift-parity: AAY stdlib copy-init with nested view param — parity 90.01%->90.02% (+6 production)
+- 5add9d3 chore: lock snapshot after AAX commit (parity 57384 to 57389)
+- ee587b0 chore: update digest.md for AAX commit (parity 90.00%->90.01% +5)
 - 6a74005 swift-parity: AAX stdlib bare-type copy init — parity 90.00%->90.01% (+5 production)
 - ceb154f chore: lock snapshot after AAW commit (parity 57377 to 57384)
 - c7b83c6 chore: update digest.md for AAW commit (parity 89.99%->90.00% +7)
@@ -36,9 +39,6 @@
 - 2747cda chore: lock snapshot after AAV commit (parity 57332 to 57377)
 - ce9d30d chore: update digest.md for AAV commit (parity 89.92%->89.99% +45)
 - 045128a swift-parity: AAV opaque-return-type after Z + yt empty tuple — parity 89.92%->89.99% (+45 production)
-- bc985d9 chore: lock snapshot after AAU commit (parity 57311 to 57332)
-- a697256 chore: update digest.md for AAU commit (parity 89.89%->89.92% +21)
-- 11909f6 swift-parity: AAU Sch concurrency stdlib + MS suffix — parity 89.89%->89.92% (+21 production, +5 roundtrip)
 
 ## Suggested Next 3 Items
 
