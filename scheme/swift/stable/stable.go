@@ -9557,6 +9557,17 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 				notTypeEnd := nc == 'F' || nc == 'l' || nc == 'K' || nc == 'Y' ||
 					nc == 'r' || nc == 'u' || nc == '_' || nc == 't' ||
 					(nc == 'v' && !propTermAtEnd)
+				// `y` followed by F/l/K/Y/r/u (empty-params + entity terminator)
+				// indicates the leading y we tentatively consumed was the
+				// empty-LABELS marker, not a blank-label. Revert by treating
+				// this as not-type-end.
+				if !notTypeEnd && nc == 'y' && p.i+1 < len(p.s) {
+					yNext := p.s[p.i+1]
+					if yNext == 'F' || yNext == 'l' || yNext == 'K' ||
+						yNext == 'Y' || yNext == 'r' || yNext == 'u' {
+						notTypeEnd = true
+					}
+				}
 				if !notTypeEnd {
 					labels = append(labels, "_")
 					retNode = specResult
