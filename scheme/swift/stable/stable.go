@@ -416,6 +416,10 @@ func (p *parser) parseGlobal() (*demangle.Node, error) {
 		inner = atdNode
 	} else if acdNode, acdOk := p.tryGlobalAssocConformanceDescriptor(); acdOk {
 		inner = acdNode
+	} else if mcExt, ok, err := p.tryUserModNestedMultiConfExtension(); err != nil {
+		return nil, err
+	} else if ok {
+		inner = mcExt
 	} else if extEntity, ok, err := p.tryTypeFirstExtensionEntity(); err != nil {
 		return nil, err
 	} else if ok {
@@ -7644,6 +7648,368 @@ func extractStdlibExtConstraintSig(b string) string {
 	}
 	name := b[i : i+length]
 	return "< where A: Swift." + name + ">"
+}
+
+// tryUserModNestedMultiConfExtension matches a 3-component nested host
+// (module + outer + inner) followed by an A2A multi-conformance constraint
+// chain and a function-entity decl. Drains the Foundation.PredicateExpressions
+// PAAE cluster (DebugStringConvertiblePredicateExpression conformance on
+// inner-struct generic params).
+//
+// Shape:
+//
+//	<mod-ident> <outer-name><outer-kind> <inner-name><inner-kind>
+//	A<digit>?<lowers>*A<wordsub-proto-ident>
+//	(R<k><subj> | A<digit>?<lowers>*<UPPER>)* (rl|l) E
+//	<decl-name> <label>* <ret-type> <param-tuple>tF
+//
+// Output:
+//
+//	(extension in <mod>):<mod>.<outer>.<inner>< where <subj>: <proto>, ...>
+//	  .<decl>(<labels>: [inout ]<param-types>) -> <ret>
+//
+// Bails on shapes outside this narrow grammar; broader buckets need their
+// own handler.
+func (p *parser) tryUserModNestedMultiConfExtension() (*demangle.Node, bool, error) {
+	save := p.i
+	saveSubs := p.subs
+	saveWords := p.words
+	restore := func() { p.i = save; p.subs = saveSubs; p.words = saveWords }
+
+	if p.eof() || !(p.s[p.i] >= '1' && p.s[p.i] <= '9') {
+		return nil, false, nil
+	}
+	modName, err := p.parseIdentifier()
+	if err != nil {
+		restore()
+		return nil, false, nil
+	}
+	if p.eof() || !(p.s[p.i] >= '1' && p.s[p.i] <= '9') {
+		restore()
+		return nil, false, nil
+	}
+	outerName, err := p.parseIdentifier()
+	if err != nil {
+		restore()
+		return nil, false, nil
+	}
+	if p.eof() {
+		restore()
+		return nil, false, nil
+	}
+	outerKind := p.s[p.i]
+	if outerKind != 'V' && outerKind != 'C' && outerKind != 'O' && outerKind != 'P' {
+		restore()
+		return nil, false, nil
+	}
+	p.i++
+	if p.eof() || !(p.s[p.i] >= '0' && p.s[p.i] <= '9') {
+		restore()
+		return nil, false, nil
+	}
+	innerName, err := p.parseIdentifier()
+	if err != nil {
+		restore()
+		return nil, false, nil
+	}
+	if p.eof() {
+		restore()
+		return nil, false, nil
+	}
+	innerKind := p.s[p.i]
+	if innerKind != 'V' && innerKind != 'C' && innerKind != 'O' && innerKind != 'P' {
+		restore()
+		return nil, false, nil
+	}
+	p.i++
+
+	// Mirror Apple's substitution table: push Module, Identifier(outer),
+	// Type(outer-nominal), Identifier(inner), Type(inner-nominal).
+	p.subs.Push(common.NewModule(modName))
+	p.subs.Push(common.NewIdentifier(outerName))
+	var outerNomKind common.NodeKind
+	switch outerKind {
+	case 'V':
+		outerNomKind = common.KindStructure
+	case 'C':
+		outerNomKind = common.KindClass
+	case 'O':
+		outerNomKind = common.KindEnum
+	case 'P':
+		outerNomKind = common.KindProtocol
+	}
+	outerNom := common.NewNode(outerNomKind)
+	common.AddChildren(outerNom, common.NewModule(modName), common.NewIdentifier(outerName))
+	outerType := common.NewNode(common.KindType)
+	common.AddChildren(outerType, outerNom)
+	p.subs.Push(outerType)
+	p.subs.Push(common.NewIdentifier(innerName))
+	var innerNomKind common.NodeKind
+	switch innerKind {
+	case 'V':
+		innerNomKind = common.KindStructure
+	case 'C':
+		innerNomKind = common.KindClass
+	case 'O':
+		innerNomKind = common.KindEnum
+	case 'P':
+		innerNomKind = common.KindProtocol
+	}
+	innerNom := common.NewNode(innerNomKind)
+	common.AddChildren(innerNom, outerNom, common.NewIdentifier(innerName))
+	innerTypeNode := common.NewNode(common.KindType)
+	common.AddChildren(innerTypeNode, innerNom)
+	p.subs.Push(innerTypeNode)
+
+	// A<digit>?<lowers>*A initiates multi-conformance constraint chain.
+	if p.eof() || p.s[p.i] != 'A' {
+		restore()
+		return nil, false, nil
+	}
+	p.i++
+	for !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+		p.i++
+	}
+	for !p.eof() && p.s[p.i] >= 'a' && p.s[p.i] <= 'z' {
+		p.i++
+	}
+	if p.eof() || !(p.s[p.i] >= 'A' && p.s[p.i] <= 'Z') {
+		restore()
+		return nil, false, nil
+	}
+	protoModLetter := p.s[p.i]
+	protoModIdx := int(protoModLetter - 'A')
+	bn, bok := p.subs.Get(protoModIdx)
+	if !bok || bn == nil || common.NodeKind(bn.Kind) != common.KindModule {
+		restore()
+		return nil, false, nil
+	}
+	protoMod := bn.Text
+	p.i++
+
+	if p.eof() || !(p.s[p.i] >= '0' && p.s[p.i] <= '9') {
+		restore()
+		return nil, false, nil
+	}
+	protoName, err := p.parseIdentifier()
+	if err != nil {
+		restore()
+		return nil, false, nil
+	}
+
+	var subjects []string
+	foundCondReq := false
+	for !p.eof() {
+		if p.i+1 < len(p.s) && p.s[p.i] == 'r' && p.s[p.i+1] == 'l' {
+			p.i += 2
+			foundCondReq = true
+			break
+		}
+		if p.s[p.i] == 'l' {
+			p.i++
+			break
+		}
+		if p.s[p.i] == 'A' {
+			p.i++
+			for !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+				p.i++
+			}
+			for !p.eof() && p.s[p.i] >= 'a' && p.s[p.i] <= 'z' {
+				p.i++
+			}
+			if p.eof() || !(p.s[p.i] >= 'A' && p.s[p.i] <= 'Z') {
+				restore()
+				return nil, false, nil
+			}
+			p.i++
+			continue
+		}
+		if p.s[p.i] == 'R' {
+			p.i++
+			if !p.eof() && (p.s[p.i] == 'p' || p.s[p.i] == 't') {
+				p.i++
+			}
+			if p.eof() {
+				restore()
+				return nil, false, nil
+			}
+			switch sk := p.s[p.i]; {
+			case sk == 'z':
+				p.i++
+				subjects = append(subjects, "A")
+			case sk == '_':
+				p.i++
+				subjects = append(subjects, "B")
+			case sk >= '0' && sk <= '9':
+				n := 0
+				for !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+					n = n*10 + int(p.s[p.i]-'0')
+					p.i++
+				}
+				if p.eof() || p.s[p.i] != '_' {
+					restore()
+					return nil, false, nil
+				}
+				p.i++
+				if n+2 < 26 {
+					subjects = append(subjects, string(rune('A'+n+2)))
+				}
+			default:
+				restore()
+				return nil, false, nil
+			}
+			continue
+		}
+		restore()
+		return nil, false, nil
+	}
+	_ = foundCondReq
+	if p.eof() || p.s[p.i] != 'E' {
+		restore()
+		return nil, false, nil
+	}
+	p.i++ // consume E
+
+	if p.eof() || !(p.s[p.i] >= '0' && p.s[p.i] <= '9') {
+		restore()
+		return nil, false, nil
+	}
+	declName, err := p.parseIdentifier()
+	if err != nil {
+		restore()
+		return nil, false, nil
+	}
+
+	var labels []string
+	for !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+		lblSave := p.i
+		lblSubs := p.subs
+		lbl, lerr := p.parseIdentifier()
+		if lerr != nil {
+			p.i = lblSave
+			p.subs = lblSubs
+			break
+		}
+		if !p.eof() && p.s[p.i] == 'Q' && p.i+1 < len(p.s) &&
+			(p.s[p.i+1] == 'z' || p.s[p.i+1] == 'y' || p.s[p.i+1] == 'Y') {
+			p.i = lblSave
+			p.subs = lblSubs
+			break
+		}
+		labels = append(labels, lbl)
+		p.subs.Push(common.NewIdentifier(lbl))
+	}
+
+	if p.eof() {
+		restore()
+		return nil, false, nil
+	}
+	retType, rerr := p.parseType()
+	if rerr != nil {
+		restore()
+		return nil, false, nil
+	}
+
+	if p.eof() {
+		restore()
+		return nil, false, nil
+	}
+	// applyElemMod consumes a per-tuple-element modifier byte (z=inout,
+	// h=__shared, n=__owned) and stamps the attribute on a clone of n.
+	applyElemMod := func(n *demangle.Node) *demangle.Node {
+		if p.eof() {
+			return n
+		}
+		switch p.s[p.i] {
+		case 'z':
+			p.i++
+			cl := *n
+			if cl.Attrs != nil {
+				a := make(map[string]string, len(cl.Attrs)+1)
+				for k, v := range cl.Attrs {
+					a[k] = v
+				}
+				cl.Attrs = a
+			} else {
+				cl.Attrs = map[string]string{}
+			}
+			cl.Attrs["swift.inout"] = "true"
+			return &cl
+		}
+		return n
+	}
+	var paramTypes []*demangle.Node
+	pt0, perr := p.parseType()
+	if perr != nil {
+		restore()
+		return nil, false, nil
+	}
+	pt0 = applyElemMod(pt0)
+	paramTypes = append(paramTypes, pt0)
+	// Multi-element tuple: '_' FirstElementMarker, then contiguous more
+	// elements until 't'. Single-labeled tuple: '_t'.
+	if !p.eof() && p.s[p.i] == '_' && p.i+1 < len(p.s) && p.s[p.i+1] != 't' {
+		p.i++ // consume FirstElementMarker
+		for !p.eof() && p.s[p.i] != 't' {
+			pt, perr2 := p.parseType()
+			if perr2 != nil {
+				restore()
+				return nil, false, nil
+			}
+			pt = applyElemMod(pt)
+			paramTypes = append(paramTypes, pt)
+		}
+	}
+	// Consume single-labeled '_t' or tuple terminator 't'.
+	if !p.eof() && p.s[p.i] == '_' && p.i+1 < len(p.s) && p.s[p.i+1] == 't' {
+		p.i += 2
+	} else if !p.eof() && p.s[p.i] == 't' {
+		p.i++
+	}
+	if p.eof() || p.s[p.i] != 'F' {
+		restore()
+		return nil, false, nil
+	}
+	p.i++
+
+	hostFull := modName + "." + outerName + "." + innerName
+	protoFull := protoMod + "." + protoName
+	seen := map[string]bool{}
+	parts := make([]string, 0, len(subjects))
+	for _, s := range subjects {
+		if seen[s] {
+			continue
+		}
+		seen[s] = true
+		parts = append(parts, s+": "+protoFull)
+	}
+	if len(parts) == 0 {
+		restore()
+		return nil, false, nil
+	}
+	whereClause := "< where " + strings.Join(parts, ", ") + ">"
+
+	opts := common.DefaultPrintOptions()
+	retStr := common.Print(retType, opts)
+
+	paramStrs := make([]string, 0, len(paramTypes))
+	for i, pt := range paramTypes {
+		s := common.Print(pt, opts)
+		if pt.Attrs != nil && pt.Attrs["swift.inout"] == "true" {
+			s = "inout " + s
+		}
+		lbl := "_"
+		if i < len(labels) {
+			lbl = labels[i]
+		}
+		paramStrs = append(paramStrs, lbl+": "+s)
+	}
+	paramList := "(" + strings.Join(paramStrs, ", ") + ")"
+
+	wrap := common.NewNode(common.KindTypeMangling)
+	wrap.Text = "(extension in " + modName + "):" + hostFull + whereClause +
+		"." + declName + paramList + " -> " + retStr
+	return wrap, true, nil
 }
 
 // tryTypeFirstExtensionEntity handles extension entities where the host type
