@@ -562,6 +562,10 @@ func (p *parser) parseGlobal() (*demangle.Node, error) {
 			inner = wrapped
 			continue
 		}
+		if wrapped, ok := p.tryBaseConformanceDescriptor(inner); ok {
+			inner = wrapped
+			continue
+		}
 		if wrapped, ok := p.tryStdlibProtoConformanceSuffix(inner); ok {
 			inner = wrapped
 			continue
@@ -3266,6 +3270,121 @@ func (p *parser) tryAssociatedConformanceDescriptor(inner *demangle.Node) (*dema
 	protoName := common.Print(inner, common.DefaultPrintOptions())
 	wrap := common.NewNode(common.KindTypeMangling)
 	wrap.Text = prefix + protoName + ".A: " + modName + "." + reqName
+	return wrap, true
+}
+
+// tryBaseConformanceDescriptor matches the pattern
+//
+//	<Protocol-Type> <BaseProto> 'Tb'
+//
+// where <BaseProto> is one of:
+//
+//	S<letter>          — stdlib substitution (Swift.Hashable, Swift.Equatable, …)
+//	Sc<letter>         — second-level stdlib (concurrency)
+//	s<digits><ident>   — Swift module + bare protocol name (no kind byte)
+//	AA<digits><ident>  — same-module back-ref (subs[0]) + bare protocol name
+//
+// Renders as:
+//
+//	"base conformance descriptor for <inner>: <base-mod>.<base-proto>"
+//
+// Apple's grammar for this is `<protocol> <protocol> 'Tb'`. We keep the
+// base-proto parse narrow (three explicit primitives) so the handler can
+// not over-consume into unrelated suffixes.
+func (p *parser) tryBaseConformanceDescriptor(inner *demangle.Node) (*demangle.Node, bool) {
+	if p.eof() {
+		return inner, false
+	}
+	// inner must be (or wrap) a Protocol.
+	innerProto := inner
+	if common.NodeKind(innerProto.Kind) == common.KindType && len(innerProto.Children) > 0 {
+		innerProto = innerProto.Children[0]
+	}
+	if common.NodeKind(innerProto.Kind) != common.KindProtocol {
+		return inner, false
+	}
+	save := p.i
+	saveSubs := p.subs
+	saveWords := p.words
+	revert := func() { p.i = save; p.subs = saveSubs; p.words = saveWords }
+
+	var baseStr string
+	switch c := p.s[p.i]; {
+	case c == 'S':
+		p.i++ // consume 'S'
+		baseProto, err := p.parseStdlibSubstitution()
+		if err != nil || baseProto == nil {
+			revert()
+			return inner, false
+		}
+		baseStr = common.Print(baseProto, common.DefaultPrintOptions())
+	case c == 's':
+		p.i++ // consume 's'
+		if p.eof() || !(p.s[p.i] >= '0' && p.s[p.i] <= '9') {
+			revert()
+			return inner, false
+		}
+		ident, err := p.parseIdentifier()
+		if err != nil {
+			revert()
+			return inner, false
+		}
+		baseStr = "Swift." + ident
+	case c == 'A':
+		if p.i+1 >= len(p.s) || p.s[p.i+1] != 'A' {
+			return inner, false
+		}
+		modNode, mok := p.subs.Get(0)
+		if !mok || modNode == nil || common.NodeKind(modNode.Kind) != common.KindModule {
+			return inner, false
+		}
+		p.i += 2 // consume 'AA'
+		if p.eof() || !(p.s[p.i] >= '0' && p.s[p.i] <= '9') {
+			revert()
+			return inner, false
+		}
+		ident, err := p.parseIdentifier()
+		if err != nil {
+			revert()
+			return inner, false
+		}
+		baseStr = modNode.Text + "." + ident
+	default:
+		return inner, false
+	}
+
+	if p.i+1 >= len(p.s) || p.s[p.i] != 'T' || p.s[p.i+1] != 'b' {
+		revert()
+		return inner, false
+	}
+	p.i += 2 // consume 'Tb'
+
+	innerStr := common.Print(inner, common.DefaultPrintOptions())
+	// Apple emits simplified output (no module prefix on either side) when
+	// the host belongs to a UI / Combine / __C module, or when the host is
+	// a Swift concurrency protocol (mangled as Sc<X> or as a long-form Swift
+	// type whose name ends in "Executor"). Foundation and general Swift
+	// stdlib hosts keep the fully-qualified form.
+	uiTypeMods := map[string]bool{"SwiftUI": true, "UIKit": true, "Combine": true, "__C": true}
+	innerMod := common.RootModuleOf(inner)
+	innerSimpleName := innerStr
+	if innerMod != "" {
+		innerSimpleName = strings.TrimPrefix(innerStr, innerMod+".")
+	}
+	isConcurrencyHost := common.IsConcurrencyType(inner)
+	if !isConcurrencyHost && innerMod == "Swift" && strings.HasSuffix(innerSimpleName, "Executor") {
+		isConcurrencyHost = true
+	}
+	wrap := common.NewNode(common.KindTypeMangling)
+	if uiTypeMods[innerMod] || isConcurrencyHost {
+		baseSimple := baseStr
+		if dot := strings.IndexByte(baseStr, '.'); dot > 0 {
+			baseSimple = baseStr[dot+1:]
+		}
+		wrap.Text = "base conformance descriptor for " + innerSimpleName + ": " + baseSimple
+		return wrap, true
+	}
+	wrap.Text = "base conformance descriptor for " + innerStr + ": " + baseStr
 	return wrap, true
 }
 
