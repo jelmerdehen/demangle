@@ -30,6 +30,19 @@ and function-entity. Estimated 50-100 LOC. Reason for deferral: risk
 of regressing single-label Qr functions and the static-property Qr
 path that AAV unlocked.
 
+### yt-single-arg-label-render [~10 mismatches, deferred-1]
+
+After BAI's x-blank-label fix, the `<host><label>...<result>yt_tcfC` shape
+parses (label list correct, paramsType=Type{()}, _t consumed) but the
+single-label on Type{BuiltinTypeName("()")} doesn't reach the print
+path. Output `Optional.init() -> A?` instead of `init(nilLiteral: ())`.
+
+Cluster: nilLiteral / dummy / _empty / _doNotCallMe / zero — ~10
+mismatches. Fix needs renderer changes: when paramsType is single
+Type with attached swift.label, emit "(<label>: <type>)" instead of
+falling through to the void-tuple path. Deferred for renderer test
+coverage.
+
 ### yi-yb-param-annotations [~100 syms, deferred-1]
 
 Pattern: function-entity params with Yi (isolated) or Yb
