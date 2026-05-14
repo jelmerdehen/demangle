@@ -5989,10 +5989,26 @@ func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 	} else {
 		for !p.eof() {
 			c := p.s[p.i]
-			if c == 'x' || c == '_' {
+			// 'x' alone is ambiguous (blank-label vs depth-0 generic-param
+			// type-start). Accept 'x' as blank-label ONLY when the next
+			// byte is another label-list byte (digit / _ / x); otherwise
+			// treat it as the type-start byte and terminate the label
+			// list. This keeps cases like `<labels>...x_<types>` (blank
+			// label embedded between named labels followed by params)
+			// while letting `<labels=<digit-label>><result=x...>` resolve
+			// correctly in stdlib copy-init shapes like Sq+nilLiteral.
+			if c == '_' {
 				labels = append(labels, "_")
 				p.i++
 				continue
+			}
+			if c == 'x' && p.i+1 < len(p.s) {
+				nxt := p.s[p.i+1]
+				if nxt == 'x' || nxt == '_' || (nxt >= '0' && nxt <= '9') {
+					labels = append(labels, "_")
+					p.i++
+					continue
+				}
 			}
 			if c < '0' || c > '9' {
 				break
