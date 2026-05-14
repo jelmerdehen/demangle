@@ -5582,10 +5582,12 @@ func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 				p.i = saveDigit
 			}
 			var subj byte
+			var kind byte
 			if (next == 'b' || next == 'p' || next == 's' || next == 'j' ||
 				next == 'm' || next == 't' || next == 'l' || next == 'i') &&
 				p.i+1 < len(p.s) &&
 				(p.s[p.i+1] == 'z' || p.s[p.i+1] == '_') {
+				kind = next
 				p.i++ // consume kind byte
 				subj = p.s[p.i]
 				p.i++
@@ -5603,7 +5605,11 @@ func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 				}
 				if paramName != "" {
 					protoStr := common.Print(lastConProto, common.DefaultPrintOptions())
-					initConstraints = append(initConstraints, paramName+": "+protoStr)
+					opText := ": "
+					if kind == 's' || kind == 't' {
+						opText = " == "
+					}
+					initConstraints = append(initConstraints, paramName+opText+protoStr)
 				}
 				lastConProto = nil
 			}
