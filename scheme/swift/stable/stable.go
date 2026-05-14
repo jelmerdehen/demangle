@@ -19568,6 +19568,19 @@ func (p *parser) parseType() (*demangle.Node, error) {
 	if wrapped, ok := p.tryPostfixBorrow(node); ok {
 		node = wrapped
 	}
+	// Postfix Xp — existential metatype: `<type>.Type` (Any.Type,
+	// (some Proto).Type, etc.). Apple emits the inner type text
+	// followed by ".Type"; preserve the structural Type wrapper so
+	// downstream handlers still see a Type node.
+	for p.i+1 < len(p.s) && p.s[p.i] == 'X' && p.s[p.i+1] == 'p' {
+		p.i += 2
+		innerStr := common.Print(node, common.DefaultPrintOptions())
+		wrapType := common.NewNode(common.KindType)
+		wrapInner := common.NewNode(common.KindBuiltinTypeName)
+		wrapInner.Text = innerStr + ".Type"
+		common.AddChildren(wrapType, wrapInner)
+		node = wrapType
+	}
 	// Postfix type annotations: Yt = _const, Yk = @noDerivative,
 	// Yu = sending. Wraps the preceding type by re-rendering with
 	// a prefix — display-only, no structural typing.
