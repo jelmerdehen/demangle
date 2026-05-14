@@ -16637,7 +16637,7 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 						rhsName := name
 						lhsName := rhsName
 						haveLhs := false
-						if !p.eof() && p.s[p.i] >= '1' && p.s[p.i] <= '9' {
+						if !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
 							ln, lerr := p.parseIdentifier()
 							if lerr == nil {
 								lhsName = ln
@@ -16813,8 +16813,10 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 				// Same-type assoc-type requirement: <concrete-type> <N><assoc-name> R t <subj>
 				// Apple's grammar: concrete + assoc-ident, then Rt<subj> binds
 				// <subj>.<assoc-name> == <concrete>. Recognize the assoc-name
-				// length-prefixed ident immediately before Rt.
-				if !p.eof() && p.s[p.i] >= '1' && p.s[p.i] <= '9' {
+				// length-prefixed ident immediately before Rt. Accepts the
+				// word-substitution form (0<L>0...) for assoc-names where
+				// the identifier reuses a prior word (e.g. `0E0` → Failure).
+				if !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
 					saveAt := p.i
 					assocName2, aerr2 := p.parseIdentifier()
 					if aerr2 == nil && p.i+1 < len(p.s) &&
