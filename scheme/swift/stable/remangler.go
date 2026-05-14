@@ -836,7 +836,33 @@ func (r *remangler) mangleType(n *demangle.Node) error {
 		n.Attrs != nil && n.Attrs["swift.existential"] == "true" {
 		return r.mangleNominal(child, "_p")
 	}
-	return r.remangleNode(child)
+	if err := r.remangleNode(child); err != nil {
+		return err
+	}
+	// Parameter ownership marker: when the Type wrapper carries
+	// swift.conv = "__owned " / "__shared " / "__consuming ", emit the
+	// corresponding single-byte modifier `n` / `h` / `T` immediately
+	// after the inner type. Mirrors stable.go applyParamConvention
+	// (line ~11353) and the inline n/h Type wraps (line ~5283).
+	if n.Attrs != nil {
+		switch n.Attrs["swift.conv"] {
+		case "__owned ":
+			r.buf.WriteByte('n')
+		case "__shared ":
+			r.buf.WriteByte('h')
+		case "__consuming ":
+			r.buf.WriteByte('T')
+		}
+		// Function-entity params use boolean attrs instead of the
+		// "swift.conv" wrap form (see stable.go consumeElemMods).
+		if n.Attrs["swift.owned"] == "true" {
+			r.buf.WriteByte('n')
+		}
+		if n.Attrs["swift.shared"] == "true" {
+			r.buf.WriteByte('h')
+		}
+	}
+	return nil
 }
 
 // mangleNominal emits the context chain (all children) then the single-
