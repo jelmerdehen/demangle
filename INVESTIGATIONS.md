@@ -30,6 +30,27 @@ and function-entity. Estimated 50-100 LOC. Reason for deferral: risk
 of regressing single-label Qr functions and the static-property Qr
 path that AAV unlocked.
 
+### operator-decl-backref-subs-shift [~10 syms, deferred-1]
+
+Pattern: `s<N><op-name>oi <labels> <result> <param1>X[p|...] <Sg?> _ AB t F`.
+Stdlib operator-decl (Swift.== infix, Swift.!= infix, etc.) where
+the second param is mangled as an A-back-ref to the first param.
+After BAD's Xp postfix wrap, parseType correctly emits "Any.Type?"
+for the first param but `AB` resolves to subs[1] in our model —
+which is Identifier("==") for operator-decl context, not the
+expected first-param type Apple sees.
+
+Probe: `_$ss2eeoiySbypXpSg_ABtF` → got "Swift.== infix(Any.Type?, Any) -> Swift.Bool", want "...(Any.Type?, Any.Type?) -> Swift.Bool". AB
+resolves to a stale entry; pushing the Xp-wrapped node doesn't shift
+the index correctly because Apple's operator-decl substitution
+sequence diverges from ours (Apple doesn't push module+ident for
+the operator name; ours does).
+
+Fire-plan: align operator-decl subs-push behaviour with Apple's
+model (skip module/ident push, push only types in operator-decl
+context). Estimated 30-50 LOC with high regression risk in the
+operator-decl unit tests — wants a dedicated fire.
+
 ### plateau-2026-05-15-bac
 
 BAC fire: explored short-sym buckets (ScXsE proto-ext methods 36
