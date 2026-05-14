@@ -1,4 +1,4 @@
-# snapshot-pass-set update 2026-05-14T22:49:36Z — union with previous (high-water)
+# snapshot-pass-set update 2026-05-14T22:56:41Z — union with previous (high-water)
 _$s10Foreground7SwiftUI18LabelGroupStyle_v0PTl
 _$s10Foundation10CocoaErrorV010formattingC0AC4CodeVvgZ
 _$s10Foundation10CocoaErrorV010formattingC0AC4CodeVvpZMV
@@ -41991,6 +41991,8 @@ _$sSlsSQ7ElementRpzrlE7indices2ofs8RangeSetVy5IndexQzGAB_tF
 _$sSlss16IndexingIteratorVyxG0B0RtzrlE04makeB0ACyF
 _$sSly11SubSequenceQzSny5IndexQzGcigTj
 _$sSly11SubSequenceQzSny5IndexQzGcigTq
+_$sSly7ElementQz5IndexQzcirTj
+_$sSly7ElementQz5IndexQzcirTq
 _$sSm11SubSequenceSl_SmTn
 _$sSm11removeFirst7ElementQzyFTj
 _$sSm11removeFirst7ElementQzyFTq
@@ -49257,6 +49259,7 @@ _$ss15CollectionOfOneVyxGs28CustomDebugStringConvertiblesWP
 _$ss15CollectionOfOneVyxSiciM
 _$ss15CollectionOfOneVyxSicig
 _$ss15CollectionOfOneVyxSicipMV
+_$ss15CollectionOfOneVyxSicir
 _$ss15CollectionOfOneVyxSicis
 _$ss15ContiguousArrayV014_baseAddressIfA0SpyxGSgvg
 _$ss15ContiguousArrayV014_baseAddressIfA0SpyxGSgvpMV
