@@ -3611,7 +3611,13 @@ func (p *parser) trySubscriptEntityLabeled(inner *demangle.Node) (*demangle.Node
 	ownerStr := common.Print(inner, opts)
 	resultStr := common.Print(resultNode, opts)
 	paramStr := common.Print(paramNode, opts)
-	fullForm := strings.Contains(ownerStr, "Swift.") || strings.Contains(ownerStr, "Foundation.")
+	innerMod := common.RootModuleOf(inner)
+	fullForm := innerMod == "Swift" || innerMod == "Foundation"
+
+	strippedOwner := ownerStr
+	if !fullForm && innerMod != "" {
+		strippedOwner = strings.TrimPrefix(ownerStr, innerMod+".")
+	}
 
 	wrap := common.NewNode(common.KindTypeMangling)
 	if kindByte == 'p' {
@@ -3620,14 +3626,14 @@ func (p *parser) trySubscriptEntityLabeled(inner *demangle.Node) (*demangle.Node
 		if fullForm {
 			wrap.Text = ownerStr + ".subscript(" + label + ": " + paramStr + ") -> " + resultStr
 		} else {
-			wrap.Text = ownerStr + ".subscript(" + label + ":)"
+			wrap.Text = strippedOwner + ".subscript(" + label + ":)"
 		}
 		return wrap, true
 	}
 	if fullForm {
 		wrap.Text = ownerStr + ".subscript" + accessor + " : (" + label + ": " + paramStr + ") -> " + resultStr
 	} else {
-		wrap.Text = ownerStr + ".subscript" + accessor
+		wrap.Text = strippedOwner + ".subscript" + accessor
 	}
 	return wrap, true
 }
