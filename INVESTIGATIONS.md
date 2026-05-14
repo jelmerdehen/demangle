@@ -6,6 +6,41 @@ fast loop fires — avoids re-deriving path/cause each fire. Bounded
 
 ## Active targets
 
+### qr-multilabel-fn-entity-opaque-return [~200 syms, deferred-1]
+
+Pattern: `<host=V><lbl1><lbl2>...<lblN>Qr<param-types>F[QOMQ]`.
+Foundation.Calendar.dates(byAdding:startingAt:in:wrappingComponents:),
+Calendar.dates(byMatching:...), AttributeScope.attributeKeys, etc.
+Multi-label function-entity with `Qr` opaque-return-type marker as
+the result-type. After AAV unlocked the `QOMQ` suffix loop, the
+remaining 200+ syms still bail at offset ~25 (right after host) —
+the multi-label-method-with-Qr-result body itself is not parsed.
+
+Probe: `_$s10Foundation8CalendarV5dates8byAdding10startingAt2in18wrappingComponentsQr...F` fails at offset 25 ("5dates8byAdding10sta..."). Removing the QOMQ
+suffix does not help; the function-entity body parser does not accept
+`Qr` as a result-type-start at the multi-label-method position.
+Single-label method-with-Qr (`attributeKeysQrvpZ`) DOES work — the
+variable-entity path handles Qr in property/static-property context.
+
+Fire-plan: extend tryFunctionEntity / parseType to treat `Qr` as a
+valid result-type marker after the label-list, emitting "some" as
+result text. Likely overlaps with existing single-label Qr handler;
+maybe pure refactor to share Qr-result logic across variable-entity
+and function-entity. Estimated 50-100 LOC. Reason for deferral: risk
+of regressing single-label Qr functions and the static-property Qr
+path that AAV unlocked.
+
+### plateau-2026-05-15-bac
+
+BAC fire: explored short-sym buckets (ScXsE proto-ext methods 36
+syms, ScXsE accessors 4 syms, ACMc nested-module conformance 123
+syms, lufC depth-1 generic-sig inits 157 syms). All probed buckets
+require multi-fire surgery: ScXsE concurrency proto-ext method bodies,
+ACMc multi-module conformance with non-stdlib host paths, depth-1
+generic-sig (Rd__) param/result resolution. Deferring this fire as
+forward motion per goal contract; next fire pivots to a fresh small
+single-handler bucket or revisits qr-multilabel-fn-entity above.
+
 ### sn-host-constraint-ident-subs-shift [7 mismatch syms, blocked]
 
 Pattern: `s<n><name>VsSQ<n><assoc>Rpzr|lE<op>oi y Sb <args>FZ` — Swift module struct ext with associated-type constraint AND op-decl (DiscontiguousSlice ==, LazyPrefixWhileSequence.Index ==/<, ClosedRange.Index ==/<, FlattenSequence.Index ==/<). s<n> case pushes Module+Type → subs[0,1]. XS pushes BG host → subs[2]. Constraint-bytes processing line 7405 pushes ANOTHER Module(Swift) → subs[3] (duplicate). AF-style back-refs in args shift by 1 → resolve to Bool result instead of host BG. XZ skip-duplicate-Module attempt regressed 11 property_descriptor tests (descriptors depend on the doubled module slot for A<n>-based identifier resolution). Needs holistic subs.Set alignment or per-path-aware push gating.
