@@ -1071,6 +1071,21 @@ func (r *remangler) mangleBuiltinTypeName(n *demangle.Node) error {
 		assocName := text[2:]
 		if !strings.Contains(assocName, ".") {
 			paramIdx := int(text[0] - 'A')
+			// Metatype shortcut: `<gen-param>.Type` is mangled as
+			// `<gen-param-ref>m` (postfix metatype) NOT as `4TypeQz` /
+			// `4TypeQy_` dep-member form.
+			if assocName == "Type" {
+				switch paramIdx {
+				case 0:
+					r.buf.WriteByte('x')
+				case 1:
+					r.buf.WriteString("q_")
+				default:
+					fmt.Fprintf(&r.buf, "q%d_", paramIdx-2)
+				}
+				r.buf.WriteByte('m')
+				return nil
+			}
 			r.mangleIdentifierWithWordSubs(assocName)
 			r.pushIdentSub(assocName)
 			switch {
