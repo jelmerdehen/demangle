@@ -16648,7 +16648,34 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 								subj = "B"
 							}
 							p.i++
-							concreteStr := common.Print(constraint, common.DefaultPrintOptions())
+							rhs := constraint
+							// Module-back-ref → walk subs for most recent
+							// concrete nominal type (Structure/Class/Enum)
+							// to bridge bound-generic-subs-indexing skew
+							// where Module landed in the back-ref slot
+							// instead of the intended concrete type.
+							if common.NodeKind(constraint.Kind) == common.KindModule {
+								for k := p.subs.Len() - 1; k >= 0; k-- {
+									n, ok := p.subs.Get(k)
+									if !ok || n == nil {
+										continue
+									}
+									if common.NodeKind(n.Kind) != common.KindType ||
+										len(n.Children) == 0 {
+										continue
+									}
+									inner := n.Children[0]
+									switch common.NodeKind(inner.Kind) {
+									case common.KindStructure, common.KindClass,
+										common.KindEnum:
+										rhs = n
+									}
+									if rhs != constraint {
+										break
+									}
+								}
+							}
+							concreteStr := common.Print(rhs, common.DefaultPrintOptions())
 							localConstraints = append(localConstraints,
 								subj+"."+assocName2+" == "+concreteStr)
 							continue
@@ -17874,7 +17901,17 @@ func (p *parser) parseType() (*demangle.Node, error) {
 			// module acts as a prefix; parse the nominal path. If the
 			// byte is a signature marker (y, F, etc.) the module is
 			// itself being used as a back-reference — return it as-is.
-			if !p.eof() && (p.s[p.i] >= '0' && p.s[p.i] <= '9') {
+			//
+			// Assoc-type same-type-constraint pattern lookahead:
+			// `<digits><ident>R<t|s>(z|_|<digit>+_|d...)` — the digit-led
+			// ident is the assoc NAME, not a nested nominal. The outer
+			// constraint-loop wants to see the bare module + ident + Rt
+			// to emit `<subj>.<assoc> == <prev-concrete>`. Don't consume
+			// the ident here; return module as-is. The module back-ref
+			// itself is the prior-concrete that the Rt-handler will use.
+			if !p.eof() && p.s[p.i] >= '1' && p.s[p.i] <= '9' && isAssocSameTypeAfterIdent(p.s, p.i) {
+				node = sub
+			} else if !p.eof() && (p.s[p.i] >= '0' && p.s[p.i] <= '9') {
 				saveMod := p.i
 				saveSubsMod := p.subs
 				node, err = p.parseNominalWithModule(sub)
@@ -22440,6 +22477,52 @@ func (p *parser) runHCMiniStack(typeNode *demangle.Node) (*demangle.Node, bool) 
 // boundGenericHeadName returns the base nominal name when n is a Type
 // wrapping a BoundGeneric{Structure,Class,Enum,Protocol} whose first child
 // is a nominal with an Identifier — or "" when n is not such a node.
+// isAssocSameTypeAfterIdent peeks at s[i:] and reports whether it matches
+// `<digits><ident-bytes>R<t|s>(z|_|<digit>+_|d...)` — the assoc-type
+// same-type constraint pattern in a generic-sig position. Returns true
+// only when the digit-led ident length is valid (resolves to a name
+// without consuming kind bytes V/C/O/P). Used by parseType to suppress
+// greedy nominal-chain consumption on Module back-refs in constraint
+// position.
+func isAssocSameTypeAfterIdent(s string, i int) bool {
+	if i >= len(s) || s[i] < '1' || s[i] > '9' {
+		return false
+	}
+	// Parse the length prefix.
+	j := i
+	num := 0
+	for j < len(s) && s[j] >= '0' && s[j] <= '9' {
+		num = num*10 + int(s[j]-'0')
+		j++
+	}
+	if num <= 0 || j+num > len(s) {
+		return false
+	}
+	// Skip the ident bytes.
+	j += num
+	// Expect R<t|s>(z|_|<digit>+_|d...).
+	if j+2 >= len(s) || s[j] != 'R' {
+		return false
+	}
+	k := s[j+1]
+	if k != 't' && k != 's' {
+		return false
+	}
+	c := s[j+2]
+	if c == 'z' || c == '_' || c == 'd' {
+		return true
+	}
+	if c >= '0' && c <= '9' {
+		// <digit>+_ subject form
+		jj := j + 2
+		for jj < len(s) && s[jj] >= '0' && s[jj] <= '9' {
+			jj++
+		}
+		return jj < len(s) && s[jj] == '_'
+	}
+	return false
+}
+
 // boundGenericArg0 returns the first generic-arg type of a BoundGeneric
 // nominal wrapped in a KindType, or nil otherwise.
 func boundGenericArg0(n *demangle.Node) *demangle.Node {
