@@ -566,6 +566,10 @@ func (p *parser) parseGlobal() (*demangle.Node, error) {
 			inner = wrapped
 			continue
 		}
+		if wrapped, ok := p.tryProtocolInitMember(inner); ok {
+			inner = wrapped
+			continue
+		}
 		if wrapped, ok := p.tryStdlibProtoConformanceSuffix(inner); ok {
 			inner = wrapped
 			continue
@@ -3385,6 +3389,77 @@ func (p *parser) tryBaseConformanceDescriptor(inner *demangle.Node) (*demangle.N
 		return wrap, true
 	}
 	wrap.Text = "base conformance descriptor for " + innerStr + ": " + baseStr
+	return wrap, true
+}
+
+// tryProtocolInitMember matches a protocol-decl required initializer
+// referenced as a method descriptor or dispatch thunk:
+//
+//	<Protocol-Type> 'x' 'y' 'c' 'f' 'C' [ 'T' ('j'|'q') ]
+//
+// `xycfC` is the bare init body (gen-param Self, no params, allocator),
+// and Apple emits:
+//
+//	dispatch thunk of <inner>.init() -> A          (Tj)
+//	method descriptor for <inner>.init() -> A      (Tq)
+//
+// Hosts in Swift / Foundation render full module-qualified; other
+// modules (SwiftUI / UIKit / Combine / __C / CoreData / etc.) use
+// Apple's simplified form: bare type name and no "-> A" return.
+func (p *parser) tryProtocolInitMember(inner *demangle.Node) (*demangle.Node, bool) {
+	if p.i+4 >= len(p.s) {
+		return inner, false
+	}
+	innerProto := inner
+	if common.NodeKind(innerProto.Kind) == common.KindType && len(innerProto.Children) > 0 {
+		innerProto = innerProto.Children[0]
+	}
+	if common.NodeKind(innerProto.Kind) != common.KindProtocol {
+		return inner, false
+	}
+	if p.s[p.i] != 'x' || p.s[p.i+1] != 'y' || p.s[p.i+2] != 'c' || p.s[p.i+3] != 'f' || p.s[p.i+4] != 'C' {
+		return inner, false
+	}
+	save := p.i
+	saveSubs := p.subs
+	saveWords := p.words
+	revert := func() { p.i = save; p.subs = saveSubs; p.words = saveWords }
+	p.i += 5
+
+	termPrefix := ""
+	if p.i+1 < len(p.s) && p.s[p.i] == 'T' {
+		switch p.s[p.i+1] {
+		case 'j':
+			termPrefix = "dispatch thunk of "
+			p.i += 2
+		case 'q':
+			termPrefix = "method descriptor for "
+			p.i += 2
+		}
+	}
+	if termPrefix == "" {
+		// Bare init body — require nothing after so this handler doesn't
+		// over-consume into adjacent entity bytes when a thunk suffix is
+		// absent. Apple's corpus does not contain bare-init <Proto>PxycfC
+		// without a Tj/Tq descriptor; revert and let other handlers try.
+		revert()
+		return inner, false
+	}
+
+	innerStr := common.Print(inner, common.DefaultPrintOptions())
+	innerMod := common.RootModuleOf(inner)
+	var body string
+	if innerMod == "Swift" || innerMod == "Foundation" {
+		body = innerStr + ".init() -> A"
+	} else {
+		bare := innerStr
+		if innerMod != "" {
+			bare = strings.TrimPrefix(innerStr, innerMod+".")
+		}
+		body = bare + ".init()"
+	}
+	wrap := common.NewNode(common.KindTypeMangling)
+	wrap.Text = termPrefix + body
 	return wrap, true
 }
 
