@@ -30,6 +30,25 @@ and function-entity. Estimated 50-100 LOC. Reason for deferral: risk
 of regressing single-label Qr functions and the static-property Qr
 path that AAV unlocked.
 
+### yi-yb-param-annotations [~100 syms, deferred-1]
+
+Pattern: function-entity params with Yi (isolated) or Yb
+(@Sendable) annotations on individual param types. tryPostfixFunctionType
+handles function-LEVEL Yb/YA/Ya/YC/Yj annotations, but PARAM-LEVEL
+Yi (e.g. `(any Actor)?Yi` for an `isolated` param) is not consumed
+by tryInitDeinitEntity / tryFunctionEntity param-type parsing.
+
+Probe: adding `case 'i': prefix = "isolated "` to parseType's Y-loop
+parses Yi successfully as a postfix but does not unlock any syms —
+the surrounding entity-body parse fails before reaching the Yi
+annotation site.
+
+Fire-plan: extend tryInitDeinitEntity / tryFunctionEntity param-type
+parsing loop to allow Yi-postfix on per-param types AND ensure the
+Yi consumption happens before the param-separator-or-terminator
+check. Estimated 30-40 LOC. Reason for deferral: param-loop changes
+in those handlers are dense and need careful per-shape testing.
+
 ### operator-decl-backref-subs-shift [~10 syms, deferred-1]
 
 Pattern: `s<N><op-name>oi <labels> <result> <param1>X[p|...] <Sg?> _ AB t F`.
