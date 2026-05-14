@@ -1,4 +1,4 @@
-# snapshot-pass-set update 2026-05-14T23:35:48Z — union with previous (high-water)
+# snapshot-pass-set update 2026-05-14T23:41:57Z — union with previous (high-water)
 _$s10Foreground7SwiftUI18LabelGroupStyle_v0PTl
 _$s10Foundation10CocoaErrorV010formattingC0AC4CodeVvgZ
 _$s10Foundation10CocoaErrorV010formattingC0AC4CodeVvpZMV
@@ -44475,6 +44475,7 @@ _$sSo25UICanvasFeedbackGeneratorC5UIKitE13configurationABSo011_UIFeedbackC13Conf
 _$sSo25UICanvasFeedbackGeneratorC5UIKitE13configurationABSo011_UIFeedbackC13ConfigurationC_tcfc
 _$sSo25UICanvasFeedbackGeneratorC5UIKitE15coordinateSpaceABSo012UICoordinateF0_p_tcfC
 _$sSo25UICanvasFeedbackGeneratorC5UIKitE15coordinateSpaceABSo012UICoordinateF0_p_tcfc
+_$sSo25UICanvasFeedbackGeneratorC5UIKitE19_configurationClassyXlXpyFZ
 _$sSo25UICanvasFeedbackGeneratorC5UIKitE6__viewABSo6UIViewCSg_tcfC
 _$sSo25UICanvasFeedbackGeneratorC5UIKitE6__viewABSo6UIViewCSg_tcfc
 _$sSo25UICanvasFeedbackGeneratorC5UIKitEABycfC
