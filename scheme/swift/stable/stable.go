@@ -19112,6 +19112,26 @@ func (p *parser) parseGenericParam() (*demangle.Node, error) {
 	if p.s[p.i] == 'd' {
 		depth = 1
 		p.i++
+		// qd_<N>_ explicit-index form: depth-1 idx = N+1 (B1, C1, ...).
+		// Matches Apple mangling.rst's qd_<index>_ grammar separately from
+		// the default qd_ (no explicit index = A1) and qd<N>_ forms.
+		if !p.eof() && p.s[p.i] == '_' && p.i+1 < len(p.s) &&
+			p.s[p.i+1] >= '0' && p.s[p.i+1] <= '9' {
+			p.i++ // consume first '_'
+			start := p.i
+			for !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+				p.i++
+			}
+			v := 0
+			for _, c := range p.s[start:p.i] {
+				v = v*10 + int(c-'0')
+			}
+			if p.eof() || p.s[p.i] != '_' {
+				return nil, p.grammarErr("'_' terminating qd_<N>_ generic param")
+			}
+			p.i++ // consume trailing '_'
+			return p.genericParam(depth, v+1), nil
+		}
 	}
 	// Optional index digit.
 	if !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
