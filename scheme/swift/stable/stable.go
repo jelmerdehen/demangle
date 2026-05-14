@@ -583,6 +583,10 @@ func (p *parser) parseGlobal() (*demangle.Node, error) {
 			inner = wrapped
 			continue
 		}
+		if wrapped, ok := p.tryNestedProtocolDescriptor(inner); ok {
+			inner = wrapped
+			continue
+		}
 		if wrapped, ok := p.tryStdlibCopyInit(inner); ok {
 			inner = wrapped
 			continue
@@ -3625,6 +3629,38 @@ func (p *parser) trySubscriptEntityLabeled(inner *demangle.Node) (*demangle.Node
 	} else {
 		wrap.Text = ownerStr + ".subscript" + accessor
 	}
+	return wrap, true
+}
+
+// tryNestedProtocolDescriptor matches the shape
+//
+//	<outer-Type> <digits><inner-name> 'M' 'p'
+//
+// where the inner-name is a nested protocol on the outer type (no
+// explicit 'P' kind byte — the trailing Mp implies protocol). Apple
+// emits "protocol descriptor for <Outer>.<Inner>" with simplified
+// output (no module prefix) for non-Foundation/Swift hosts.
+func (p *parser) tryNestedProtocolDescriptor(inner *demangle.Node) (*demangle.Node, bool) {
+	if p.eof() || !(p.s[p.i] >= '0' && p.s[p.i] <= '9') {
+		return inner, false
+	}
+	save := p.i
+	saveSubs := p.subs
+	saveWords := p.words
+	revert := func() { p.i = save; p.subs = saveSubs; p.words = saveWords }
+	ident, err := p.parseIdentifier()
+	if err != nil || ident == "" {
+		revert()
+		return inner, false
+	}
+	if p.i+1 >= len(p.s) || p.s[p.i] != 'M' || p.s[p.i+1] != 'p' {
+		revert()
+		return inner, false
+	}
+	p.i += 2 // consume 'Mp'
+	innerStr := common.Print(inner, descriptorPrintOpts(inner))
+	wrap := common.NewNode(common.KindTypeMangling)
+	wrap.Text = "protocol descriptor for " + innerStr + "." + ident
 	return wrap, true
 }
 
