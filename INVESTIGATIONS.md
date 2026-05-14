@@ -30,6 +30,20 @@ and function-entity. Estimated 50-100 LOC. Reason for deferral: risk
 of regressing single-label Qr functions and the static-property Qr
 path that AAV unlocked.
 
+### plateau-2026-05-15-bar [deferred-1]
+
+BAR fire: at 90.45% parity. All remaining shortest-sym errors require
+parser-deep surgery — depth-1 generics (Sq.map/Sq.flatMap/Sq.??),
+closure-arg+throws (Set.filter/Substring.filter), stdlib-proto-ext
+methods (Sm.append/Sc<X>sE), or constraint-extension inits (Slice
+ext, FixedWidthInteger ext, max/min variadic). Top buckets all 50+
+sym multi-fire.
+
+Smaller mismatch wins available via render-path tweaks but each is
+≤2 syms (UnsafeBufferPointer Iterator back-ref offset, operator-decl
+subs alignment, static-extension verbose param-type render). Need
+dedicated multi-fire investigation per cluster.
+
 ### sc-x-stdlib-ext-needs-simplified-render [4 syms, deferred-1]
 
 BAP probed: extending tryTypeFirstExtensionEntity to accept Sc<X>
