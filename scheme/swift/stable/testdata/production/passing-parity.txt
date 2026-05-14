@@ -1,4 +1,4 @@
-# snapshot-pass-set update 2026-05-14T21:46:01Z — union with previous (high-water)
+# snapshot-pass-set update 2026-05-14T21:52:13Z — union with previous (high-water)
 _$s10Foreground7SwiftUI18LabelGroupStyle_v0PTl
 _$s10Foundation10CocoaErrorV010formattingC0AC4CodeVvgZ
 _$s10Foundation10CocoaErrorV010formattingC0AC4CodeVvpZMV
@@ -22165,6 +22165,8 @@ _$s7SwiftUI12WidgetBundleMp
 _$s7SwiftUI12WidgetBundleP4BodyAC_AA0C0Tn
 _$s7SwiftUI12WidgetBundleP4body4BodyQzvgTj
 _$s7SwiftUI12WidgetBundleP4body4BodyQzvgTq
+_$s7SwiftUI12WidgetBundlePxycfCTj
+_$s7SwiftUI12WidgetBundlePxycfCTq
 _$s7SwiftUI12WidgetBundleTL
 _$s7SwiftUI12WindowLayoutMp
 _$s7SwiftUI12WindowLayoutP06windowD10PropertiesAA0cdF0VvgZTj
@@ -22268,6 +22270,8 @@ _$s7SwiftUI13ControlWidgetMp
 _$s7SwiftUI13ControlWidgetP4BodyAC_AA0cD13ConfigurationTn
 _$s7SwiftUI13ControlWidgetP4body4BodyQzvgTj
 _$s7SwiftUI13ControlWidgetP4body4BodyQzvgTq
+_$s7SwiftUI13ControlWidgetPxycfCTj
+_$s7SwiftUI13ControlWidgetPxycfCTq
 _$s7SwiftUI13ControlWidgetTL
 _$s7SwiftUI13DismissActionV14callAsFunctionyyF
 _$s7SwiftUI13DismissActionVMa
@@ -28641,6 +28645,8 @@ _$s7SwiftUI21ObservableDocumentBoxPAAE9wasOpenedSbvM
 _$s7SwiftUI21ObservableDocumentBoxPAAE9wasOpenedSbvg
 _$s7SwiftUI21ObservableDocumentBoxPAAE9wasOpenedSbvpMV
 _$s7SwiftUI21ObservableDocumentBoxPAAE9wasOpenedSbvs
+_$s7SwiftUI21ObservableDocumentBoxPxycfCTj
+_$s7SwiftUI21ObservableDocumentBoxPxycfCTq
 _$s7SwiftUI21ObservableDocumentBoxTL
 _$s7SwiftUI21PencilPreferredActionV12switchEraserACvgZ
 _$s7SwiftUI21PencilPreferredActionV12switchEraserACvpZMV
@@ -34761,6 +34767,8 @@ _$s7SwiftUI3AppP4BodyAC_AA5SceneTn
 _$s7SwiftUI3AppP4body4BodyQzvgTj
 _$s7SwiftUI3AppP4body4BodyQzvgTq
 _$s7SwiftUI3AppPAAE4mainyyFZ
+_$s7SwiftUI3AppPxycfCTj
+_$s7SwiftUI3AppPxycfCTq
 _$s7SwiftUI3AppTL
 _$s7SwiftUI3TabVAASHRzAA4ViewR_AaDR0_rlE011_identifiedD0Qrvg
 _$s7SwiftUI3TabVAASHRzAA4ViewR_AaDR0_rlE011_identifiedD0QrvpMV
@@ -37124,6 +37132,8 @@ _$s7SwiftUI6WidgetMp
 _$s7SwiftUI6WidgetP4BodyAC_AA0C13ConfigurationTn
 _$s7SwiftUI6WidgetP4body4BodyQzvgTj
 _$s7SwiftUI6WidgetP4body4BodyQzvgTq
+_$s7SwiftUI6WidgetPxycfCTj
+_$s7SwiftUI6WidgetPxycfCTq
 _$s7SwiftUI6WidgetTL
 _$s7SwiftUI6WindowV4bodyQrvg
 _$s7SwiftUI6WindowV4bodyQrvpMV
@@ -37872,6 +37882,8 @@ _$s8CoreData06NSCoreB14CodableAdapterP6decode4datayp10Foundation0B0V_tKFTj
 _$s8CoreData06NSCoreB14CodableAdapterP6decode4datayp10Foundation0B0V_tKFTq
 _$s8CoreData06NSCoreB14CodableAdapterP6encode9encodable10Foundation0B0Vyp_tKFTj
 _$s8CoreData06NSCoreB14CodableAdapterP6encode9encodable10Foundation0B0Vyp_tKFTq
+_$s8CoreData06NSCoreB14CodableAdapterPxycfCTj
+_$s8CoreData06NSCoreB14CodableAdapterPxycfCTq
 _$s8CoreData06NSCoreB14CodableAdapterTL
 _$s8CoreData06NSCoreB21CodableAdapterFactoryMp
 _$s8CoreData06NSCoreB21CodableAdapterFactoryP04makeE0AA0cbdE0_pyFTj
@@ -41930,6 +41942,8 @@ _$sSmsE9repeating5countx7ElementQz_SitcfC
 _$sSmsSKRz11SubSequenceSlQzRszrlE10removeLastyySiF
 _$sSmsSKRz11SubSequenceSlQzRszrlE17_customRemoveLastySbSiF
 _$sSmsSKRzrlE10removeLastyySiF
+_$sSmxycfCTj
+_$sSmxycfCTq
 _$sSmyxqd__cSTRd__7ElementQyd__AARtzlufCTj
 _$sSmyxqd__cSTRd__7ElementQyd__AARtzlufCTq
 _$sSn10_contains_ySbSnyxGF
@@ -47347,6 +47361,8 @@ _$ss10SetAlgebraPsE7isEmptySbvg
 _$ss10SetAlgebraPsE7isEmptySbvpMV
 _$ss10SetAlgebraPsE8isSubset2ofSbx_tF
 _$ss10SetAlgebraPsE8subtractyyxF
+_$ss10SetAlgebraPxycfCTj
+_$ss10SetAlgebraPxycfCTq
 _$ss10SetAlgebraPyxqd__ncSTRd__7ElementQyd__ACRtzlufCTj
 _$ss10SetAlgebraPyxqd__ncSTRd__7ElementQyd__ACRtzlufCTq
 _$ss10SetAlgebraTL
@@ -47769,6 +47785,8 @@ _$ss11SIMDStorageP6ScalarAB_SETn
 _$ss11SIMDStorageP6ScalarAB_SHTn
 _$ss11SIMDStorageP6ScalarAB_SeTn
 _$ss11SIMDStoragePsE11scalarCountSivpZMV
+_$ss11SIMDStoragePxycfCTj
+_$ss11SIMDStoragePxycfCTq
 _$ss11SIMDStoragePy6ScalarQzSiciMTj
 _$ss11SIMDStoragePy6ScalarQzSiciMTq
 _$ss11SIMDStoragePy6ScalarQzSicigTj
@@ -48104,6 +48122,8 @@ _$ss12UnicodeCodecP6encode_4intoys0A0O6ScalarV_y8CodeUnitQzXEtFZTj
 _$ss12UnicodeCodecP6encode_4intoys0A0O6ScalarV_y8CodeUnitQzXEtFZTq
 _$ss12UnicodeCodecPs01_A8EncodingTb
 _$ss12UnicodeCodecPsE19_nullCodeUnitOffset2inSiSPy0dE0QzG_tFZ
+_$ss12UnicodeCodecPxycfCTj
+_$ss12UnicodeCodecPxycfCTq
 _$ss12UnicodeCodecTL
 _$ss12Zip2SequenceV10_sequence1xvg
 _$ss12Zip2SequenceV10_sequence1xvpMV
@@ -49043,6 +49063,8 @@ _$ss14_StringElementP18_fromUTF16CodeUnityxs6UInt16VFZTq
 _$ss14_StringElementTL
 _$ss14_UnicodeParserMp
 _$ss14_UnicodeParserP8EncodingAB_s01_aC0Tn
+_$ss14_UnicodeParserPxycfCTj
+_$ss14_UnicodeParserPxycfCTq
 _$ss14_UnicodeParserTL
 _$ss14_bytesToUInt64ys0C0VSPys5UInt8VG_SitF
 _$ss14_getNonTagBitsySuBbF
@@ -50823,6 +50845,8 @@ _$ss20_ArrayBufferProtocolPsE025_forceCreateUniqueMutableB4Impl08countForB014min
 _$ss20_ArrayBufferProtocolPsE20subscriptBaseAddressSpy7ElementQzGvg
 _$ss20_ArrayBufferProtocolPsE20subscriptBaseAddressSpy7ElementQzGvpMV
 _$ss20_ArrayBufferProtocolPsE7copyingxx_tcfC
+_$ss20_ArrayBufferProtocolPxycfCTj
+_$ss20_ArrayBufferProtocolPxycfCTq
 _$ss20_ArrayBufferProtocolPys06_SliceB0Vy7ElementQzGSnySiGcigTj
 _$ss20_ArrayBufferProtocolPys06_SliceB0Vy7ElementQzGSnySiGcigTq
 _$ss20_ArrayBufferProtocolTL
