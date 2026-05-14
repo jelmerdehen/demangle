@@ -5671,6 +5671,80 @@ func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 			p.i = saveAt
 			p.subs = saveAtSubs
 		}
+		// Depth-1 dep-member same-type with back-ref RHS:
+		// <N><name> Q y d <idx>? _ _? A <bref> R t <subj> — binds
+		// <subj>.<name> == A<idx+1>1.<name>. The intermediate A<bref>
+		// is a back-ref that Apple's stack-based demangler resolves to
+		// the same A.<name> dep-member; our subs table indexes
+		// differently, so detect the pattern lexically and skip the
+		// back-ref entirely.
+		if lastConProto == nil && c >= '1' && c <= '9' {
+			saveDM := p.i
+			saveDMWords := p.words
+			saveDMSubs := p.subs
+			name, nerr := p.parseIdentifier()
+			matched := false
+			if nerr == nil && p.i+4 < len(p.s) &&
+				p.s[p.i] == 'Q' && p.s[p.i+1] == 'y' && p.s[p.i+2] == 'd' {
+				qi := p.i + 3
+				dStart := qi
+				nIdx := 0
+				for qi < len(p.s) && p.s[qi] >= '0' && p.s[qi] <= '9' {
+					nIdx = nIdx*10 + int(p.s[qi]-'0')
+					qi++
+				}
+				digitsConsumed := qi > dStart
+				if digitsConsumed {
+					nIdx++
+				}
+				if qi < len(p.s) && p.s[qi] == '_' {
+					qi++
+					if !digitsConsumed && qi < len(p.s) && p.s[qi] == '_' {
+						qi++ // pack-index-zero second '_' for Qyd__
+					}
+					if qi+3 <= len(p.s) && p.s[qi] == 'A' {
+						aPos := qi + 1
+						ok := false
+						if aPos < len(p.s) && p.s[aPos] >= '0' && p.s[aPos] <= '9' {
+							for aPos < len(p.s) && p.s[aPos] >= '0' && p.s[aPos] <= '9' {
+								aPos++
+							}
+							if aPos < len(p.s) && p.s[aPos] >= 'A' && p.s[aPos] <= 'Z' {
+								aPos++
+								ok = true
+							}
+						} else if aPos < len(p.s) && p.s[aPos] >= 'A' && p.s[aPos] <= 'Z' {
+							aPos++
+							ok = true
+						}
+						if ok && aPos+2 < len(p.s) &&
+							p.s[aPos] == 'R' && p.s[aPos+1] == 't' {
+							subjByte := p.s[aPos+2]
+							var subj string
+							switch subjByte {
+							case 'z':
+								subj = "A"
+							case '_':
+								subj = "B"
+							}
+							if subj != "" && nIdx < 26 {
+								lhsName := string(rune('A'+nIdx)) + "1"
+								initConstraints = append(initConstraints,
+									subj+"."+name+" == "+lhsName+"."+name)
+								p.i = aPos + 3
+								matched = true
+							}
+						}
+					}
+				}
+			}
+			if matched {
+				continue
+			}
+			p.i = saveDM
+			p.words = saveDMWords
+			p.subs = saveDMSubs
+		}
 		if c == 'S' || c == 's' || c == 'x' || c == 'q' || c == 'A' ||
 			c == 'B' || (c >= '0' && c <= '9') {
 			saveCon := p.i
