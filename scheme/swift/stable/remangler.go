@@ -1748,10 +1748,44 @@ func (r *remangler) mangleFunctionEntity(n *demangle.Node) error {
 		}
 	}
 	if !compactEmitted {
+		// Labeled-result-tuple form: Apple emits `<t1><N><lbl1>_<t2><N><lbl2>...t`
+		// for result tuples whose elements carry `swift.label`. Detect a
+		// TypeList result where any child has a non-empty `swift.label`
+		// attr (set by the parser's post-result labeled-tuple branch at
+		// stable.go:15917+).
+		if common.NodeKind(ret.Kind) == common.KindTypeList {
+			hasLabel := false
+			for _, ch := range ret.Children {
+				if ch.Attrs != nil && ch.Attrs["swift.label"] != "" {
+					hasLabel = true
+					break
+				}
+			}
+			if hasLabel && len(ret.Children) >= 2 {
+				for i, ch := range ret.Children {
+					if err := r.remangleNode(ch); err != nil {
+						return err
+					}
+					if ch.Attrs != nil {
+						if lbl := ch.Attrs["swift.label"]; lbl != "" && lbl != "_" {
+							if err := r.mangleIdentifier(common.NewIdentifier(lbl)); err != nil {
+								return err
+							}
+						}
+					}
+					if i == 0 {
+						r.buf.WriteByte('_')
+					}
+				}
+				r.buf.WriteByte('t')
+				goto emittedResult
+			}
+		}
 		// Normal ret + params emission.
 		if err := r.remangleNode(ret); err != nil {
 			return err
 		}
+	emittedResult:
 		if argsTypeList {
 			if err := r.mangleFunctionTypeParams(args); err != nil {
 				return err
