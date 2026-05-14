@@ -16593,6 +16593,110 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 						}
 					}
 				}
+				// Combine receive(subscriber:) family same-type req:
+				//   <N><rhs-assoc> Q y d <demIdx> <demIdx>
+				//   (<N><lhs-assoc> | A<L> back-ref) R t <subj>
+				// Apple stack-based parse: push Identifier(rhs); 'Qy'
+				// pops it as assoc-name to build (gen-param-at-depth).
+				// <rhs>; next ident (or back-ref to rhs) is popped by
+				// Rt's demangleAssociatedTypeSimple as lhs-assoc on the
+				// Rt subject. Emit "<subj>.<lhs> == <gen-param>.<rhs>".
+				if err == nil && p.i+2 < len(p.s) &&
+					p.s[p.i] == 'Q' && p.s[p.i+1] == 'y' && p.s[p.i+2] == 'd' {
+					saveQy := p.i
+					saveSubsQy := p.subs
+					p.i += 3 // consume Qyd
+					readDem := func() (int, bool) {
+						if p.eof() {
+							return 0, false
+						}
+						if p.s[p.i] == '_' {
+							p.i++
+							return 0, true
+						}
+						if p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+							num := int(p.s[p.i] - '0')
+							p.i++
+							for !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+								num = num*10 + int(p.s[p.i]-'0')
+								p.i++
+							}
+							if !p.eof() && p.s[p.i] == '_' {
+								p.i++
+								return num + 1, true
+							}
+						}
+						return 0, false
+					}
+					dDem, dOk := readDem()
+					iDem, iOk := readDem()
+					matched := false
+					if dOk && iOk && iDem < 26 {
+						actualDepth := dDem + 1
+						baseName := string(rune('A'+iDem)) + itoa(actualDepth)
+						rhsName := name
+						lhsName := rhsName
+						haveLhs := false
+						if !p.eof() && p.s[p.i] >= '1' && p.s[p.i] <= '9' {
+							ln, lerr := p.parseIdentifier()
+							if lerr == nil {
+								lhsName = ln
+								haveLhs = true
+							}
+						} else if p.i+1 < len(p.s) && p.s[p.i] == 'A' &&
+							p.s[p.i+1] >= 'A' && p.s[p.i+1] <= 'Z' {
+							p.i += 2
+							haveLhs = true
+						}
+						if haveLhs && p.i+1 < len(p.s) &&
+							p.s[p.i] == 'R' &&
+							(p.s[p.i+1] == 't' || p.s[p.i+1] == 's') {
+							p.i += 2 // consume R<kind>
+							subj := ""
+							if !p.eof() {
+								sk := p.s[p.i]
+								switch {
+								case sk == 'z':
+									p.i++
+									subj = "A"
+								case sk == '_':
+									p.i++
+									subj = "B"
+								case sk >= '0' && sk <= '9':
+									num := int(sk - '0')
+									p.i++
+									for !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+										num = num*10 + int(p.s[p.i]-'0')
+										p.i++
+									}
+									if !p.eof() && p.s[p.i] == '_' {
+										p.i++
+									}
+									if num+2 < 26 {
+										subj = string(rune('A' + num + 2))
+									}
+								case sk == 'd':
+									p.i++
+									sd, sdOk := readDem()
+									si, siOk := readDem()
+									if sdOk && siOk && si < 26 {
+										subj = string(rune('A'+si)) + itoa(sd+1)
+									}
+								}
+							}
+							if subj != "" {
+								localConstraints = append(localConstraints,
+									subj+"."+lhsName+" == "+baseName+"."+rhsName)
+								matched = true
+							}
+						}
+					}
+					if matched {
+						continue
+					}
+					p.i = saveQy
+					p.subs = saveSubsQy
+				}
 				p.i = saveReq
 				p.subs = saveSubsReq
 			}
@@ -16658,6 +16762,50 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 								subj+"."+assocName+": "+moduleName+"."+protoName)
 							continue
 						}
+					}
+					// <module><proto-ident>Rd<demIdx><demIdx> — depth-1
+					// conformance form for Combine.receive(subscriber:)
+					// family. Apple stack-based parse: AA→module pushed,
+					// 10Subscriber→ident pushed, Rd → popProtocol(module
+					// + ident) and depth-1-conformance subj. Apple's
+					// demangleIndex: '_'→0, 'N_'→N+1; depth=index+1,
+					// param-index=index.
+					if perr == nil && p.i+1 < len(p.s) &&
+						p.s[p.i] == 'R' && p.s[p.i+1] == 'd' {
+						saveRd := p.i
+						p.i += 2 // consume Rd
+						readDem := func() (int, bool) {
+							if p.eof() {
+								return 0, false
+							}
+							if p.s[p.i] == '_' {
+								p.i++
+								return 0, true
+							}
+							if p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+								num := int(p.s[p.i] - '0')
+								p.i++
+								for !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+									num = num*10 + int(p.s[p.i]-'0')
+									p.i++
+								}
+								if !p.eof() && p.s[p.i] == '_' {
+									p.i++
+									return num + 1, true
+								}
+							}
+							return 0, false
+						}
+						dDem, ok1 := readDem()
+						iDem, ok2 := readDem()
+						if ok1 && ok2 && iDem < 26 {
+							actualDepth := dDem + 1
+							subj := string(rune('A'+iDem)) + itoa(actualDepth)
+							localConstraints = append(localConstraints,
+								subj+": "+moduleName+"."+protoName)
+							continue
+						}
+						p.i = saveRd
 					}
 					p.i = saveAssoc
 					p.subs = saveSubsAssoc
