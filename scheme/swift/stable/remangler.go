@@ -763,19 +763,52 @@ func nodesEqual(a, b *demangle.Node) bool {
 //	idx 27 → "A0_" (mangleIndex(1) = '0'+'_')
 //	idx 28 → "A1_" (mangleIndex(2) = '1'+'_')
 func (r *remangler) mangleSubIndex(idx int) {
-	r.buf.WriteByte('A')
 	if idx < 26 {
-		// Letter form: idx 0→'A', 1→'B', ..., 25→'Z'.
-		r.buf.WriteByte(byte('A' + idx))
-	} else {
-		// Numeric form via mangleIndex(idx-26):
-		// mangleIndex(0)='_'; mangleIndex(n)=(n-1)+'_'.
-		val := idx - 26
-		if val == 0 {
-			r.buf.WriteByte('_')
-		} else {
-			fmt.Fprintf(&r.buf, "%d_", val-1)
+		letter := byte('A' + idx)
+		// Repeat-count compaction: consecutive identical letter-form back-refs
+		// `A<L>A<L>` collapse to `A2<L>`. Subsequent repeats increment the
+		// count. Guard: only compact when the prior A<L> isn't preceded by a
+		// digit (digit-prefix means name-length, so `<N>A<L>` isn't a back-ref).
+		buf := r.buf.String()
+		if len(buf) >= 2 && buf[len(buf)-2] == 'A' && buf[len(buf)-1] == letter &&
+			(len(buf) < 3 || !(buf[len(buf)-3] >= '0' && buf[len(buf)-3] <= '9')) {
+			r.buf.Reset()
+			r.buf.WriteString(buf[:len(buf)-2])
+			fmt.Fprintf(&r.buf, "A2%c", letter)
+			return
 		}
+		if len(buf) >= 3 && buf[len(buf)-1] == letter {
+			// Detect `A<digits><L>` at end and increment digits.
+			j := len(buf) - 2
+			for j >= 0 && buf[j] >= '0' && buf[j] <= '9' {
+				j--
+			}
+			if j >= 0 && buf[j] == 'A' && j < len(buf)-2 {
+				// `A<digits><L>` confirmed; guard against false positive
+				// where the A is the leading byte of a previous name segment
+				// (i.e., preceded by a digit).
+				if j == 0 || !(buf[j-1] >= '0' && buf[j-1] <= '9') {
+					n := 0
+					for k := j + 1; k < len(buf)-1; k++ {
+						n = n*10 + int(buf[k]-'0')
+					}
+					r.buf.Reset()
+					r.buf.WriteString(buf[:j])
+					fmt.Fprintf(&r.buf, "A%d%c", n+1, letter)
+					return
+				}
+			}
+		}
+		r.buf.WriteByte('A')
+		r.buf.WriteByte(letter)
+		return
+	}
+	r.buf.WriteByte('A')
+	val := idx - 26
+	if val == 0 {
+		r.buf.WriteByte('_')
+	} else {
+		fmt.Fprintf(&r.buf, "%d_", val-1)
 	}
 }
 
