@@ -554,6 +554,19 @@ func (p *parser) parseGlobal() (*demangle.Node, error) {
 		inner = wrapped
 	}
 	for {
+		// Opaque return-type wrapper inside the suffix loop. The earlier
+		// inline QO check (line ~497) runs before the static-marker 'Z'
+		// is consumed; symbols ending with `...ZQOMQ` (opaque return type
+		// of a static property/method) need a second pass after Z has
+		// been wrapped, so we re-check here.
+		if p.i+1 < len(p.s) && p.s[p.i] == 'Q' && p.s[p.i+1] == 'O' {
+			p.i += 2
+			innerStr := common.Print(inner, common.DefaultPrintOptions())
+			wrap := common.NewNode(common.KindTypeMangling)
+			wrap.Text = "<<opaque return type of " + innerStr + ">>"
+			inner = wrap
+			continue
+		}
 		if wrapped, ok := p.tryAutodiffSigBeforeTJ(inner); ok {
 			inner = wrapped
 			continue
@@ -19034,6 +19047,19 @@ func (p *parser) parseType() (*demangle.Node, error) {
 			typ := common.NewNode(common.KindType)
 			tn := common.NewNode(common.KindBuiltinTypeName)
 			tn.Text = "Any"
+			common.AddChildren(typ, tn)
+			node = typ
+			break
+		}
+		// Apple's 'yt' = empty tuple `()` in plain type-context (e.g.
+		// type metadata records `_$sytN` / `_$sytWV`). parseFunctionType
+		// only handles `yt` when it sits in result/params slots, so
+		// recognise the bare-type form here before falling through.
+		if p.i+1 < len(p.s) && p.s[p.i+1] == 't' {
+			p.i += 2
+			typ := common.NewNode(common.KindType)
+			tn := common.NewNode(common.KindBuiltinTypeName)
+			tn.Text = "()"
 			common.AddChildren(typ, tn)
 			node = typ
 			break
