@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 90.20% (57511/63757) — 2026-05-14T22:49:05Z
+**Parity**: 90.21% (57514/63757) — 2026-05-14T22:56:15Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 6167 parse-errors + 79 mismatches
+**Failures**: 6164 parse-errors + 79 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- 3471778 swift-parity: BAE subscript read/yield/init accessors — parity 90.20%->90.21% (+3 production)
+- 1ec0c0a chore: lock snapshot after BAD commit (parity 57423 to 57511)
+- 96b79db chore: update digest.md for BAD commit (parity 90.07%->90.20% +88)
 - 476b5b3 swift-parity: BAD Xp existential metatype postfix — parity 90.07%->90.20% (+88 production)
 - d865bda chore: defer qr-multilabel-fn-entity-opaque-return to multi-fire (deferred-1)
 - 811c8f4 chore: lock snapshot after BAB commit (parity 57417 to 57423)
@@ -36,9 +39,6 @@
 - 0148425 swift-parity: BAB labeled stdlib copy-init — parity 90.06%->90.07% (+6 production)
 - 375b95e chore: lock snapshot after BAA commit (parity 57409 to 57417)
 - 2825d14 chore: update digest.md for BAA commit (parity 90.04%->90.06% +8)
-- e0c7225 swift-parity: BAA labeled typed-subscript on stdlib hosts — parity 90.04%->90.06% (+8 production)
-- a20d959 chore: lock snapshot after AAZ commit (parity 57395 to 57409)
-- 160963b chore: update digest.md for AAZ commit (parity 90.02%->90.04% +14)
 
 ## Suggested Next 3 Items
 
