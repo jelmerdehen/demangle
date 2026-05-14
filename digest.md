@@ -1,7 +1,7 @@
 # Swift Production Digest
 
-**Parity**: 89.00% (56745/63757) — 2026-05-14T14:04:36Z
-**Round-trip**: 64.03% (12731/19882) — 2026-05-14T14:04:37Z
+**Parity**: 89.00% (56745/63757) — 2026-05-14T14:08:37Z
+**Round-trip**: 67.25% (13371/19882) — 2026-05-14T14:08:38Z
 **Failures**: 7003 parse-errors + 10 mismatches
 
 ## Top-20 Mismatch Categories
@@ -13,6 +13,9 @@
 
 ## Last 10 Commits
 
+- 6746671 swift-parity: AAH mangle blank-label marker `_` — parity 89.00%->89.00% (+640 round-trip)
+- 5efae9e chore: lock snapshot after AAG commit (round-trip 12669 to 12731)
+- 80e7e1f chore: update digest.md for AAG commit (round-trip 12669->12731 +62)
 - be16311 swift-parity: AAG mangle param ownership n/h/T markers — parity 89.00%->89.00% (+62 round-trip)
 - 4af9533 chore: lock snapshot after AAF commit (round-trip 12654 to 12669)
 - 0f4cc5e chore: update digest.md for AAF commit (round-trip 12654->12669 +15)
@@ -20,9 +23,6 @@
 - cafea67 chore: lock snapshot after AAE commit (round-trip 12571 to 12654)
 - 36b6a39 chore: update digest.md for AAE commit (round-trip 12571->12654 +83)
 - 89e25f6 swift-parity: AAE mangle depth-1 genparam canonical form — parity 89.00%->89.00% (+83 round-trip)
-- 670fa10 chore: lock snapshot after AAD commit (round-trip 12373 to 12571)
-- 6bbd081 chore: update digest.md for AAD commit (round-trip 12373->12571 +198)
-- 24dc252 swift-parity: AAD mangle back-ref repeat-count compaction — parity 89.00%->89.00% (+198 round-trip)
 
 ## Suggested Next 3 Items
 
