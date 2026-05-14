@@ -1,4 +1,4 @@
-# snapshot-pass-set update 2026-05-14T21:52:13Z — union with previous (high-water)
+# snapshot-pass-set update 2026-05-14T21:58:16Z — union with previous (high-water)
 _$s10Foreground7SwiftUI18LabelGroupStyle_v0PTl
 _$s10Foundation10CocoaErrorV010formattingC0AC4CodeVvgZ
 _$s10Foundation10CocoaErrorV010formattingC0AC4CodeVvpZMV
@@ -40677,6 +40677,17 @@ _$sScg9cancelAllyyF
 _$sScgMa
 _$sScgMn
 _$sScgyxq_GScisMc
+_$sSch21asUnownedTaskExecutors0bcD0VyFTj
+_$sSch21asUnownedTaskExecutors0bcD0VyFTq
+_$sSch7enqueueyyScJFTj
+_$sSch7enqueueyyScJFTq
+_$sSch7enqueueyys11ExecutorJobVnFTj
+_$sSch7enqueueyys11ExecutorJobVnFTq
+_$sSch7enqueueyys3JobVnFTj
+_$sSch7enqueueyys3JobVnFTq
+_$sSchMp
+_$sSchScFTb
+_$sSchTL
 _$sSci13AsyncIteratorSci_ScITn
 _$sSci17makeAsyncIterator0bC0QzyFTj
 _$sSci17makeAsyncIterator0bC0QzyFTq
@@ -49328,6 +49339,8 @@ _$ss15EmptyCollectionVyxSicis
 _$ss15ExecutorFactoryMp
 _$ss15ExecutorFactoryP04mainA0s04MainA0_pvgZTj
 _$ss15ExecutorFactoryP04mainA0s04MainA0_pvgZTq
+_$ss15ExecutorFactoryP07defaultA0Sch_pvgZTj
+_$ss15ExecutorFactoryP07defaultA0Sch_pvgZTq
 _$ss15ExecutorFactoryTL
 _$ss15FlattenSequenceV12makeIteratorAB0D0Vyx_GyF
 _$ss15FlattenSequenceV5_baseAByxGx_tcfC
@@ -50609,11 +50622,13 @@ _$ss19PartialRangeThroughVyAByxGxcfC
 _$ss19PartialRangeThroughVyxGSEsSERzrlMc
 _$ss19PartialRangeThroughVyxGSXsMc
 _$ss19PartialRangeThroughVyxGSesSeRzrlMc
+_$ss19UnownedTaskExecutorV02asbC0Sch_pSgyF
 _$ss19UnownedTaskExecutorV2eeoiySbAB_ABtFZ
 _$ss19UnownedTaskExecutorV8executorBevM
 _$ss19UnownedTaskExecutorV8executorBevg
 _$ss19UnownedTaskExecutorV8executorBevpMV
 _$ss19UnownedTaskExecutorV8executorBevs
+_$ss19UnownedTaskExecutorV8ordinaryABxh_tcSchRzlufC
 _$ss19UnownedTaskExecutorV9_executorBevg
 _$ss19UnownedTaskExecutorV9_executorBevpMV
 _$ss19UnownedTaskExecutorVMa
@@ -50621,6 +50636,7 @@ _$ss19UnownedTaskExecutorVMn
 _$ss19UnownedTaskExecutorVN
 _$ss19UnownedTaskExecutorVSQsMc
 _$ss19UnownedTaskExecutorVyABBecfC
+_$ss19UnownedTaskExecutorVyABxhcSchRzlufC
 _$ss19_AnyIteratorBoxBaseC4nextxSgyF
 _$ss19_AnyIteratorBoxBaseC4nextxSgyFTj
 _$ss19_AnyIteratorBoxBaseC4nextxSgyFTq
@@ -51399,6 +51415,8 @@ _$ss23LazyPrefixWhileSequenceVyxGs0A18CollectionProtocolsSlRzrlMc
 _$ss23LazyPrefixWhileSequenceVyxGs0aD8ProtocolsMc
 _$ss23PlatformExecutorFactoryV04mainB0s04MainB0_pvgZ
 _$ss23PlatformExecutorFactoryV04mainB0s04MainB0_pvpZMV
+_$ss23PlatformExecutorFactoryV07defaultB0Sch_pvgZ
+_$ss23PlatformExecutorFactoryV07defaultB0Sch_pvpZMV
 _$ss23PlatformExecutorFactoryVMa
 _$ss23PlatformExecutorFactoryVMn
 _$ss23PlatformExecutorFactoryVN
@@ -51793,6 +51811,8 @@ _$ss25UnimplementedTaskExecutorCMu
 _$ss25UnimplementedTaskExecutorCN
 _$ss25UnimplementedTaskExecutorCScFsMc
 _$ss25UnimplementedTaskExecutorCScFsWP
+_$ss25UnimplementedTaskExecutorCSchsMc
+_$ss25UnimplementedTaskExecutorCSchsWP
 _$ss25UnimplementedTaskExecutorCfD
 _$ss25UnimplementedTaskExecutorCfd
 _$ss25__SwiftNativeNSDictionaryC5coderAByXl_tcfC
@@ -53034,6 +53054,7 @@ _$ss5ClockPss010ContinuousA0VRszrlE10continuousADvpZMV
 _$ss5ClockPss010SuspendingA0VRszrlE10suspendingADvgZ
 _$ss5ClockPss010SuspendingA0VRszrlE10suspendingADvpZMV
 _$ss5ClockTL
+_$ss5ErrorMS
 _$ss5ErrorMp
 _$ss5ErrorP10FoundationE20localizedDescriptionSSvg
 _$ss5ErrorP10FoundationE20localizedDescriptionSSvpMV

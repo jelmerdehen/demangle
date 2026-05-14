@@ -1,4 +1,4 @@
-# snapshot-pass-set update 2026-05-14T21:52:13Z — union with previous (high-water)
+# snapshot-pass-set update 2026-05-14T21:58:16Z — union with previous (high-water)
 _$s10Foundation10CocoaErrorV03_nsC0ACSo7NSErrorC_tcfC
 _$s10Foundation10CocoaErrorV4CodeV8rawValueAESi_tcfC
 _$s10Foundation10CocoaErrorV4CodeVMa
@@ -10219,6 +10219,8 @@ _$sScg8IteratorVMa
 _$sScg8IteratorVMn
 _$sScgMa
 _$sScgMn
+_$sSchMp
+_$sSchTL
 _$sSciMp
 _$sSciTL
 _$sScs12ContinuationV11TerminationOMa
@@ -11800,9 +11802,11 @@ _$ss19PartialRangeThroughVMa
 _$ss19PartialRangeThroughVMn
 _$ss19PartialRangeThroughVyAByxGxcfC
 _$ss19UnownedTaskExecutorV2eeoiySbAB_ABtFZ
+_$ss19UnownedTaskExecutorV8ordinaryABxh_tcSchRzlufC
 _$ss19UnownedTaskExecutorVMa
 _$ss19UnownedTaskExecutorVMn
 _$ss19UnownedTaskExecutorVyABBecfC
+_$ss19UnownedTaskExecutorVyABxhcSchRzlufC
 _$ss19_AnyIteratorBoxBaseC4nextxSgyF
 _$ss19_AnyIteratorBoxBaseC4nextxSgyFTj
 _$ss19_AnyIteratorBoxBaseC4nextxSgyFTq
@@ -12700,6 +12704,7 @@ _$ss5ClockP5sleep5until9tolerancey7InstantQz_8DurationQzSgtYaKFTj
 _$ss5ClockP5sleep5until9tolerancey7InstantQz_8DurationQzSgtYaKFTjTu
 _$ss5ClockP5sleep5until9tolerancey7InstantQz_8DurationQzSgtYaKFTq
 _$ss5ClockTL
+_$ss5ErrorMS
 _$ss5ErrorMp
 _$ss5ErrorTL
 _$ss5ErrorWS
