@@ -1273,7 +1273,14 @@ func (r *remangler) mangleInitDeinit(n *demangle.Node, suffix string) error {
 	// + Identifier with a registered compact token (Sd/Sf/Si/SS/etc.),
 	// emit the token directly and skip the long-form `s<N><Name><kind>`
 	// emission. Apple's init mangler prefers the compact form here.
-	if len(pathNodes) == 2 {
+	//
+	// Extended for nested types: when pathNodes is [Module Swift,
+	// stdlib-root-ident, nested-ident, ...], emit the compact token for
+	// the first two, then loop over remaining nested types emitting
+	// `<N><name><kind>` + push (nested types go in subs even though
+	// the stdlib root doesn't).
+	pathDoneFlag := false
+	if len(pathNodes) >= 2 {
 		mod := pathNodes[0]
 		ident := pathNodes[1]
 		nk := ""
@@ -1297,13 +1304,43 @@ func (r *remangler) mangleInitDeinit(n *demangle.Node, suffix string) error {
 			common.AddChildren(probe, mod, ident)
 			if token, ok := r.stdlibToken(probe); ok {
 				r.buf.WriteString(token)
-				// Stdlib compact tokens (S<letter>) are "well-known" and
-				// NOT added to the node-keyed substitution table — Apple
-				// emits them inline at each occurrence rather than via
-				// AB back-refs.
-				goto pathDone
+				// Stdlib compact tokens (S<letter>) are well-known and
+				// NOT added to the node-keyed substitution table.
+				accParent := probe
+				// Emit any nested types: their idents (ident chain) + kind bytes.
+				for _, child := range pathNodes[2:] {
+					if err := r.remangleNode(child); err != nil {
+						return err
+					}
+					nkn := ""
+					if child.Attrs != nil {
+						nkn = child.Attrs["swift.nominalKind"]
+					}
+					if nkn != "" {
+						r.buf.WriteString(nkn)
+						var nKind common.NodeKind
+						switch nkn {
+						case "V":
+							nKind = common.KindStructure
+						case "O":
+							nKind = common.KindEnum
+						case "P":
+							nKind = common.KindProtocol
+						default:
+							nKind = common.KindClass
+						}
+						nom := common.NewNode(nKind)
+						common.AddChildren(nom, accParent, child)
+						r.pushNodeSub(nom)
+						accParent = nom
+					}
+				}
+				pathDoneFlag = true
 			}
 		}
+	}
+	if pathDoneFlag {
+		goto pathDone
 	}
 	{
 		var accParent *demangle.Node
