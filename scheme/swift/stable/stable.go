@@ -5897,6 +5897,39 @@ func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 			}
 			collectGPVerbose(retType)
 			collectGPVerbose(paramsType)
+			// Same-type constraint `A == Concrete` replaces A in
+			// paramsType/retType — no DependentGenericParamType node remains
+			// to bump maxIdx. Scan initConstraints for depth-0 single-letter
+			// refs (A./A:/A == /A,/A>) so the `<A where ...>` block still
+			// emits. Depth-1-only refs (`A1: P`) still imply implicit depth-0
+			// A, so ensure maxIdx >= 0 whenever initConstraints non-empty.
+			if len(initConstraints) > 0 {
+				isWord := func(b byte) bool {
+					return (b >= 'A' && b <= 'Z') ||
+						(b >= 'a' && b <= 'z') ||
+						(b >= '0' && b <= '9') || b == '_'
+				}
+				for _, con := range initConstraints {
+					for i := 0; i < len(con); i++ {
+						c := con[i]
+						if c < 'A' || c > 'Z' {
+							continue
+						}
+						if i > 0 && isWord(con[i-1]) {
+							continue
+						}
+						if i+1 < len(con) && isWord(con[i+1]) {
+							continue // suffix letter/digit/underscore → not a standalone param ref
+						}
+						if idx := int(c - 'A'); idx > maxIdx {
+							maxIdx = idx
+						}
+					}
+				}
+				if maxIdx < 0 {
+					maxIdx = 0
+				}
+			}
 			if maxIdx >= 0 {
 				names := make([]string, maxIdx+1)
 				for i := range names {
@@ -6115,6 +6148,73 @@ func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 		}
 		initNode := common.NewNode(nodeKind)
 		initNode.Text = sbFull.String()
+		// ufC init with same-type-on-A constraint `A == BG-arg-0`: back-refs
+		// in param-type and constraint-RHS positions resolve to the BARE
+		// nominal form of the retType bound-generic arg-0 instead of the
+		// BG form (root: bound-generic-subs-indexing — Apple's addSubstitution
+		// call-sites disagree with ours; documented as multi-fire refactor in
+		// INVESTIGATIONS.md). Patch text-level: any occurrence of the bare-form
+		// not already followed by '<' (i.e., not already the BG form) gets
+		// rewritten to the BG-form. Cheap, narrow, only runs when a same-type
+		// A-constraint is present.
+		if isUFCTerminal && len(initConstraints) > 0 && retType != nil {
+			hasSameTypeA := false
+			for _, con := range initConstraints {
+				if strings.HasPrefix(con, "A == ") {
+					hasSameTypeA = true
+					break
+				}
+			}
+			if hasSameTypeA {
+				if bgArg0 := boundGenericArg0(retType); bgArg0 != nil {
+					bgArg0Full := common.Print(bgArg0, opts)
+					// Strip balanced <...> to derive the bare-form that the
+					// back-ref currently emits (e.g. "X<A1>.Percent" → "X.Percent").
+					var bareB strings.Builder
+					depth := 0
+					for i := 0; i < len(bgArg0Full); i++ {
+						c := bgArg0Full[i]
+						switch c {
+						case '<':
+							depth++
+						case '>':
+							if depth > 0 {
+								depth--
+							}
+						default:
+							if depth == 0 {
+								bareB.WriteByte(c)
+							}
+						}
+					}
+					bgArg0Bare := bareB.String()
+					if bgArg0Bare != "" && bgArg0Bare != bgArg0Full {
+						var rebuilt strings.Builder
+						t := initNode.Text
+						n := len(bgArg0Bare)
+						for i := 0; i < len(t); {
+							if i+n <= len(t) && t[i:i+n] == bgArg0Bare {
+								nxt := byte(0)
+								if i+n < len(t) {
+									nxt = t[i+n]
+								}
+								isWord := (nxt >= 'a' && nxt <= 'z') ||
+									(nxt >= 'A' && nxt <= 'Z') ||
+									(nxt >= '0' && nxt <= '9') || nxt == '_'
+								if nxt != '<' && !isWord {
+									rebuilt.WriteString(bgArg0Full)
+									i += n
+									continue
+								}
+							}
+							rebuilt.WriteByte(t[i])
+							i++
+						}
+						initNode.Text = rebuilt.String()
+					}
+				}
+			}
+		}
 		// Foundation.WeekendRange.init: compact-label `05ceaseE0` consumes
 		// trailing `end` label, collapsing 4 args to 3 and shifting ceaseTime
 		// to wrong type. Narrow text restore.
@@ -22340,6 +22440,29 @@ func (p *parser) runHCMiniStack(typeNode *demangle.Node) (*demangle.Node, bool) 
 // boundGenericHeadName returns the base nominal name when n is a Type
 // wrapping a BoundGeneric{Structure,Class,Enum,Protocol} whose first child
 // is a nominal with an Identifier — or "" when n is not such a node.
+// boundGenericArg0 returns the first generic-arg type of a BoundGeneric
+// nominal wrapped in a KindType, or nil otherwise.
+func boundGenericArg0(n *demangle.Node) *demangle.Node {
+	if n == nil || common.NodeKind(n.Kind) != common.KindType || len(n.Children) == 0 {
+		return nil
+	}
+	inner := n.Children[0]
+	switch common.NodeKind(inner.Kind) {
+	case common.KindBoundGenericStructure, common.KindBoundGenericClass,
+		common.KindBoundGenericEnum, common.KindBoundGenericProtocol:
+	default:
+		return nil
+	}
+	if len(inner.Children) < 2 {
+		return nil
+	}
+	tl := inner.Children[1]
+	if common.NodeKind(tl.Kind) != common.KindTypeList || len(tl.Children) == 0 {
+		return nil
+	}
+	return tl.Children[0]
+}
+
 func boundGenericHeadName(n *demangle.Node) string {
 	if n == nil || common.NodeKind(n.Kind) != common.KindType || len(n.Children) == 0 {
 		return ""
