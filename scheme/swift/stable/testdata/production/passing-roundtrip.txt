@@ -1,4 +1,4 @@
-# snapshot-pass-set update 2026-05-14T13:34:00Z — union with previous (high-water)
+# snapshot-pass-set update 2026-05-14T13:39:37Z — union with previous (high-water)
 _$s10Foundation10CocoaErrorV03_nsC0ACSo7NSErrorC_tcfC
 _$s10Foundation10CocoaErrorV4CodeV8rawValueAESi_tcfC
 _$s10Foundation10CocoaErrorV4CodeVMa
@@ -1652,6 +1652,8 @@ _$s10Foundation4DataV5write2to7optionsyAA3URLV_So20NSDataWritingOptionsVtKF
 _$s10Foundation4DataV6append10contentsOfySays5UInt8VG_tF
 _$s10Foundation4DataV6appendyyACF
 _$s10Foundation4DataV6appendyySRyxGlF
+_$s10Foundation4DataV6bufferACSRyxG_tclufC
+_$s10Foundation4DataV6bufferACSryxG_tclufC
 _$s10Foundation4DataV6encode2toys7Encoder_p_tKF
 _$s10Foundation4DataV7_appendyySRyxGlF
 _$s10Foundation4DataV7subdata2inACSnySiG_tF
@@ -9181,6 +9183,8 @@ _$sSR8rebasingSRyxGs5SliceVySryxGG_tcfC
 _$sSRMa
 _$sSRMn
 _$sSRySRyxGSryxGcfC
+_$sSS10describingSSx_tclufC
+_$sSS10reflectingSSx_tclufC
 _$sSS14validatingUTF8SSSgSPys4Int8VG_tcfC
 _$sSS17UnicodeScalarViewV8IteratorVMa
 _$sSS17UnicodeScalarViewV8IteratorVMn
@@ -9220,7 +9224,13 @@ _$sSUTL
 _$sSVMa
 _$sSVMn
 _$sSVySVBpcfC
+_$sSVySVSAyxGclufC
+_$sSVySVSPyxGclufC
+_$sSVySVSgSAyxGSgclufC
+_$sSVySVSgSPyxGSgclufC
+_$sSVySVSgSpyxGSgclufC
 _$sSVySVSgSvSgcfC
+_$sSVySVSpyxGclufC
 _$sSVySVSvcfC
 _$sSW5start5countSWSVSg_SitcfC
 _$sSW8IteratorVMa
@@ -9229,6 +9239,8 @@ _$sSW8rebasingSWs5SliceVySWG_tcfC
 _$sSW8rebasingSWs5SliceVySwG_tcfC
 _$sSWMa
 _$sSWMn
+_$sSWySWSRyxGclufC
+_$sSWySWSryxGclufC
 _$sSWySWSwcfC
 _$sSXMp
 _$sSXTL
@@ -9616,13 +9628,20 @@ _$sSv8mutatingSvSgSVSg_tcfC
 _$sSvMa
 _$sSvMn
 _$sSvySvBpcfC
+_$sSvySvSAyxGclufC
+_$sSvySvSPyxGclufC
 _$sSvySvSVcfC
+_$sSvySvSgSAyxGSgclufC
+_$sSvySvSgSPyxGSgclufC
 _$sSvySvSgSVSgcfC
+_$sSvySvSgSpyxGSgclufC
+_$sSvySvSpyxGclufC
 _$sSw5start5countSwSvSg_SitcfC
 _$sSw8mutatingSwSW_tcfC
 _$sSw8rebasingSws5SliceVySwG_tcfC
 _$sSwMa
 _$sSwMn
+_$sSwySwSryxGclufC
 _$sSxMp
 _$sSxTL
 _$sSyMp
@@ -10017,9 +10036,13 @@ _$ss13OpaquePointerV4hash4intoys6HasherVz_tF
 _$ss13OpaquePointerVMa
 _$ss13OpaquePointerVMn
 _$ss13OpaquePointerVyABBpcfC
+_$ss13OpaquePointerVyABSPyxGclufC
 _$ss13OpaquePointerVyABSVcfC
+_$ss13OpaquePointerVyABSgSPyxGSgclufC
 _$ss13OpaquePointerVyABSgSVSgcfC
+_$ss13OpaquePointerVyABSgSpyxGSgclufC
 _$ss13OpaquePointerVyABSgSvSgcfC
+_$ss13OpaquePointerVyABSpyxGclufC
 _$ss13OpaquePointerVyABSvcfC
 _$ss13OutputRawSpanVMa
 _$ss13OutputRawSpanVMn
