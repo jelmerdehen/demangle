@@ -30,6 +30,20 @@ and function-entity. Estimated 50-100 LOC. Reason for deferral: risk
 of regressing single-label Qr functions and the static-property Qr
 path that AAV unlocked.
 
+### sc-x-stdlib-ext-needs-simplified-render [4 syms, deferred-1]
+
+BAP probed: extending tryTypeFirstExtensionEntity to accept Sc<X>
+2-byte stdlib substitutions as extension hosts. Parse succeeds but
+output emits the full \"(extension in Swift):Swift.<Host>...\"
+form instead of Apple's simplified \"<Host>...\" form for
+concurrency types. Net 0 prod; mismatches replace parse-errors.
+
+Reverted. Fix needs render-path branch in
+tryTypeFirstExtensionEntity for concurrency hosts (skip the
+\"(extension in ...)\" prefix and the type-annotation suffix, like
+descriptorPrintOpts does for descriptors). Affects ~4 syms (Executor
+/ SerialExecutor / TaskExecutor property accessors + method bodies).
+
 ### operator-decl-truncate-regression [deferred-2]
 
 BAO probed: unconditionally TruncateTo(prePushLen) for operator-decl
