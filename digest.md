@@ -1,7 +1,7 @@
 # Swift Production Digest
 
-**Parity**: 89.00% (56745/63757) — 2026-05-14T13:55:34Z
-**Round-trip**: 63.65% (12654/19882) — 2026-05-14T13:55:35Z
+**Parity**: 89.00% (56745/63757) — 2026-05-14T13:59:18Z
+**Round-trip**: 63.72% (12669/19882) — 2026-05-14T13:59:19Z
 **Failures**: 7003 parse-errors + 10 mismatches
 
 ## Top-20 Mismatch Categories
@@ -13,6 +13,9 @@
 
 ## Last 10 Commits
 
+- fe1e9fa swift-parity: AAF mangle stdlib token repeat-count S<N><L> — parity 89.00%->89.00% (+15 round-trip)
+- cafea67 chore: lock snapshot after AAE commit (round-trip 12571 to 12654)
+- 36b6a39 chore: update digest.md for AAE commit (round-trip 12571->12654 +83)
 - 89e25f6 swift-parity: AAE mangle depth-1 genparam canonical form — parity 89.00%->89.00% (+83 round-trip)
 - 670fa10 chore: lock snapshot after AAD commit (round-trip 12373 to 12571)
 - 6bbd081 chore: update digest.md for AAD commit (round-trip 12373->12571 +198)
@@ -20,9 +23,6 @@
 - 1a02779 chore: lock snapshot after AAC commit (round-trip 12333 to 12373)
 - bfe4540 chore: update digest.md for AAC commit (round-trip 12333->12373 +40)
 - 49fce40 swift-parity: AAC mangle stdlib-nested init host — parity 89.00%->89.00% (+40 round-trip)
-- 51336ad chore: lock snapshot after AAB commit (round-trip 12263 to 12333)
-- b157b50 chore: update digest.md for AAB commit (round-trip 12263->12333 +70)
-- a366914 swift-parity: AAB mangle ufC init constraint-bytes replay — parity 89.00%->89.00% (+70 round-trip)
 
 ## Suggested Next 3 Items
 
