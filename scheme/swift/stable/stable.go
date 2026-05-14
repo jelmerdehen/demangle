@@ -16081,6 +16081,15 @@ func funcEntityFullParams(args *demangle.Node, opts common.PrintOptions) string 
 		len(args.Children) == 1 &&
 		common.NodeKind(args.Children[0].Kind) == common.KindBuiltinTypeName {
 		t := args.Children[0].Text
+		// Single-label on Type{BuiltinTypeName("()")} (init with one
+		// labeled arg of empty-tuple type, e.g. init(nilLiteral: ())):
+		// the caller's `(...)` wrap turns `<label>: ()` into the final
+		// `(<label>: ())` form.
+		if t == "()" && args.Attrs != nil {
+			if lbl := args.Attrs["swift.label"]; lbl != "" && lbl != "_" {
+				return lbl + ": ()"
+			}
+		}
 		if strings.HasPrefix(t, "(") && strings.HasSuffix(t, ")") {
 			inner := t[1 : len(t)-1]
 			if lblStr := args.Attrs["swift.labels"]; lblStr != "" {
