@@ -1413,14 +1413,27 @@ pathDone:
 
 	// ufC inits (own generic where-clause with `lu` markers) use the
 	// allocating-conv terminal `lufC`/`lufc` instead of plain `cfC`/`cfc`.
-	// The leading `c` of the standard suffix stays — `l` marks end of
-	// generic-counts, `u` is the allocating-conv discriminator.
+	// When init has captured raw c<R-constraints>l bytes (from
+	// swift.initConstraintBytes), replay them verbatim and emit only the
+	// `ufC`/`ufc` tail. Otherwise the leading `c` of the standard suffix
+	// stays — `l` marks end of generic-counts, `u` is the allocating-conv
+	// discriminator.
 	if n.Attrs != nil && n.Attrs["swift.ufc"] == "true" {
-		switch suffix {
-		case "cfC":
-			suffix = "clufC"
-		case "cfc":
-			suffix = "clufc"
+		if cb := n.Attrs["swift.initConstraintBytes"]; cb != "" {
+			r.buf.WriteString(cb)
+			switch suffix {
+			case "cfC":
+				suffix = "ufC"
+			case "cfc":
+				suffix = "ufc"
+			}
+		} else {
+			switch suffix {
+			case "cfC":
+				suffix = "clufC"
+			case "cfc":
+				suffix = "clufc"
+			}
 		}
 	}
 	r.buf.WriteString(suffix)

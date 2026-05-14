@@ -5437,6 +5437,7 @@ func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 	// Consume optional calling-convention 'c' (escape marker in init type encoding)
 	// only if NOT followed by 'f' — 'cf' is the init-discriminator-prefix, not a
 	// standalone convention byte.
+	preConstraintBytes := p.i
 	if !p.eof() && p.s[p.i] == 'c' &&
 		(p.i+1 >= len(p.s) || p.s[p.i+1] != 'f') {
 		p.i++
@@ -5766,6 +5767,7 @@ func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 		}
 		break
 	}
+	postConstraintBytes := p.i
 	// Consume optional async/throws annotations before the 'cfC' terminal.
 	var throwsInit, asyncInit bool
 	for !p.eof() {
@@ -6258,6 +6260,12 @@ func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 			}
 			if isUFCTerminal {
 				initNode.Attrs["swift.ufc"] = "true"
+				// Preserve raw c<R-constraints>l bytes verbatim so the
+				// remangler can replay them between params and the
+				// ufC `lufC` tail. Empty when ufC init has no R-constraints.
+				if postConstraintBytes > preConstraintBytes {
+					initNode.Attrs["swift.initConstraintBytes"] = p.s[preConstraintBytes:postConstraintBytes]
+				}
 			}
 		}
 		common.AddChildren(initNode, pathSteps...)
@@ -6418,6 +6426,9 @@ func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 		}
 		if isUFCTerminal {
 			initNode.Attrs["swift.ufc"] = "true"
+			if postConstraintBytes > preConstraintBytes {
+				initNode.Attrs["swift.initConstraintBytes"] = p.s[preConstraintBytes:postConstraintBytes]
+			}
 		}
 	}
 	common.AddChildren(initNode, pathSteps...)
