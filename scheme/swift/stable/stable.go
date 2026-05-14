@@ -8713,7 +8713,10 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 			// mismatches, the second arg's back-ref under-resolves to the bare
 			// base when Apple resolves it to the same bound-generic as the first
 			// arg. Normalize the 2nd param to match the 1st when its nominal is
-			// the bare base of the 1st's bound-generic head.
+			// the bare base of the 1st's bound-generic head. For comparison
+			// operators (==/!=/</<=/>/>=) the contract guarantees symmetric
+			// params, so additionally force p1=p0 when p1 differs entirely
+			// (e.g. back-ref resolved to Bool/return-type slot).
 			if paramCount == 2 && len(paramTypes) == 2 {
 				p0 := paramTypes[0]
 				p1 := paramTypes[1]
@@ -8721,6 +8724,16 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 				bare := bareNominalName(p1)
 				if bg != "" && bare != "" && bg == bare {
 					paramTypes[1] = p0
+				} else if declIsOp {
+					switch declName {
+					case "== infix", "!= infix", "< infix", "> infix",
+						"<= infix", ">= infix":
+						p0Str := common.Print(p0, common.DefaultPrintOptions())
+						p1Str := common.Print(p1, common.DefaultPrintOptions())
+						if p0Str != p1Str && p0Str != "" {
+							paramTypes[1] = p0
+						}
+					}
 				}
 			}
 			// tryPostfixCompactTuple may have merged Sf_S<N>f...t into a single
