@@ -861,7 +861,7 @@ func (r *remangler) mangleNominal(n *demangle.Node, trailer string) error {
 	}
 	// Stdlib shortcut (R6).
 	if token, ok := r.stdlibToken(n); ok {
-		r.buf.WriteString(token)
+		r.writeStdlibToken(token)
 		return nil
 	}
 	// Full form: children then trailer.
@@ -874,6 +874,43 @@ func (r *remangler) mangleNominal(n *demangle.Node, trailer string) error {
 	// R4: Push the nominal to the node-keyed substitution table.
 	r.pushNodeSub(n)
 	return nil
+}
+
+// writeStdlibToken emits a stdlib compact token with repeat-count compaction.
+// Consecutive identical S<letter> tokens collapse to S<N><letter>, mirroring
+// Apple's stdlib repeat-count form (parallel to mangleSubIndex's A<N><L>).
+// Multi-byte tokens (Sc<letter>) bypass compaction.
+func (r *remangler) writeStdlibToken(token string) {
+	if len(token) == 2 && token[0] == 'S' {
+		letter := token[1]
+		buf := r.buf.String()
+		if len(buf) >= 2 && buf[len(buf)-2] == 'S' && buf[len(buf)-1] == letter &&
+			(len(buf) < 3 || !(buf[len(buf)-3] >= '0' && buf[len(buf)-3] <= '9')) {
+			r.buf.Reset()
+			r.buf.WriteString(buf[:len(buf)-2])
+			fmt.Fprintf(&r.buf, "S2%c", letter)
+			return
+		}
+		if len(buf) >= 3 && buf[len(buf)-1] == letter {
+			j := len(buf) - 2
+			for j >= 0 && buf[j] >= '0' && buf[j] <= '9' {
+				j--
+			}
+			if j >= 0 && buf[j] == 'S' && j < len(buf)-2 {
+				if j == 0 || !(buf[j-1] >= '0' && buf[j-1] <= '9') {
+					n := 0
+					for k := j + 1; k < len(buf)-1; k++ {
+						n = n*10 + int(buf[k]-'0')
+					}
+					r.buf.Reset()
+					r.buf.WriteString(buf[:j])
+					fmt.Fprintf(&r.buf, "S%d%c", n+1, letter)
+					return
+				}
+			}
+		}
+	}
+	r.buf.WriteString(token)
 }
 
 // stdlibToken returns the compact substitution token (e.g. "Si") if n is a
