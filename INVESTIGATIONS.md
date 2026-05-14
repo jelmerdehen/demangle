@@ -30,6 +30,15 @@ and function-entity. Estimated 50-100 LOC. Reason for deferral: risk
 of regressing single-label Qr functions and the static-property Qr
 path that AAV unlocked.
 
+### operator-decl-truncate-regression [deferred-2]
+
+BAO probed: unconditionally TruncateTo(prePushLen) for operator-decl
+identifier (skip push for Module-level free-functions too). Net -8
+prod parity. The push behaviour is load-bearing for OTHER back-refs
+in adjacent shapes — operator-decl subs touches more than just
+== / != infix on Any.Type?. Needs per-shape gating or alternative
+approach (e.g. only truncate when followed by type-only signature).
+
 ### yt-single-arg-label-render [~10 mismatches, deferred-1]
 
 After BAI's x-blank-label fix, the `<host><label>...<result>yt_tcfC` shape
