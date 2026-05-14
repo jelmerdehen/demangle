@@ -3822,11 +3822,24 @@ func (p *parser) tryNominalCopyInit(inner *demangle.Node) (*demangle.Node, bool)
 	save := p.i
 	p.i += 2 // 'y' + 'A'
 	// Back-ref body: (digit|lower)* upper.
+	// Track whether the body had any lowercase letter — Apple's
+	// `A<lower>+<upper>` multi-sub form pushes one node per lowercase
+	// and returns the final upper, so the back-ref resolves to a
+	// DIFFERENT slot than the digit-prefixed `A<digits><upper>`
+	// repeat-count form. For the multi-sub form on nested-type host,
+	// Apple emits parent-of-host as the param. For the repeat-count
+	// form (or no lowercase letters), Apple emits the host itself.
 	sawUpper := false
+	sawLower := false
 	for !p.eof() {
 		c := p.s[p.i]
-		if (c >= '0' && c <= '9') || (c >= 'a' && c <= 'z') {
+		if c >= '0' && c <= '9' {
 			p.i++
+			continue
+		}
+		if c >= 'a' && c <= 'z' {
+			p.i++
+			sawLower = true
 			continue
 		}
 		if c >= 'A' && c <= 'Z' {
@@ -3848,9 +3861,12 @@ func (p *parser) tryNominalCopyInit(inner *demangle.Node) (*demangle.Node, bool)
 
 	hostStr := common.Print(inner, common.DefaultPrintOptions())
 	paramStr := hostStr
-	if len(innerNom.Children) >= 2 &&
+	if sawLower && len(innerNom.Children) >= 2 &&
 		common.NodeKind(innerNom.Children[0].Kind) != common.KindModule {
-		// Nested-type host: param is the parent type (first child).
+		// Nested-type host with multi-sub back-ref (e.g. `AdB`): Apple
+		// emits the parent type (first child) as the param. Only fire
+		// for the multi-sub form; the repeat-count form (`A<digits><upper>`)
+		// resolves to a different slot and matches the host itself.
 		parentType := common.NewNode(common.KindType)
 		common.AddChildren(parentType, innerNom.Children[0])
 		paramStr = common.Print(parentType, common.DefaultPrintOptions())
