@@ -3553,16 +3553,35 @@ func (p *parser) tryStdlibCopyInit(inner *demangle.Node) (*demangle.Node, bool) 
 	if hostLetter == 0 {
 		return inner, false
 	}
-	// Match the literal byte sequence: 'y' 'S' '2' <hostLetter> 'c' 'f' 'C'.
+	// Mandatory prefix: 'y' 'S' '2' <hostLetter>.
 	if p.s[p.i] != 'y' || p.s[p.i+1] != 'S' || p.s[p.i+2] != '2' ||
-		p.s[p.i+3] != hostLetter || p.s[p.i+4] != 'c' ||
-		p.s[p.i+5] != 'f' || p.s[p.i+6] != 'C' {
+		p.s[p.i+3] != hostLetter {
 		return inner, false
 	}
-	p.i += 7
+	save := p.i
+	p.i += 4
 	hostStr := common.Print(inner, common.DefaultPrintOptions())
+	paramStr := hostStr
+	// Optional: <digits><nested-ident> 'V' — nested struct on the host
+	// (e.g. Swift.String.UTF8View). Consumes only when the followed-by
+	// byte is a digit-led identifier closed by 'V'.
+	if !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+		nestedSave := p.i
+		nestedIdent, err := p.parseIdentifier()
+		if err == nil && !p.eof() && p.s[p.i] == 'V' {
+			p.i++ // consume 'V'
+			paramStr = hostStr + "." + nestedIdent
+		} else {
+			p.i = nestedSave
+		}
+	}
+	if p.i+2 >= len(p.s) || p.s[p.i] != 'c' || p.s[p.i+1] != 'f' || p.s[p.i+2] != 'C' {
+		p.i = save
+		return inner, false
+	}
+	p.i += 3
 	wrap := common.NewNode(common.KindTypeMangling)
-	wrap.Text = hostStr + ".init(" + hostStr + ") -> " + hostStr
+	wrap.Text = hostStr + ".init(" + paramStr + ") -> " + hostStr
 	return wrap, true
 }
 
