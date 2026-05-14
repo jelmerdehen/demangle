@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 89.99% (57377/63757) — 2026-05-14T22:07:24Z
+**Parity**: 90.00% (57384/63757) — 2026-05-14T22:16:10Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 6338 parse-errors + 42 mismatches
+**Failures**: 6331 parse-errors + 42 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- d77e36d swift-parity: AAW Xf thin convention + 2-byte addressors — parity 89.99%->90.00% (+7 production)
+- 2747cda chore: lock snapshot after AAV commit (parity 57332 to 57377)
+- ce9d30d chore: update digest.md for AAV commit (parity 89.92%->89.99% +45)
 - 045128a swift-parity: AAV opaque-return-type after Z + yt empty tuple — parity 89.92%->89.99% (+45 production)
 - bc985d9 chore: lock snapshot after AAU commit (parity 57311 to 57332)
 - a697256 chore: update digest.md for AAU commit (parity 89.89%->89.92% +21)
@@ -36,9 +39,6 @@
 - e1ab31a chore: lock snapshot after AAT commit (parity 57287 to 57311)
 - 16b1ba5 chore: update digest.md for AAT commit (parity 89.85%->89.89% +24)
 - 90ed646 swift-parity: AAT protocol-decl init descriptor handler — parity 89.85%->89.89% (+24 production)
-- e44d280 chore: lock snapshot after AAS commit (parity 57116 to 57287)
-- 301157e chore: update digest.md for AAS commit (parity 89.58%->89.85% +171)
-- 003224f swift-parity: AAS base conformance descriptor handler — parity 89.58%->89.85% (+171 production)
 
 ## Suggested Next 3 Items
 
