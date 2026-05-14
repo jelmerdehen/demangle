@@ -2189,17 +2189,47 @@ func (r *remangler) mangleBoundGenericImpl(n *demangle.Node) error {
 		return err
 	}
 	depth := boundGenericParentDepth(n.Children[0])
-	r.buf.WriteByte('y')
-	for i := 0; i < depth; i++ {
-		r.buf.WriteByte('_')
-	}
 	typeList := n.Children[1]
-	for _, arg := range typeList.Children {
-		if err := r.remangleNode(arg); err != nil {
-			return err
+	// Parser-side `swift.bg.arg_levels` (tryBoundGeneric, stable.go:19084)
+	// records the level at which each arg appeared in the original y...G
+	// stream (each `_` advances the level). When present, replay the
+	// level-interleaved encoding so args attached to outer levels emit
+	// after leading `_` markers (e.g. Combine.Publishers.Label<A>.Category
+	// → `y__xG` not `yx__G`). Fallback: place all args at level 0 (leaf).
+	var argLevels []int
+	if n.Attrs != nil {
+		if s := n.Attrs["swift.bg.arg_levels"]; s != "" {
+			for _, part := range strings.Split(s, ",") {
+				if v, err := strconv.Atoi(part); err == nil {
+					argLevels = append(argLevels, v)
+				}
+			}
 		}
 	}
-	// Re-emit retroactive-conformance metadata that was captured during parsing.
+	r.buf.WriteByte('y')
+	if len(argLevels) == len(typeList.Children) {
+		argIdx := 0
+		for lvl := 0; lvl <= depth; lvl++ {
+			for argIdx < len(argLevels) && argLevels[argIdx] == lvl {
+				if err := r.remangleNode(typeList.Children[argIdx]); err != nil {
+					return err
+				}
+				argIdx++
+			}
+			if lvl < depth {
+				r.buf.WriteByte('_')
+			}
+		}
+	} else {
+		for _, arg := range typeList.Children {
+			if err := r.remangleNode(arg); err != nil {
+				return err
+			}
+		}
+		for i := 0; i < depth; i++ {
+			r.buf.WriteByte('_')
+		}
+	}
 	if n.Attrs != nil {
 		if tail := n.Attrs["swift.conformance_tail"]; tail != "" {
 			r.buf.WriteString(tail)
