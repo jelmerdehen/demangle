@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- d988e121 swift-parity: CDN nested-ext recovery + empty-params marker — parity 94.30%->94.33% (+19 production +87 roundtrip)
+- ec2c588e chore: lock snapshot after CDM commit (parity 60111->60123, roundtrip 20070->20106)
+- 548548d7 chore: update digest.md for CDM commit (+12 production +36 roundtrip)
 - a469edbf swift-parity: CDM Tj/Tq accept fC/fc + native-class __allocating_init — parity 94.28%->94.30% (+12 production +36 roundtrip)
 - 392cf742 chore: lock snapshot after CDL commit (parity 59855->60111, roundtrip 19756->20070)
 - e9240d17 chore: update digest.md for CDL commit (+256 production +314 roundtrip)
@@ -36,9 +39,6 @@
 - ad3a1461 chore: lock snapshot after CDK commit (parity 59851->59855, roundtrip 19698->19756)
 - 31b715cc chore: update digest.md for CDK commit (+4 production +58 roundtrip)
 - 144c002f swift-parity: CDK fast-path subscript property descriptor — parity 93.88%->93.88% (+4 production +58 roundtrip)
-- ff9805d2 chore: lock snapshot after CDJ commit (parity 59824->59851, roundtrip 19554->19698)
-- c288e819 chore: update digest.md for CDJ commit (+27 production +144 roundtrip)
-- f500b3dd swift-parity: CDJ fast-path Swift-mod top-level fn — parity 93.84%->93.88% (+27 production +144 roundtrip)
 
 ## Suggested Next 3 Items
 
