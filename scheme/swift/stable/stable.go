@@ -14309,7 +14309,9 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 			} else if bytes.Contains(constraintBytes, []byte("Rz")) ||
 				bytes.Contains(constraintBytes, []byte("Rsz")) {
 				extMarker = "<A>"
-			} else if len(constraintBytes) > 2 && !isBareModuleDescriptor(constraintBytes) {
+			} else if len(constraintBytes) > 2 && !isBareModuleDescriptor(constraintBytes) &&
+				(bytes.Contains(constraintBytes, []byte("Rb")) ||
+					bytes.Contains(constraintBytes, []byte("Rd"))) {
 				extMarker = "<>"
 			}
 			var parts []string
