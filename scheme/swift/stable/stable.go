@@ -8798,12 +8798,27 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 		break
 	}
 	// Bound-generic-on-host detection: after nested-walk, if byte sequence
-	// is `yx_G` (Type<A>), consume it and mark for Mc/WP emit decoration.
+	// matches `y<args>G`, consume it and mark for Mc/WP emit decoration.
+	// Supported arg shapes:
+	//   yx_G        → 1 arg <A>
+	//   yxq__G      → 2 args <A, B>
+	//   yxq_q__G    → 3 args <A, B, C> (rare; keep narrow for now)
 	fpBoundGenOnHost := false
-	if !p.eof() && p.i+3 < len(p.s) &&
-		p.s[p.i] == 'y' && p.s[p.i+1] == 'x' && p.s[p.i+2] == '_' && p.s[p.i+3] == 'G' {
-		fpBoundGenOnHost = true
-		p.i += 4
+	fpBoundGenArgs := 0
+	if !p.eof() && p.i+3 < len(p.s) && p.s[p.i] == 'y' {
+		// 1-arg: yx_G
+		if p.s[p.i+1] == 'x' && p.s[p.i+2] == '_' && p.s[p.i+3] == 'G' {
+			fpBoundGenOnHost = true
+			fpBoundGenArgs = 1
+			p.i += 4
+		} else if p.i+5 < len(p.s) && p.s[p.i+1] == 'x' &&
+			p.s[p.i+2] == 'q' && p.s[p.i+3] == '_' && p.s[p.i+4] == '_' &&
+			p.s[p.i+5] == 'G' {
+			// 2-arg: yxq__G
+			fpBoundGenOnHost = true
+			fpBoundGenArgs = 2
+			p.i += 6
+		}
 	}
 	// Nested-extension recovery: if no decl-name found yet and we have at
 	// least one nested type, scan for `E<digit>` (2nd ext marker) within
@@ -9243,12 +9258,16 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 		fpExtMarker = "<>"
 	}
 	// Bound-generic-on-host decoration (Mc/WP only): inject before nested.
-	// Optional → A?; other hosts → Host<A>.
+	// Optional → A?; other hosts → Host<A>/<A, B>/etc.
 	if fpBoundGenOnHost && (isMc || isWP) {
-		if hostStr == "Optional" {
+		if hostStr == "Optional" && fpBoundGenArgs == 1 {
 			hostStr = "A?"
 		} else {
-			hostStr += "<A>"
+			gnames := make([]string, fpBoundGenArgs)
+			for gi := range gnames {
+				gnames[gi] = string(rune('A' + gi))
+			}
+			hostStr += "<" + strings.Join(gnames, ", ") + ">"
 		}
 	}
 	hostStr += fpExtMarker
