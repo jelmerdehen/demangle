@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 93.83% (59824/63757) — 2026-05-15T06:44:21Z
+**Parity**: 93.87% (59851/63757) — 2026-05-15T06:52:11Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 1865 parse-errors + 2068 mismatches
+**Failures**: 1721 parse-errors + 2185 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- 144c002f swift-parity: CDK fast-path subscript property descriptor — parity 93.88%->93.88% (+4 production +58 roundtrip)
+- ff9805d2 chore: lock snapshot after CDJ commit (parity 59824->59851, roundtrip 19554->19698)
+- c288e819 chore: update digest.md for CDJ commit (+27 production +144 roundtrip)
 - f500b3dd swift-parity: CDJ fast-path Swift-mod top-level fn — parity 93.84%->93.88% (+27 production +144 roundtrip)
 - 3267a241 chore: lock snapshot after CDI commit (parity 59782->59824, roundtrip 18953->19554)
 - 1516476a chore: update digest.md for CDI commit (+42 production +601 roundtrip)
@@ -36,9 +39,6 @@
 - cb1bec96 chore: lock snapshot after CDH commit (parity 59758->59782, roundtrip 18910->18953)
 - cce71a4d chore: update digest.md for CDH commit (+24 production +43 roundtrip)
 - 0c3a4e1b swift-parity: CDH fast-path Tu suffix → async function pointer to — parity 93.73%->93.77% (+24 production +43 roundtrip)
-- 90326852 chore: lock snapshot after CDG commit (parity 59750->59758, roundtrip 18885->18910)
-- 1e780059 chore: update digest.md for CDG commit (+8 production +25 roundtrip)
-- 2f67d4d9 swift-parity: CDG fast-path subscript without lu prefix — parity 93.72%->93.73% (+8 production +25 roundtrip)
 
 ## Suggested Next 3 Items
 
