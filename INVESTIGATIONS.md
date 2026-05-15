@@ -481,6 +481,16 @@ complete. The `n` modifier handling requires identifying the exact
 speculative branch and either consuming `n` or wrapping in applyMod.
 Multi-fire.
 
+### plateau-2026-05-15-daq [deferred-1]
+
+DAQ retry of DAL: reorder ONLY init-fast-path extMarker (line 13968)
+to Rsz/Rz first. Same -247 result confirmed: site is load-bearing —
+247 symbols rely on rl-first ordering. The Rz substring matches in
+some symbols where want is `<>` (probably Rz appears inside type
+bytes or substituted constraint chains).
+
+Cannot reorder without structural constraint parser. Multi-fire.
+
 ### plateau-2026-05-15-dal [deferred-1]
 
 DAL attempt: reorder main-parser init-fast-path extMarker checks
