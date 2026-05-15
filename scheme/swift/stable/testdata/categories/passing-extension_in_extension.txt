@@ -1,4 +1,4 @@
-# snapshot-pass-set update 2026-05-15T07:13:58Z — union with previous (high-water)
+# snapshot-pass-set update 2026-05-15T07:17:22Z — union with previous (high-water)
 _$s10Foundation11MeasurementVAASo11NSDimensionCRbzrlE11FormatStyleVAASo17NSUnitTemperatureCRszrlE14hidesScaleNameSbvM
 _$s10Foundation11MeasurementVAASo11NSDimensionCRbzrlE11FormatStyleVAASo17NSUnitTemperatureCRszrlE14hidesScaleNameSbvg
 _$s10Foundation11MeasurementVAASo11NSDimensionCRbzrlE11FormatStyleVAASo17NSUnitTemperatureCRszrlE14hidesScaleNameSbvs
