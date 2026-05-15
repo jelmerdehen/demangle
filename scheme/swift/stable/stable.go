@@ -8547,6 +8547,7 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 
 	var hostStr string
 	var fpTopLevelDecl string
+	fpHostIsObjC := false
 	// ObjC host: So<n><name>C
 	if p.i+1 < len(p.s) && p.s[p.i] == 'S' && p.s[p.i+1] == 'o' {
 		p.i += 2
@@ -8562,6 +8563,7 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 		}
 		p.i++
 		hostStr = name
+		fpHostIsObjC = true
 	} else if p.i+2 < len(p.s) && p.s[p.i] == 'S' && p.s[p.i+1] == 'c' {
 		// Stdlib2 short host: Sc<X> (Sc<X> = concurrency types)
 		letter := p.s[p.i+2]
@@ -8726,20 +8728,22 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 	if sEnd >= 3 && p.s[sEnd-2:] == "Tj" {
 		prev := p.s[sEnd-3]
 		if prev == 'F' || prev == 'g' || prev == 's' || prev == 'M' ||
-			prev == 'w' || prev == 'W' || prev == 'r' {
+			prev == 'w' || prev == 'W' || prev == 'r' ||
+			prev == 'C' || prev == 'c' {
 			tjPrefix = "dispatch thunk of "
 			sEnd -= 2
 		}
 	} else if sEnd >= 3 && p.s[sEnd-2:] == "Tq" {
 		prev := p.s[sEnd-3]
 		if prev == 'F' || prev == 'g' || prev == 's' || prev == 'M' ||
-			prev == 'w' || prev == 'W' || prev == 'r' {
+			prev == 'w' || prev == 'W' || prev == 'r' ||
+			prev == 'C' || prev == 'c' {
 			tjPrefix = "method descriptor for "
 			sEnd -= 2
 		}
 	} else if sEnd >= 3 && p.s[sEnd-2:] == "Tu" {
 		prev := p.s[sEnd-3]
-		if prev == 'F' {
+		if prev == 'F' || prev == 'C' || prev == 'c' {
 			tjPrefix = "async function pointer to "
 			sEnd -= 2
 		}
@@ -9080,9 +9084,12 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 	if isInit {
 		// For ObjC class hosts (So-prefix), Apple emits plain `init` even
 		// for the allocating variant. Only native Swift class hosts use
-		// `__allocating_init` (handled by tryInitDeinitEntity fast-path).
-		_ = isClassAlloc
-		nameOut = ".init"
+		// `__allocating_init` for the allocator (fC/KfC) variant.
+		if isClassAlloc && !fpHostIsObjC && tjPrefix != "" {
+			nameOut = ".__allocating_init"
+		} else {
+			nameOut = ".init"
+		}
 	} else if hostStr == "" {
 		// Top-level fn — no host prefix, no leading dot.
 		nameOut = declName
