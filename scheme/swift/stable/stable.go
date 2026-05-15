@@ -12709,7 +12709,7 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 		isUpper := func(c byte) bool { return c >= 'A' && c <= 'Z' }
 		isLower := func(c byte) bool { return c >= 'a' && c <= 'z' }
 		isLetter := func(c byte) bool { return isUpper(c) || isLower(c) }
-		isWordStart := func(c byte) bool { return isLetter(c) || c == '_' }
+		isWordStart := func(c byte) bool { return isLetter(c) }
 		isWordEnd := func(c, prev byte) bool {
 			if !isLetter(c) {
 				return true
