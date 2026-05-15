@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 95.36% (60796/63757) — 2026-05-15T20:21:34Z
+**Parity**: 95.36% (60797/63757) — 2026-05-15T20:38:31Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 233 parse-errors + 2728 mismatches
+**Failures**: 233 parse-errors + 2727 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,16 +29,16 @@
 
 ## Last 10 Commits
 
+- b1b89e6b swift-parity: CEM body ends XE → single escape-closure arg — parity 95.36%->95.36% (+1 production +0 roundtrip)
+- b3055581 chore: defer qomq-fn-arg-overcount to multi-fire (deferred-1)
+- 6f62d0e3 chore: defer foundation-swift-full-form-renderer to multi-fire (deferred-1)
+- e6a83671 chore: defer nested-walk-inner-extmod-word-capture to multi-fire (deferred-1)
+- a5279792 chore: lock snapshot after CEL commit (parity 60790->60796)
+- 816136bb chore: update digest.md for CEL commit (+6 production)
 - 564aa3a5 swift-parity: CEL skip nested-ext recovery on label-start _ — parity 95.35%->95.36% (+6 production +0 roundtrip)
 - ec6314cf chore: defer prop-desc-foundation-full-form to multi-fire (deferred-1)
 - e0e76946 chore: commit pending defer entries from prior fires (cleanup)
 - 62e0a7be chore: lock snapshot after CEK commit (parity 60783->60790)
-- 0c378398 chore: update digest.md for CEK commit (+7 production)
-- 503a51a2 swift-parity: CEK skip leading yy in args + allow empty extMarker — parity 95.34%->95.35% (+7 production +0 roundtrip)
-- 909cd2d2 chore: lock snapshot after CEJ commit (parity 60781->60783)
-- 38486a28 chore: update digest.md for CEJ commit (+2 production)
-- 42e85d93 swift-parity: CEJ relax CEI last-byte check — accept any non-y ending — parity 95.33%->95.34% (+2 production +0 roundtrip)
-- 2a5e3e9c chore: lock snapshot after CEI commit (parity 60779->60781)
 
 ## Suggested Next 3 Items
 
