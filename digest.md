@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 93.72% (59750/63757) — 2026-05-15T06:19:10Z
+**Parity**: 93.73% (59758/63757) — 2026-05-15T06:37:15Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 2534 parse-errors + 1473 mismatches
+**Failures**: 2509 parse-errors + 1490 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -18,17 +18,20 @@
 - (extension in Foundation):__C.NSAttributedString.i… 14
 - (extension in Foundation):Swift.Range< where A == … 12
 - (extension in Swift):Swift.RangeReplaceableCollect… 12
+- Foundation.AttributedString.Runs.subscript.getter … 12
 - opaque type descriptor                     12
+- (extension in Swift):Swift.ClosedRange< where A: S… 11
 - (extension in Foundation):Swift.BinaryFloatingPoin… 10
 - (extension in Foundation):__C.NSDecimal.FormatStyl… 10
-- Foundation.AttributedString.Runs.subscript.getter … 10
 - Foundation.AttributedString.transformingAttributes… 10
 - IntelligenceUI.PromptEntryView.Delegate.promptEntr… 10
-- (extension in Swift):Swift.ClosedRange< where A: S… 9
 - (extension in Foundation):Swift.BinaryInteger.init… 8
 
 ## Last 10 Commits
 
+- 0c3a4e1b swift-parity: CDH fast-path Tu suffix → async function pointer to — parity 93.73%->93.77% (+24 production +43 roundtrip)
+- 90326852 chore: lock snapshot after CDG commit (parity 59750->59758, roundtrip 18885->18910)
+- 1e780059 chore: update digest.md for CDG commit (+8 production +25 roundtrip)
 - 2f67d4d9 swift-parity: CDG fast-path subscript without lu prefix — parity 93.72%->93.73% (+8 production +25 roundtrip)
 - ea16943f chore: defer plateau-2026-05-15-cdf-v3 to multi-fire (deferred-1)
 - 4344bf71 chore: defer plateau-2026-05-15-cdf to multi-fire (deferred-1)
@@ -36,9 +39,6 @@
 - d8bcb4e9 chore: update digest.md for CDE commit (+2 production)
 - f1600c9a swift-parity: CDE fast-path fn rl local-gen → <> — parity 93.71%->93.72% (+2 production +0 roundtrip)
 - 2a1d30ea chore: lock snapshot after CDD commit (parity 59741->59748)
-- db1a07a7 chore: update digest.md for CDD commit (+7 production)
-- 1f167169 swift-parity: CDD fast-path Sc<X>sE rl conditional ext-marker — parity 93.70%->93.71% (+7 production +0 roundtrip)
-- ba07eed2 chore: lock snapshot after CDC commit (parity 59739->59741)
 
 ## Suggested Next 3 Items
 
