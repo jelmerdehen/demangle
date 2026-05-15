@@ -10232,10 +10232,20 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 					return w
 				case 'z':
 					p.i++
-					if n.Attrs == nil {
-						n.Attrs = map[string]string{}
+					// Clone to avoid mutating a shared back-ref node:
+					// when both args share the same A<letter> back-ref,
+					// stamping inout on the original would propagate to all.
+					clone := *n
+					if n.Attrs != nil {
+						clone.Attrs = map[string]string{}
+						for k, v := range n.Attrs {
+							clone.Attrs[k] = v
+						}
+					} else {
+						clone.Attrs = map[string]string{}
 					}
-					n.Attrs["swift.inout"] = "true"
+					clone.Attrs["swift.inout"] = "true"
+					return &clone
 				}
 				return n
 			}
