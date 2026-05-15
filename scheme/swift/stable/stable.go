@@ -8648,8 +8648,13 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 		revert()
 		return nil, false
 	}
+	fpDirectEntity := false
 	if fpTopLevelDecl != "" {
 		// Top-level fn: skip path-determination and nested-walk.
+	} else if !p.eof() && p.s[p.i] == 'y' {
+		// Direct entity — no ext marker, no decl-name (anonymous subscript
+		// or protocol method requirement with body following host).
+		fpDirectEntity = true
 	} else if p.s[p.i] >= '1' && p.s[p.i] <= '9' {
 		// Could be: (a) digit-led ext mod identifier + E, OR (b) direct
 		// decl-name (protocol method requirement). Try ext-mod first; if
@@ -8695,7 +8700,7 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 	if fpTopLevelDecl != "" {
 		declName = fpTopLevelDecl
 	}
-	for fpTopLevelDecl == "" && !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+	for fpTopLevelDecl == "" && !fpDirectEntity && !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
 		saveP := p.i
 		ident, err := p.parseIdentifier()
 		if err != nil {
