@@ -9387,6 +9387,33 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			peekI++
 			continue
 		}
+		// Word-sub identifier (starts with `0`): use parseIdentifier with
+		// save/restore so word-table and subs aren't permanently mutated.
+		if c == '0' {
+			savePI := p.i
+			saveSubs := p.subs
+			saveWords := p.words
+			p.i = peekI
+			lbl, err := p.parseIdentifier()
+			peekI = p.i
+			p.i = savePI
+			p.subs = saveSubs
+			p.words = saveWords
+			if err != nil || lbl == "" {
+				break
+			}
+			if peekI < len(p.s) && p.s[peekI] == 'Q' {
+				break
+			}
+			fpLabels = append(fpLabels, lbl)
+			if peekI < len(p.s) {
+				nb := p.s[peekI]
+				if !(nb >= '0' && nb <= '9') && nb != '_' {
+					break
+				}
+			}
+			continue
+		}
 		if c < '0' || c > '9' {
 			break
 		}
