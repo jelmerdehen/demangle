@@ -12958,6 +12958,68 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 			return wrap, true, nil
 		}
 	}
+	// Fast-path for non-Foundation extension method entities. When declName
+	// is set and the symbol ends in F (function) or FZ (static function),
+	// emit "[static ]Host.declName<gen>(label:...)" directly. Roundtrip-safe
+	// via swift.fastpath.rawBody attr.
+	if modName != "Foundation" && declName != "" && len(p.s) > 60 {
+		sEnd := len(p.s)
+		isStatic := false
+		isFnFP := false
+		if sEnd >= 1 && p.s[sEnd-1] == 'F' {
+			isFnFP = true
+		} else if sEnd >= 2 && p.s[sEnd-2] == 'F' && p.s[sEnd-1] == 'Z' {
+			isFnFP = true
+			isStatic = true
+		}
+		if isFnFP {
+			// Detect local generic sig from `lF` ending.
+			fnLocalGen := ""
+			fSearchEnd := sEnd - 1
+			if isStatic {
+				fSearchEnd = sEnd - 2
+			}
+			if fSearchEnd > 0 && p.s[fSearchEnd-1] == 'l' {
+				lOff := fSearchEnd - 1
+				if lOff >= 3 && p.s[lOff-3] == 'r' && p.s[lOff-2] >= '0' && p.s[lOff-2] <= '9' && p.s[lOff-1] == '_' {
+					n := int(p.s[lOff-2]-'0') + 2
+					names := make([]string, n)
+					for i := range names {
+						names[i] = string(rune('A' + i))
+					}
+					fnLocalGen = "<" + strings.Join(names, ", ") + ">"
+				} else if lOff >= 1 && p.s[lOff-1] != 'r' {
+					fnLocalGen = "<A>"
+				}
+			}
+			extMarker := ""
+			if bytes.Contains(constraintBytes, []byte("rl")) {
+				extMarker = "<>"
+			} else if bytes.Contains(constraintBytes, []byte("Rz")) {
+				extMarker = "<A>"
+			} else if len(constraintBytes) > 2 && !isBareModuleDescriptor(constraintBytes) {
+				extMarker = "<>"
+			}
+			var parts []string
+			for _, lbl := range labels {
+				if lbl == "_" || lbl == "" {
+					parts = append(parts, "_:")
+				} else {
+					parts = append(parts, lbl+":")
+				}
+			}
+			labelStr := "(" + strings.Join(parts, "") + ")"
+			staticPfx := ""
+			if isStatic {
+				staticPfx = "static "
+			}
+			wrap := common.NewNode(common.KindTypeMangling)
+			wrap.Text = staticPfx + hostName + extMarker + "." + declName + fnLocalGen + labelStr
+			wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
+			p.i = len(p.s)
+			return wrap, true, nil
+		}
+	}
 	if retNode == nil {
 		if p.eof() {
 			restore()
