@@ -1,19 +1,19 @@
 # Swift Production Digest
 
-**Parity**: 94.88% (60495/63757) — 2026-05-15T08:54:10Z
+**Parity**: 95.01% (60574/63757) — 2026-05-15T09:01:11Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 443 parse-errors + 2819 mismatches
+**Failures**: 284 parse-errors + 2899 mismatches
 
 ## Top-20 Mismatch Categories
 
-- property descriptor                        310
+- property descriptor                        313
 - static (extension                          134
+- dispatch thunk                             99
+- method descriptor                          99
+- (extension in Foundation):Foundation.PredicateExpr… 85
 - protocol conformance descriptor            82
-- dispatch thunk                             81
-- method descriptor                          81
-- (extension in Foundation):Foundation.PredicateExpr… 80
 - protocol witness table                     46
-- enum case                                  35
+- enum case                                  36
 - Foundation.AttributedString.init<A where A: Founda… 26
 - (extension in Foundation):Swift.Duration.UnitsForm… 22
 - (extension in Foundation):__C.NSNotificationCenter… 22
@@ -29,19 +29,19 @@
 
 ## Last 10 Commits
 
+- b34e1e56 swift-parity: DAR Tb base conformance descriptor — parity 95.01%->95.01% (+1 production +1 roundtrip)
+- 3b9af595 chore: defer plateau-2026-05-15-daq to multi-fire (deferred-1)
+- b51df0ce chore: lock snapshot after DAP commit (parity 60498->60574, roundtrip 20979->21135)
+- d39ca0ed chore: update digest.md for DAP commit (+76 production +156 roundtrip)
 - dcc15d87 swift-parity: DAP word-sub `0` decl-name path-det pass-through — parity 94.89%->95.01% (+76 production +156 roundtrip)
 - 540bb1bd chore: lock snapshot after DAO commit (parity 60495->60498)
 - abc5bf4f chore: update digest.md for DAO commit (+3 production +3 roundtrip)
 - 56acb0b1 swift-parity: DAO TL protocol-requirements-base-descriptor — parity 94.88%->94.89% (+3 production +3 roundtrip)
 - 550b72b3 chore: lock snapshot after DAN commit (parity 60490->60495)
 - 54f5ece4 chore: update digest.md for DAN commit (+5 production)
-- fb4955c0 swift-parity: DAN enum-case multi-arg local-gen <A, B> — parity 94.87%->94.88% (+5 production +0 roundtrip)
-- e3f6305f chore: lock snapshot after DAM commit (parity 60485->60490, roundtrip 20942->20976)
-- d76bba58 chore: update digest.md for DAM commit (+5 production +34 roundtrip)
-- d329bf60 swift-parity: DAM user-mod top-level fn — parity 94.86%->94.87% (+5 production +34 roundtrip)
 
 ## Suggested Next 3 Items
 
-1. P1: property descriptor fix — 310 mismatches
+1. P1: property descriptor fix — 313 mismatches
 2. investigate: static (extension — 134 mismatches
-3. P2: protocol conformance descriptor — 82 mismatches
+3. investigate: dispatch thunk — 99 mismatches
