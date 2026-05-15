@@ -1,15 +1,15 @@
 # Swift Production Digest
 
-**Parity**: 95.01% (60575/63757) — 2026-05-15T09:11:15Z
+**Parity**: 95.02% (60580/63757) — 2026-05-15T09:22:13Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 283 parse-errors + 2899 mismatches
+**Failures**: 276 parse-errors + 2901 mismatches
 
 ## Top-20 Mismatch Categories
 
 - property descriptor                        313
 - static (extension                          134
-- dispatch thunk                             99
-- method descriptor                          99
+- dispatch thunk                             100
+- method descriptor                          100
 - (extension in Foundation):Foundation.PredicateExpr… 85
 - protocol conformance descriptor            82
 - protocol witness table                     46
@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- d9718f03 swift-parity: DAU Tj/Tq prev-byte allowlist add Z (vgZ/vsZ etc) — parity 95.02%->95.04% (+14 production +20 roundtrip)
+- 100753a9 chore: lock snapshot after DAT commit (parity 60575->60580)
+- a8b9a443 chore: update digest.md for DAT commit (+5 production +7 roundtrip)
 - 621d5e5c swift-parity: DAT Tu prev-byte allowlist add Z (FZ static fn) — parity 95.01%->95.02% (+5 production +7 roundtrip)
 - d8f7e34a chore: lock snapshot after DAS commit
 - 41b88942 chore: update digest.md for DAS commit (correctness fix)
@@ -36,12 +39,9 @@
 - fa13c2cb chore: lock snapshot after DAR commit (parity 60574->60575)
 - 10a36a52 chore: update digest.md for DAR commit (+1 production +1 roundtrip)
 - b34e1e56 swift-parity: DAR Tb base conformance descriptor — parity 95.01%->95.01% (+1 production +1 roundtrip)
-- 3b9af595 chore: defer plateau-2026-05-15-daq to multi-fire (deferred-1)
-- b51df0ce chore: lock snapshot after DAP commit (parity 60498->60574, roundtrip 20979->21135)
-- d39ca0ed chore: update digest.md for DAP commit (+76 production +156 roundtrip)
 
 ## Suggested Next 3 Items
 
 1. P1: property descriptor fix — 313 mismatches
 2. investigate: static (extension — 134 mismatches
-3. investigate: dispatch thunk — 99 mismatches
+3. investigate: dispatch thunk — 100 mismatches
