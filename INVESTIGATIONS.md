@@ -30,6 +30,23 @@ and function-entity. Estimated 50-100 LOC. Reason for deferral: risk
 of regressing single-label Qr functions and the static-property Qr
 path that AAV unlocked.
 
+### plateau-2026-05-15-cac [deferred-1]
+
+CAC fire at 90.50%. Remaining errors all multi-fire territory:
+- Combine.AnyIterator init with closure-arg (1 sym)
+- SliceV constraint-ext init (1 sym)
+- Sq/Sa Decodable ext init with throws (multiple syms)
+- ScXsE method with __owned modifier (CAB defer)
+- Sq.map/flatMap/.. depth-1 generic + autoclosure (BAR defer cluster)
+- SD.subscript(default:) closure-arg+throws (3 syms)
+- Sq?? operator closure-arg+throws (4 syms)
+- Sb && / || operator + autoclosure (2 syms)
+- max/min variadic + Comparable constraint (2 syms)
+- Slice/SimD constraint-ext init (multiple syms)
+- SBsE 7exactly depth-1 generic init (multiple syms)
+
+All require parser surgery beyond single-fire budget.
+
 ### scxse-method-owned-modifier [2 syms, deferred-1]
 
 CAB probed: Sc<X>sE method with `__owned` param modifier (n byte).
