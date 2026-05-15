@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- ddb44a3b swift-parity: CDL fast-path direct entity (no ext, no decl-name) — parity 93.88%->94.28% (+256 production +314 roundtrip)
+- ad3a1461 chore: lock snapshot after CDK commit (parity 59851->59855, roundtrip 19698->19756)
+- 31b715cc chore: update digest.md for CDK commit (+4 production +58 roundtrip)
 - 144c002f swift-parity: CDK fast-path subscript property descriptor — parity 93.88%->93.88% (+4 production +58 roundtrip)
 - ff9805d2 chore: lock snapshot after CDJ commit (parity 59824->59851, roundtrip 19554->19698)
 - c288e819 chore: update digest.md for CDJ commit (+27 production +144 roundtrip)
@@ -36,9 +39,6 @@
 - 3267a241 chore: lock snapshot after CDI commit (parity 59782->59824, roundtrip 18953->19554)
 - 1516476a chore: update digest.md for CDI commit (+42 production +601 roundtrip)
 - d76c53f4 swift-parity: CDI fast-path Swift-mod nominal host s<n><name><kind> — parity 93.77%->93.84% (+42 production +601 roundtrip)
-- cb1bec96 chore: lock snapshot after CDH commit (parity 59758->59782, roundtrip 18910->18953)
-- cce71a4d chore: update digest.md for CDH commit (+24 production +43 roundtrip)
-- 0c3a4e1b swift-parity: CDH fast-path Tu suffix → async function pointer to — parity 93.73%->93.77% (+24 production +43 roundtrip)
 
 ## Suggested Next 3 Items
 
