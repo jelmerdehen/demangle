@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- 3655e5cd swift-parity: CDU fast-path xSg<...>Mc Optional<gen> conformance — parity 94.45%->94.46% (+11 production +13 roundtrip)
+- 9eb92513 chore: lock snapshot after CDT commit (roundtrip 20561->20569)
+- 0addae94 chore: update digest.md for CDT commit (+8 roundtrip)
 - fe59cb5f swift-parity: CDT `s`-branch ext-marker accept E followed by `_` — parity 94.45%->94.45% (+0 production +8 roundtrip)
 - 199f1c31 chore: lock snapshot after CDS commit (parity 60190->60213, roundtrip 20560->20561)
 - 7719db54 chore: update digest.md for CDS commit (+23 production +1 roundtrip)
@@ -36,9 +39,6 @@
 - a183bc08 chore: lock snapshot after CDR commit (roundtrip 20481->20560)
 - c6dfe4f9 chore: update digest.md for CDR commit (+79 roundtrip)
 - 552367a2 swift-parity: CDR `s`-branch ext-marker accept E followed by `y` — parity 94.41%->94.41% (+0 production +79 roundtrip)
-- 74b64e8e chore: lock snapshot after CDQ commit (parity 60174->60190, roundtrip 20428->20481)
-- 50ab484f chore: update digest.md for CDQ commit (+16 production +53 roundtrip)
-- d75b0bb4 swift-parity: CDQ fast-path init `_` label-leader path-det — parity 94.38%->94.41% (+16 production +53 roundtrip)
 
 ## Suggested Next 3 Items
 
