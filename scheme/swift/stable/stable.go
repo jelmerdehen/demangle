@@ -13041,9 +13041,25 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 				}
 				sepCount := 0
 				for j := 1; j < len(body); j++ {
-					if body[j] == '_' && (body[j-1] == 'V' || body[j-1] == 'C' ||
-						body[j-1] == 'O' || body[j-1] == 'P' || body[j-1] == 'G') {
+					if body[j] != '_' {
+						continue
+					}
+					prev := body[j-1]
+					// Type-kind byte preceding `_` (V/C/O/P/G).
+					if prev == 'V' || prev == 'C' || prev == 'O' ||
+						prev == 'P' || prev == 'G' {
 						sepCount++
+						continue
+					}
+					// Dependent-member type endings: Qz_/Qy_/Qz0_/etc.
+					// pattern is "Q[zy]_" or "Q[zy]<digit>+_".
+					if j >= 2 && body[j-1] == 'z' && body[j-2] == 'Q' {
+						sepCount++
+						continue
+					}
+					if j >= 2 && body[j-1] == 'y' && body[j-2] == 'Q' {
+						sepCount++
+						continue
 					}
 				}
 				if sepCount > 0 {
