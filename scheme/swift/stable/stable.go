@@ -3994,10 +3994,38 @@ func (p *parser) tryStdlibLiteralInit(inner *demangle.Node) (*demangle.Node, boo
 		revert()
 		return inner, false
 	}
-	paramNode, err := p.parseType()
-	if err != nil || paramNode == nil {
+	// Param: either a single type (Sa/Sh: `x`) or a multi-element tuple
+	// (SD: `x_q_t`). Multi-element form is `<t1>_<t2>_..._<tN>t`.
+	firstParam, err := p.parseType()
+	if err != nil || firstParam == nil {
 		revert()
 		return inner, false
+	}
+	var paramStr string
+	if !p.eof() && p.s[p.i] == '_' {
+		// Multi-element tuple. Read additional elements until 't'.
+		paramTypes := []*demangle.Node{firstParam}
+		for !p.eof() && p.s[p.i] == '_' {
+			p.i++ // consume '_'
+			t, err := p.parseType()
+			if err != nil || t == nil {
+				revert()
+				return inner, false
+			}
+			paramTypes = append(paramTypes, t)
+		}
+		if p.eof() || p.s[p.i] != 't' {
+			revert()
+			return inner, false
+		}
+		p.i++ // consume 't'
+		parts := make([]string, len(paramTypes))
+		for i, pt := range paramTypes {
+			parts[i] = common.Print(pt, common.DefaultPrintOptions())
+		}
+		paramStr = "(" + strings.Join(parts, ", ") + ")"
+	} else {
+		paramStr = common.Print(firstParam, common.DefaultPrintOptions())
 	}
 	hasVariadic := false
 	if !p.eof() && p.s[p.i] == 'd' {
@@ -4017,7 +4045,6 @@ func (p *parser) tryStdlibLiteralInit(inner *demangle.Node) (*demangle.Node, boo
 
 	hostStr := common.Print(inner, common.DefaultPrintOptions())
 	resultStr := common.Print(resultNode, common.DefaultPrintOptions())
-	paramStr := common.Print(paramNode, common.DefaultPrintOptions())
 	if hasVariadic {
 		paramStr += "..."
 	}
