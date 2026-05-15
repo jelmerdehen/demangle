@@ -9117,6 +9117,12 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 		isSubscript = true
 		fpSubscriptHasLocalGen = true
 		sEnd -= 6
+	} else if isQOMQ && sEnd >= 4 && p.s[sEnd-4:sEnd] == "luip" {
+		// Subscript property descriptor inside QOMQ wrapper (no MV).
+		isPropDesc = true
+		isSubscript = true
+		fpSubscriptHasLocalGen = true
+		sEnd -= 4
 	} else if sEnd >= 6 && p.s[sEnd-6:sEnd] == "cipZMV" {
 		// Subscript STATIC property descriptor (no local-gen).
 		isPropDesc = true
@@ -9572,7 +9578,12 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 		if subGen == "" && fpSubscriptHasLocalGen {
 			subGen = "<A>"
 		}
-		text = "property descriptor for " + propStaticPfx + hostStr + ".subscript" + subGen + labelStr
+		// Inside QOMQ, drop the "property descriptor for " prefix.
+		if isQOMQ {
+			text = propStaticPfx + hostStr + ".subscript" + subGen + labelStr
+		} else {
+			text = "property descriptor for " + propStaticPfx + hostStr + ".subscript" + subGen + labelStr
+		}
 	} else if isPropDesc {
 		// "property descriptor for [static ]Host.declName"
 		text = "property descriptor for " + propStaticPfx + hostStr + "." + declName
