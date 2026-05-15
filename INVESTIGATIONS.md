@@ -30,6 +30,16 @@ and function-entity. Estimated 50-100 LOC. Reason for deferral: risk
 of regressing single-label Qr functions and the static-property Qr
 path that AAV unlocked.
 
+### plateau-2026-05-15-cax-init-fast-path-late-bail [deferred-1]
+
+CAX fire: tried fast-path at parseType-failure point in
+tryInitDeinitEntity (only fires when parseType errs). Target sym
+List.init still failed because parseType for the result type
+returns OK (with wrong/garbage node) — failure happens later in
+params parsing. Need recovery wrapper around the FULL post-host
+parse, not just parseType. Risk: catching too much — Apple-curated
+regress like CAW. Multi-fire investigation needed.
+
 ### plateau-2026-05-15-caw-init-fast-path-apple-regress [deferred-1]
 
 CAW fire: implemented init fast-path in tryInitDeinitEntity for
