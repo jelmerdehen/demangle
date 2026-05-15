@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 95.04% (60594/63757) — 2026-05-15T09:25:11Z
+**Parity**: 95.04% (60596/63757) — 2026-05-15T09:36:18Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 256 parse-errors + 2907 mismatches
+**Failures**: 254 parse-errors + 2907 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- 34348fc9 swift-parity: DAX subscript prop-desc inside QOMQ wrapper — parity 95.04%->95.05% (+2 production +0 roundtrip)
+- 3867c254 chore: lock snapshot after DAW commit (parity 60595->60596)
+- 7a5b00db chore: update digest.md for DAW commit (+1 production +1 roundtrip)
 - 7dfa83b9 swift-parity: DAW QOMQ prev-byte allowlist add Z and p — parity 95.04%->95.04% (+1 production +1 roundtrip)
 - 232dcd20 chore: lock snapshot after DAV commit (parity 60594->60595)
 - 2fe89382 chore: update digest.md for DAV commit (+1 production +1 roundtrip)
@@ -36,9 +39,6 @@
 - 10c621cd chore: defer plateau-2026-05-15-dau (session summary) to multi-fire (deferred-1)
 - c518ea53 chore: lock snapshot after DAU commit (parity 60580->60594, roundtrip 21143->21163)
 - 392256b6 chore: update digest.md for DAU commit (+14 production +20 roundtrip)
-- d9718f03 swift-parity: DAU Tj/Tq prev-byte allowlist add Z (vgZ/vsZ etc) — parity 95.02%->95.04% (+14 production +20 roundtrip)
-- 100753a9 chore: lock snapshot after DAT commit (parity 60575->60580)
-- a8b9a443 chore: update digest.md for DAT commit (+5 production +7 roundtrip)
 
 ## Suggested Next 3 Items
 
