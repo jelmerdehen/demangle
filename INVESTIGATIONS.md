@@ -30,6 +30,25 @@ and function-entity. Estimated 50-100 LOC. Reason for deferral: risk
 of regressing single-label Qr functions and the static-property Qr
 path that AAV unlocked.
 
+### stdlib-S2-compact-multi-arg-init [~6 syms, deferred-1]
+
+BAW probed: extending tryStdlibLiteralInit to support multi-label
+init shapes where Apple's `S<N><letter>` compact form encodes
+result + N-1 params in a single substitution. parseType decodes
+`S2S` as one String (skip-digit form), but Apple semantically means
+"result + first param both String".
+
+Pattern:
+  <host=S<letter>> <label1><label2>...<labelN>
+    S<N><letter>_<rest-params>tcfC
+
+Cluster: Sd/Sf signOf/magnitudeOf 2-arg init, SS repeating/count
+String.init, similar Float/Double labeled inits. ~6 syms.
+
+Fix needs explicit S<N><letter> compact-form expansion in the
+literal-init handler. Currently parseType returns one Type even when
+Apple's stack-push count is N. Multi-fire.
+
 ### plateau-2026-05-15-bar [deferred-1]
 
 BAR fire: at 90.45% parity. All remaining shortest-sym errors require
