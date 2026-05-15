@@ -14369,22 +14369,24 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 				hostStr += "." + name
 				cb = cb[kindPos+1:]
 			}
-			// reduce/scan/tryReduce/tryScan: 2 args. zip/combineLatest: arg
-			// count = local-generic count.
+			// reduce/scan/tryReduce/tryScan: 2 args. zip/combineLatest/map:
+			// arg count = local-generic count.
 			if labelStr == "(_:)" {
 				if declName == "reduce" || declName == "tryReduce" ||
 					declName == "scan" || declName == "tryScan" {
 					labelStr = "(_:_:)"
-				} else if (declName == "zip" || declName == "combineLatest") &&
-					fnLocalGen != "" {
-					gn := strings.Count(fnLocalGen, ",") + 1
-					if gn >= 2 {
-						parts := make([]string, gn)
-						for i := range parts {
-							parts[i] = "_:"
-						}
-						labelStr = "(" + strings.Join(parts, "") + ")"
+				}
+			}
+			if (declName == "zip" || declName == "combineLatest" ||
+				declName == "map") && fnLocalGen != "" {
+				gn := strings.Count(fnLocalGen, ",") + 1
+				curArgs := strings.Count(labelStr, "_:")
+				if gn > curArgs {
+					parts := make([]string, gn)
+					for i := range parts {
+						parts[i] = "_:"
 					}
+					labelStr = "(" + strings.Join(parts, "") + ")"
 				}
 			}
 			text := staticPfx + hostStr + extMarker + "." + declName + fnLocalGen + labelStr
