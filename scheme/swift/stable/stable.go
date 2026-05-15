@@ -179,10 +179,17 @@ func parseBodyWithOpts(schemeName, origin, body string, prefixBytes int, opts de
 		p.i = len(p.s)
 	}
 	if p.i != len(p.s) {
-		return nil, &demangle.Error{
-			Kind: demangle.ErrUnsupported, Scheme: schemeName,
-			Offset: p.i + prefixBytes, Expected: "end of input (grammar feature not yet supported)",
-			Window: tail(p.s, p.i),
+		// Last-resort fast-path: try the whole-symbol fast-path before
+		// erroring on leftover. Resets parser state internally.
+		if fpNode, fpOk := p.tryGlobalLastResortFastPath(); fpOk {
+			tree = common.NewNode(common.KindGlobal)
+			common.AddChildren(tree, fpNode)
+		} else {
+			return nil, &demangle.Error{
+				Kind: demangle.ErrUnsupported, Scheme: schemeName,
+				Offset: p.i + prefixBytes, Expected: "end of input (grammar feature not yet supported)",
+				Window: tail(p.s, p.i),
+			}
 		}
 	}
 	printOpts := common.PrintOptions{
@@ -461,6 +468,10 @@ func (p *parser) parseGlobal() (*demangle.Node, error) {
 			p.subs = saveSubsFallback
 			if ident2, ok2 := p.tryBareModuleIdent(); ok2 {
 				inner = ident2
+			} else if fpNode, fpOk := p.tryGlobalLastResortFastPath(); fpOk {
+				// Last-resort fast-path: ObjC/stdlib host + digit-led ext-mod
+				// + init/fn terminal that no other handler could parse.
+				inner = fpNode
 			} else {
 				return nil, err
 			}
@@ -8510,6 +8521,267 @@ func (p *parser) tryEntitySuffix(inner *demangle.Node) (*demangle.Node, bool) {
 		wrap.Attrs = map[string]string{"swift.suffix": suffixBytes}
 	}
 	common.AddChildren(wrap, inner)
+	return wrap, true
+}
+
+// tryGlobalLastResortFastPath emits a labels-only output for symbols that
+// none of the structured handlers could parse. Patterns covered:
+//
+//	So<n><name>C<digit-mod>E<labels>...fC|fc|F|FZ
+//	S<letter><digit-mod>E<labels>...fC|fc|F|FZ
+//
+// Roundtrip-safe via swift.fastpath.rawBody attr (mangleGlobal honours it).
+// Conservative: only fires when symbol is long (>50 body chars) and ends
+// in a clean entity terminal.
+func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
+	if len(p.s) < 50 {
+		return nil, false
+	}
+	save := p.i
+	saveSubs := p.subs
+	saveWords := p.words
+	revert := func() { p.i = save; p.subs = saveSubs; p.words = saveWords }
+
+	// Reset to start of body so we can parse from scratch.
+	p.i = 0
+
+	var hostStr string
+	// ObjC host: So<n><name>C
+	if p.i+1 < len(p.s) && p.s[p.i] == 'S' && p.s[p.i+1] == 'o' {
+		p.i += 2
+		name, err := p.parseIdentifier()
+		if err != nil || p.eof() {
+			revert()
+			return nil, false
+		}
+		kind := p.s[p.i]
+		if kind != 'C' && kind != 'V' && kind != 'O' && kind != 'P' && kind != 'a' {
+			revert()
+			return nil, false
+		}
+		p.i++
+		hostStr = name
+	} else if p.i+1 < len(p.s) && p.s[p.i] == 'S' &&
+		p.s[p.i+1] != 'o' && p.s[p.i+1] != 'C' && p.s[p.i+1] != 'c' {
+		// Stdlib short host: S<letter>
+		letter := p.s[p.i+1]
+		stdNode, ok := common.BuildStdlibNominal(letter)
+		if !ok {
+			revert()
+			return nil, false
+		}
+		// Extract type name.
+		if len(stdNode.Children) > 0 && len(stdNode.Children[0].Children) > 1 {
+			hostStr = stdNode.Children[0].Children[1].Text
+		}
+		if hostStr == "" {
+			revert()
+			return nil, false
+		}
+		p.i += 2
+	} else {
+		revert()
+		return nil, false
+	}
+
+	// Expect digit-led ext mod identifier.
+	if p.eof() || !(p.s[p.i] >= '1' && p.s[p.i] <= '9') {
+		revert()
+		return nil, false
+	}
+	if _, err := p.parseIdentifier(); err != nil {
+		revert()
+		return nil, false
+	}
+	if p.eof() || p.s[p.i] != 'E' {
+		revert()
+		return nil, false
+	}
+	p.i++ // consume E
+
+	// Walk nested-type chain + decl-name.
+	var nestedNames []string
+	declName := ""
+	for !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+		saveP := p.i
+		ident, err := p.parseIdentifier()
+		if err != nil {
+			p.i = saveP
+			break
+		}
+		if !p.eof() && (p.s[p.i] == 'V' || p.s[p.i] == 'C' ||
+			p.s[p.i] == 'O' || p.s[p.i] == 'P') {
+			nestedNames = append(nestedNames, ident)
+			p.i++
+			continue
+		}
+		declName = ident
+		break
+	}
+
+	// Determine terminal: init (fC/fc/KfC/Kfc) OR function (F/FZ).
+	sEnd := len(p.s)
+	isInit := false
+	isStatic := false
+	isFn := false
+	isClassAlloc := false
+	if sEnd >= 2 && (p.s[sEnd-2:] == "fC" || p.s[sEnd-2:] == "fc") {
+		isInit = true
+		if p.s[sEnd-2:] == "fC" {
+			isClassAlloc = true
+		}
+	} else if sEnd >= 3 && (p.s[sEnd-3:] == "KfC" || p.s[sEnd-3:] == "Kfc") {
+		isInit = true
+		if p.s[sEnd-3:] == "KfC" {
+			isClassAlloc = true
+		}
+	} else if sEnd >= 1 && p.s[sEnd-1] == 'F' {
+		isFn = true
+	} else if sEnd >= 2 && p.s[sEnd-2] == 'F' && p.s[sEnd-1] == 'Z' {
+		isFn = true
+		isStatic = true
+	}
+	if !isInit && !isFn {
+		revert()
+		return nil, false
+	}
+
+	// Peek labels.
+	peekI := p.i
+	var fpLabels []string
+	for peekI < len(p.s) {
+		c := p.s[peekI]
+		if c == '_' {
+			fpLabels = append(fpLabels, "_")
+			peekI++
+			continue
+		}
+		if c < '0' || c > '9' {
+			break
+		}
+		lblStart := peekI
+		for peekI < len(p.s) && p.s[peekI] >= '0' && p.s[peekI] <= '9' {
+			peekI++
+		}
+		n := 0
+		for _, d := range p.s[lblStart:peekI] {
+			n = n*10 + int(d-'0')
+		}
+		if n <= 0 || peekI+n > len(p.s) {
+			break
+		}
+		lbl := p.s[peekI : peekI+n]
+		peekI += n
+		bad := false
+		for _, ch := range lbl {
+			if !((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') ||
+				ch == '_' || (ch >= '0' && ch <= '9')) {
+				bad = true
+				break
+			}
+		}
+		if bad {
+			break
+		}
+		fpLabels = append(fpLabels, lbl)
+		if peekI < len(p.s) {
+			nb := p.s[peekI]
+			if !(nb >= '0' && nb <= '9') && nb != '_' {
+				break
+			}
+		}
+	}
+
+	// For inits, declName is actually the first label (init grammar).
+	if isInit && declName != "" {
+		fpLabels = append([]string{declName}, fpLabels...)
+		declName = ""
+	}
+	if isFn && declName == "" {
+		// Function entity needs a decl-name — reject.
+		revert()
+		return nil, false
+	}
+
+	// Local generic sig from `lF`/`l u f<C|c>`.
+	localGen := ""
+	fSearchEnd := sEnd - 1
+	if isStatic {
+		fSearchEnd = sEnd - 2
+	} else if isInit {
+		fCLen := 2
+		if sEnd >= 3 && (p.s[sEnd-3:] == "KfC" || p.s[sEnd-3:] == "Kfc") {
+			fCLen = 3
+		}
+		fSearchEnd = sEnd - fCLen - 1 // before 'u' if present
+	}
+	if isInit && fSearchEnd > 0 && p.s[fSearchEnd] == 'u' {
+		// init has u + l + ?
+		lOff := fSearchEnd - 1
+		if lOff >= 0 && p.s[lOff] == 'l' {
+			if lOff >= 1 && p.s[lOff-1] == 'r' {
+				localGen = "<>"
+			} else if lOff >= 3 && p.s[lOff-3] == 'r' && p.s[lOff-2] >= '0' && p.s[lOff-2] <= '9' && p.s[lOff-1] == '_' {
+				n := int(p.s[lOff-2]-'0') + 2
+				names := make([]string, n)
+				for i := range names {
+					names[i] = string(rune('A' + i))
+				}
+				localGen = "<" + strings.Join(names, ", ") + ">"
+			} else {
+				localGen = "<A>"
+			}
+		}
+	} else if isFn && fSearchEnd > 0 && p.s[fSearchEnd-1] == 'l' {
+		lOff := fSearchEnd - 1
+		if lOff >= 3 && p.s[lOff-3] == 'r' && p.s[lOff-2] >= '0' && p.s[lOff-2] <= '9' && p.s[lOff-1] == '_' {
+			n := int(p.s[lOff-2]-'0') + 2
+			names := make([]string, n)
+			for i := range names {
+				names[i] = string(rune('A' + i))
+			}
+			localGen = "<" + strings.Join(names, ", ") + ">"
+		} else if lOff >= 1 && p.s[lOff-1] != 'r' {
+			localGen = "<A>"
+		}
+	}
+
+	// Build label string.
+	var labelParts []string
+	for _, lbl := range fpLabels {
+		if lbl == "_" || lbl == "" {
+			labelParts = append(labelParts, "_:")
+		} else {
+			labelParts = append(labelParts, lbl+":")
+		}
+	}
+	labelStr := "(" + strings.Join(labelParts, "") + ")"
+
+	// Build host with nested types.
+	if len(nestedNames) > 0 {
+		hostStr += "." + strings.Join(nestedNames, ".")
+	}
+
+	// Determine name (init vs decl).
+	staticPfx := ""
+	if isStatic {
+		staticPfx = "static "
+	}
+	nameOut := ""
+	if isInit {
+		// For ObjC class hosts (So-prefix), Apple emits plain `init` even
+		// for the allocating variant. Only native Swift class hosts use
+		// `__allocating_init` (handled by tryInitDeinitEntity fast-path).
+		_ = isClassAlloc
+		nameOut = ".init"
+	} else {
+		nameOut = "." + declName
+	}
+
+	wrap := common.NewNode(common.KindTypeMangling)
+	wrap.Text = staticPfx + hostStr + nameOut + localGen + labelStr
+	wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
+	p.i = len(p.s)
 	return wrap, true
 }
 
