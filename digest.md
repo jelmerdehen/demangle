@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- 660f831 swift-parity: CCL last-resort fast-path direct decl-name (no E) — parity 92.94%->93.12% (+112 production +565 roundtrip)
+- efeae49 chore: lock snapshot after CCK commit (parity 59243->59260, roundtrip 17442->17461)
+- 5d30e3f chore: update digest.md for CCK commit (+17 production)
 - 455ba7d swift-parity: CCK last-resort fast-path user-mod direct host — parity 92.91%->92.94% (+17 production +19 roundtrip)
 - a045d34 chore: lock snapshot after CCJ commit (parity 59239->59243, roundtrip 17438->17442)
 - 88523e1 chore: update digest.md for CCJ commit (+4 production)
@@ -36,9 +39,6 @@
 - b6a97c3 chore: defer plateau-2026-05-15-cci-chain-aware-extension-regress (deferred-1)
 - 32c289a chore: lock snapshot after CCH commit (parity 59231->59239, roundtrip 17435->17438)
 - 4f25864 chore: update digest.md for CCH commit (+8 production)
-- 240c72e swift-parity: CCH tryFunctionEntity chain-aware label-stop — parity 92.89%->92.91% (+8 production +3 roundtrip)
-- a8765a5 chore: defer plateau-2026-05-15-ccg-vcop-label-stop-noop (deferred-1)
-- f6aa78c chore: lock snapshot after CCF commit (roundtrip 17362->17435)
 
 ## Suggested Next 3 Items
 
