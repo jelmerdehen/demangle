@@ -8756,6 +8756,8 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			hostStr = name
 			if kind == 'C' {
 				fpHostIsSwiftClass = true
+			} else {
+				fpHostIsSwiftClass = false
 			}
 		} else {
 			fpTopLevelDecl = name
@@ -8880,6 +8882,7 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 		if !p.eof() && (p.s[p.i] == 'V' || p.s[p.i] == 'C' ||
 			p.s[p.i] == 'O' || p.s[p.i] == 'P') {
 			nestedNames = append(nestedNames, ident)
+			fpHostIsSwiftClass = (p.s[p.i] == 'C')
 			p.i++
 			continue
 		}
@@ -8950,6 +8953,7 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			if !p.eof() && (p.s[p.i] == 'V' || p.s[p.i] == 'C' ||
 				p.s[p.i] == 'O' || p.s[p.i] == 'P') {
 				nestedNames = append(nestedNames, ident)
+				fpHostIsSwiftClass = (p.s[p.i] == 'C')
 				p.i++
 				continue
 			}
