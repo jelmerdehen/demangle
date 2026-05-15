@@ -481,6 +481,19 @@ complete. The `n` modifier handling requires identifying the exact
 speculative branch and either consuming `n` or wrapping in applyMod.
 Multi-fire.
 
+### plateau-2026-05-15-dak [deferred-1]
+
+DAK attempt: Rsz-only check (3 chars, more specific than Rz) in
+fpExtMarker — `<A>` for Rsz, `<>` for rl.
+
+Result: -14 parity. Even narrow Rsz match in fpConstraintBytes
+breaks symbols where current `<>` is correct (Rsz substring elsewhere
+without being a true host gen-param ext-marker).
+
+Fix: needs structural constraint parsing — distinguish Rsz that's
+the host's first constraint vs Rsz appearing in nested types or
+substituted constraint chains. Multi-fire.
+
 ### plateau-2026-05-15-dag [deferred-1]
 
 DAG attempt: extend fpExtMarker (host-base ext-marker for fast-path)
