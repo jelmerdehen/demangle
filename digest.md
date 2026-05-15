@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 95.01% (60574/63757) — 2026-05-15T09:01:11Z
+**Parity**: 95.01% (60575/63757) — 2026-05-15T09:11:15Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 284 parse-errors + 2899 mismatches
+**Failures**: 283 parse-errors + 2899 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- 134b7760 swift-parity: DAS native Swift class fC always __allocating_init — parity 95.01%->95.01% (+0 production +0 roundtrip)
+- fa13c2cb chore: lock snapshot after DAR commit (parity 60574->60575)
+- 10a36a52 chore: update digest.md for DAR commit (+1 production +1 roundtrip)
 - b34e1e56 swift-parity: DAR Tb base conformance descriptor — parity 95.01%->95.01% (+1 production +1 roundtrip)
 - 3b9af595 chore: defer plateau-2026-05-15-daq to multi-fire (deferred-1)
 - b51df0ce chore: lock snapshot after DAP commit (parity 60498->60574, roundtrip 20979->21135)
@@ -36,9 +39,6 @@
 - dcc15d87 swift-parity: DAP word-sub `0` decl-name path-det pass-through — parity 94.89%->95.01% (+76 production +156 roundtrip)
 - 540bb1bd chore: lock snapshot after DAO commit (parity 60495->60498)
 - abc5bf4f chore: update digest.md for DAO commit (+3 production +3 roundtrip)
-- 56acb0b1 swift-parity: DAO TL protocol-requirements-base-descriptor — parity 94.88%->94.89% (+3 production +3 roundtrip)
-- 550b72b3 chore: lock snapshot after DAN commit (parity 60490->60495)
-- 54f5ece4 chore: update digest.md for DAN commit (+5 production)
 
 ## Suggested Next 3 Items
 
