@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 95.33% (60781/63757) — 2026-05-15T13:43:24Z
+**Parity**: 95.36% (60796/63757) — 2026-05-15T20:21:34Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 233 parse-errors + 2743 mismatches
+**Failures**: 233 parse-errors + 2728 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,16 +29,16 @@
 
 ## Last 10 Commits
 
+- 564aa3a5 swift-parity: CEL skip nested-ext recovery on label-start _ — parity 95.35%->95.36% (+6 production +0 roundtrip)
+- ec6314cf chore: defer prop-desc-foundation-full-form to multi-fire (deferred-1)
+- e0e76946 chore: commit pending defer entries from prior fires (cleanup)
+- 62e0a7be chore: lock snapshot after CEK commit (parity 60783->60790)
+- 0c378398 chore: update digest.md for CEK commit (+7 production)
 - 503a51a2 swift-parity: CEK skip leading yy in args + allow empty extMarker — parity 95.34%->95.35% (+7 production +0 roundtrip)
 - 909cd2d2 chore: lock snapshot after CEJ commit (parity 60781->60783)
 - 38486a28 chore: update digest.md for CEJ commit (+2 production)
 - 42e85d93 swift-parity: CEJ relax CEI last-byte check — accept any non-y ending — parity 95.33%->95.34% (+2 production +0 roundtrip)
 - 2a5e3e9c chore: lock snapshot after CEI commit (parity 60779->60781)
-- 204c692f chore: update digest.md for CEI commit (+2 production)
-- b915387d swift-parity: CEI fast-path empty-labels y<arg>F → 1 unlabeled arg — parity 95.33%->95.33% (+2 production +0 roundtrip)
-- 610d8e4b chore: lock snapshot after CEG commit (parity 60771->60779)
-- f36b53c1 chore: update digest.md for CEG commit (+8 production)
-- 758d1a1d swift-parity: CEG tighten extMarker — require Rb/Rd marker for fallback <> — parity 95.32%->95.33% (+8 production +0 roundtrip)
 
 ## Suggested Next 3 Items
 
