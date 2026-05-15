@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- 7ab3835 swift-parity: CBZ separator detection adds m (metatype) — parity 92.86%->92.87% (+8 production)
+- e555bca chore: lock snapshot after CBY commit (parity 59180->59207)
+- 62d6503 chore: update digest.md for CBY commit (parity 92.82%->92.86% +27)
 - ea8421d swift-parity: CBY last-resort fast-path positional param count for fns — parity 92.82%->92.86% (+27 production)
 - a31874a chore: lock snapshot after CBX commit (parity 58981->59180, roundtrip 16792->17359)
 - b5c9e4d chore: update digest.md for CBX commit (parity 92.51%->92.82% +199)
@@ -36,9 +39,6 @@
 - 3167aa0 chore: defer plateau-2026-05-15-cbw-objc-host-digit-mod-needs-handler-coordination (deferred-1)
 - e8db069 chore: defer plateau-2026-05-15-cbv-objc-host-digit-mod (deferred-1)
 - 52acf16 chore: lock snapshot after CBU commit (parity 58743->58981, roundtrip 15918->16792)
-- 8082cc2 chore: update digest.md for CBU commit (parity 92.13%->92.51% +238)
-- a056e2b swift-parity: CBU ext-method fast-path QOMQ opaque-type wrapper — parity 92.13%->92.51% (+238 production +874 roundtrip)
-- d5dcf5c chore: defer plateau-2026-05-15-cbt-stdlib-digit-mod-fastpath-regress (deferred-1)
 
 ## Suggested Next 3 Items
 
