@@ -8828,6 +8828,25 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 				}
 			}
 		}
+		// Last-ditch: E followed by type-start byte (A/S/x/q) AND constraint
+		// section contains a real constraint marker. Captures init/fn bodies
+		// that start with back-ref like `EACy...`.
+		if eAt < 0 {
+			for k := p.i; k < len(p.s)-1 && k < p.i+200; k++ {
+				if p.s[k] == 'E' && k+1 < len(p.s) {
+					nx := p.s[k+1]
+					if nx == 'A' || nx == 'S' || nx == 'x' || nx == 'q' {
+						cb := p.s[p.i:k]
+						if strings.Contains(cb, "Rz") || strings.Contains(cb, "Rsz") ||
+							strings.Contains(cb, "Rb") ||
+							strings.Contains(cb, "rl") {
+							eAt = k
+							break
+						}
+					}
+				}
+			}
+		}
 		if eAt >= 0 {
 			fpConstraintBytes = p.s[p.i:eAt]
 			p.i = eAt + 1
