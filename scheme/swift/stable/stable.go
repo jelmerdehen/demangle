@@ -14324,23 +14324,31 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 			}
 			// Empty labels + body `y<arg-type>F` (single arg, no separators)
 			// → 1 unlabeled arg. Use p.i as args-start (set by parser).
-			if len(parts) == 0 && extMarker != "" && p.i < sEnd-1 {
+			if len(parts) == 0 && p.i < sEnd-1 {
 				argsBody := p.s[p.i : sEnd-1]
 				if isStatic && len(argsBody) > 0 {
 					argsBody = argsBody[:len(argsBody)-1]
 				}
-				if len(argsBody) >= 3 && argsBody[0] == 'y' &&
-					(argsBody[1] == 'A' || argsBody[1] == 'S' ||
-						argsBody[1] == 'x' || argsBody[1] == 'q' ||
-						(argsBody[1] >= '0' && argsBody[1] <= '9')) {
+				// Skip leading `y` (labels-empty marker) and optional second
+				// `y` (void result) before checking arg type-start.
+				argStart := 0
+				if len(argsBody) >= 1 && argsBody[0] == 'y' {
+					argStart = 1
+					if len(argsBody) >= 2 && argsBody[1] == 'y' {
+						argStart = 2
+					}
+				}
+				if argStart > 0 && len(argsBody) >= argStart+2 &&
+					(argsBody[argStart] == 'A' || argsBody[argStart] == 'S' ||
+						argsBody[argStart] == 'x' || argsBody[argStart] == 'q' ||
+						(argsBody[argStart] >= '0' && argsBody[argStart] <= '9')) {
 					hasUnderscore := false
-					for j := 2; j < len(argsBody); j++ {
+					for j := argStart + 1; j < len(argsBody); j++ {
 						if argsBody[j] == '_' {
 							hasUnderscore = true
 							break
 						}
 					}
-					// Reject `y` ending (void result, no args).
 					last := argsBody[len(argsBody)-1]
 					if !hasUnderscore && last != 'y' {
 						parts = []string{"_:"}
