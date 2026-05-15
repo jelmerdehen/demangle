@@ -3723,10 +3723,13 @@ func (p *parser) tryStdlibCopyInit(inner *demangle.Node) (*demangle.Node, bool) 
 		return inner, false
 	}
 	save := p.i
-	// Optional single label: <digits><label>. Followed by 'S' to enter the
-	// compact-copy body.
-	label := ""
-	if p.s[p.i] >= '1' && p.s[p.i] <= '9' {
+	saveSubs := p.subs
+	saveWords := p.words
+	revert := func() { p.i = save; p.subs = saveSubs; p.words = saveWords }
+	// Read 0+ digit-led labels (digit or word-sub '0' prefix).
+	// Multiple labels → multi-arg labeled init.
+	var labels []string
+	for !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
 		lblSave := p.i
 		lblSubs := p.subs
 		lblWords := p.words
@@ -3735,29 +3738,48 @@ func (p *parser) tryStdlibCopyInit(inner *demangle.Node) (*demangle.Node, bool) 
 			p.i = lblSave
 			p.subs = lblSubs
 			p.words = lblWords
-		} else {
-			label = lbl
+			break
 		}
+		labels = append(labels, lbl)
 	}
-	if p.i+3 >= len(p.s) || p.s[p.i] != 'y' && label == "" {
+	if p.i+3 >= len(p.s) || p.s[p.i] != 'y' && len(labels) == 0 {
 		// No label and no 'y' marker — not a copy-init shape.
-		p.i = save
+		revert()
 		return inner, false
 	}
-	// Consume 'y' empty-label-list (absent when an explicit label is parsed).
-	if label == "" {
+	// Consume 'y' empty-label-list (absent when explicit labels are parsed).
+	if len(labels) == 0 {
 		if p.s[p.i] != 'y' {
-			p.i = save
+			revert()
 			return inner, false
 		}
 		p.i++
 	}
-	// Mandatory: 'S' '2' <hostLetter>.
-	if p.i+2 >= len(p.s) || p.s[p.i] != 'S' || p.s[p.i+1] != '2' || p.s[p.i+2] != hostLetter {
-		p.i = save
+	// Mandatory: 'S' [<digits>] <hostLetter>. The digits encode Apple's
+	// "N copies on the substitution stack" compact form. For single-label
+	// or no-label form, N is typically 2 (result + 1 param). For multi-
+	// label form, N can be larger (result + first N-1 params).
+	if p.eof() || p.s[p.i] != 'S' {
+		revert()
 		return inner, false
 	}
-	p.i += 3
+	digStart := p.i + 1
+	j := digStart
+	for j < len(p.s) && p.s[j] >= '0' && p.s[j] <= '9' {
+		j++
+	}
+	if j >= len(p.s) || p.s[j] != hostLetter {
+		revert()
+		return inner, false
+	}
+	nCount := 1
+	if j > digStart {
+		nCount = 0
+		for k := digStart; k < j; k++ {
+			nCount = nCount*10 + int(p.s[k]-'0')
+		}
+	}
+	p.i = j + 1
 	hostStr := common.Print(inner, common.DefaultPrintOptions())
 	paramStr := hostStr
 	// Optional: <digits><nested-ident> 'V' — nested struct on the host
@@ -3773,22 +3795,57 @@ func (p *parser) tryStdlibCopyInit(inner *demangle.Node) (*demangle.Node, bool) 
 			p.i = nestedSave
 		}
 	}
-	// Optional single-arg tuple terminator '_t' (present in labeled form).
-	if label != "" {
+	// Multi-arg labeled form: after the compact `S<N><letter>` (which
+	// provides result + first N-1 params), read remaining params
+	// separated by '_' until 't'.
+	var paramStrs []string
+	if len(labels) >= 2 {
+		// N-1 params from compact form (all = host).
+		for i := 0; i < nCount-1; i++ {
+			paramStrs = append(paramStrs, paramStr)
+		}
+		// Additional params via `_<type>` separators.
+		for !p.eof() && p.s[p.i] == '_' {
+			p.i++
+			t, err := p.parseType()
+			if err != nil || t == nil {
+				revert()
+				return inner, false
+			}
+			paramStrs = append(paramStrs, common.Print(t, common.DefaultPrintOptions()))
+		}
+		if p.eof() || p.s[p.i] != 't' {
+			revert()
+			return inner, false
+		}
+		p.i++ // consume 't'
+	}
+	// Optional single-arg tuple terminator '_t' (present in single-label form).
+	if len(labels) == 1 {
 		if p.i+1 >= len(p.s) || p.s[p.i] != '_' || p.s[p.i+1] != 't' {
-			p.i = save
+			revert()
 			return inner, false
 		}
 		p.i += 2
 	}
 	if p.i+2 >= len(p.s) || p.s[p.i] != 'c' || p.s[p.i+1] != 'f' || p.s[p.i+2] != 'C' {
-		p.i = save
+		revert()
 		return inner, false
 	}
 	p.i += 3
 	wrap := common.NewNode(common.KindTypeMangling)
-	if label != "" {
-		wrap.Text = hostStr + ".init(" + label + ": " + paramStr + ") -> " + hostStr
+	if len(labels) >= 2 {
+		if len(paramStrs) != len(labels) {
+			revert()
+			return inner, false
+		}
+		parts := make([]string, len(labels))
+		for i, lbl := range labels {
+			parts[i] = lbl + ": " + paramStrs[i]
+		}
+		wrap.Text = hostStr + ".init(" + strings.Join(parts, ", ") + ") -> " + hostStr
+	} else if len(labels) == 1 {
+		wrap.Text = hostStr + ".init(" + labels[0] + ": " + paramStr + ") -> " + hostStr
 	} else {
 		wrap.Text = hostStr + ".init(" + paramStr + ") -> " + hostStr
 	}
