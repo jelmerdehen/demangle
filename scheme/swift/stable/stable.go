@@ -8812,6 +8812,22 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 				}
 			}
 		}
+		if eAt < 0 {
+			// Wider scan (≤200) but require constraint-marker discriminator.
+			for k := p.i; k < len(p.s)-1 && k < p.i+200; k++ {
+				if p.s[k] == 'E' && k+1 < len(p.s) {
+					nx := p.s[k+1]
+					if (nx >= '0' && nx <= '9') || nx == 'y' || nx == '_' {
+						cb := p.s[p.i:k]
+						if strings.Contains(cb, "Rz") || strings.Contains(cb, "Rsz") ||
+							strings.Contains(cb, "Rb") || strings.Contains(cb, "rl") {
+							eAt = k
+							break
+						}
+					}
+				}
+			}
+		}
 		if eAt >= 0 {
 			fpConstraintBytes = p.s[p.i:eAt]
 			p.i = eAt + 1
