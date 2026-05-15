@@ -12555,6 +12555,24 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 			}
 		} else {
 			declName = ident
+			// Operator designator: 'oi'=infix, 'op'=prefix, 'oP'=postfix.
+			// When the next two bytes match, decode the operator characters
+			// and append the kind label.
+			if !p.eof() && p.s[p.i] == 'o' && p.i+1 < len(p.s) {
+				ok := p.s[p.i+1]
+				if ok == 'i' || ok == 'p' || ok == 'P' {
+					p.i += 2
+					decoded := decodeOperatorName(ident)
+					switch ok {
+					case 'i':
+						declName = decoded + " infix"
+					case 'p':
+						declName = decoded + " prefix"
+					case 'P':
+						declName = decoded + " postfix"
+					}
+				}
+			}
 			if pureARef {
 				// For pure-module-ref extensions, Apple doesn't push the module node,
 				// so the decl name lands at the correct subs index for A<letter> label
