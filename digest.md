@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 95.29% (60753/63757) — 2026-05-15T12:49:13Z
+**Parity**: 95.30% (60761/63757) — 2026-05-15T12:59:17Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 233 parse-errors + 2771 mismatches
+**Failures**: 233 parse-errors + 2763 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- b65bbe41 swift-parity: CDY zip/combineLatest/map expand 2-arg → N-arg by generic count — parity 95.30%->95.31% (+5 production +0 roundtrip)
+- 30747cdc chore: lock snapshot after CDX commit (parity 60753->60761)
+- 0fc123ab chore: update digest.md for CDX commit (+8 production)
 - 3f3c6caf swift-parity: CDX reduce/scan/zip/combineLatest arg count at fast-path fn-emit — parity 95.29%->95.30% (+8 production +0 roundtrip)
 - 6b8e129b chore: lock snapshot after CDV commit (parity 60751->60753)
 - 39a2e399 chore: update digest.md for CDV commit (+2 production)
@@ -36,9 +39,6 @@
 - 12eb8ce6 chore: lock snapshot after CDT commit (parity 60750->60751)
 - 1dac0758 chore: update digest.md for CDT commit (+1 production)
 - 3313ab7d swift-parity: CDT exclude underscore from constraint-ident word capture — parity 95.28%->95.29% (+1 production +0 roundtrip)
-- 7e0dd45f chore: lock snapshot after CDS commit (parity 60748->60750)
-- e7deaad1 chore: update digest.md for CDS commit (+2 production)
-- fb0dfe64 swift-parity: CDS strip async marker Ya before throws/tuple — parity 95.28%->95.28% (+2 production +0 roundtrip)
 
 ## Suggested Next 3 Items
 
