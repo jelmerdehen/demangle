@@ -1,4 +1,4 @@
-# snapshot-pass-set update 2026-05-15T00:14:14Z — union with previous (high-water)
+# snapshot-pass-set update 2026-05-15T00:21:54Z — union with previous (high-water)
 _$s10Foreground7SwiftUI18LabelGroupStyle_v0PTl
 _$s10Foundation10CocoaErrorV010formattingC0AC4CodeVvgZ
 _$s10Foundation10CocoaErrorV010formattingC0AC4CodeVvpZMV
@@ -40061,6 +40061,7 @@ _$sSS9hasSuffixySbSSF
 _$sSS9hashValueSivg
 _$sSS9hashValueSivpMV
 _$sSS9removeAll15keepingCapacityySb_tF
+_$sSS9repeating5countS2S_SitcfC
 _$sSS9repeating5countSSSJ_SitcfC
 _$sSSMa
 _$sSSMn
@@ -41118,6 +41119,7 @@ _$sSd6isZeroSbvpMV
 _$sSd6negateyyF
 _$sSd6nextUpSdvg
 _$sSd6nextUpSdvpMV
+_$sSd6signOf09magnitudeB0S2d_SdtcfC
 _$sSd7exactlySdSgSd_tcfC
 _$sSd7exactlySdSgSf_tcfC
 _$sSd7exactlySdSgs7Float16V_tcfC
@@ -41419,6 +41421,7 @@ _$sSf6isZeroSbvpMV
 _$sSf6negateyyF
 _$sSf6nextUpSfvg
 _$sSf6nextUpSfvpMV
+_$sSf6signOf09magnitudeB0S2f_SftcfC
 _$sSf7exactlySfSgSd_tcfC
 _$sSf7exactlySfSgSf_tcfC
 _$sSf7exactlySfSgs7Float16V_tcfC
