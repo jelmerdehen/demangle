@@ -30,6 +30,15 @@ and function-entity. Estimated 50-100 LOC. Reason for deferral: risk
 of regressing single-label Qr functions and the static-property Qr
 path that AAV unlocked.
 
+### plateau-2026-05-15-ccp-empty-declname-roundtrip [deferred-1]
+
+CCP fire at 93.54%. Tried rejecting prop accessor/descriptor when
+declName is empty (avoid trailing-period output). Roundtrip -37 —
+empty-declName cases were getting roundtrip via fast-path's rawBody
+attr; rejecting them falls back to slow path which also fails
+roundtrip. Reverted. Need word-sub label/declName expansion to
+properly handle these cases.
+
 ### plateau-2026-05-15-ccm-foundation-skip-roundtrip-regress [deferred-1]
 
 CCM fire at 93.12%. Tried skipping fast-path for Foundation ext
