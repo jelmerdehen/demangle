@@ -481,6 +481,32 @@ complete. The `n` modifier handling requires identifying the exact
 speculative branch and either consuming `n` or wrapping in applyMod.
 Multi-fire.
 
+### plateau-2026-05-15-cdb [deferred-1]
+
+CDB fire at 93.69%. Threshold-lowering on tryGlobalLastResortFastPath
+exhausted: 35→30→25→20→18 yielded zero parity, only marginal roundtrip.
+Apple curated body floor = 17 bytes (`_$sSC3fooyS2d_SdtFTO`); cannot lower
+threshold below 18 without curated regression risk.
+
+Top remaining buckets (153 property descriptor, 56 static extension,
+42 dispatch thunk, 42 method descriptor) all require Foundation/Swift
+**full type-signature rendering** in fast-path or a fixed main parser.
+Current fast-path emits labels-only stubs (`Host.decl<A,B>(_:from:)`)
+vs Apple's full form with where-clause + types
+(`Foundation.Host.decl<A,B where ...>(_: A.Type, ...) throws -> A`).
+
+Fix path: reach in fast-path:
+1. Capture mod (currently discarded) for user-mod path lines 8598-8617.
+2. For Foundation/Swift modules with vpMV/vpZMV/Tj/Tq/F/FZ terminals,
+   attempt parseType on bytes between declName and terminal.
+3. Emit `Module.Host.decl[<gen>][<where>] : Type` form.
+
+Multi-fire — requires:
+- Type extractor that handles nested-types and back-refs without
+  full main-parser context.
+- Where-clause extractor (Rz/Rd_/Rt scanners).
+- Throws-marker recognition (K prefix on type-mangle).
+
 ### plateau-2026-05-15-cac [deferred-1]
 
 CAC fire at 90.50%. Remaining errors all multi-fire territory:
