@@ -8672,13 +8672,23 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 	// Determine terminal: init (fC/fc/KfC/Kfc) OR function (F/FZ).
 	sEnd := len(p.s)
 	// Tj/Tq suffix: dispatch thunk of / method descriptor for <inner>.
+	// Strip when preceded by F (function/init) OR by a subscript accessor
+	// byte (g/s/M/w/W/r — these follow the `lui<acc>` subscript terminal).
 	tjPrefix := ""
-	if sEnd >= 3 && p.s[sEnd-2:] == "Tj" && p.s[sEnd-3] == 'F' {
-		tjPrefix = "dispatch thunk of "
-		sEnd -= 2
-	} else if sEnd >= 3 && p.s[sEnd-2:] == "Tq" && p.s[sEnd-3] == 'F' {
-		tjPrefix = "method descriptor for "
-		sEnd -= 2
+	if sEnd >= 3 && p.s[sEnd-2:] == "Tj" {
+		prev := p.s[sEnd-3]
+		if prev == 'F' || prev == 'g' || prev == 's' || prev == 'M' ||
+			prev == 'w' || prev == 'W' || prev == 'r' {
+			tjPrefix = "dispatch thunk of "
+			sEnd -= 2
+		}
+	} else if sEnd >= 3 && p.s[sEnd-2:] == "Tq" {
+		prev := p.s[sEnd-3]
+		if prev == 'F' || prev == 'g' || prev == 's' || prev == 'M' ||
+			prev == 'w' || prev == 'W' || prev == 'r' {
+			tjPrefix = "method descriptor for "
+			sEnd -= 2
+		}
 	}
 	// QOMQ wrapper: "opaque type descriptor for <<opaque return type of ...>>"
 	isQOMQ := false
