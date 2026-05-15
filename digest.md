@@ -29,16 +29,16 @@
 
 ## Last 10 Commits
 
+- 863632da swift-parity: DBA CDN nested-ext recovery loop — parity 95.05%->95.05% (+0 production +0 roundtrip)
+- 62f4bee4 chore: defer plateau-2026-05-15-day to multi-fire (deferred-1)
+- 457dbfec chore: lock snapshot after DAX commit (parity 60596->60598)
+- c8cbd127 chore: update digest.md for DAX commit (+2 production)
 - 34348fc9 swift-parity: DAX subscript prop-desc inside QOMQ wrapper — parity 95.04%->95.05% (+2 production +0 roundtrip)
 - 3867c254 chore: lock snapshot after DAW commit (parity 60595->60596)
 - 7a5b00db chore: update digest.md for DAW commit (+1 production +1 roundtrip)
 - 7dfa83b9 swift-parity: DAW QOMQ prev-byte allowlist add Z and p — parity 95.04%->95.04% (+1 production +1 roundtrip)
 - 232dcd20 chore: lock snapshot after DAV commit (parity 60594->60595)
 - 2fe89382 chore: update digest.md for DAV commit (+1 production +1 roundtrip)
-- 601985bd swift-parity: DAV subscript static prop desc cipZMV (no-lu) — parity 95.04%->95.04% (+1 production +1 roundtrip)
-- 10c621cd chore: defer plateau-2026-05-15-dau (session summary) to multi-fire (deferred-1)
-- c518ea53 chore: lock snapshot after DAU commit (parity 60580->60594, roundtrip 21143->21163)
-- 392256b6 chore: update digest.md for DAU commit (+14 production +20 roundtrip)
 
 ## Suggested Next 3 Items
 
