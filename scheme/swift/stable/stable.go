@@ -8793,9 +8793,12 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 		// If both fail, treat as direct entity.
 		eAt := -1
 		for k := p.i; k < len(p.s)-1 && k < p.i+10; k++ {
-			if p.s[k] == 'E' {
-				eAt = k
-				break
+			if p.s[k] == 'E' && k+1 < len(p.s) {
+				nx := p.s[k+1]
+				if (nx >= '0' && nx <= '9') || nx == 'y' || nx == '_' {
+					eAt = k
+					break
+				}
 			}
 		}
 		if eAt < 0 {
