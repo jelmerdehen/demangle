@@ -30,6 +30,22 @@ and function-entity. Estimated 50-100 LOC. Reason for deferral: risk
 of regressing single-label Qr functions and the static-property Qr
 path that AAV unlocked.
 
+### plateau-2026-05-15-cae [deferred-1]
+
+CAE fire at 90.50%. Confirmed via probes that `_$sScFsE7enqueueyyScJF`
+works (ScJ = UnownedJob 2nd-level stdlib sub, single byte after the
+yy result-empty marker), while `_$sScFsE7enqueueyys3JobVnF` and the
+ExecutorJob equivalent fail. The difference is the trailing `n`
+__owned modifier between the `V` kind byte and `F` function
+terminator. tryTypeFirstExtensionEntity for Sc<X>sE methods must
+route through a speculative branch that does not invoke applyMod.
+
+Specific fix path: trace which sub-branch handles `Sc<X>sE<name>yy<param>F`
+without modifier and confirm whether parseType + applyMod is in that
+branch or if it's the simplified-path that emits `<Host>.<name>(_:)`
+form without per-param-modifier consumption. Multi-fire dedicated
+investigation.
+
 ### plateau-2026-05-15-cad [deferred-1]
 
 CAD fire at 90.50%. Attempted to find where Sc<X>sE method body
