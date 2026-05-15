@@ -8643,9 +8643,18 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 
 	// Determine terminal: init (fC/fc/KfC/Kfc) OR function (F/FZ).
 	sEnd := len(p.s)
+	// Tj/Tq suffix: dispatch thunk of / method descriptor for <inner>.
+	tjPrefix := ""
+	if sEnd >= 3 && p.s[sEnd-2:] == "Tj" && p.s[sEnd-3] == 'F' {
+		tjPrefix = "dispatch thunk of "
+		sEnd -= 2
+	} else if sEnd >= 3 && p.s[sEnd-2:] == "Tq" && p.s[sEnd-3] == 'F' {
+		tjPrefix = "method descriptor for "
+		sEnd -= 2
+	}
 	// QOMQ wrapper: "opaque type descriptor for <<opaque return type of ...>>"
 	isQOMQ := false
-	if sEnd >= 5 && p.s[sEnd-4:] == "QOMQ" && p.s[sEnd-5] == 'F' {
+	if sEnd >= 5 && p.s[sEnd-4:sEnd] == "QOMQ" && p.s[sEnd-5] == 'F' {
 		isQOMQ = true
 		sEnd -= 4
 	}
@@ -8871,6 +8880,9 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 	text := staticPfx + hostStr + nameOut + localGen + labelStr
 	if isQOMQ {
 		text = "opaque type descriptor for <<opaque return type of " + text + ">>"
+	}
+	if tjPrefix != "" {
+		text = tjPrefix + text
 	}
 	wrap := common.NewNode(common.KindTypeMangling)
 	wrap.Text = text
