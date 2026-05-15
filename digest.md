@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- 503a51a2 swift-parity: CEK skip leading yy in args + allow empty extMarker — parity 95.34%->95.35% (+7 production +0 roundtrip)
+- 909cd2d2 chore: lock snapshot after CEJ commit (parity 60781->60783)
+- 38486a28 chore: update digest.md for CEJ commit (+2 production)
 - 42e85d93 swift-parity: CEJ relax CEI last-byte check — accept any non-y ending — parity 95.33%->95.34% (+2 production +0 roundtrip)
 - 2a5e3e9c chore: lock snapshot after CEI commit (parity 60779->60781)
 - 204c692f chore: update digest.md for CEI commit (+2 production)
@@ -36,9 +39,6 @@
 - 610d8e4b chore: lock snapshot after CEG commit (parity 60771->60779)
 - f36b53c1 chore: update digest.md for CEG commit (+8 production)
 - 758d1a1d swift-parity: CEG tighten extMarker — require Rb/Rd marker for fallback <> — parity 95.32%->95.33% (+8 production +0 roundtrip)
-- bdd20cac chore: lock snapshot after CED commit (parity 60770->60771)
-- d7fd72db chore: update digest.md for CED commit (+1 production)
-- 5ea42145 swift-parity: CED reduce family expand from () also at fast-path fn-emit — parity 95.31%->95.32% (+1 production +0 roundtrip)
 
 ## Suggested Next 3 Items
 
