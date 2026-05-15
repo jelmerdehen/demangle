@@ -1,19 +1,18 @@
 # Swift Production Digest
 
-**Parity**: 92.82% (59180/63757) — 2026-05-15T04:09:11Z
+**Parity**: 92.88% (59215/63757) — 2026-05-15T04:19:11Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 4060 parse-errors + 517 mismatches
+**Failures**: 4057 parse-errors + 485 mismatches
 
 ## Top-20 Mismatch Categories
 
 - static (extension                          41
 - (extension in Foundation):__C.NSNotificationCenter… 22
-- UIView._addLayoutRule<A>(_:)               16
 - (extension in Foundation):__C.NSAttributedString.i… 14
 - (extension in Foundation):Swift.String.Localizatio… 13
 - (extension in Foundation):Swift.BinaryFloatingPoin… 10
 - IntelligenceUI.PromptEntryView.Delegate.promptEntr… 10
-- opaque type descriptor                     10
+- opaque type descriptor                     9
 - (extension in Foundation):Swift.BinaryInteger.init… 8
 - (extension in Foundation):__C.NSSortDescriptor.ini… 8
 - (extension in Foundation):Swift.String.init(locali… 7
@@ -26,9 +25,13 @@
 - (extension in Foundation):Swift.String.init(conten… 4
 - (extension in Foundation):Swift.StringProtocol.com… 4
 - (extension in Foundation):Swift.StringProtocol.wri… 4
+- (extension in Foundation):__C.NSDictionary.init(di… 4
 
 ## Last 10 Commits
 
+- b2c5590 swift-parity: CCB last-resort fast-path positional count for inits — parity 92.87%->92.89% (+14 production)
+- dbaa15d chore: lock snapshot after CCA commit (roundtrip 17359->17362)
+- 3280476 chore: update digest.md for CCA commit (parity 92.87%->92.87% +0)
 - e16faf4 swift-parity: CCA last-resort fast-path QOMQ wrapper — parity 92.87%->92.87% (+0 production +3 roundtrip)
 - cf2616e chore: lock snapshot after CBZ commit (parity 59207->59215)
 - 927f06f chore: update digest.md for CBZ commit (parity 92.86%->92.87% +8)
@@ -36,12 +39,9 @@
 - e555bca chore: lock snapshot after CBY commit (parity 59180->59207)
 - 62d6503 chore: update digest.md for CBY commit (parity 92.82%->92.86% +27)
 - ea8421d swift-parity: CBY last-resort fast-path positional param count for fns — parity 92.82%->92.86% (+27 production)
-- a31874a chore: lock snapshot after CBX commit (parity 58981->59180, roundtrip 16792->17359)
-- b5c9e4d chore: update digest.md for CBX commit (parity 92.51%->92.82% +199)
-- da1fdbc swift-parity: CBX last-resort fast-path stdlib/ObjC host + digit-led ext-mod — parity 92.51%->92.82% (+199 production +567 roundtrip)
 
 ## Suggested Next 3 Items
 
 1. investigate: static (extension — 41 mismatches
 2. investigate: (extension in Foundation):__C.NSNotificationCenter… — 22 mismatches
-3. investigate: UIView._addLayoutRule<A>(_:) — 16 mismatches
+3. investigate: (extension in Foundation):__C.NSAttributedString.i… — 14 mismatches
