@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- 0d5c3daa swift-parity: CDJ tighten A-branch E-finder lookahead — parity 95.14%->95.17% (+20 production +0 roundtrip)
+- 2498d142 chore: lock snapshot after CDI commit (parity 60648->60655)
+- bd188fcd chore: update digest.md for CDI commit (+7 production)
 - b86f9939 swift-parity: CDI fast-path init host <A> for Rsz/Rz constraints — parity 95.13%->95.14% (+7 production +0 roundtrip)
 - 206ed05f chore: lock snapshot after CDH commit (parity 60642->60648)
 - b4825bc1 chore: update digest.md for CDH commit (+6 production)
@@ -36,9 +39,6 @@
 - 3acab56a chore: lock snapshot after DBF commit (parity 60627->60642)
 - 8229d278 chore: update digest.md for DBF commit (+15 production)
 - 2e62afd8 swift-parity: DBF reduce/scan family → 2 args — parity 95.10%->95.12% (+15 production +0 roundtrip)
-- 4fa7e8e5 chore: lock snapshot after DBE commit (parity 60625->60627)
-- 4dc68cfc chore: update digest.md for DBE commit (+2 production)
-- ab66434f swift-parity: DBE binary operator infix → 2 unlabeled args — parity 95.09%->95.10% (+2 production +0 roundtrip)
 
 ## Suggested Next 3 Items
 
