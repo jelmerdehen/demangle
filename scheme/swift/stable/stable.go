@@ -8714,8 +8714,9 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 		fpDirectEntity = true
 	} else if !p.eof() && p.s[p.i] == 'A' {
 		// Ext via back-ref: A<X>E<...> — self-extension on host.
-		// OR: direct entity (init/fn) where body starts with back-ref-typed
-		// return — leave as direct entity (no decl-name).
+		// First try short window (≤10 bytes) accepting any E.
+		// Then try longer window (≤80 bytes) requiring E followed by y/_/digit.
+		// If both fail, treat as direct entity.
 		eAt := -1
 		for k := p.i; k < len(p.s)-1 && k < p.i+10; k++ {
 			if p.s[k] == 'E' {
@@ -8723,14 +8724,24 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 				break
 			}
 		}
+		if eAt < 0 {
+			for k := p.i; k < len(p.s)-1 && k < p.i+80; k++ {
+				if p.s[k] == 'E' && k+1 < len(p.s) {
+					nx := p.s[k+1]
+					if (nx >= '0' && nx <= '9') || nx == 'y' || nx == '_' {
+						eAt = k
+						break
+					}
+				}
+			}
+		}
 		if eAt >= 0 {
 			fpConstraintBytes = p.s[p.i:eAt]
 			p.i = eAt + 1
-			if !p.eof() && p.s[p.i] == 'y' {
+			if !p.eof() && (p.s[p.i] == 'y' || p.s[p.i] == '_') {
 				fpDirectEntity = true
 			}
 		} else {
-			// No E in window — direct entity with body starting at A.
 			fpDirectEntity = true
 		}
 	} else if p.s[p.i] >= '1' && p.s[p.i] <= '9' {
