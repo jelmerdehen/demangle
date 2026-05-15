@@ -8445,7 +8445,37 @@ func (p *parser) tryEntitySuffix(inner *demangle.Node) (*demangle.Node, bool) {
 		case 'F':
 			prefix = "property wrapped field init accessor of "
 		case 'A':
-			prefix = "ivar initializer "
+			// fA<N>_ → "default argument <N+1> of "
+			dn := digitRun(p.s, p.i+2)
+			if dn > 0 && p.i+2+dn < len(p.s) && p.s[p.i+2+dn] == '_' {
+				idx := 0
+				for k := 0; k < dn; k++ {
+					idx = idx*10 + int(p.s[p.i+2+k]-'0')
+				}
+				idx++
+				prefix = fmt.Sprintf("default argument %d of ", idx)
+				p.i += 2 + dn + 1
+				if prefix != "" {
+					innerStr := common.Print(inner, descriptorPrintOpts(inner))
+					wrap := common.NewNode(common.KindTypeMangling)
+					wrap.Text = prefix + innerStr
+					wrap.Attrs = map[string]string{"swift.prerendered": "true"}
+					common.AddChildren(wrap, inner)
+					return wrap, true
+				}
+			} else if p.i+2 < len(p.s) && p.s[p.i+2] == '_' {
+				// fA_ → "default argument 1 of "
+				prefix = "default argument 1 of "
+				p.i += 3
+				innerStr := common.Print(inner, descriptorPrintOpts(inner))
+				wrap := common.NewNode(common.KindTypeMangling)
+				wrap.Text = prefix + innerStr
+				wrap.Attrs = map[string]string{"swift.prerendered": "true"}
+				common.AddChildren(wrap, inner)
+				return wrap, true
+			} else {
+				prefix = "ivar initializer "
+			}
 		case 'E':
 			prefix = "ivar destroyer "
 		case 'P':
