@@ -30,6 +30,20 @@ and function-entity. Estimated 50-100 LOC. Reason for deferral: risk
 of regressing single-label Qr functions and the static-property Qr
 path that AAV unlocked.
 
+### scxse-method-owned-modifier [2 syms, deferred-1]
+
+CAB probed: Sc<X>sE method with `__owned` param modifier (n byte).
+After CAA's Sc<X> host fix, simple cases like ScFsE7enqueueyyScJF
+work, but `ScFsE7enqueueyys3JobVnF` and `_s11ExecutorJobVnF` fail —
+the body parsing in tryTypeFirstExtensionEntity doesn't consume the
+`n` byte (owned modifier) in its method-body code path. applyMod
+exists in tryTypeFirstExtensionEntity but is on a different
+sub-branch.
+
+Fix: route the Sc<X>sE method body through the applyMod branch, or
+add a modifier-consumer specific to the Sc<X> path. ~2 syms direct,
+maybe more if extended to other shapes.
+
 ### protocol-init-multi-label [~10 syms, deferred-1]
 
 BAY probed: extending tryStdlibCopyInit to accept Protocol-kind
