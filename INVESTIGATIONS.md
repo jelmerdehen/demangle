@@ -30,6 +30,15 @@ and function-entity. Estimated 50-100 LOC. Reason for deferral: risk
 of regressing single-label Qr functions and the static-property Qr
 path that AAV unlocked.
 
+### plateau-2026-05-15-cbc-pivot [deferred-1]
+
+CBC fire: confirmed roundtrip drop in CAZ came from parity-pass-
+roundtrip-fail entries entering the roundtrip-tested set. Need
+remangler support for fast-path nodes (e.g. swift.fastpath.rawBody
+attr storing original mangled body, emitted verbatim). That's
+remangler scheme work, not parity-side. Defer to multi-fire.
+Pivot to small bucket attempts next fire.
+
 ### plateau-2026-05-15-cbb-fast-path-needs-slow-fail-only [deferred-1]
 
 CBB fire: studied existing tryExtensionEntity:12823 fast-path more
