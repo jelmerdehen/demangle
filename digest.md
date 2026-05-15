@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 94.65% (60346/63757) — 2026-05-15T08:16:09Z
+**Parity**: 94.66% (60355/63757) — 2026-05-15T08:20:10Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 536 parse-errors + 2875 mismatches
+**Failures**: 526 parse-errors + 2876 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,16 +29,16 @@
 
 ## Last 10 Commits
 
+- 0391ca2b swift-parity: DAH subscript static accessor cixZ (no-lu) — parity 94.66%->94.66% (+1 production +1 roundtrip)
+- 4048ec7f chore: defer plateau-2026-05-15-dag to multi-fire (deferred-1)
+- c0d6751a chore: lock snapshot after DAF commit (parity 60346->60355, roundtrip 20883->20893)
+- 2659ce34 chore: update digest.md for DAF commit (+9 production +10 roundtrip)
 - 6154a851 swift-parity: DAF subscript static accessor luiXZ + emit prefix — parity 94.65%->94.66% (+9 production +10 roundtrip)
 - aba79e9b chore: lock snapshot after DAE commit (parity 60340->60346, roundtrip 20871->20883)
 - 442b3c1b chore: update digest.md for DAE commit (+6 production +12 roundtrip)
 - 0ce659f7 swift-parity: DAE indirect FWC enum-case detection — parity 94.64%->94.65% (+6 production +12 roundtrip)
 - 9fbe6684 chore: lock snapshot after DAD commit (parity 60338->60340)
 - 124e5fd9 chore: update digest.md for DAD commit (+2 production)
-- c3a1e082 swift-parity: DAD Mc/WP gen-sig prefix from constraint — parity 94.63%->94.64% (+2 production +0 roundtrip)
-- 9f6fa889 chore: lock snapshot after DAC commit (parity 60332->60338, roundtrip 20781->20871)
-- c556024f chore: update digest.md for DAC commit (+6 production +90 roundtrip)
-- 5828b8b4 swift-parity: DAC A-led path-det fallback + init yc empty-params — parity 94.62%->94.63% (+6 production +90 roundtrip)
 
 ## Suggested Next 3 Items
 
