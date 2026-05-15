@@ -8814,6 +8814,16 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 	} else if sEnd >= 4 && p.s[sEnd-4:sEnd] == "vpMV" {
 		isPropDesc = true
 		sEnd -= 4
+	} else if sEnd >= 6 && p.s[sEnd-6:sEnd] == "luipMV" {
+		// Subscript property descriptor with local-gen prefix.
+		isPropDesc = true
+		isSubscript = true
+		sEnd -= 6
+	} else if sEnd >= 5 && p.s[sEnd-5:sEnd] == "cipMV" {
+		// Subscript property descriptor (no local-gen).
+		isPropDesc = true
+		isSubscript = true
+		sEnd -= 5
 	} else if sEnd >= 3 && p.s[sEnd-3:sEnd] == "vgZ" {
 		isPropAcc = true
 		propAcc = ".getter"
@@ -8926,7 +8936,7 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 	// V_/C_/O_/P_/G_/m_/Qz_/Qy_ separators. Default 1 if body has at
 	// least one type-kind byte (V/C/O/P/G) but no separators (1 param).
 	// Applies to both functions and inits.
-	if (isFn || isInit) && len(fpLabels) == 0 {
+	if (isFn || isInit || (isSubscript && isPropDesc)) && len(fpLabels) == 0 {
 		body := p.s[peekI:sEnd]
 		// Strip trailing F or FZ + optional 't' tuple end.
 		bodyEnd := len(body)
@@ -9079,6 +9089,9 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 	if isPropAcc {
 		// "[static ]Host.declName.<accessor>" — labels-only (no params).
 		text = propStaticPfx + hostStr + "." + declName + propAcc
+	} else if isPropDesc && isSubscript {
+		// "property descriptor for [static ]Host.subscript(<labels>)"
+		text = "property descriptor for " + propStaticPfx + hostStr + ".subscript" + labelStr
 	} else if isPropDesc {
 		// "property descriptor for [static ]Host.declName"
 		text = "property descriptor for " + propStaticPfx + hostStr + "." + declName
