@@ -30,6 +30,16 @@ and function-entity. Estimated 50-100 LOC. Reason for deferral: risk
 of regressing single-label Qr functions and the static-property Qr
 path that AAV unlocked.
 
+### plateau-2026-05-15-cav-list-init-fast-path [deferred-1]
+
+CAV fire at 90.63%. SwiftUI List.init multi-label generic init
+(_$s7SwiftUI4ListV_8children9selection10rowContent...lufC) fails
+because tryExtensionEntity finds no E marker (List is a direct host,
+not an extension) and tryFunctionEntity/tryInitDeinitEntity bail on
+the deeply-generic param chain. Need a SwiftUI-style fast-path for
+init labels-only output in tryInitDeinitEntity, mirroring the one
+at tryExtensionEntity:12823. ~10 syms in this bucket. Defer.
+
 ### session-2026-05-15-progress [info]
 
 Session CAI..CAS landed +81 production parity (90.50% -> 90.63%):
