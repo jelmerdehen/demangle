@@ -86,6 +86,34 @@ $ ssh claude@kodo xcrun swift-demangle <<<'_$s10Foundation14SortDescriptorV_5ord
 Foundation.SortDescriptor.init<A where A: __C.NSObject>(_: Swift.KeyPath<A, Foundation.Date?>, order: Foundation.SortOrder) -> Foundation.SortDescriptor<A>
 ```
 
+### Useful flags (verified against kodo's swift-demangle)
+
+| Flag | Purpose | Use case |
+|------|---------|----------|
+| `--simplified` | Strip module names + implicit self types + parameter types | Matches our **fast-path target form** for most non-Foundation symbols. Use to validate fast-path against Apple short-form. |
+| `--tree-only` / `--expand` | Dump Apple's parsed Node tree (Kind + index labels) | **Grammar ground truth.** Decode unfamiliar terminals, see exact `DependentGenericSignature` / `ConformanceRequirement` structure for Mc/WP/TW. |
+| `--remangle-new` | Re-mangle the demangled tree | Round-trip verification: input vs output should match (tests our mangle path). |
+| `--test-remangle` | Show re-mangled string | Same as above, formatted as test output. |
+| `--remangle-objc-rt` | Emit OLD Swift-3-style `_TZF…` mangling | Cross-check against legacy mangler. |
+| `--strip-specialization` | Strip specialization wrapper, return origin symbol | Normalize specialized symbols to their generic origin before parsing. |
+| `--no-sugar` | Drop `?` and `[]` syntactic sugar | Show `Optional<X>` instead of `X?`, `Array<X>` instead of `[X]`. |
+| `--show-closure-signature` | Render closure type signatures inline | Useful when a symbol's closure-typed param needs full sig in output. |
+| `--hiding-module=<X>` | Drop `<X>.` qualification from output | Targeted module hiding (e.g. `--hiding-module=Foundation` for app-side display). |
+| `--display-stdlib-module` | Force `Swift.` qualification on stdlib types | Inverse of `--simplified` for stdlib portion only. |
+| `--display-objc-module` | Force `__C.` qualification on ObjC-bridged types | |
+| `--display-local-name-contexts` | Qualify local function names | |
+| `--classify` | Prefix output with classification character (`G` global, `T` type, etc.) | Quick categorization of symbol kind. |
+| `--compact` | Print only demangled name (no "$<sym> --->" prefix) | Pipe-friendly batch output. |
+| `--type` | Treat input as runtime-type string (not full mangled symbol) | For `<type>` fragments, not `_$s` globals. |
+
+**Highest-value combos:**
+- Diff our short-form output vs `--simplified`: directly tests fast-path correctness.
+- Diff our full-form output vs plain (no flag): tests main-parser verbose-form correctness.
+- `--tree-only <sym>` to see Apple's structural understanding when our parser disagrees.
+- `--hiding-module=Foundation` produces an intermediate form that's neither fully verbose nor fully simplified — useful baseline if our output sits between.
+
+`--help-hidden` lists more debug flags (mostly LLVM-infra: `--debug-counter`, `--stats`, `--track-memory`).
+
 ## Architecture TL;DR
 
 One interface (`Scheme`), one optional extension (`Mangler`), one
