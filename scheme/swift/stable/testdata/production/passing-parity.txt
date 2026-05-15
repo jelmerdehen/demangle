@@ -1,4 +1,4 @@
-# snapshot-pass-set update 2026-05-15T01:13:13Z — union with previous (high-water)
+# snapshot-pass-set update 2026-05-15T01:17:15Z — union with previous (high-water)
 _$s10Foreground7SwiftUI18LabelGroupStyle_v0PTl
 _$s10Foundation10CocoaErrorV010formattingC0AC4CodeVvgZ
 _$s10Foundation10CocoaErrorV010formattingC0AC4CodeVvpZMV
@@ -40771,6 +40771,7 @@ _$sScT9hashValueSivg
 _$sScT9hashValueSivpMV
 _$sScTMa
 _$sScTMn
+_$sScTss5Error_pRs_rlE16startOnMainActor8priority_ScTyxsAA_pGScPSg_xyYaYbKScMYccntFZ
 _$sScTss5NeverORs_rlE5valuexvg
 _$sScTss5NeverORs_rlE5valuexvgTu
 _$sScTss5NeverORs_rlE5valuexvpMV
@@ -40782,6 +40783,7 @@ _$sScTss5NeverORszABRs_rlE15currentPriorityScPvgZ
 _$sScTss5NeverORszABRs_rlE15currentPriorityScPvpZMV
 _$sScTss5NeverORszABRs_rlE15defaultExecutorSch_pvgZ
 _$sScTss5NeverORszABRs_rlE15defaultExecutorSch_pvpZMV
+_$sScTss5NeverORszABRs_rlE17checkCancellationyyKFZ
 _$sScTss5NeverORszABRs_rlE4nameSSSgvgZ
 _$sScTss5NeverORszABRs_rlE4nameSSSgvpZMV
 _$sScTyxq_GSHsMc
@@ -40831,6 +40833,7 @@ _$sScfsE14isMainExecutorSbvpMV
 _$sScfsE23asUnownedSerialExecutorSceyF
 _$sScfsE25isIsolatingCurrentContextSbSgyF
 _$sScfsE31isSameExclusiveExecutionContext5otherSbx_tF
+_$sScfsSQRzrlE31isSameExclusiveExecutionContext5otherSbx_tF
 _$sScg10nextResults0B0Oyxq_GSgyYaKF
 _$sScg10nextResults0B0Oyxq_GSgyYaKFTu
 _$sScg11_waitForAllyyYaKF
