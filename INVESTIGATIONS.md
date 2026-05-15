@@ -1140,6 +1140,50 @@ Tried: count `_` separator after `S<lowercase>` (Sg/Sf/Sa/Sd/Si/Sb/Sh/SS).
 Result: -7 parity. Stdlib type suffix occurs in result-type position too.
 Multi-fire — needs structural args/result distinction.
 
+## plateau-2026-05-15T20:50Z [SOS] perpetual-99 ratchet stalled at 95.36%
+
+**Status:** parity 60797/63757 (95.36%). 5 consecutive zero-gain fires
+since CEM (60796→60797 +1). 2 productive commits (CEL +6, CEM +1) over
+11 fires. Net +7 syms in 11 fires.
+
+**Distance to mission complete (≥99.0%):** 2322 syms. At current pace
+(~0.6 sym/fire averaged across productive+defer fires), ETA
+≈ 3870 fires. At productive-only pace (~3.5 sym/productive-commit),
+≈ 660 productive commits needed; with ~5 fires per productive at
+current discovery rate, ETA ≈ 3300 fires.
+
+**Root cause of plateau:** every remaining ≥5-count divergence bucket
+falls into one of these multi-fire structural rewrites:
+
+| Defer | Bucket | Approx syms |
+|-------|--------|-------------|
+| defer-ceo | Foundation/Swift full-form renderer (Phase A-D) | ~1500 |
+| defer-cep | QOMQ fast-path fn-arg overcount | ~10 |
+| defer-ceq | Main-parser Qr opaque-return arg overcount | ~12 |
+| defer-cer | Word-capture acronym-end alignment with Apple | 4 |
+| defer-cen | Nested-walk inner-ext-mod word-capture | 72 |
+| defer-cdk | Digit-led ext scan-ahead discriminator | ~30 |
+| defer-cdo | Nested-walk ext-mod recovery | ~20 |
+| defer-cdi | CDI init multi-arg structural parser | ~5 |
+| defer-cds | Opaque-Qr-return closure-arg-count | ~5 |
+| defer-cdu | Word-sub label rewind | ~3 |
+
+**Round-robin pick from deferred-1 tier:** smallest-tractable surface
+seems to be `defer-cer` (4 syms, word-capture algo). Largest single
+unlock is `defer-ceo` Phase A (verbose-type renderer scaffold ≥305
+syms). Both need oracle access (currently down) to validate against
+Apple's algorithm.
+
+**Recommended escalation:**
+- Restore oracle (ssh claude@kodo) — without it, any captureWords or
+  type-renderer change is shooting blind. Apple's word_subs.cpp +
+  Demangler.cpp need diff against our implementation.
+- Or: accept plateau at 95-96% as the natural limit of the current
+  hand-rolled fast-path + main-parser architecture without verbose-
+  type renderer. The 99% target presumes the verbose renderer ships.
+
+Per goal: next fire continues round-robin from deferred-1.
+
 ## defer-cer-word-capture-acronym-end [4 syms, deferred-1] (2026-05-15)
 
 Pattern: label decoding via word-sub `<digit><letter>` resolves to
