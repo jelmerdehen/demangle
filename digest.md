@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- dcc15d87 swift-parity: DAP word-sub `0` decl-name path-det pass-through — parity 94.89%->95.01% (+76 production +156 roundtrip)
+- 540bb1bd chore: lock snapshot after DAO commit (parity 60495->60498)
+- abc5bf4f chore: update digest.md for DAO commit (+3 production +3 roundtrip)
 - 56acb0b1 swift-parity: DAO TL protocol-requirements-base-descriptor — parity 94.88%->94.89% (+3 production +3 roundtrip)
 - 550b72b3 chore: lock snapshot after DAN commit (parity 60490->60495)
 - 54f5ece4 chore: update digest.md for DAN commit (+5 production)
@@ -36,9 +39,6 @@
 - e3f6305f chore: lock snapshot after DAM commit (parity 60485->60490, roundtrip 20942->20976)
 - d76bba58 chore: update digest.md for DAM commit (+5 production +34 roundtrip)
 - d329bf60 swift-parity: DAM user-mod top-level fn — parity 94.86%->94.87% (+5 production +34 roundtrip)
-- de24befb chore: defer plateau-2026-05-15-dal to multi-fire (deferred-1)
-- 4ecb9530 chore: defer plateau-2026-05-15-dak to multi-fire (deferred-1)
-- dc78c43e chore: lock snapshot after DAJ commit (parity 60414->60485)
 
 ## Suggested Next 3 Items
 
