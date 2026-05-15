@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 94.66% (60355/63757) — 2026-05-15T08:20:10Z
+**Parity**: 94.67% (60356/63757) — 2026-05-15T08:29:12Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 526 parse-errors + 2876 mismatches
+**Failures**: 525 parse-errors + 2876 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- 317dfa68 swift-parity: DAI A-branch wider E-scan w/ valid-next gate — parity 94.66%->94.75% (+58 production +48 roundtrip)
+- 41d75ee1 chore: lock snapshot after DAH commit (parity 60355->60356)
+- b536c2fb chore: update digest.md for DAH commit (+1 production +1 roundtrip)
 - 0391ca2b swift-parity: DAH subscript static accessor cixZ (no-lu) — parity 94.66%->94.66% (+1 production +1 roundtrip)
 - 4048ec7f chore: defer plateau-2026-05-15-dag to multi-fire (deferred-1)
 - c0d6751a chore: lock snapshot after DAF commit (parity 60346->60355, roundtrip 20883->20893)
@@ -36,9 +39,6 @@
 - 6154a851 swift-parity: DAF subscript static accessor luiXZ + emit prefix — parity 94.65%->94.66% (+9 production +10 roundtrip)
 - aba79e9b chore: lock snapshot after DAE commit (parity 60340->60346, roundtrip 20871->20883)
 - 442b3c1b chore: update digest.md for DAE commit (+6 production +12 roundtrip)
-- 0ce659f7 swift-parity: DAE indirect FWC enum-case detection — parity 94.64%->94.65% (+6 production +12 roundtrip)
-- 9fbe6684 chore: lock snapshot after DAD commit (parity 60338->60340)
-- 124e5fd9 chore: update digest.md for DAD commit (+2 production)
 
 ## Suggested Next 3 Items
 
