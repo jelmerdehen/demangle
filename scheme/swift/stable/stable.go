@@ -8534,7 +8534,7 @@ func (p *parser) tryEntitySuffix(inner *demangle.Node) (*demangle.Node, bool) {
 // Conservative: only fires when symbol is long (>50 body chars) and ends
 // in a clean entity terminal.
 func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
-	if len(p.s) < 40 {
+	if len(p.s) < 35 {
 		return nil, false
 	}
 	save := p.i
