@@ -30,6 +30,37 @@ and function-entity. Estimated 50-100 LOC. Reason for deferral: risk
 of regressing single-label Qr functions and the static-property Qr
 path that AAV unlocked.
 
+### session-2026-05-15-progress [info]
+
+Session CAI..CAS landed +81 production parity (90.50% -> 90.63%):
+- CAI/CAJ/CAK/CAN/CAO: Sc<X> simplified rendering family +23
+- CAR: notTypeEnd recognises n/h/z param-modifier bytes +48
+  (broad cross-cluster unlock — speculative-result-type spec was
+  swallowing first-param-with-modifier across many ext methods)
+- CAS: applyMod clones for z (inout) +10 (operator pairs with shared
+  back-ref AB no longer both stamped inout)
+
+Remaining 15 mismatches and 6000+ parse-errors are all deep parser
+surgery (PAAE multi-conformance, qr-multilabel, FixedWidthInteger
+depth-1 generics on multi-label methods, ClosedRange Index op-args
+verbose render, _CalendarProtocol back-ref drift, SliderTickContent
+generic-count cap). All multi-fire deferred.
+
+### plateau-2026-05-15-cat-no-tractable-bucket [deferred-1]
+
+CAT fire at 90.63%. Tried mirroring CAR's notTypeEnd fix in
+tryExtensionEntity speculative-result spec (line 12804) — no
+production effect (parse-error buckets don't reach that path).
+Reverted.
+
+### plateau-2026-05-15-cau-no-tractable-bucket [deferred-1]
+
+CAU fire at 90.63%. Probed FixedWidthInteger constraint-ext multi-
+label random(in:using:) bucket — depth-1 generic on multi-label
+method (multi-fire). Probed SR Foundation-ext nested stdlib host
+(SR<UnsafeBufferPointer><Foundation><UInt8>RszlE) — two-host
+extension grammar gap (multi-fire). Pivot.
+
 ### plateau-2026-05-15-caq-no-tractable-bucket [deferred-1]
 
 CAQ fire at 90.55%. Surveyed top parse-error buckets (103/63/62/59/
