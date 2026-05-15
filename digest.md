@@ -21,6 +21,9 @@
 
 ## Last 10 Commits
 
+- d6ad4db swift-parity: CAO withTaskExecutorPreference + variants in concurrency map — parity 90.54%->90.55% (+2 production)
+- 228b547 chore: lock snapshot after CAN commit (parity 57723->57724)
+- 880b0e8 chore: update digest.md for CAN commit (parity 90.54%->90.54% +1)
 - 4da835a swift-parity: CAN IsConcurrencyType walks existential — parity 90.54%->90.54% (+1 production)
 - bef92b2 chore: defer cam-equatable-symmetry-too-broad to multi-fire (deferred-1)
 - ff0cbf7 chore: defer post-cak-leftover-mismatches to multi-fire (deferred-1)
@@ -28,9 +31,6 @@
 - 1679c45 chore: update digest.md for CAK commit (parity 90.54%->90.54% +2)
 - 2a00327 swift-parity: CAK Sc<X> stdlib2 hosts to concurrency map — parity 90.54%->90.54% (+2 production)
 - d10faf5 chore: lock snapshot after CAJ commit (parity 57718->57721)
-- 0f2c6c0 chore: update digest.md for CAJ commit (parity 90.53%->90.54% +3)
-- 4738eaf swift-parity: CAJ Sc<X> ext-method <> placeholder — parity 90.53%->90.54% (+3 production)
-- e503c75 chore: lock snapshot after CAI commit (parity 57703->57718)
 
 ## Suggested Next 3 Items
 
