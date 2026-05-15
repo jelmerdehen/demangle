@@ -30,6 +30,19 @@ and function-entity. Estimated 50-100 LOC. Reason for deferral: risk
 of regressing single-label Qr functions and the static-property Qr
 path that AAV unlocked.
 
+### plateau-2026-05-15-caw-init-fast-path-apple-regress [deferred-1]
+
+CAW fire: implemented init fast-path in tryInitDeinitEntity for
+non-Swift/Foundation modules with labels-only output for SwiftUI/
+UIKit deeply-generic inits. Target sym (List.init<A,B>) passed but
+Apple curated corpus regressed (want >=151 matched, got 150 — one
+sym lost). The fast-path is too eager: probably matching an Apple-
+curated init that legitimately needs full output (e.g. an init
+where the host is a non-stdlib type but the corpus expects param
+types). Need narrower predicate: only fire when post-labels parse
+clearly fails OR symbol shape matches deeply-nested-generic
+heuristic. Reverted.
+
 ### plateau-2026-05-15-cav-list-init-fast-path [deferred-1]
 
 CAV fire at 90.63%. SwiftUI List.init multi-label generic init
