@@ -30,6 +30,16 @@ and function-entity. Estimated 50-100 LOC. Reason for deferral: risk
 of regressing single-label Qr functions and the static-property Qr
 path that AAV unlocked.
 
+### plateau-2026-05-15-ccg-vcop-label-stop-noop [deferred-1]
+
+CCG fire at 92.89%. Tried adding V/C/O/P-after-ident label-stop in
+last-resort + tryExtensionEntity label loops. Target sym (GridLayout
+.explicitAlignment with `12CoreGraphics7CGFloatV` consumed as label)
+is handled by tryFunctionEntity (not those handlers) — its label
+loop already has the V/C/O/P check but misses the chain-of-idents
+case (ident + digit-led-ident + V). My changes were no-op. Reverted.
+Need: chain-aware lookahead in tryFunctionEntity label loop.
+
 ### plateau-2026-05-15-cce-extmethod-depth-track-regress [deferred-1]
 
 CCE fire at 92.89%. Tried applying same y...G depth tracking to
