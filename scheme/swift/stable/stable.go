@@ -8797,6 +8797,14 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 		declName = ident
 		break
 	}
+	// Bound-generic-on-host detection: after nested-walk, if byte sequence
+	// is `yx_G` (Type<A>), consume it and mark for Mc/WP emit decoration.
+	fpBoundGenOnHost := false
+	if !p.eof() && p.i+3 < len(p.s) &&
+		p.s[p.i] == 'y' && p.s[p.i+1] == 'x' && p.s[p.i+2] == '_' && p.s[p.i+3] == 'G' {
+		fpBoundGenOnHost = true
+		p.i += 4
+	}
 	// Nested-extension recovery: if no decl-name found yet and we have at
 	// least one nested type, scan for `E<digit>` (2nd ext marker) within
 	// window. Bytes between are nested-ext constraint bytes which apply
@@ -9019,15 +9027,21 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 		isFn = true
 		isStatic = true
 	}
-	// Mc terminal — protocol conformance descriptor. Only handle simple
-	// ObjC hosts with no nested types and no body-side bound generic.
+	// Mc / WP terminal — protocol conformance descriptor / witness table.
+	// Allow ObjC hosts (no body bound-gen) OR any host with bound-gen on
+	// host (yx_G consumed earlier).
 	isMc := false
-	if sEnd >= 2 && p.s[sEnd-2:sEnd] == "Mc" && fpHostIsObjC && !isInit && !isFn &&
-		!isPropAcc && !isPropDesc && !isSubscript {
-		isMc = true
-		sEnd -= 2
+	isWP := false
+	if sEnd >= 2 && !isInit && !isFn && !isPropAcc && !isPropDesc && !isSubscript {
+		if p.s[sEnd-2:sEnd] == "Mc" && (fpHostIsObjC || fpBoundGenOnHost) {
+			isMc = true
+			sEnd -= 2
+		} else if p.s[sEnd-2:sEnd] == "WP" && (fpHostIsObjC || fpBoundGenOnHost) {
+			isWP = true
+			sEnd -= 2
+		}
 	}
-	if !isInit && !isFn && !isPropAcc && !isPropDesc && !isSubscript && !isMc {
+	if !isInit && !isFn && !isPropAcc && !isPropDesc && !isSubscript && !isMc && !isWP {
 		revert()
 		return nil, false
 	}
@@ -9228,6 +9242,15 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 	if strings.Contains(fpConstraintBytes, "rl") {
 		fpExtMarker = "<>"
 	}
+	// Bound-generic-on-host decoration (Mc/WP only): inject before nested.
+	// Optional → A?; other hosts → Host<A>.
+	if fpBoundGenOnHost && (isMc || isWP) {
+		if hostStr == "Optional" {
+			hostStr = "A?"
+		} else {
+			hostStr += "<A>"
+		}
+	}
 	hostStr += fpExtMarker
 	if len(nestedNames) > 0 {
 		if fpNestedExtMarker != "" {
@@ -9265,8 +9288,9 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 
 	var text string
 	if isMc {
-		// "protocol conformance descriptor for <Host>"
 		text = "protocol conformance descriptor for " + hostStr
+	} else if isWP {
+		text = "protocol witness table for " + hostStr
 	} else if isPropAcc {
 		// "[static ]Host.declName.<accessor>" — labels-only (no params).
 		text = propStaticPfx + hostStr + "." + declName + propAcc
