@@ -194,6 +194,14 @@ func IsConcurrencyType(n *demangle.Node) bool {
 		if len(cur.Children) > 0 {
 			return IsConcurrencyType(cur.Children[0])
 		}
+	case KindTypeList:
+		// Existential `any P` is a TypeList wrapping one or more Protocol
+		// types. Probe each child — concurrency-marked counts.
+		for _, c := range cur.Children {
+			if IsConcurrencyType(c) {
+				return true
+			}
+		}
 	}
 	return false
 }

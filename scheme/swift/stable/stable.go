@@ -5936,7 +5936,8 @@ func (p *parser) tryVariableEntity() (*demangle.Node, bool, error) {
 	switch kindByte {
 	case 'g', 's', 'M', 'w', 'W':
 		isConcurrencyAcc := mod == "Swift" && (rootIsConcurrency ||
-			(len(pathSteps) >= 2 && swiftConcurrencyRuntimeTypes[pathSteps[1].Text]))
+			(len(pathSteps) >= 2 && swiftConcurrencyRuntimeTypes[pathSteps[1].Text]) ||
+			common.IsConcurrencyType(typ))
 		if (mod == "Foundation" || mod == "Swift") && !isConcurrencyAcc {
 			// Full form: module-qualified path + type annotation.
 			path := common.NewNode(common.KindEntityPath)
