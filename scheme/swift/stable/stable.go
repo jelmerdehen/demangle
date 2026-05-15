@@ -3822,11 +3822,34 @@ func (p *parser) tryNominalCopyInit(inner *demangle.Node) (*demangle.Node, bool)
 	if common.RootModuleOf(inner) != "Swift" {
 		return inner, false
 	}
-	if p.s[p.i] != 'y' || p.s[p.i+1] != 'A' {
+	save := p.i
+	// Optional single digit-led label before the A-backref. Labeled form:
+	//   <host> <digits><label> <A-backref> _t cfC → init(<label>: ...)
+	// Unlabeled (y) form:
+	//   <host> y <A-backref> [yXln?] cfC → init(...)
+	label := ""
+	if p.s[p.i] >= '1' && p.s[p.i] <= '9' {
+		lblSave := p.i
+		lblSubs := p.subs
+		lblWords := p.words
+		lbl, err := p.parseIdentifier()
+		if err != nil || lbl == "" {
+			p.i = lblSave
+			p.subs = lblSubs
+			p.words = lblWords
+		} else {
+			label = lbl
+		}
+		if p.eof() || p.s[p.i] != 'A' {
+			p.i = save
+			return inner, false
+		}
+		p.i++ // consume 'A'
+	} else if p.s[p.i] == 'y' && p.i+1 < len(p.s) && p.s[p.i+1] == 'A' {
+		p.i += 2 // 'y' + 'A'
+	} else {
 		return inner, false
 	}
-	save := p.i
-	p.i += 2 // 'y' + 'A'
 	// Back-ref body: (digit|lower)* upper.
 	// Track whether the body had any lowercase letter — Apple's
 	// `A<lower>+<upper>` multi-sub form pushes one node per lowercase
@@ -3870,6 +3893,15 @@ func (p *parser) tryNominalCopyInit(inner *demangle.Node) (*demangle.Node, bool)
 		hasYXlOwned = true
 		p.i += 4
 	}
+	// Optional `_t` single-arg-tuple terminator (labeled form).
+	if label != "" {
+		if p.i+1 < len(p.s) && p.s[p.i] == '_' && p.s[p.i+1] == 't' {
+			p.i += 2
+		} else {
+			p.i = save
+			return inner, false
+		}
+	}
 	if p.i+2 >= len(p.s) || p.s[p.i] != 'c' || p.s[p.i+1] != 'f' || p.s[p.i+2] != 'C' {
 		p.i = save
 		return inner, false
@@ -3891,7 +3923,11 @@ func (p *parser) tryNominalCopyInit(inner *demangle.Node) (*demangle.Node, bool)
 		paramStr = common.Print(parentType, common.DefaultPrintOptions())
 	}
 	wrap := common.NewNode(common.KindTypeMangling)
-	wrap.Text = hostStr + ".init(" + paramStr + ") -> " + hostStr
+	if label != "" {
+		wrap.Text = hostStr + ".init(" + label + ": " + paramStr + ") -> " + hostStr
+	} else {
+		wrap.Text = hostStr + ".init(" + paramStr + ") -> " + hostStr
+	}
 	return wrap, true
 }
 
