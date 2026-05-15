@@ -1,15 +1,15 @@
 # Swift Production Digest
 
-**Parity**: 95.11% (60642/63757) — 2026-05-15T10:59:51Z
+**Parity**: 95.15% (60663/63757) — 2026-05-15T11:40:22Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 233 parse-errors + 2882 mismatches
+**Failures**: 233 parse-errors + 2861 mismatches
 
 ## Top-20 Mismatch Categories
 
 - property descriptor                        313
 - static (extension                          134
-- dispatch thunk                             103
-- method descriptor                          103
+- dispatch thunk                             101
+- method descriptor                          101
 - (extension in Foundation):Foundation.PredicateExpr… 85
 - protocol conformance descriptor            82
 - protocol witness table                     46
@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- 20a0c0e0 swift-parity: CDK fast-path digit-led ext scan-ahead + prop-desc host <A> — parity 95.17%->95.19% (+16 production +0 roundtrip)
+- 32f146a2 chore: lock snapshot after CDJ commit (parity 60655->60675)
+- 7170b6fc chore: update digest.md for CDJ commit (+20 production)
 - 0d5c3daa swift-parity: CDJ tighten A-branch E-finder lookahead — parity 95.14%->95.17% (+20 production +0 roundtrip)
 - 2498d142 chore: lock snapshot after CDI commit (parity 60648->60655)
 - bd188fcd chore: update digest.md for CDI commit (+7 production)
@@ -36,12 +39,9 @@
 - 206ed05f chore: lock snapshot after CDH commit (parity 60642->60648)
 - b4825bc1 chore: update digest.md for CDH commit (+6 production)
 - 7f658f62 swift-parity: CDH track last-nominal-kind for __allocating_init — parity 95.12%->95.13% (+6 production +0 roundtrip)
-- 3acab56a chore: lock snapshot after DBF commit (parity 60627->60642)
-- 8229d278 chore: update digest.md for DBF commit (+15 production)
-- 2e62afd8 swift-parity: DBF reduce/scan family → 2 args — parity 95.10%->95.12% (+15 production +0 roundtrip)
 
 ## Suggested Next 3 Items
 
 1. P1: property descriptor fix — 313 mismatches
 2. investigate: static (extension — 134 mismatches
-3. investigate: dispatch thunk — 103 mismatches
+3. investigate: dispatch thunk — 101 mismatches
