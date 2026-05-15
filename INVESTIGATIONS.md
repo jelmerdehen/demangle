@@ -481,6 +481,22 @@ complete. The `n` modifier handling requires identifying the exact
 speculative branch and either consuming `n` or wrapping in applyMod.
 Multi-fire.
 
+### plateau-2026-05-15-dau [deferred-1]
+
+DAU landed but plateau approaching. After session run CDA-DAU: parity
+59731 → 60594 = +863 (93.69% → 95.04%), roundtrip 18880 → 21163 = +2283.
+
+Remaining errors (256 total) and mismatches (2907) dominated by:
+- Foundation Apple verbose form requirements (FormatStyle, ParseStrategy,
+  PredicateExpressions Mc/WP descriptors with `: Protocol in Module`)
+- Protocol witness TW shapes (vgTW, FZTW, ctFZTW)
+- Multi-arg label inference (`(_:_:)` vs `(_:)` for Publisher.reduce etc.)
+- Default-argument generators (fA<N>_)
+- Word-sub host name parsing (parseIdentifier handles, but emit-paths
+  outside fast-path don't always)
+
+All require non-fast-path or structural constraint work. Multi-fire.
+
 ### plateau-2026-05-15-daq [deferred-1]
 
 DAQ retry of DAL: reorder ONLY init-fast-path extMarker (line 13968)
