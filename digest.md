@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- 5ea42145 swift-parity: CED reduce family expand from () also at fast-path fn-emit — parity 95.31%->95.32% (+1 production +0 roundtrip)
+- bc2a5164 chore: lock snapshot after CEB commit (parity 60769->60770)
+- 65f64eb6 chore: update digest.md for CEB commit (+1 production)
 - 987101b3 swift-parity: CEB A-branch accept E followed by A/S/x/q with constraint marker — parity 95.31%->95.31% (+1 production +0 roundtrip)
 - 6aaf5352 chore: lock snapshot after CEA commit (parity 60768->60769)
 - a128f971 chore: update digest.md for CEA commit (+1 production)
@@ -36,9 +39,6 @@
 - 1d5ad8bc chore: lock snapshot after CDZ commit (parity 60766->60768)
 - 5cd5c8c4 chore: update digest.md for CDZ commit (+2 production)
 - f92782c5 swift-parity: CDZ binary infix → 2 args at fast-path fn-emit — parity 95.31%->95.31% (+2 production +0 roundtrip)
-- 9d52b70a chore: lock snapshot after CDY commit (parity 60761->60766)
-- 681218b4 chore: update digest.md for CDY commit (+5 production)
-- b65bbe41 swift-parity: CDY zip/combineLatest/map expand 2-arg → N-arg by generic count — parity 95.30%->95.31% (+5 production +0 roundtrip)
 
 ## Suggested Next 3 Items
 
