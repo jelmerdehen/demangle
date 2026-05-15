@@ -28,6 +28,9 @@
 
 ## Last 10 Commits
 
+- 26a5c0a swift-parity: CBH lower init fast-path threshold to >60 chars — parity 90.99%->91.20% (+130 production +148 roundtrip)
+- 8675f03 chore: lock snapshot after CBG commit (parity 58007->58015)
+- 1a0a3c8 chore: update digest.md for CBG commit (parity 90.98%->90.99% +8)
 - 1b5539b swift-parity: CBG init fast-path emits __allocating_init for class hosts — parity 90.98%->90.99% (+8 production)
 - 3b30bdf chore: lock snapshot after CBF commit (parity 57967->58007)
 - 81eeaa1 chore: update digest.md for CBF commit (parity 90.92%->90.98% +40)
@@ -35,9 +38,6 @@
 - edb22dc chore: lock snapshot after CBE commit (parity 57784->57967, roundtrip 13849->14131)
 - 675ea35 chore: update digest.md for CBE commit (parity 90.63%->90.92% +183)
 - fc75766 swift-parity: CBE init fast-path + fastpath.rawBody remangler hook — parity 90.63%->90.92% (+183 production +282 roundtrip)
-- d7581c5 chore: defer plateau-2026-05-15-cbd-roundtrip-mechanism-found (deferred-1)
-- 5f0ee9c chore: defer plateau-2026-05-15-cbc-pivot (deferred-1)
-- ae1548c chore: defer plateau-2026-05-15-cbb-fast-path-needs-slow-fail-only (deferred-1)
 
 ## Suggested Next 3 Items
 
