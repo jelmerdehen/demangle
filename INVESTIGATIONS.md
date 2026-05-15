@@ -30,6 +30,15 @@ and function-entity. Estimated 50-100 LOC. Reason for deferral: risk
 of regressing single-label Qr functions and the static-property Qr
 path that AAV unlocked.
 
+### plateau-2026-05-15-ccm-foundation-skip-roundtrip-regress [deferred-1]
+
+CCM fire at 93.12%. Tried skipping fast-path for Foundation ext
+hosts to let other handlers produce FULL form. Parity stable but
+roundtrip -302 — Foundation cases were getting roundtrip via
+fast-path's rawBody attr. Skipping = fallback to slow path which
+also fails roundtrip. Reverted. Better keep fast-path emit (mismatch
+output but roundtrip works) for these cases.
+
 ### plateau-2026-05-15-cci-chain-aware-extension-regress [deferred-1]
 
 CCI fire at 92.91%. Tried applying chain-aware label-stop to
