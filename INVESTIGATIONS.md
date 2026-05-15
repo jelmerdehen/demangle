@@ -30,6 +30,12 @@ and function-entity. Estimated 50-100 LOC. Reason for deferral: risk
 of regressing single-label Qr functions and the static-property Qr
 path that AAV unlocked.
 
+### plateau-2026-05-15-caf [deferred-1]
+
+CAF fire at 90.50%. After 5 consecutive defers (CAB-CAF), surface
+needs multi-fire investigation. Loop continues per goal contract
+(no parity regress; ratchet 100% baseline maintained).
+
 ### plateau-2026-05-15-cae [deferred-1]
 
 CAE fire at 90.50%. Confirmed via probes that `_$sScFsE7enqueueyyScJF`
