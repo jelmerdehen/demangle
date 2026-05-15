@@ -1,12 +1,12 @@
 # Swift Production Digest
 
-**Parity**: 95.15% (60663/63757) — 2026-05-15T11:40:22Z
+**Parity**: 95.19% (60691/63757) — 2026-05-15T11:43:12Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 233 parse-errors + 2861 mismatches
+**Failures**: 233 parse-errors + 2833 mismatches
 
 ## Top-20 Mismatch Categories
 
-- property descriptor                        313
+- property descriptor                        305
 - static (extension                          134
 - dispatch thunk                             101
 - method descriptor                          101
@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- 710f96c1 swift-parity: CDL widen A-branch ext-mod scan to 200 with constraint-marker discriminator — parity 95.19%->95.20% (+5 production +0 roundtrip)
+- 89376b4b chore: lock snapshot after CDK commit (parity 60675->60691)
+- a2cd53ae chore: update digest.md for CDK commit (+16 production)
 - 20a0c0e0 swift-parity: CDK fast-path digit-led ext scan-ahead + prop-desc host <A> — parity 95.17%->95.19% (+16 production +0 roundtrip)
 - 32f146a2 chore: lock snapshot after CDJ commit (parity 60655->60675)
 - 7170b6fc chore: update digest.md for CDJ commit (+20 production)
@@ -36,12 +39,9 @@
 - 2498d142 chore: lock snapshot after CDI commit (parity 60648->60655)
 - bd188fcd chore: update digest.md for CDI commit (+7 production)
 - b86f9939 swift-parity: CDI fast-path init host <A> for Rsz/Rz constraints — parity 95.13%->95.14% (+7 production +0 roundtrip)
-- 206ed05f chore: lock snapshot after CDH commit (parity 60642->60648)
-- b4825bc1 chore: update digest.md for CDH commit (+6 production)
-- 7f658f62 swift-parity: CDH track last-nominal-kind for __allocating_init — parity 95.12%->95.13% (+6 production +0 roundtrip)
 
 ## Suggested Next 3 Items
 
-1. P1: property descriptor fix — 313 mismatches
+1. P1: property descriptor fix — 305 mismatches
 2. investigate: static (extension — 134 mismatches
 3. investigate: dispatch thunk — 101 mismatches
