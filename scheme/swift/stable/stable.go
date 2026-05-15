@@ -9751,6 +9751,18 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 		// "[static ]Host.subscript.<accessor>" — Apple convention.
 		text = propStaticPfx + hostStr + ".subscript" + subAcc
 	} else {
+		// Init with multi-generic param: arg count typically equals generic
+		// count when labelStr is single underscore (under-counted).
+		if isInit && labelStr == "(_:)" && localGen != "" {
+			gn := strings.Count(localGen, ",") + 1
+			if gn >= 2 {
+				parts := make([]string, gn)
+				for i := range parts {
+					parts[i] = "_:"
+				}
+				labelStr = "(" + strings.Join(parts, "") + ")"
+			}
+		}
 		text = staticPfx + hostStr + nameOut + localGen + labelStr
 	}
 	if isQOMQ {
