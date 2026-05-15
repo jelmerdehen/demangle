@@ -1,6 +1,6 @@
 # Swift Production Digest
 
-**Parity**: 90.50% (57703/63757) — 2026-05-15T00:32:25Z
+**Parity**: 90.50% (57703/63757) — 2026-05-15T00:54:14Z
 **Round-trip**: 0.00% (0/0) — 
 **Failures**: 6016 parse-errors + 38 mismatches
 
@@ -29,16 +29,16 @@
 
 ## Last 10 Commits
 
-- f16189c swift-parity: CAA Sc<X> stdlib ext host + concurrency simplified — parity 90.49%->90.50% (+10 production)
-- 062e6d9 chore: lock snapshot after BAZ commit (parity 57691 to 57693)
-- 2594510 chore: update digest.md for BAZ commit (parity 90.49%->90.49% +2)
-- 7a2798c swift-parity: BAZ multi-label protocol init — parity 90.49%->90.49% (+2 production)
-- db1d0fc chore: defer protocol-init-multi-label to multi-fire (deferred-1)
-- ef198a5 chore: lock snapshot after BAX commit (parity 57688 to 57691)
-- 357935b chore: update digest.md for BAX commit (parity 90.48%->90.49% +3)
-- ba0f74d swift-parity: BAX multi-label stdlib copy-init — parity 90.48%->90.49% (+3 production)
-- bad52cf chore: defer stdlib-S2-compact-multi-arg-init to multi-fire (deferred-1)
-- 83ace24 chore: lock snapshot after BAV commit (parity 57686 to 57688)
+- b8874ab swift-parity: CAI Sc<X> ext-prop <> placeholder + Task host map — parity 90.50%->90.53% (+15 production)
+- b274302 chore: defer plateau-2026-05-15-cah-oracle-down to multi-fire (deferred-1)
+- 263aae2 chore: defer plateau-2026-05-15-cag-oracle-down to multi-fire (deferred-1)
+- fe69186 chore: defer plateau-2026-05-15-caf to multi-fire (deferred-1)
+- 257773e chore: defer plateau-2026-05-15-cae to multi-fire (deferred-1)
+- f98d0b4 chore: defer plateau-2026-05-15-cad to multi-fire (deferred-1)
+- d8ddb23 chore: defer plateau-2026-05-15-cac to multi-fire (deferred-1)
+- d847efe chore: defer scxse-method-owned-modifier to multi-fire (deferred-1)
+- 783eae4 chore: lock snapshot after CAA commit (parity 57693 to 57703)
+- aa8e835 chore: update digest.md for CAA commit (parity 90.49%->90.50% +10)
 
 ## Suggested Next 3 Items
 
