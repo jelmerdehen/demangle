@@ -7786,6 +7786,13 @@ var swiftConcurrencyRuntimeTypes = map[string]bool{
 	// simplified form (labels-only, no module prefix, no types, no return).
 	"withCheckedContinuation":         true,
 	"withCheckedThrowingContinuation": true,
+	"withTaskExecutorPreference":      true,
+	"withDiscardingTaskGroup":         true,
+	"withTaskGroup":                   true,
+	"withThrowingDiscardingTaskGroup": true,
+	"withThrowingTaskGroup":           true,
+	"withUnsafeContinuation":          true,
+	"withUnsafeThrowingContinuation":  true,
 	"_runAsyncMain":                                     true,
 	"_checkExpectedExecutor":                            true,
 	"_getGenericSerialExecutor":                         true,
