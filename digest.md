@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- aa6db363 swift-parity: CDS chained Tu+Tj/Tq + label Q-rewind — parity 94.41%->94.45% (+23 production +1 roundtrip)
+- a183bc08 chore: lock snapshot after CDR commit (roundtrip 20481->20560)
+- c6dfe4f9 chore: update digest.md for CDR commit (+79 roundtrip)
 - 552367a2 swift-parity: CDR `s`-branch ext-marker accept E followed by `y` — parity 94.41%->94.41% (+0 production +79 roundtrip)
 - 74b64e8e chore: lock snapshot after CDQ commit (parity 60174->60190, roundtrip 20428->20481)
 - 50ab484f chore: update digest.md for CDQ commit (+16 production +53 roundtrip)
@@ -36,9 +39,6 @@
 - b19be94d chore: lock snapshot after CDP commit (parity 60169->60174, roundtrip 20295->20428)
 - 09c66697 chore: update digest.md for CDP commit (+5 production +133 roundtrip)
 - 652879a3 swift-parity: CDP fast-path Mc terminal for ObjC hosts — parity 94.37%->94.38% (+5 production +133 roundtrip)
-- 4ec1d21a chore: lock snapshot after CDO commit (parity 60142->60169, roundtrip 20193->20295)
-- ef2197df chore: update digest.md for CDO commit (+27 production +102 roundtrip)
-- e21b2ad3 swift-parity: CDO fast-path A<X>E self-extension path-det — parity 94.33%->94.37% (+27 production +102 roundtrip)
 
 ## Suggested Next 3 Items
 
