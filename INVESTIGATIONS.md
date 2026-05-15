@@ -30,6 +30,16 @@ and function-entity. Estimated 50-100 LOC. Reason for deferral: risk
 of regressing single-label Qr functions and the static-property Qr
 path that AAV unlocked.
 
+### plateau-2026-05-15-cay-no-attempt [deferred-1]
+
+CAY fire at 90.63%. Surveyed Apple curated to understand which sym
+the CAW fast-path regressed: 0 `_$s` syms in apple/manglings.txt
+end with bare `fC|fc|KfC|Kfc`. So the regression came from one
+ending with a suffix wrapper (Tj/Tq/To/...) where my fast-path
+substring check would miss but inner parsing path... actually
+unclear. Need bisect to find specific regressed sym before
+re-attempting. Defer to multi-fire.
+
 ### plateau-2026-05-15-cax-init-fast-path-late-bail [deferred-1]
 
 CAX fire: tried fast-path at parseType-failure point in
