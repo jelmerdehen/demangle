@@ -30,6 +30,14 @@ and function-entity. Estimated 50-100 LOC. Reason for deferral: risk
 of regressing single-label Qr functions and the static-property Qr
 path that AAV unlocked.
 
+### plateau-2026-05-15-cce-extmethod-depth-track-regress [deferred-1]
+
+CCE fire at 92.89%. Tried applying same y...G depth tracking to
+ext-method fast-path (different from last-resort fast-path which
+was helped). -2 parity regression — different code path triggers
+on different syms; depth heuristic doesn't fit ext-method context.
+Reverted.
+
 ### plateau-2026-05-15-ccc-double-underscore-sep-too-broad [deferred-1]
 
 CCC fire at 92.89%. Tried adding `__` (double-underscore) as
