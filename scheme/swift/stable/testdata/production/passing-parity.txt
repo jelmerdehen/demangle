@@ -1,4 +1,4 @@
-# snapshot-pass-set update 2026-05-15T09:31:23Z — union with previous (high-water)
+# snapshot-pass-set update 2026-05-15T09:34:08Z — union with previous (high-water)
 _$s10Foreground7SwiftUI18LabelGroupStyle_v0PTl
 _$s10Foundation10CocoaErrorV010formattingC0AC4CodeVvgZ
 _$s10Foundation10CocoaErrorV010formattingC0AC4CodeVvpZMV
@@ -27858,6 +27858,7 @@ _$s7SwiftUI18PresentationSizingTL
 _$s7SwiftUI18SliderTrackBuilderV10buildBlockQryFZ
 _$s7SwiftUI18SliderTrackBuilderV10buildBlockQryFZQOMQ
 _$s7SwiftUI18SliderTrackBuilderV10buildBlockyQrAA0cD7Content_px5ValueRts_XPd_tFZ
+_$s7SwiftUI18SliderTrackBuilderV10buildBlockyQrAA0cD7Content_px5ValueRts_XPd_tFZQOMQ
 _$s7SwiftUI18SliderTrackBuilderVMa
 _$s7SwiftUI18SliderTrackBuilderVMn
 _$s7SwiftUI18SliderTrackContentMp
