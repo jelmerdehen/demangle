@@ -8585,19 +8585,41 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 	}
 
 	// Expect digit-led ext mod identifier.
-	if p.eof() || !(p.s[p.i] >= '1' && p.s[p.i] <= '9') {
+	if p.eof() {
 		revert()
 		return nil, false
 	}
-	if _, err := p.parseIdentifier(); err != nil {
+	if p.s[p.i] >= '1' && p.s[p.i] <= '9' {
+		// Digit-led ext mod identifier.
+		if _, err := p.parseIdentifier(); err != nil {
+			revert()
+			return nil, false
+		}
+		if p.eof() || p.s[p.i] != 'E' {
+			revert()
+			return nil, false
+		}
+		p.i++ // consume E
+	} else if p.s[p.i] == 's' {
+		// Swift module marker. Skip past constraint bytes until E.
+		p.i++ // consume 's'
+		// Scan for E followed by digit (decl-name).
+		eAt := -1
+		for k := p.i; k < len(p.s)-1 && k < p.i+120; k++ {
+			if p.s[k] == 'E' && k+1 < len(p.s) && p.s[k+1] >= '0' && p.s[k+1] <= '9' {
+				eAt = k
+				break
+			}
+		}
+		if eAt < 0 {
+			revert()
+			return nil, false
+		}
+		p.i = eAt + 1 // past E
+	} else {
 		revert()
 		return nil, false
 	}
-	if p.eof() || p.s[p.i] != 'E' {
-		revert()
-		return nil, false
-	}
-	p.i++ // consume E
 
 	// Walk nested-type chain + decl-name.
 	var nestedNames []string
