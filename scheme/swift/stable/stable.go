@@ -8595,6 +8595,22 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			return nil, false
 		}
 		p.i += 2
+	} else if p.i+1 < len(p.s) && p.s[p.i] == 's' &&
+		p.s[p.i+1] >= '0' && p.s[p.i+1] <= '9' {
+		// Swift-mod nominal host: s<n><name><kind>
+		p.i++ // consume 's'
+		name, nErr := p.parseIdentifier()
+		if nErr != nil || p.eof() {
+			revert()
+			return nil, false
+		}
+		kind := p.s[p.i]
+		if kind != 'C' && kind != 'V' && kind != 'O' && kind != 'P' {
+			revert()
+			return nil, false
+		}
+		p.i++
+		hostStr = name
 	} else if p.i < len(p.s) && p.s[p.i] >= '1' && p.s[p.i] <= '9' {
 		// User-mod direct host: <n><mod><n><name><kind>
 		_, mErr := p.parseIdentifier()
