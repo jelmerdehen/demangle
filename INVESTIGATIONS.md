@@ -30,6 +30,12 @@ and function-entity. Estimated 50-100 LOC. Reason for deferral: risk
 of regressing single-label Qr functions and the static-property Qr
 path that AAV unlocked.
 
+### plateau-2026-05-15-cah-oracle-down [deferred-1]
+
+CAH fire at 90.50%. Oracle host kodo still unreachable (No route
+to host). Second consecutive oracle-down defer. Mission step 3
+non-skippable. Resume next fire when oracle reachable.
+
 ### plateau-2026-05-15-cag-oracle-down [deferred-1]
 
 CAG fire at 90.50%. Oracle host kodo unreachable
