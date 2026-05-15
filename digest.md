@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- 2e62afd8 swift-parity: DBF reduce/scan family → 2 args — parity 95.10%->95.12% (+15 production +0 roundtrip)
+- 4fa7e8e5 chore: lock snapshot after DBE commit (parity 60625->60627)
+- 4dc68cfc chore: update digest.md for DBE commit (+2 production)
 - ab66434f swift-parity: DBE binary operator infix → 2 unlabeled args — parity 95.09%->95.10% (+2 production +0 roundtrip)
 - 31ba7594 chore: lock snapshot after DBC commit (parity 60615->60625)
 - 1c03cad5 chore: update digest.md for DBC commit (+10 production)
@@ -36,9 +39,6 @@
 - 622f501d docs: log swift-demangle flags table to CLAUDE.md
 - bbe18a0d chore: lock snapshot after DBB commit (parity 60598->60615)
 - 3366cf69 chore: update digest.md for DBB commit (+17 production)
-- 80877587 swift-parity: DBB fA<N>_/fA_ default-argument terminal — parity 95.05%->95.07% (+17 production +0 roundtrip)
-- 1cd545ee chore: lock snapshot after DBA commit
-- 8436dc38 chore: update digest.md for DBA commit (groundwork)
 
 ## Suggested Next 3 Items
 
