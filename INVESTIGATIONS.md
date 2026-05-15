@@ -1140,6 +1140,35 @@ Tried: count `_` separator after `S<lowercase>` (Sg/Sf/Sa/Sd/Si/Sb/Sh/SS).
 Result: -7 parity. Stdlib type suffix occurs in result-type position too.
 Multi-fire — needs structural args/result distinction.
 
+## defer-cer-word-capture-acronym-end [4 syms, deferred-1] (2026-05-15)
+
+Pattern: label decoding via word-sub `<digit><letter>` resolves to
+wrong word due to word-array index mismatch with Apple.
+
+Probe sym: `_$s5UIKit21UICornerConfigurationV12uniformEdges10leftRadius05rightG0AcA0bG0V_AHtFZ`
+- got:  `uniformEdges(leftRadius:right:)`
+- want: `uniformEdges(leftRadius:rightRadius:)`
+
+`05rightG0` decodes as: `right` (5 literal) + `G` ref + 0-terminator.
+Apple expects words[6]="Radius". Our captureWords for
+"UICornerConfiguration" yields ["UICorner","Configuration"] (2 words).
+With prior captures ["UIKit"], decl+labels add 5 more — words[6]="Radius"
+SHOULD line up.
+
+Tried: add acronym-end split rule (consecutive-upper followed by lower)
+in captureWords. Splits "UICornerConfiguration" → ["UI","Corner","Configuration"].
+But this SHIFTS the word array — "Radius" now at idx 7. G=6 resolves to
+"left" instead. Apple's algo must differ from straightforward
+acronym-split.
+
+Need: confirm Apple's exact word-capture algorithm. Possibly:
+- Capture from RIGHT (suffix words preferred)?
+- Don't capture "UI"-style 2-char abbreviations?
+- Different ordering: re-rank by usage frequency?
+
+Reach oracle unavailable. Multi-fire — needs reference implementation
+review (Apple's word_subs.cpp or LLVM swift-demangle source).
+
 ## defer-ceq-main-parser-qr-arg-overcount [~12 syms, deferred-1] (2026-05-15)
 
 Pattern: SwiftUI/Scene/View fns returning `some X` (Qr opaque) where
