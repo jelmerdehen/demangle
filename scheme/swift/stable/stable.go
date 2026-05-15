@@ -591,6 +591,10 @@ func (p *parser) parseGlobal() (*demangle.Node, error) {
 			inner = wrapped
 			continue
 		}
+		if wrapped, ok := p.tryStdlibLiteralInit(inner); ok {
+			inner = wrapped
+			continue
+		}
 		if wrapped, ok := p.tryNominalCopyInit(inner); ok {
 			inner = wrapped
 			continue
@@ -3943,6 +3947,82 @@ func (p *parser) tryNominalCopyInit(inner *demangle.Node) (*demangle.Node, bool)
 	} else {
 		wrap.Text = hostStr + ".init(" + paramStr + ") -> " + hostStr
 	}
+	return wrap, true
+}
+
+// tryStdlibLiteralInit matches the labeled literal-init shape on a
+// stdlib container type:
+//
+//	<host=S<letter>> <digits><label> <result-type> <param-type> 'd'? '_' 't' 'c' 'f' 'C'
+//
+// Where the result is a bound-generic of the host (e.g. Array<A>) and
+// the param is a variadic of one or more host generics (`A...` for
+// Sa/Sh, `(A, B)...` for SD). Renders as:
+//
+//	Swift.<HostName>.init(<label>: <param-rendered>) -> <result-rendered>
+//
+// Drains the Array/Set/Dictionary arrayLiteral / dictionaryLiteral
+// init descriptors.
+func (p *parser) tryStdlibLiteralInit(inner *demangle.Node) (*demangle.Node, bool) {
+	if p.eof() || !(p.s[p.i] >= '1' && p.s[p.i] <= '9') {
+		return inner, false
+	}
+	innerNom := inner
+	if common.NodeKind(innerNom.Kind) == common.KindType && len(innerNom.Children) > 0 {
+		innerNom = innerNom.Children[0]
+	}
+	switch common.NodeKind(innerNom.Kind) {
+	case common.KindStructure, common.KindEnum:
+	default:
+		return inner, false
+	}
+	if common.RootModuleOf(inner) != "Swift" {
+		return inner, false
+	}
+	save := p.i
+	saveSubs := p.subs
+	saveWords := p.words
+	revert := func() { p.i = save; p.subs = saveSubs; p.words = saveWords }
+
+	label, err := p.parseIdentifier()
+	if err != nil || label == "" {
+		revert()
+		return inner, false
+	}
+	resultNode, err := p.parseType()
+	if err != nil || resultNode == nil {
+		revert()
+		return inner, false
+	}
+	paramNode, err := p.parseType()
+	if err != nil || paramNode == nil {
+		revert()
+		return inner, false
+	}
+	hasVariadic := false
+	if !p.eof() && p.s[p.i] == 'd' {
+		hasVariadic = true
+		p.i++
+	}
+	if p.i+3 >= len(p.s) || p.s[p.i] != '_' || p.s[p.i+1] != 't' ||
+		p.s[p.i+2] != 'c' || p.s[p.i+3] != 'f' {
+		revert()
+		return inner, false
+	}
+	if p.i+4 >= len(p.s) || p.s[p.i+4] != 'C' {
+		revert()
+		return inner, false
+	}
+	p.i += 5
+
+	hostStr := common.Print(inner, common.DefaultPrintOptions())
+	resultStr := common.Print(resultNode, common.DefaultPrintOptions())
+	paramStr := common.Print(paramNode, common.DefaultPrintOptions())
+	if hasVariadic {
+		paramStr += "..."
+	}
+	wrap := common.NewNode(common.KindTypeMangling)
+	wrap.Text = hostStr + ".init(" + label + ": " + paramStr + ") -> " + resultStr
 	return wrap, true
 }
 
