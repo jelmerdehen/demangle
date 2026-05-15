@@ -30,6 +30,21 @@ and function-entity. Estimated 50-100 LOC. Reason for deferral: risk
 of regressing single-label Qr functions and the static-property Qr
 path that AAV unlocked.
 
+### plateau-2026-05-15-cbd-roundtrip-mechanism-found [deferred-1]
+
+CBD fire: implemented swift.fastpath.rawBody attr in tryInitDeinit
+fast-path + remangler hook in mangleGlobal. Roundtrip STILL drops
+-137 because of isTextOnlyGlobal: it sets Tree=nil for any Global
+whose sole child is text-only TypeMangling (no structural children).
+Roundtrip test then SKIPS such syms. Result: SwiftUI inits that
+previously parsed via slow path (Tree non-nil → roundtripped) now go
+through fast-path (Tree=nil → SKIP) — those PASS counts disappear.
+Real fix: only trigger fast-path AFTER slow-path-failure (parser
+state needs to track whether slow path could handle it). Or: don't
+strip Tree when fastpath.rawBody is set (let remangler use it).
+Latter is the simplest fix — modify isTextOnlyGlobal to keep Tree
+when fastpath.rawBody attr present. Multi-fire investigation; defer.
+
 ### plateau-2026-05-15-cbc-pivot [deferred-1]
 
 CBC fire: confirmed roundtrip drop in CAZ came from parity-pass-
