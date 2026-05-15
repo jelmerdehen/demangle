@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- f92782c5 swift-parity: CDZ binary infix → 2 args at fast-path fn-emit — parity 95.31%->95.31% (+2 production +0 roundtrip)
+- 9d52b70a chore: lock snapshot after CDY commit (parity 60761->60766)
+- 681218b4 chore: update digest.md for CDY commit (+5 production)
 - b65bbe41 swift-parity: CDY zip/combineLatest/map expand 2-arg → N-arg by generic count — parity 95.30%->95.31% (+5 production +0 roundtrip)
 - 30747cdc chore: lock snapshot after CDX commit (parity 60753->60761)
 - 0fc123ab chore: update digest.md for CDX commit (+8 production)
@@ -36,9 +39,6 @@
 - 6b8e129b chore: lock snapshot after CDV commit (parity 60751->60753)
 - 39a2e399 chore: update digest.md for CDV commit (+2 production)
 - 2eec0ddd swift-parity: CDV skip depth++ for leading y in body counter — parity 95.29%->95.29% (+2 production +0 roundtrip)
-- 12eb8ce6 chore: lock snapshot after CDT commit (parity 60750->60751)
-- 1dac0758 chore: update digest.md for CDT commit (+1 production)
-- 3313ab7d swift-parity: CDT exclude underscore from constraint-ident word capture — parity 95.28%->95.29% (+1 production +0 roundtrip)
 
 ## Suggested Next 3 Items
 
