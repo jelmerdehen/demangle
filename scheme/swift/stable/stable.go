@@ -14322,6 +14322,31 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 					parts = append(parts, lbl+":")
 				}
 			}
+			// Empty labels + body `y<arg-type>F` (single arg, no separators)
+			// → 1 unlabeled arg. Use p.i as args-start (set by parser).
+			if len(parts) == 0 && extMarker != "" && p.i < sEnd-1 {
+				argsBody := p.s[p.i : sEnd-1]
+				if isStatic && len(argsBody) > 0 {
+					argsBody = argsBody[:len(argsBody)-1]
+				}
+				if len(argsBody) >= 3 && argsBody[0] == 'y' &&
+					(argsBody[1] == 'A' || argsBody[1] == 'S' ||
+						argsBody[1] == 'x' || argsBody[1] == 'q' ||
+						(argsBody[1] >= '0' && argsBody[1] <= '9')) {
+					hasUnderscore := false
+					for j := 2; j < len(argsBody); j++ {
+						if argsBody[j] == '_' {
+							hasUnderscore = true
+							break
+						}
+					}
+					last := argsBody[len(argsBody)-1]
+					if !hasUnderscore && (last == 'V' || last == 'C' ||
+						last == 'O' || last == 'P') {
+						parts = []string{"_:"}
+					}
+				}
+			}
 			// When labels has exactly 1 entry "_" (speculative-y from
 			// label-loop) AND the body has multiple positional params
 			// (heuristic: count `V_`/`C_`/`O_`/`P_`/`G_` kind-byte+sep
