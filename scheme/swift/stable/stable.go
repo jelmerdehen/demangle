@@ -8612,16 +8612,22 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 		return nil, false
 	}
 	if p.s[p.i] >= '1' && p.s[p.i] <= '9' {
-		// Digit-led ext mod identifier.
-		if _, err := p.parseIdentifier(); err != nil {
-			revert()
-			return nil, false
+		// Could be: (a) digit-led ext mod identifier + E, OR (b) direct
+		// decl-name (protocol method requirement). Try ext-mod first; if
+		// no E follows, restore and let the nested-walk loop pick up
+		// the decl-name.
+		saveExt := p.i
+		saveSubsExt := p.subs
+		saveWordsExt := p.words
+		_, idErr := p.parseIdentifier()
+		if idErr == nil && !p.eof() && p.s[p.i] == 'E' {
+			p.i++ // consume E
+		} else {
+			// Not an ext-mod; revert and treat as decl-name path.
+			p.i = saveExt
+			p.subs = saveSubsExt
+			p.words = saveWordsExt
 		}
-		if p.eof() || p.s[p.i] != 'E' {
-			revert()
-			return nil, false
-		}
-		p.i++ // consume E
 	} else if p.s[p.i] == 's' {
 		// Swift module marker. Skip past constraint bytes until E.
 		p.i++ // consume 's'
