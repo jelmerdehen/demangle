@@ -14369,11 +14369,12 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 				hostStr += "." + name
 				cb = cb[kindPos+1:]
 			}
-			// reduce/scan/tryReduce/tryScan: 2 args. zip/combineLatest/map:
-			// arg count = local-generic count.
+			// reduce/scan/tryReduce/tryScan: 2 args. Binary infix: 2 args.
+			// zip/combineLatest/map: arg count = local-generic count.
 			if labelStr == "(_:)" {
 				if declName == "reduce" || declName == "tryReduce" ||
-					declName == "scan" || declName == "tryScan" {
+					declName == "scan" || declName == "tryScan" ||
+					strings.HasSuffix(declName, " infix") {
 					labelStr = "(_:_:)"
 				}
 			}
