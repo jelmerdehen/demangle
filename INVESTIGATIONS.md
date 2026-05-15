@@ -1140,6 +1140,38 @@ Tried: count `_` separator after `S<lowercase>` (Sg/Sf/Sa/Sd/Si/Sb/Sh/SS).
 Result: -7 parity. Stdlib type suffix occurs in result-type position too.
 Multi-fire — needs structural args/result distinction.
 
+## defer-cen-nested-walk-inner-extmod-word-capture [72 syms, deferred-1] (2026-05-15)
+
+Pattern: `<host>C<mod1>E<host2>P<mod2>...E<decl-name>` — second-level
+ext-mod on protocol-in-extension. E.g. NSNotificationCenter (objc) →
+Foundation ext → MessageIdentifier (P) → UIKit ext → BasedMessageIdentifier (V).
+
+Probe sym: `_$sSo20NSNotificationCenterC10FoundationE17MessageIdentifierP5UIKitAbCE04BasedE0Vy_So10UIDocumentCAFE012StateChangedD0VGRszrlE05stateJ0AMvpZMV`
+- got:  "property descriptor for static NSNotificationCenter.MessageIdentifier.UIKit"
+- want: "property descriptor for static NSNotificationCenter.MessageIdentifier<>.stateChanged"
+
+Tried: in nested-walk (stable.go:8949), when ident parsed and next byte
+is uppercase A-Z, scan ahead for E with constraint markers
+(Rz/Rsz/Rb/rl); if found, treat ident as inner ext-mod, set
+fpNestedExtMarker, p.i past E, continue walk.
+
+Result: parity 60796 -> 60797 (+1) BUT roundtrip 21167 -> 21166 (-1).
+Ratchet breach.
+
+Issue: skipping cb bytes via `p.i = eAt + 1` breaks p.words capture chain.
+Decl-name `05stateJ0` uses word-sub `J0` to reference 9th captured word.
+But intermediate identifiers in cb ("Based", "StateChanged" sub-words)
+weren't parseIdentifier-ed → words array short → decl-name truncates
+to "state" instead of "stateChanged". Some Foundation roundtrip sym
+that previously matched via different path now mismatches due to
+ext-marker injection.
+
+Need: walk cb bytes capturing length-prefixed identifiers as words
+before jumping past E. Or refactor nested-walk to traverse via
+parseIdentifier including back-refs/word-subs in cb.
+
+Multi-fire — adjacent to defer-cdk/cdo digit-led-ext family.
+
 ## defer-cem-prop-desc-foundation-full-form [305 syms, deferred-1] (2026-05-15)
 
 Top divergence bucket: property descriptors in Foundation/Swift modules.
