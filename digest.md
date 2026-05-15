@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 95.31% (60768/63757) — 2026-05-15T13:04:13Z
+**Parity**: 95.31% (60769/63757) — 2026-05-15T13:08:16Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 233 parse-errors + 2756 mismatches
+**Failures**: 233 parse-errors + 2755 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- 987101b3 swift-parity: CEB A-branch accept E followed by A/S/x/q with constraint marker — parity 95.31%->95.31% (+1 production +0 roundtrip)
+- 6aaf5352 chore: lock snapshot after CEA commit (parity 60768->60769)
+- a128f971 chore: update digest.md for CEA commit (+1 production)
 - 3f00eaaa swift-parity: CEA last-resort init expand args by generic count — parity 95.31%->95.31% (+1 production +0 roundtrip)
 - 1d5ad8bc chore: lock snapshot after CDZ commit (parity 60766->60768)
 - 5cd5c8c4 chore: update digest.md for CDZ commit (+2 production)
@@ -36,9 +39,6 @@
 - 9d52b70a chore: lock snapshot after CDY commit (parity 60761->60766)
 - 681218b4 chore: update digest.md for CDY commit (+5 production)
 - b65bbe41 swift-parity: CDY zip/combineLatest/map expand 2-arg → N-arg by generic count — parity 95.30%->95.31% (+5 production +0 roundtrip)
-- 30747cdc chore: lock snapshot after CDX commit (parity 60753->60761)
-- 0fc123ab chore: update digest.md for CDX commit (+8 production)
-- 3f3c6caf swift-parity: CDX reduce/scan/zip/combineLatest arg count at fast-path fn-emit — parity 95.29%->95.30% (+8 production +0 roundtrip)
 
 ## Suggested Next 3 Items
 
