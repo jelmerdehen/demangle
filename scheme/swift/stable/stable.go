@@ -9387,18 +9387,16 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			peekI++
 			continue
 		}
-		// Word-sub identifier (starts with `0`): use parseIdentifier with
-		// save/restore so word-table and subs aren't permanently mutated.
+		// Word-sub identifier (starts with `0`): use parseIdentifier; let
+		// p.words accumulate so later word-refs resolve. Subs restored.
 		if c == '0' {
 			savePI := p.i
 			saveSubs := p.subs
-			saveWords := p.words
 			p.i = peekI
 			lbl, err := p.parseIdentifier()
 			peekI = p.i
 			p.i = savePI
 			p.subs = saveSubs
-			p.words = saveWords
 			if err != nil || lbl == "" {
 				break
 			}
@@ -9441,6 +9439,9 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 		if bad {
 			break
 		}
+		// Capture label as word so subsequent word-sub identifiers
+		// can resolve back-refs (Apple captures all identifiers).
+		p.captureWords(lbl)
 		// Q-marker after this ident: if ident starts uppercase (TYPE
 		// naming convention), it's a type name not a label — rewind.
 		// Lowercase-leading short idents are real labels; keep them.
