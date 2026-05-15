@@ -8782,6 +8782,9 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 		} else {
 			fpDirectEntity = true
 		}
+	} else if p.s[p.i] == '0' {
+		// Word-sub identifier (decl-name) — let nested-walk pick it up.
+		// No path-det consumption.
 	} else if p.s[p.i] >= '1' && p.s[p.i] <= '9' {
 		// Could be: (a) digit-led ext mod identifier + E, OR (b) direct
 		// decl-name (protocol method requirement). Try ext-mod first; if
