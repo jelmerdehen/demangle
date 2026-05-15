@@ -30,6 +30,16 @@ and function-entity. Estimated 50-100 LOC. Reason for deferral: risk
 of regressing single-label Qr functions and the static-property Qr
 path that AAV unlocked.
 
+### plateau-2026-05-15-cbt-stdlib-digit-mod-fastpath-regress [deferred-1]
+
+CBT fire: tried adding stdlib-short-host + digit-led-ext-mod
+fast-path (Sq7CombineE9PublisherV...) in tryTypeFirstExtensionEntity.
+Body length threshold >50 missed the target sym (46 chars). Other
+syms that DID match were emitted wrongly — parity dropped -165
+(58743 → 58578). Roundtrip up +319 but parity loss is INVARIANT
+violation. Reverted. Need: more careful predicate (likely check
+that no other handler can handle this exact pattern). Multi-fire.
+
 ### plateau-2026-05-15-cbr-positional-count-heuristic-limits [deferred-1]
 
 CBR fire at 92.13%. Top remaining mismatches show heuristic limits:
