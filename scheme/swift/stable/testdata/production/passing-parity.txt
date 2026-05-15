@@ -1,4 +1,4 @@
-# snapshot-pass-set update 2026-05-15T00:06:33Z — union with previous (high-water)
+# snapshot-pass-set update 2026-05-15T00:10:57Z — union with previous (high-water)
 _$s10Foreground7SwiftUI18LabelGroupStyle_v0PTl
 _$s10Foundation10CocoaErrorV010formattingC0AC4CodeVvgZ
 _$s10Foundation10CocoaErrorV010formattingC0AC4CodeVvpZMV
@@ -40378,6 +40378,7 @@ _$sSa12_endMutationyyFSS_Ts5
 _$sSa12_endMutationyyFyXl_Ts5
 _$sSa12_endMutationyyFyp_Ts5
 _$sSa12_getCapacitySiyF
+_$sSa12arrayLiteralSayxGxd_tcfC
 _$sSa12customMirrors0B0Vvg
 _$sSa12customMirrors0B0VvpMV
 _$sSa13_adoptStorage_5countSayxG_SpyxGts016_ContiguousArrayB0CyxGn_SitFZ
@@ -41521,6 +41522,7 @@ _$sSh11removeFirstxyF
 _$sSh11subtractingyShyxGABF
 _$sSh11subtractingyShyxGqd__7ElementQyd__RszSTRd__lF
 _$sSh12_subtractingyShyxGqd__7ElementQyd__RszSTRd__lF
+_$sSh12arrayLiteralShyxGxd_tcfC
 _$sSh12customMirrors0B0Vvg
 _$sSh12customMirrors0B0VvpMV
 _$sSh12intersectionyShyxGABF
@@ -47451,6 +47453,7 @@ _$ss10ArraySliceV11descriptionSSvpMV
 _$ss10ArraySliceV12_baseAddressSpyxGvg
 _$ss10ArraySliceV12_baseAddressSpyxGvpMV
 _$ss10ArraySliceV12_getCapacitySiyF
+_$ss10ArraySliceV12arrayLiteralAByxGxd_tcfC
 _$ss10ArraySliceV12customMirrors0D0Vvg
 _$ss10ArraySliceV12customMirrors0D0VvpMV
 _$ss10ArraySliceV13_cPointerArgsyXlSg_SVSgtyF
@@ -49392,6 +49395,7 @@ _$ss15ContiguousArrayV12_endMutationyyFSS_Ts5
 _$ss15ContiguousArrayV12_endMutationyyFyXl_Ts5
 _$ss15ContiguousArrayV12_endMutationyyFyp_Ts5
 _$ss15ContiguousArrayV12_getCapacitySiyF
+_$ss15ContiguousArrayV12arrayLiteralAByxGxd_tcfC
 _$ss15ContiguousArrayV12customMirrors0D0Vvg
 _$ss15ContiguousArrayV12customMirrors0D0VvpMV
 _$ss15ContiguousArrayV13_cPointerArgsyXlSg_SVSgtyF
