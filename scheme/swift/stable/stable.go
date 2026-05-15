@@ -8974,9 +8974,12 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 	}
 	// QOMQ wrapper: "opaque type descriptor for <<opaque return type of ...>>"
 	isQOMQ := false
-	if sEnd >= 5 && p.s[sEnd-4:sEnd] == "QOMQ" && p.s[sEnd-5] == 'F' {
-		isQOMQ = true
-		sEnd -= 4
+	if sEnd >= 5 && p.s[sEnd-4:sEnd] == "QOMQ" {
+		prev := p.s[sEnd-5]
+		if prev == 'F' || prev == 'Z' || prev == 'p' {
+			isQOMQ = true
+			sEnd -= 4
+		}
 	}
 	isInit := false
 	isStatic := false
