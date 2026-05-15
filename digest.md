@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 93.70% (59739/63757) — 2026-05-15T06:05:10Z
+**Parity**: 93.70% (59741/63757) — 2026-05-15T06:12:18Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 2534 parse-errors + 1484 mismatches
+**Failures**: 2534 parse-errors + 1482 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- 1f167169 swift-parity: CDD fast-path Sc<X>sE rl conditional ext-marker — parity 93.70%->93.71% (+7 production +0 roundtrip)
+- ba07eed2 chore: lock snapshot after CDC commit (parity 59739->59741)
+- 1bbfdeeb chore: update digest.md for CDC commit (+2 production)
 - 7a094bf8 swift-parity: CDC Rsz constraint extMarker — parity 93.70%->93.70% (+2 production +0 roundtrip)
 - f24cf557 chore: lock snapshot after CDB commit (parity 59731->59739)
 - 72031c75 chore: update digest.md for CDB commit (+8 production)
@@ -36,9 +39,6 @@
 - 20a79671 chore: defer plateau-2026-05-15-cdb to multi-fire (deferred-1)
 - 47262f1c chore: lock snapshot after CDA commit (roundtrip 18885->18885)
 - 8f200e41 chore: update digest.md for CDA commit (+5 roundtrip)
-- 7bddce1c swift-parity: CDA threshold lowered to >20 — parity 93.69%->93.69% (+0 production +5 roundtrip)
-- e8a63ee3 chore: lock snapshot after CCZ commit (roundtrip 18858->18880)
-- b7bfeacc chore: update digest.md for CCZ commit (+22 roundtrip)
 
 ## Suggested Next 3 Items
 
