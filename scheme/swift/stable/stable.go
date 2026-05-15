@@ -7767,6 +7767,20 @@ var swiftConcurrencyRuntimeTypes = map[string]bool{
 	"Executor":                    true,
 	"SerialExecutor":              true,
 	"TaskExecutor":                true,
+	// Sc<X> stdlib2 substitutions — all are concurrency-adjacent.
+	"Actor":                       true,
+	"CheckedContinuation":         true,
+	"UnsafeContinuation":          true,
+	"CancellationError":           true,
+	"UnownedSerialExecutor":       true,
+	"AsyncIteratorProtocol":       true,
+	"AsyncSequence":               true,
+	"UnownedJob":                  true,
+	"MainActor":                   true,
+	"TaskPriority":                true,
+	"AsyncStream":                 true,
+	"AsyncThrowingStream":         true,
+	"UnsafeCurrentTask":           true,
 	// Top-level concurrency-context functions: Apple emits these in
 	// simplified form (labels-only, no module prefix, no types, no return).
 	"withCheckedContinuation":         true,
