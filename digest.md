@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 90.48% (57688/63757) — 2026-05-15T00:13:42Z
+**Parity**: 90.49% (57691/63757) — 2026-05-15T00:21:27Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 6051 parse-errors + 18 mismatches
+**Failures**: 6048 parse-errors + 18 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -21,16 +21,16 @@
 
 ## Last 10 Commits
 
+- ba0f74d swift-parity: BAX multi-label stdlib copy-init — parity 90.48%->90.49% (+3 production)
+- bad52cf chore: defer stdlib-S2-compact-multi-arg-init to multi-fire (deferred-1)
+- 83ace24 chore: lock snapshot after BAV commit (parity 57686 to 57688)
+- 2ba4325 chore: update digest.md for BAV commit (parity 90.48%->90.48% +2)
 - 8fdd1ed swift-parity: BAV literal-init tuple-typed param — parity 90.48%->90.48% (+2 production)
 - d66b8b7 chore: lock snapshot after BAU commit (parity 57682 to 57686)
 - 37109ae chore: update digest.md for BAU commit (parity 90.47%->90.48% +4)
 - 32af4be swift-parity: BAU stdlib literal-init handler — parity 90.47%->90.48% (+4 production)
 - f39a96b chore: lock snapshot after BAT commit (parity 57676 to 57682)
 - ab47934 chore: update digest.md for BAT commit (parity 90.46%->90.47% +6)
-- 472e9cd swift-parity: BAT nominal copy-init non-stdlib simplified form — parity 90.46%->90.47% (+6 production)
-- 42b89d5 chore: lock snapshot after BAS commit (parity 57669 to 57676)
-- 4fa3cde chore: update digest.md for BAS commit (parity 90.45%->90.46% +7)
-- c1dff90 swift-parity: BAS labeled nominal copy-init — parity 90.45%->90.46% (+7 production)
 
 ## Suggested Next 3 Items
 
