@@ -13026,6 +13026,33 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 					parts = append(parts, lbl+":")
 				}
 			}
+			// When labels has exactly 1 entry "_" (speculative-y from
+			// label-loop) AND the body has multiple positional params
+			// (heuristic: count `V_`/`C_`/`O_`/`P_`/`G_` kind-byte+sep
+			// pairs in body), expand parts to match the actual count.
+			if len(parts) == 1 && parts[0] == "_:" {
+				body := p.s[:sEnd-1] // strip trailing F or FZ
+				if isStatic {
+					body = body[:len(body)-1] // strip Z
+				}
+				// Strip trailing 't' tuple end if present.
+				if len(body) > 0 && body[len(body)-1] == 't' {
+					body = body[:len(body)-1]
+				}
+				sepCount := 0
+				for j := 1; j < len(body); j++ {
+					if body[j] == '_' && (body[j-1] == 'V' || body[j-1] == 'C' ||
+						body[j-1] == 'O' || body[j-1] == 'P' || body[j-1] == 'G') {
+						sepCount++
+					}
+				}
+				if sepCount > 0 {
+					parts = make([]string, sepCount+1)
+					for i := range parts {
+						parts[i] = "_:"
+					}
+				}
+			}
 			labelStr := "(" + strings.Join(parts, "") + ")"
 			staticPfx := ""
 			if isStatic {
