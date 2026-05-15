@@ -8548,6 +8548,20 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 	var hostStr string
 	var fpTopLevelDecl string
 	fpHostIsObjC := false
+	fpMcGenSig := ""
+	// Special: `xSg<...>Mc` — Optional<gen-param> conformance descriptor.
+	// Apple short form is `<A> A?`. Recognize prefix then emit immediately.
+	if len(p.s) >= 4 && p.s[0] == 'x' && p.s[1] == 'S' && p.s[2] == 'g' &&
+		p.s[len(p.s)-2:] == "Mc" {
+		hostStr = "A?"
+		fpMcGenSig = "<A>"
+		p.i = len(p.s) // consume everything
+		// Build text directly and short-circuit downstream emission.
+		wrap := common.NewNode(common.KindTypeMangling)
+		wrap.Text = "protocol conformance descriptor for " + fpMcGenSig + " " + hostStr
+		wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
+		return wrap, true
+	}
 	// ObjC host: So<n><name>C
 	if p.i+1 < len(p.s) && p.s[p.i] == 'S' && p.s[p.i+1] == 'o' {
 		p.i += 2
