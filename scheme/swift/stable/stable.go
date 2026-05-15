@@ -8623,6 +8623,7 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 	// Now: either digit-led ext mod, 's' Swift mod, or a direct method
 	// (no extension marker — typically protocol-method-requirement on user
 	// type, where decl-name follows immediately).
+	var fpConstraintBytes string
 	if p.eof() {
 		revert()
 		return nil, false
@@ -8659,6 +8660,7 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			revert()
 			return nil, false
 		}
+		fpConstraintBytes = p.s[p.i:eAt]
 		p.i = eAt + 1 // past E
 	} else {
 		revert()
@@ -8983,7 +8985,14 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 	}
 	labelStr := "(" + strings.Join(labelParts, "") + ")"
 
-	// Build host with nested types.
+	// Build host with nested types. Apply ext-marker for conditional
+	// conformance (rl in constraint bytes) — Apple emits "<>" suffix
+	// on the base host name, before any nested types.
+	fpExtMarker := ""
+	if strings.Contains(fpConstraintBytes, "rl") {
+		fpExtMarker = "<>"
+	}
+	hostStr += fpExtMarker
 	if len(nestedNames) > 0 {
 		hostStr += "." + strings.Join(nestedNames, ".")
 	}
