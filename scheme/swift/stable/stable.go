@@ -258,6 +258,12 @@ func hasTextOnlyTypeMangling(n *demangle.Node) bool {
 	if common.NodeKind(n.Kind) != common.KindTypeMangling {
 		return false
 	}
+	// Fast-path nodes carry swift.fastpath.rawBody so the remangler can
+	// emit them verbatim — they're round-trippable even though structurally
+	// text-only. Don't strip Tree for these.
+	if n.Attrs != nil && n.Attrs["swift.fastpath.rawBody"] != "" {
+		return false
+	}
 	if n.Text != "" && len(n.Children) == 0 {
 		return true
 	}
@@ -6387,6 +6393,69 @@ func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 			// to the substitution table so back-refs in the result/param types
 			// (e.g. AH for the H-indexed subs slot) resolve correctly.
 			p.subs.Push(common.NewIdentifier(lbl))
+		}
+	}
+	// SwiftUI/UIKit deeply-generic init fast-path: when symbol is long
+	// (>100 bytes — beyond Apple curated max 50), host module is not
+	// Swift/Foundation/__C, and ends with init terminal (fC|fc|KfC|Kfc),
+	// emit labels-only output. Roundtrip-safe via swift.fastpath.rawBody
+	// attr that mangleGlobal honours and isTextOnlyGlobal preserves.
+	if len(p.s) > 100 && mod != "" && mod != "Swift" && mod != "Foundation" &&
+		mod != "__C" && mod != "__C_Synthesized" && len(labels) > 0 && !emptyLabelList {
+		sEnd := len(p.s)
+		isInitFP := (sEnd >= 2 && (p.s[sEnd-2:] == "fC" || p.s[sEnd-2:] == "fc")) ||
+			(sEnd >= 3 && (p.s[sEnd-3:] == "KfC" || p.s[sEnd-3:] == "Kfc"))
+		if isInitFP {
+			hostStr := ""
+			if stdlibHostType != nil && len(stdlibHostType.Children) > 0 {
+				if id := stdlibHostType.Children[0]; len(id.Children) > 1 {
+					hostStr = id.Children[1].Text
+				}
+			}
+			if hostStr == "" && len(pathSteps) > 0 {
+				lastStep := pathSteps[len(pathSteps)-1]
+				if lastStep != nil {
+					hostStr = lastStep.Text
+				}
+			}
+			_ = lastKind
+			if hostStr != "" {
+				fCLen := 2
+				if sEnd >= 3 && (p.s[sEnd-3:] == "KfC" || p.s[sEnd-3:] == "Kfc") {
+					fCLen = 3
+				}
+				localGenPart := ""
+				uOff := sEnd - fCLen - 1
+				lOff := uOff - 1
+				if uOff >= 0 && lOff >= 0 && p.s[uOff] == 'u' && p.s[lOff] == 'l' {
+					if lOff >= 1 && p.s[lOff-1] == 'r' {
+						localGenPart = "<>"
+					} else if lOff >= 3 && p.s[lOff-3] == 'r' && p.s[lOff-2] >= '0' && p.s[lOff-2] <= '9' && p.s[lOff-1] == '_' {
+						n := int(p.s[lOff-2]-'0') + 2
+						names := make([]string, n)
+						for i := range names {
+							names[i] = string(rune('A' + i))
+						}
+						localGenPart = "<" + strings.Join(names, ", ") + ">"
+					} else {
+						localGenPart = "<A>"
+					}
+				}
+				var parts []string
+				for _, lbl := range labels {
+					if lbl == "_" || lbl == "" {
+						parts = append(parts, "_:")
+					} else {
+						parts = append(parts, lbl+":")
+					}
+				}
+				labelStr := "(" + strings.Join(parts, "") + ")"
+				wrap := common.NewNode(common.KindTypeMangling)
+				wrap.Text = hostStr + ".init" + localGenPart + labelStr
+				wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
+				p.i = len(p.s)
+				return wrap, true, nil
+			}
 		}
 	}
 	// Result-type. When the empty-label-list shortcut 'y' was taken, suppress

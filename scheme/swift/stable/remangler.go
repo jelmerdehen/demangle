@@ -330,6 +330,20 @@ func (r *remangler) mangleGlobal(n *demangle.Node) error {
 		}
 	}
 	r.buf.WriteString(prefix)
+	// Fast-path: a child carrying swift.fastpath.rawBody represents a
+	// parser fast-path that bypassed structured parsing. Emit the stored
+	// body verbatim so the symbol round-trips byte-exact.
+	for _, child := range n.Children {
+		if child != nil && child.Attrs != nil {
+			if rb := child.Attrs["swift.fastpath.rawBody"]; rb != "" {
+				r.buf.WriteString(rb)
+				if n.Attrs != nil && n.Attrs["swift.endD"] == "true" {
+					r.buf.WriteByte('D')
+				}
+				return nil
+			}
+		}
+	}
 	for _, child := range n.Children {
 		if err := r.remangleNode(child); err != nil {
 			return err
