@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- 7dfa83b9 swift-parity: DAW QOMQ prev-byte allowlist add Z and p — parity 95.04%->95.04% (+1 production +1 roundtrip)
+- 232dcd20 chore: lock snapshot after DAV commit (parity 60594->60595)
+- 2fe89382 chore: update digest.md for DAV commit (+1 production +1 roundtrip)
 - 601985bd swift-parity: DAV subscript static prop desc cipZMV (no-lu) — parity 95.04%->95.04% (+1 production +1 roundtrip)
 - 10c621cd chore: defer plateau-2026-05-15-dau (session summary) to multi-fire (deferred-1)
 - c518ea53 chore: lock snapshot after DAU commit (parity 60580->60594, roundtrip 21143->21163)
@@ -36,9 +39,6 @@
 - d9718f03 swift-parity: DAU Tj/Tq prev-byte allowlist add Z (vgZ/vsZ etc) — parity 95.02%->95.04% (+14 production +20 roundtrip)
 - 100753a9 chore: lock snapshot after DAT commit (parity 60575->60580)
 - a8b9a443 chore: update digest.md for DAT commit (+5 production +7 roundtrip)
-- 621d5e5c swift-parity: DAT Tu prev-byte allowlist add Z (FZ static fn) — parity 95.01%->95.02% (+5 production +7 roundtrip)
-- d8f7e34a chore: lock snapshot after DAS commit
-- 41b88942 chore: update digest.md for DAS commit (correctness fix)
 
 ## Suggested Next 3 Items
 
