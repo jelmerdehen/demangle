@@ -8694,6 +8694,35 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 	isPropDesc := false
 	propAcc := ""
 	propStaticPfx := ""
+	// Subscript accessor: ends in `lu i<accessor>` (subscript marker).
+	// Apple emits `<host>.subscript.<accessor>`.
+	isSubscript := false
+	subAcc := ""
+	if sEnd >= 4 && p.s[sEnd-4:sEnd-2] == "lu" && p.s[sEnd-2] == 'i' {
+		switch p.s[sEnd-1] {
+		case 'g':
+			isSubscript = true
+			subAcc = ".getter"
+		case 's':
+			isSubscript = true
+			subAcc = ".setter"
+		case 'M':
+			isSubscript = true
+			subAcc = ".modify"
+		case 'w':
+			isSubscript = true
+			subAcc = ".willset"
+		case 'W':
+			isSubscript = true
+			subAcc = ".didset"
+		case 'r':
+			isSubscript = true
+			subAcc = ".read"
+		}
+		if isSubscript {
+			sEnd -= 4
+		}
+	}
 	if sEnd >= 5 && p.s[sEnd-5:sEnd] == "vpZMV" {
 		isPropDesc = true
 		propStaticPfx = "static "
@@ -8748,7 +8777,7 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 		isFn = true
 		isStatic = true
 	}
-	if !isInit && !isFn && !isPropAcc && !isPropDesc {
+	if !isInit && !isFn && !isPropAcc && !isPropDesc && !isSubscript {
 		revert()
 		return nil, false
 	}
@@ -8954,6 +8983,9 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 	} else if isPropDesc {
 		// "property descriptor for [static ]Host.declName"
 		text = "property descriptor for " + propStaticPfx + hostStr + "." + declName
+	} else if isSubscript {
+		// "Host.subscript.<accessor>" — Apple convention.
+		text = hostStr + ".subscript" + subAcc
 	} else {
 		text = staticPfx + hostStr + nameOut + localGen + labelStr
 	}
