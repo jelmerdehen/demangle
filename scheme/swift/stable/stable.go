@@ -18772,6 +18772,139 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 		// No-params case: label-list omitted → try without.
 		tp2 := tryPath(false)
 		if !tp2 {
+			// SwiftUI/UIKit/Combine deeply-generic function-entity fast-path:
+			// when both tryPath variants fail, body is long (>60), host module
+			// is not Swift/Foundation/__C, and symbol ends in F or FZ, emit
+			// labels-only "[static ]Host.declName(label:label:...)" directly.
+			// Roundtrip-safe via swift.fastpath.rawBody attr.
+			if len(p.s) > 60 && mod != "" && mod != "Swift" && mod != "Foundation" &&
+				mod != "__C" && mod != "__C_Synthesized" && len(pathSteps) >= 3 {
+				sEnd := len(p.s)
+				isStatic := false
+				isFnFP := false
+				if sEnd >= 2 && p.s[sEnd-1] == 'F' {
+					isFnFP = true
+				} else if sEnd >= 2 && p.s[sEnd-2] == 'F' && p.s[sEnd-1] == 'Z' {
+					isFnFP = true
+					isStatic = true
+				}
+				if isFnFP {
+					// Peek labels from current position. Don't commit subs;
+					// just collect names.
+					peekI := p.i
+					var fpLabels []string
+					for peekI < len(p.s) {
+						c := p.s[peekI]
+						if c == '_' {
+							fpLabels = append(fpLabels, "_")
+							peekI++
+							continue
+						}
+						if c < '0' || c > '9' {
+							break
+						}
+						lblStart := peekI
+						for peekI < len(p.s) && p.s[peekI] >= '0' && p.s[peekI] <= '9' {
+							peekI++
+						}
+						n := 0
+						for _, d := range p.s[lblStart:peekI] {
+							n = n*10 + int(d-'0')
+						}
+						if n <= 0 || peekI+n > len(p.s) {
+							fpLabels = nil
+							break
+						}
+						lbl := p.s[peekI : peekI+n]
+						peekI += n
+						// Validate: must be plain alpha/underscore (not a type ident).
+						bad := false
+						for _, ch := range lbl {
+							if !((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') ||
+								ch == '_' || (ch >= '0' && ch <= '9')) {
+								bad = true
+								break
+							}
+						}
+						if bad {
+							fpLabels = nil
+							break
+						}
+						// Stop if peek consumed too much without seeing a non-digit
+						// type-start byte (heuristic: labels followed by 'A'/'S'/'s'/'q'/'x' etc.).
+						if peekI < len(p.s) {
+							nb := p.s[peekI]
+							if !(nb >= '0' && nb <= '9') && nb != '_' {
+								fpLabels = append(fpLabels, lbl)
+								break
+							}
+						}
+						fpLabels = append(fpLabels, lbl)
+					}
+					if len(fpLabels) > 0 {
+						// Build host string from pathSteps (skip module, last is decl-name).
+						declName := ""
+						var hostParts []string
+						for i, step := range pathSteps {
+							if step == nil || step.Text == "" {
+								continue
+							}
+							if i == 0 {
+								continue // module
+							}
+							if i == len(pathSteps)-1 {
+								declName = step.Text
+								continue
+							}
+							hostParts = append(hostParts, step.Text)
+						}
+						if declName != "" && len(hostParts) > 0 {
+							hostStr := strings.Join(hostParts, ".")
+							var labelParts []string
+							for _, lbl := range fpLabels {
+								if lbl == "_" || lbl == "" {
+									labelParts = append(labelParts, "_:")
+								} else {
+									labelParts = append(labelParts, lbl+":")
+								}
+							}
+							staticPfx := ""
+							if isStatic {
+								staticPfx = "static "
+							}
+							// Detect generic sig from `lF` ending. When `l` precedes
+							// F, the function has a local generic sig: r<N>_l = N+2
+							// generics, otherwise default to <A> for any other
+							// constraint shape that ends in l.
+							localGenPart := ""
+							fSearchEnd := sEnd - 1
+							if isStatic {
+								fSearchEnd = sEnd - 2
+							}
+							if fSearchEnd > 0 && p.s[fSearchEnd-1] == 'l' {
+								lOff := fSearchEnd - 1
+								if lOff >= 3 && p.s[lOff-3] == 'r' && p.s[lOff-2] >= '0' && p.s[lOff-2] <= '9' && p.s[lOff-1] == '_' {
+									n := int(p.s[lOff-2]-'0') + 2
+									names := make([]string, n)
+									for i := range names {
+										names[i] = string(rune('A' + i))
+									}
+									localGenPart = "<" + strings.Join(names, ", ") + ">"
+								} else {
+									// Any other constraint shape ending in l
+									// (Rd__l, Rzl, Rpl, etc.) → default <A>.
+									localGenPart = "<A>"
+								}
+							}
+							wrap := common.NewNode(common.KindTypeMangling)
+							wrap.Text = staticPfx + hostStr + "." + declName + localGenPart + "(" + strings.Join(labelParts, "") + ")"
+							wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
+							p.i = len(p.s)
+							return wrap, true, nil
+						}
+					}
+				}
+			}
 			restore()
 			return nil, false, nil
 		}
