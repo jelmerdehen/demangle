@@ -8731,8 +8731,6 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			}
 		} else {
 			// No E in window — direct entity with body starting at A.
-			// Common for init shapes like `<host>ACy<ret>cSbRszrlufC` where
-			// AC is back-ref-typed return + closure + constraint + init.
 			fpDirectEntity = true
 		}
 	} else if p.s[p.i] >= '1' && p.s[p.i] <= '9' {
@@ -8985,6 +8983,32 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			subAcc = ".read"
 		}
 		if isSubscript {
+			sEnd -= 4
+		}
+	} else if !isSubscript && sEnd >= 4 && p.s[sEnd-4] == 'c' && p.s[sEnd-3] == 'i' && p.s[sEnd-1] == 'Z' {
+		// Subscript STATIC accessor (no lu prefix): ...cixZ
+		switch p.s[sEnd-2] {
+		case 'g':
+			isSubscript = true
+			subAcc = ".getter"
+		case 's':
+			isSubscript = true
+			subAcc = ".setter"
+		case 'M':
+			isSubscript = true
+			subAcc = ".modify"
+		case 'w':
+			isSubscript = true
+			subAcc = ".willset"
+		case 'W':
+			isSubscript = true
+			subAcc = ".didset"
+		case 'r':
+			isSubscript = true
+			subAcc = ".read"
+		}
+		if isSubscript {
+			propStaticPfx = "static "
 			sEnd -= 4
 		}
 	} else if !isSubscript && sEnd >= 3 && p.s[sEnd-3] == 'c' && p.s[sEnd-2] == 'i' {
