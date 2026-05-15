@@ -29,16 +29,16 @@
 
 ## Last 10 Commits
 
+- a056e2b swift-parity: CBU ext-method fast-path QOMQ opaque-type wrapper — parity 92.13%->92.51% (+238 production +874 roundtrip)
+- d5dcf5c chore: defer plateau-2026-05-15-cbt-stdlib-digit-mod-fastpath-regress (deferred-1)
+- 5d02f12 chore: lock snapshot after CBS commit (parity 58741->58743)
+- be8487b chore: update digest.md for CBS commit (parity 92.13%->92.13% +2)
 - 642c0ce swift-parity: CBS Qz_/Qy_ separator detection in fast-path — parity 92.13%->92.13% (+2 production)
 - 85cce3d chore: defer plateau-2026-05-15-cbr-positional-count-heuristic-limits (deferred-1)
 - f28991d chore: lock snapshot after CBQ commit (parity 58709->58741)
 - 9e6d720 chore: update digest.md for CBQ commit (parity 92.08%->92.13% +32)
 - 0bc0196 swift-parity: CBQ ext-method fast-path positional param count from V_/C_/O_/P_/G_ separators — parity 92.08%->92.13% (+32 production)
 - b4fd2b7 chore: defer plateau-2026-05-15-cbp-init-promote-declname-as-label (deferred-1)
-- 6ff4aab chore: defer plateau-2026-05-15-cbo-positional-param-count (deferred-1)
-- 2bb80e4 chore: lock snapshot after CBN commit (parity 58683->58709)
-- 8e459fa chore: update digest.md for CBN commit (parity 92.04%->92.08% +26)
-- db189e4 swift-parity: CBN ext-method fast-path nested host from constraint bytes — parity 92.04%->92.08% (+26 production)
 
 ## Suggested Next 3 Items
 
