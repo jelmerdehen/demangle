@@ -30,6 +30,13 @@ and function-entity. Estimated 50-100 LOC. Reason for deferral: risk
 of regressing single-label Qr functions and the static-property Qr
 path that AAV unlocked.
 
+### plateau-2026-05-15-cct-known-module-filter-noop [deferred-1]
+
+CCT fire at 93.63%. Tried gating constraint scan by known Apple
+module names (SwiftUI, UIKit, Combine, etc.). No-op for total
+counts — most failing patterns either match E directly or have
+non-module names that this filter wouldn't help.
+
 ### plateau-2026-05-15-ccs-ext-mod-constraint-scan-too-broad [deferred-1]
 
 CCS fire at 93.63%. Tried scanning for E within 80-byte window
