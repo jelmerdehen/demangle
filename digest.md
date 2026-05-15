@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 95.07% (60615/63757) — 2026-05-15T10:17:11Z
+**Parity**: 95.09% (60625/63757) — 2026-05-15T10:51:13Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 233 parse-errors + 2909 mismatches
+**Failures**: 233 parse-errors + 2899 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- ab66434f swift-parity: DBE binary operator infix → 2 unlabeled args — parity 95.09%->95.10% (+2 production +0 roundtrip)
+- 31ba7594 chore: lock snapshot after DBC commit (parity 60615->60625)
+- 1c03cad5 chore: update digest.md for DBC commit (+10 production)
 - e959940b swift-parity: DBC fast-path CDN op-decode (oi/op/oP) — parity 95.07%->95.09% (+10 production +0 roundtrip)
 - 622f501d docs: log swift-demangle flags table to CLAUDE.md
 - bbe18a0d chore: lock snapshot after DBB commit (parity 60598->60615)
@@ -36,9 +39,6 @@
 - 80877587 swift-parity: DBB fA<N>_/fA_ default-argument terminal — parity 95.05%->95.07% (+17 production +0 roundtrip)
 - 1cd545ee chore: lock snapshot after DBA commit
 - 8436dc38 chore: update digest.md for DBA commit (groundwork)
-- 863632da swift-parity: DBA CDN nested-ext recovery loop — parity 95.05%->95.05% (+0 production +0 roundtrip)
-- 62f4bee4 chore: defer plateau-2026-05-15-day to multi-fire (deferred-1)
-- 457dbfec chore: lock snapshot after DAX commit (parity 60596->60598)
 
 ## Suggested Next 3 Items
 
