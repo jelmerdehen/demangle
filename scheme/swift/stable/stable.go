@@ -9169,6 +9169,16 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 		isTL = true
 		sEnd -= 2
 	}
+	// Tb — base conformance descriptor. Apple short form:
+	//   `base conformance descriptor for <Host>: <ProtoName>`
+	// Pattern: <host>P<n><proto-mod><n><proto-name>Tb. Only handles
+	// simple host (no nested) for now.
+	isTb := false
+	tbProtoName := ""
+	if sEnd >= 2 && p.s[sEnd-2:sEnd] == "Tb" && !isTL {
+		isTb = true
+		sEnd -= 2
+	}
 	// FWC — enum case witness. Apple short form:
 	//   `enum case for <Host>.<Nested>.<case>(<labels>)`
 	// Direct shapes: mFWC / mlFWC. Indirect: ...m<constraint>...FWC where
@@ -9219,9 +9229,30 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			sEnd -= 2
 		}
 	}
-	if !isInit && !isFn && !isPropAcc && !isPropDesc && !isSubscript && !isMc && !isWP && !isEnumCase && !isTL {
+	if !isInit && !isFn && !isPropAcc && !isPropDesc && !isSubscript && !isMc && !isWP && !isEnumCase && !isTL && !isTb {
 		revert()
 		return nil, false
+	}
+	// For Tb, scan remaining bytes p.i..sEnd for proto name (last identifier).
+	if isTb {
+		probe := p.i
+		for probe < sEnd && p.s[probe] >= '0' && p.s[probe] <= '9' {
+			n := 0
+			for probe < sEnd && p.s[probe] >= '0' && p.s[probe] <= '9' {
+				n = n*10 + int(p.s[probe]-'0')
+				probe++
+			}
+			if n <= 0 || probe+n > sEnd {
+				break
+			}
+			tbProtoName = p.s[probe : probe+n]
+			probe += n
+		}
+		if tbProtoName == "" {
+			revert()
+			return nil, false
+		}
+		p.i = sEnd
 	}
 
 	// Peek labels.
@@ -9475,7 +9506,9 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 	}
 
 	var text string
-	if isTL {
+	if isTb {
+		text = "base conformance descriptor for " + hostStr + ": " + tbProtoName
+	} else if isTL {
 		text = "protocol requirements base descriptor for " + hostStr + "." + declName
 	} else if isEnumCase {
 		gen := localGen
