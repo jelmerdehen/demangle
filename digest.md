@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 95.28% (60747/63757) — 2026-05-15T12:10:12Z
+**Parity**: 95.28% (60748/63757) — 2026-05-15T12:18:12Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 233 parse-errors + 2777 mismatches
+**Failures**: 233 parse-errors + 2776 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- fb0dfe64 swift-parity: CDS strip async marker Ya before throws/tuple — parity 95.28%->95.28% (+2 production +0 roundtrip)
+- 767d69a4 chore: lock snapshot after CDR commit (parity 60747->60748)
+- 5ddebdb0 chore: update digest.md for CDR commit (+1 production)
 - 8c77dfb0 swift-parity: CDR strip throws K + detect yy as zero-arg fn — parity 95.28%->95.28% (+1 production +0 roundtrip)
 - 6473f60d chore: lock snapshot after CDQ commit (parity 60737->60747)
 - bb9eba65 chore: update digest.md for CDQ commit (+10 production)
@@ -36,9 +39,6 @@
 - c806165f chore: lock snapshot after CDP commit (parity 60727->60737)
 - 5def0a79 chore: update digest.md for CDP commit (+10 production)
 - 6c9b59dd swift-parity: CDP fast-path label-peek captureWords for word-sub resolution — parity 95.25%->95.27% (+10 production +0 roundtrip)
-- a445e4cf chore: lock snapshot after CDN commit (parity 60723->60727)
-- fbedb1bf chore: update digest.md for CDN commit (+4 production)
-- ec69b056 swift-parity: CDN label-peek Q-rewind only on uppercase ident — parity 95.24%->95.25% (+4 production +0 roundtrip)
 
 ## Suggested Next 3 Items
 
