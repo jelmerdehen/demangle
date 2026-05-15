@@ -30,6 +30,19 @@ and function-entity. Estimated 50-100 LOC. Reason for deferral: risk
 of regressing single-label Qr functions and the static-property Qr
 path that AAV unlocked.
 
+### plateau-2026-05-15-cba-fast-path-needs-rawprefix-shape [deferred-1]
+
+CBA fire: studied existing tryExtensionEntity:12823 fast-path
+roundtrip support — uses `swift.ext.rawPrefix` attr + 3 structured
+children (funcName, params, result) so remangler reconstructs the
+mangling. tryInitDeinitEntity fast-path can't use the same shape
+because init entities don't have a funcName child. Need either:
+(a) extend remangler with `swift.init.rawSuffix` attr that emits
+the original post-host mangled bytes verbatim, OR
+(b) build proper structured Init node (declName="init", labelList,
+emptyResult, params parsed properly) so remangler walks normal
+path. Both approaches non-trivial. Multi-fire surface.
+
 ### plateau-2026-05-15-caz-init-fast-path-roundtrip-regress [deferred-1]
 
 CAZ fire: re-implemented init fast-path with len(sym)>100 guard.
