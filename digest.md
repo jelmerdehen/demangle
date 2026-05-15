@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- d75b0bb4 swift-parity: CDQ fast-path init `_` label-leader path-det — parity 94.38%->94.41% (+16 production +53 roundtrip)
+- b19be94d chore: lock snapshot after CDP commit (parity 60169->60174, roundtrip 20295->20428)
+- 09c66697 chore: update digest.md for CDP commit (+5 production +133 roundtrip)
 - 652879a3 swift-parity: CDP fast-path Mc terminal for ObjC hosts — parity 94.37%->94.38% (+5 production +133 roundtrip)
 - 4ec1d21a chore: lock snapshot after CDO commit (parity 60142->60169, roundtrip 20193->20295)
 - ef2197df chore: update digest.md for CDO commit (+27 production +102 roundtrip)
@@ -36,9 +39,6 @@
 - 9103ed3e chore: lock snapshot after CDN commit (parity 60123->60142, roundtrip 20106->20193)
 - 0f66176f chore: update digest.md for CDN commit (+19 production +87 roundtrip)
 - d988e121 swift-parity: CDN nested-ext recovery + empty-params marker — parity 94.30%->94.33% (+19 production +87 roundtrip)
-- ec2c588e chore: lock snapshot after CDM commit (parity 60111->60123, roundtrip 20070->20106)
-- 548548d7 chore: update digest.md for CDM commit (+12 production +36 roundtrip)
-- a469edbf swift-parity: CDM Tj/Tq accept fC/fc + native-class __allocating_init — parity 94.28%->94.30% (+12 production +36 roundtrip)
 
 ## Suggested Next 3 Items
 
