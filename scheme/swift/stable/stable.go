@@ -7756,8 +7756,11 @@ var swiftConcurrencyRuntimeTypes = map[string]bool{
 	"RunLoopExecutor":             true,
 	"SchedulingExecutor":          true,
 	"SuspendingClock":             true,
+	"Task":                        true,
+	"TaskGroup":                   true,
 	"TaskLocal":                   true,
 	"ThrowingDiscardingTaskGroup": true,
+	"ThrowingTaskGroup":           true,
 	"UnimplementedMainExecutor":   true,
 	"UnimplementedTaskExecutor":   true,
 	"UnownedTaskExecutor":         true,
@@ -10585,7 +10588,7 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 	extMarker := ""
 	if len(constraintBytes) > 0 {
 		extSig, _ = extractConstraintSigFullOpts(constraintBytes, true, p.words, "Swift", origHostPath)
-		if extSig == "" && len(constraintBytes) > 2 {
+		if len(constraintBytes) > 2 {
 			extMarker = "<>"
 		}
 	}
