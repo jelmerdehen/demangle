@@ -9468,7 +9468,19 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 	if isEnumCase {
 		gen := localGen
 		if gen == "" && enumCaseHasLocalGen {
-			gen = "<A>"
+			// Detect multi-arg local-gen: ...r<N>_lFWC pattern.
+			// sEnd points before FWC (FWC stripped). Check r<digit>_l.
+			if sEnd >= 4 && p.s[sEnd-1] == 'l' && p.s[sEnd-2] == '_' &&
+				p.s[sEnd-3] >= '0' && p.s[sEnd-3] <= '9' && p.s[sEnd-4] == 'r' {
+				n := int(p.s[sEnd-3]-'0') + 2
+				gnames := make([]string, n)
+				for gi := range gnames {
+					gnames[gi] = string(rune('A' + gi))
+				}
+				gen = "<" + strings.Join(gnames, ", ") + ">"
+			} else {
+				gen = "<A>"
+			}
 		}
 		// Default 1-arg if no labels detected.
 		ls := labelStr
