@@ -8698,12 +8698,13 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			p.words = saveWordsExt
 		}
 	} else if p.s[p.i] == 's' {
-		// Swift module marker. Skip past constraint bytes until E.
+		// Swift module marker. Skip past constraint bytes until E followed
+		// by digit (decl-name) OR `y` (direct entity body).
 		p.i++ // consume 's'
-		// Scan for E followed by digit (decl-name).
 		eAt := -1
 		for k := p.i; k < len(p.s)-1 && k < p.i+120; k++ {
-			if p.s[k] == 'E' && k+1 < len(p.s) && p.s[k+1] >= '0' && p.s[k+1] <= '9' {
+			if p.s[k] == 'E' && k+1 < len(p.s) &&
+				((p.s[k+1] >= '0' && p.s[k+1] <= '9') || p.s[k+1] == 'y') {
 				eAt = k
 				break
 			}
@@ -8714,6 +8715,9 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 		}
 		fpConstraintBytes = p.s[p.i:eAt]
 		p.i = eAt + 1 // past E
+		if !p.eof() && p.s[p.i] == 'y' {
+			fpDirectEntity = true
+		}
 	} else {
 		revert()
 		return nil, false
