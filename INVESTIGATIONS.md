@@ -30,6 +30,17 @@ and function-entity. Estimated 50-100 LOC. Reason for deferral: risk
 of regressing single-label Qr functions and the static-property Qr
 path that AAV unlocked.
 
+### plateau-2026-05-15-cbv-objc-host-digit-mod [deferred-1]
+
+CBV fire at 92.51%. Probed UIKit-ext-on-ObjC-host bucket
+(So<N><Name>C5UIKitE<labels>...lufC). tryTypeFirstExtensionEntity
+case 9055 parses ObjC host but bails at the `5UIKit` digit-led ext
+mod (no handler for digit-led ext mod after stdlib short / ObjC
+host). tryInitDeinitEntity treats `5UIKit` as label name (wrong).
+Need: extend tryTypeFirstExtensionEntity main path to recognize
+digit-led ext mod after stdlib short / ObjC hosts. Multi-fire
+(same family as CBT/CBK).
+
 ### plateau-2026-05-15-cbt-stdlib-digit-mod-fastpath-regress [deferred-1]
 
 CBT fire: tried adding stdlib-short-host + digit-led-ext-mod
