@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- 8a04c910 swift-parity: CDV xSg<...>WP variant — parity 94.46%->94.48% (+11 production +13 roundtrip)
+- 456b087e chore: lock snapshot after CDU commit (parity 60213->60224, roundtrip 20569->20582)
+- 12ba8748 chore: update digest.md for CDU commit (+11 production +13 roundtrip)
 - 3655e5cd swift-parity: CDU fast-path xSg<...>Mc Optional<gen> conformance — parity 94.45%->94.46% (+11 production +13 roundtrip)
 - 9eb92513 chore: lock snapshot after CDT commit (roundtrip 20561->20569)
 - 0addae94 chore: update digest.md for CDT commit (+8 roundtrip)
@@ -36,9 +39,6 @@
 - 199f1c31 chore: lock snapshot after CDS commit (parity 60190->60213, roundtrip 20560->20561)
 - 7719db54 chore: update digest.md for CDS commit (+23 production +1 roundtrip)
 - aa6db363 swift-parity: CDS chained Tu+Tj/Tq + label Q-rewind — parity 94.41%->94.45% (+23 production +1 roundtrip)
-- a183bc08 chore: lock snapshot after CDR commit (roundtrip 20481->20560)
-- c6dfe4f9 chore: update digest.md for CDR commit (+79 roundtrip)
-- 552367a2 swift-parity: CDR `s`-branch ext-marker accept E followed by `y` — parity 94.41%->94.41% (+0 production +79 roundtrip)
 
 ## Suggested Next 3 Items
 
