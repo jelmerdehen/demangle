@@ -8571,12 +8571,11 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 		}
 	}
 	// Special: `So<n><name>C<...>Mc` — ObjC class conformance descriptor.
-	// Apple short form is `protocol conformance descriptor for <ObjCName>`.
-	// Bypass path-det/nested-walk/terminal block.
+	// Apple short form is `protocol conformance descriptor for <ObjCName>
+	// [.<Nested>...]`. Bypass path-det/nested-walk/terminal block.
 	if len(p.s) >= 6 && p.s[0] == 'S' && p.s[1] == 'o' &&
 		(p.s[len(p.s)-2:] == "Mc" || p.s[len(p.s)-2:] == "WP") {
 		probeI := 2
-		// Parse identifier length-prefix.
 		nameLen := 0
 		for probeI < len(p.s) && p.s[probeI] >= '0' && p.s[probeI] <= '9' {
 			nameLen = nameLen*10 + int(p.s[probeI]-'0')
@@ -8586,13 +8585,51 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			objcName := p.s[probeI : probeI+nameLen]
 			kindByte := p.s[probeI+nameLen]
 			if kindByte == 'C' || kindByte == 'V' || kindByte == 'O' || kindByte == 'P' {
+				probeI = probeI + nameLen + 1
+				// Optional <ext-mod-name>E<nested-types>...
+				// Try ext-mod parse: <digit><name>E
+				nested := []string{}
+				if probeI < len(p.s)-1 && p.s[probeI] >= '1' && p.s[probeI] <= '9' {
+					emodLen := 0
+					emodPos := probeI
+					for emodPos < len(p.s) && p.s[emodPos] >= '0' && p.s[emodPos] <= '9' {
+						emodLen = emodLen*10 + int(p.s[emodPos]-'0')
+						emodPos++
+					}
+					if emodLen > 0 && emodPos+emodLen < len(p.s) && p.s[emodPos+emodLen] == 'E' {
+						probeI = emodPos + emodLen + 1
+						// Walk nested chain: <digit><name><kind>...
+						for probeI < len(p.s) && p.s[probeI] >= '1' && p.s[probeI] <= '9' {
+							nlen := 0
+							nstart := probeI
+							for nstart < len(p.s) && p.s[nstart] >= '0' && p.s[nstart] <= '9' {
+								nlen = nlen*10 + int(p.s[nstart]-'0')
+								nstart++
+							}
+							if nlen <= 0 || nstart+nlen >= len(p.s) {
+								break
+							}
+							nname := p.s[nstart : nstart+nlen]
+							nk := p.s[nstart+nlen]
+							if nk != 'V' && nk != 'C' && nk != 'O' && nk != 'P' {
+								break
+							}
+							nested = append(nested, nname)
+							probeI = nstart + nlen + 1
+						}
+					}
+				}
 				prefix := "protocol conformance descriptor for "
 				if p.s[len(p.s)-2:] == "WP" {
 					prefix = "protocol witness table for "
 				}
+				hostFull := objcName
+				if len(nested) > 0 {
+					hostFull += "." + strings.Join(nested, ".")
+				}
 				p.i = len(p.s)
 				wrap := common.NewNode(common.KindTypeMangling)
-				wrap.Text = prefix + objcName
+				wrap.Text = prefix + hostFull
 				wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
 				return wrap, true
 			}
