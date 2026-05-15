@@ -30,6 +30,17 @@ and function-entity. Estimated 50-100 LOC. Reason for deferral: risk
 of regressing single-label Qr functions and the static-property Qr
 path that AAV unlocked.
 
+### plateau-2026-05-15-cbw-objc-host-digit-mod-needs-handler-coordination [deferred-1]
+
+CBW fire at 92.51%. Same family as CBV. Implementation needs
+careful coordination with the existing handler chain since multiple
+handlers (tryTypeFirstExtensionEntity, tryExtensionEntity, tryInit-
+DeinitEntity, tryFunctionEntity) currently bail at different points
+for the `So<N><name>C<digit-mod>E<labels>...fC` pattern. Adding the
+fast-path requires running AFTER all of them have been tried (to
+avoid intercepting cases other handlers might handle correctly).
+Defer to multi-fire investigation.
+
 ### plateau-2026-05-15-cbv-objc-host-digit-mod [deferred-1]
 
 CBV fire at 92.51%. Probed UIKit-ext-on-ObjC-host bucket
