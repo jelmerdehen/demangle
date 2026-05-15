@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 95.19% (60691/63757) — 2026-05-15T11:43:12Z
+**Parity**: 95.20% (60696/63757) — 2026-05-15T11:50:12Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 233 parse-errors + 2833 mismatches
+**Failures**: 233 parse-errors + 2828 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- 3b00ce86 swift-parity: CDM fast-path label-peek decode word-sub identifiers — parity 95.20%->95.24% (+27 production +0 roundtrip)
+- 8edf10ca chore: lock snapshot after CDL commit (parity 60691->60696)
+- 41b8abca chore: update digest.md for CDL commit (+5 production)
 - 710f96c1 swift-parity: CDL widen A-branch ext-mod scan to 200 with constraint-marker discriminator — parity 95.19%->95.20% (+5 production +0 roundtrip)
 - 89376b4b chore: lock snapshot after CDK commit (parity 60675->60691)
 - a2cd53ae chore: update digest.md for CDK commit (+16 production)
@@ -36,9 +39,6 @@
 - 32f146a2 chore: lock snapshot after CDJ commit (parity 60655->60675)
 - 7170b6fc chore: update digest.md for CDJ commit (+20 production)
 - 0d5c3daa swift-parity: CDJ tighten A-branch E-finder lookahead — parity 95.14%->95.17% (+20 production +0 roundtrip)
-- 2498d142 chore: lock snapshot after CDI commit (parity 60648->60655)
-- bd188fcd chore: update digest.md for CDI commit (+7 production)
-- b86f9939 swift-parity: CDI fast-path init host <A> for Rsz/Rz constraints — parity 95.13%->95.14% (+7 production +0 roundtrip)
 
 ## Suggested Next 3 Items
 
