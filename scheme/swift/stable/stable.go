@@ -14340,9 +14340,9 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 							break
 						}
 					}
+					// Reject `y` ending (void result, no args).
 					last := argsBody[len(argsBody)-1]
-					if !hasUnderscore && (last == 'V' || last == 'C' ||
-						last == 'O' || last == 'P') {
+					if !hasUnderscore && last != 'y' {
 						parts = []string{"_:"}
 					}
 				}
