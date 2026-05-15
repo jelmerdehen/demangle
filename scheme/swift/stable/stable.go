@@ -8668,10 +8668,11 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			fpTopLevelDecl = name
 		}
 	} else if p.i < len(p.s) && p.s[p.i] >= '1' && p.s[p.i] <= '9' {
-		// User-mod direct host: <n><mod><n><name><kind>
+		// User-mod direct host: <n><mod><n-or-0><name><kind>.
+		// Name length-prefix may start with '0' for word-sub.
 		_, mErr := p.parseIdentifier()
 		if mErr != nil || p.eof() ||
-			!(p.s[p.i] >= '1' && p.s[p.i] <= '9') {
+			!(p.s[p.i] >= '0' && p.s[p.i] <= '9') {
 			revert()
 			return nil, false
 		}
