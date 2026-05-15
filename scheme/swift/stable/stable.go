@@ -8705,8 +8705,9 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			fpTopLevelDecl = name
 		}
 	} else if p.i < len(p.s) && p.s[p.i] >= '1' && p.s[p.i] <= '9' {
-		// User-mod direct host: <n><mod><n-or-0><name><kind>.
+		// User-mod entity: <n><mod><n-or-0><name>[<kind>].
 		// Name length-prefix may start with '0' for word-sub.
+		// Kind byte (C/V/O/P) → nominal host. Else → top-level fn.
 		_, mErr := p.parseIdentifier()
 		if mErr != nil || p.eof() ||
 			!(p.s[p.i] >= '0' && p.s[p.i] <= '9') {
@@ -8719,12 +8720,12 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			return nil, false
 		}
 		kind := p.s[p.i]
-		if kind != 'C' && kind != 'V' && kind != 'O' && kind != 'P' {
-			revert()
-			return nil, false
+		if kind == 'C' || kind == 'V' || kind == 'O' || kind == 'P' {
+			p.i++
+			hostStr = name
+		} else {
+			fpTopLevelDecl = name
 		}
-		p.i++
-		hostStr = name
 	} else {
 		revert()
 		return nil, false
