@@ -481,6 +481,25 @@ complete. The `n` modifier handling requires identifying the exact
 speculative branch and either consuming `n` or wrapping in applyMod.
 Multi-fire.
 
+### plateau-2026-05-15-day [deferred-1]
+
+DAY attempted: Rzl-suffix narrow check (Rz constraint + l local-gen
+separator) at init-fast-path extMarker (line 14020-14029) +
+hasCondReq exclusion of Rzl-suffix (line 14723).
+
+Result: +0 parity. Group/MutableBox symbols use a DIFFERENT emit path
+that doesn't go through line 14020 isInitFP block. Debug stderr
+showed isInitFP fmt.Fprintf never executed for these symbols.
+
+Output `MutableBox.init(from:)` came from line 11976 or similar
+(no extMarker, no localGen). Need to trace exact emit site for these
+SwiftUI/Combine ext-init shapes — probably in extractConstraintSig
+flow or compactInit emit.
+
+NEW TOOL: ssh claude@kodo xcrun swift-demangle --simplified <<<'<sym>'
+matches our fast-path target form. Use to diff our output against
+Apple short form for any symbol → instant validation.
+
 ### plateau-2026-05-15-dau [deferred-1]
 
 DAU landed but plateau approaching. After session run CDA-DAU: parity
