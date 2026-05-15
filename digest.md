@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 95.26% (60737/63757) — 2026-05-15T12:05:15Z
+**Parity**: 95.28% (60747/63757) — 2026-05-15T12:10:12Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 233 parse-errors + 2787 mismatches
+**Failures**: 233 parse-errors + 2777 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- 8c77dfb0 swift-parity: CDR strip throws K + detect yy as zero-arg fn — parity 95.28%->95.28% (+1 production +0 roundtrip)
+- 6473f60d chore: lock snapshot after CDQ commit (parity 60737->60747)
+- bb9eba65 chore: update digest.md for CDQ commit (+10 production)
 - 3c5c485b swift-parity: CDQ extend fpExtMarker <A> to isFn for Rsz/Rz constraints — parity 95.27%->95.28% (+10 production +0 roundtrip)
 - c806165f chore: lock snapshot after CDP commit (parity 60727->60737)
 - 5def0a79 chore: update digest.md for CDP commit (+10 production)
@@ -36,9 +39,6 @@
 - a445e4cf chore: lock snapshot after CDN commit (parity 60723->60727)
 - fbedb1bf chore: update digest.md for CDN commit (+4 production)
 - ec69b056 swift-parity: CDN label-peek Q-rewind only on uppercase ident — parity 95.24%->95.25% (+4 production +0 roundtrip)
-- 935b83c2 chore: lock snapshot after CDM commit (parity 60696->60723)
-- 0fd7323f chore: update digest.md for CDM commit (+27 production)
-- 3b00ce86 swift-parity: CDM fast-path label-peek decode word-sub identifiers — parity 95.20%->95.24% (+27 production +0 roundtrip)
 
 ## Suggested Next 3 Items
 
