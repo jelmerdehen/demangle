@@ -30,6 +30,20 @@ and function-entity. Estimated 50-100 LOC. Reason for deferral: risk
 of regressing single-label Qr functions and the static-property Qr
 path that AAV unlocked.
 
+### plateau-2026-05-15-cbb-fast-path-needs-slow-fail-only [deferred-1]
+
+CBB fire: studied existing tryExtensionEntity:12823 fast-path more
+carefully — it ALSO uses TypeMangling+rawPrefix without proper
+remangler children. Remangler check at line 1965 requires children
+== 3, so that path also fails roundtrip. The CAZ -137 roundtrip
+regress likely came from PREVIOUSLY-roundtripping SwiftUI inits
+(slow-parse-success) being intercepted by my fast-path which only
+emits the labels-only form (lossy). Need to ONLY fire fast-path on
+slow-parse-failure, not eagerly. parseType's silent-OK-with-garbage
+behaviour for deep generics blocks that strategy. Real fix: dig
+into deep-generic parseType chain for SwiftUI/UIKit inits — multi-
+fire investigation. Defer.
+
 ### plateau-2026-05-15-cba-fast-path-needs-rawprefix-shape [deferred-1]
 
 CBA fire: studied existing tryExtensionEntity:12823 fast-path
