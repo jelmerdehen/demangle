@@ -30,6 +30,21 @@ and function-entity. Estimated 50-100 LOC. Reason for deferral: risk
 of regressing single-label Qr functions and the static-property Qr
 path that AAV unlocked.
 
+### plateau-2026-05-15-caq-no-tractable-bucket [deferred-1]
+
+CAQ fire at 90.55%. Surveyed top parse-error buckets (103/63/62/59/
+57/56/40/34/28/27/24/23/22/20/18/17/16) — every one is in
+INVESTIGATIONS as multi-fire deferred (PAAE multi-label, nested-host
+PAAE, depth-1 generics on subscripts/inits, qr-multilabel-fn-entity,
+Foundation back-ref drift). Smaller buckets (5-15 syms) are also
+tagged multi-fire (FixedWidthInteger, Strideable, Collection-ext
+Index ops, AttributedString dynamicMember, SwiftUI _makeView
+internal API). Sc<X>sE owned-modifier (2 syms) was probed mid-fire:
+parser path through tryTypeFirstExtensionEntity bails before reaching
+the applyMod branch in the body section — needs trace through the
+single-param yc/empty-result path to find the right edit point.
+Deferred for next fire with more time budget.
+
 ### post-cao-leftover-mismatches [15 syms, deferred-1]
 
 CAP fire: refresh shows 15 remaining mismatches after CAI/CAJ/CAK/
