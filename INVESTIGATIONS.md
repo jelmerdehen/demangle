@@ -30,6 +30,20 @@ and function-entity. Estimated 50-100 LOC. Reason for deferral: risk
 of regressing single-label Qr functions and the static-property Qr
 path that AAV unlocked.
 
+### plateau-2026-05-15-cbl-fastpath-roundtrip-vs-parity-tradeoff [deferred-1]
+
+CBL fire: tried operator-decoding + label imputation + nested-host
+guard in tryExtensionEntity ext-method fast-path. Net +23 parity
+but -86 roundtrip. Pattern: operator decoding fixed mismatches
+elsewhere (parity gain), but the imputed-labels heuristic
+intercepted some syms that the slow path previously roundtripped
+correctly (roundtrip loss). Need:
+- More precise param-count detection from body remainder (not
+  guess-by-operator-arity)
+- Or: only apply operator decoding (no label imputation), letting
+  full-format remain for non-decoded cases
+Multi-fire investigation; reverted.
+
 ### plateau-2026-05-15-cbk-stdlib-short-digit-ext-mod [deferred-1]
 
 CBK fire: tried digit-led ext-mod fast-path in tryTypeFirstExt for
