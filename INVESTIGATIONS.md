@@ -1140,6 +1140,27 @@ Tried: count `_` separator after `S<lowercase>` (Sg/Sf/Sa/Sd/Si/Sb/Sh/SS).
 Result: -7 parity. Stdlib type suffix occurs in result-type position too.
 Multi-fire — needs structural args/result distinction.
 
+## defer-ceq-main-parser-qr-arg-overcount [~12 syms, deferred-1] (2026-05-15)
+
+Pattern: SwiftUI/Scene/View fns returning `some X` (Qr opaque) where
+inner closure-substitution-context has `_` separator. Main parser
+counts that separator as outer-fn arg → emits `(_:_:)` instead of `(_:)`.
+
+Probe syms:
+- `_$s7SwiftUI4ViewPAAE19onScrollPhaseChangeyQryAA0eF0O_AfA0efG7ContextVtcF` → got `(_:_:)` want `(_:)`
+- `_$s7SwiftUI5ScenePAAE22defaultWindowPlacementyQrAA0eF0VAA0E10LayoutRootV_AA0eF7ContextVtcFQOMQ` (with QOMQ wrap)
+
+Tried (twice): Qr-cutoff in fast-path body-counter (stable.go:9535).
+Confirmed both times: symbols go through MAIN parser, not last-resort
+fast-path. Fix in fast-path has no effect.
+
+Need: locate the main-parser fn-arg-list counter (likely in
+tryFunctionEntity around stable.go:18302+). Apply same Qr-cutoff guard
+in the main path. Or restructure the opaque-return type parse to
+terminate args-list at the Qr marker.
+
+Multi-fire — adjacent to defer-cep.
+
 ## defer-cep-qomq-fn-arg-overcount [~10 syms, deferred-1] (2026-05-15)
 
 QOMQ opaque-return symbols emit `(_:_:)` for fns where Apple emits
