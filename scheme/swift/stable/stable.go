@@ -8985,10 +8985,19 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 	} else if sEnd >= 4 && p.s[sEnd-4:sEnd] == "vpMV" {
 		isPropDesc = true
 		sEnd -= 4
-	} else if sEnd >= 6 && p.s[sEnd-6:sEnd] == "luipMV" {
-		// Subscript property descriptor with local-gen prefix.
+	}
+	// Subscript prop-desc with local-gen — defaults to "<A>" decoration.
+	fpSubscriptHasLocalGen := false
+	if sEnd >= 7 && p.s[sEnd-7:sEnd] == "luipZMV" {
 		isPropDesc = true
 		isSubscript = true
+		propStaticPfx = "static "
+		fpSubscriptHasLocalGen = true
+		sEnd -= 7
+	} else if sEnd >= 6 && p.s[sEnd-6:sEnd] == "luipMV" {
+		isPropDesc = true
+		isSubscript = true
+		fpSubscriptHasLocalGen = true
 		sEnd -= 6
 	} else if sEnd >= 5 && p.s[sEnd-5:sEnd] == "cipMV" {
 		// Subscript property descriptor (no local-gen).
@@ -9115,7 +9124,8 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 	}
 
 	// For inits, declName is actually the first label (init grammar).
-	if isInit && declName != "" {
+	// Same for subscript property descriptors (subscript itself is anonymous).
+	if (isInit || (isSubscript && isPropDesc)) && declName != "" {
 		fpLabels = append([]string{declName}, fpLabels...)
 		declName = ""
 	}
@@ -9314,8 +9324,11 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 		// "[static ]Host.declName.<accessor>" — labels-only (no params).
 		text = propStaticPfx + hostStr + "." + declName + propAcc
 	} else if isPropDesc && isSubscript {
-		// "property descriptor for [static ]Host.subscript(<labels>)"
-		text = "property descriptor for " + propStaticPfx + hostStr + ".subscript" + labelStr
+		subGen := localGen
+		if subGen == "" && fpSubscriptHasLocalGen {
+			subGen = "<A>"
+		}
+		text = "property descriptor for " + propStaticPfx + hostStr + ".subscript" + subGen + labelStr
 	} else if isPropDesc {
 		// "property descriptor for [static ]Host.declName"
 		text = "property descriptor for " + propStaticPfx + hostStr + "." + declName
