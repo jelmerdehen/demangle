@@ -9487,6 +9487,10 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 		if isStatic && bodyEnd >= 1 {
 			bodyEnd--
 		}
+		// Async marker `Ya` precedes F: strip if present.
+		if bodyEnd >= 2 && body[bodyEnd-2] == 'Y' && body[bodyEnd-1] == 'a' {
+			bodyEnd -= 2
+		}
 		// Throws marker `K` precedes F: strip if present.
 		if bodyEnd >= 1 && body[bodyEnd-1] == 'K' {
 			bodyEnd--
