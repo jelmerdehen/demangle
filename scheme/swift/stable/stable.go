@@ -8923,6 +8923,8 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 				}
 			} else if hasType {
 				fpLabels = []string{"_"}
+			} else if len(body) >= 2 && body[0] == 'y' && body[1] != 't' {
+				fpLabels = []string{"_"}
 			}
 		}
 	}
