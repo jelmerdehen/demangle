@@ -1,12 +1,12 @@
 # Swift Production Digest
 
-**Parity**: 94.63% (60332/63757) — 2026-05-15T08:02:09Z
+**Parity**: 94.64% (60338/63757) — 2026-05-15T08:07:13Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 638 parse-errors + 2787 mismatches
+**Failures**: 548 parse-errors + 2871 mismatches
 
 ## Top-20 Mismatch Categories
 
-- property descriptor                        307
+- property descriptor                        310
 - protocol conformance descriptor            145
 - static (extension                          114
 - dispatch thunk                             81
@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- c3a1e082 swift-parity: DAD Mc/WP gen-sig prefix from constraint — parity 94.63%->94.64% (+2 production +0 roundtrip)
+- 9f6fa889 chore: lock snapshot after DAC commit (parity 60332->60338, roundtrip 20781->20871)
+- c556024f chore: update digest.md for DAC commit (+6 production +90 roundtrip)
 - 5828b8b4 swift-parity: DAC A-led path-det fallback + init yc empty-params — parity 94.62%->94.63% (+6 production +90 roundtrip)
 - 965ff3dc chore: lock snapshot after DAB commit (parity 60317->60332, roundtrip 20762->20781)
 - 13644d0c chore: update digest.md for DAB commit (+15 production +19 roundtrip)
@@ -36,12 +39,9 @@
 - 7e2a739a chore: lock snapshot after DAA commit (parity 60259->60317, roundtrip 20670->20762)
 - 52d13676 chore: update digest.md for DAA commit (+58 production +92 roundtrip)
 - 13208c5d swift-parity: DAA fast-path mFWC/mlFWC enum case witness — parity 94.51%->94.60% (+58 production +92 roundtrip)
-- 6fd81ec0 chore: lock snapshot after CDZ commit (parity 60249->60259, roundtrip 20666->20670)
-- 5d3c306c chore: update digest.md for CDZ commit (+10 production +4 roundtrip)
-- a9adb9c1 swift-parity: CDZ subscript prop-desc localGen + first-label inject — parity 94.50%->94.51% (+10 production +4 roundtrip)
 
 ## Suggested Next 3 Items
 
-1. P1: property descriptor fix — 307 mismatches
+1. P1: property descriptor fix — 310 mismatches
 2. P2: protocol conformance descriptor — 145 mismatches
 3. investigate: static (extension — 114 mismatches
