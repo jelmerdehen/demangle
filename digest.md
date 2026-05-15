@@ -29,16 +29,16 @@
 
 ## Last 10 Commits
 
+- 3494303 swift-parity: CCF last-resort fast-path Swift module ext (s marker) — parity 92.89%->92.89% (+0 production +73 roundtrip)
+- 28966c3 chore: defer plateau-2026-05-15-cce-extmethod-depth-track-regress (deferred-1)
+- 9816d6f chore: lock snapshot after CCD commit (parity 59229->59231)
+- d57d8dc chore: update digest.md for CCD commit (+2 production)
 - ac40f8e swift-parity: CCD last-resort fast-path skip y...G generic-bracket separators — parity 92.89%->92.89% (+2 production)
 - 900a5fe chore: defer plateau-2026-05-15-ccc-double-underscore-sep-too-broad (deferred-1)
 - 5dd7595 chore: lock snapshot after CCB commit (parity 59215->59229)
 - 93fb1e1 chore: update digest.md for CCB commit (parity 92.87%->92.89% +14)
 - b2c5590 swift-parity: CCB last-resort fast-path positional count for inits — parity 92.87%->92.89% (+14 production)
 - dbaa15d chore: lock snapshot after CCA commit (roundtrip 17359->17362)
-- 3280476 chore: update digest.md for CCA commit (parity 92.87%->92.87% +0)
-- e16faf4 swift-parity: CCA last-resort fast-path QOMQ wrapper — parity 92.87%->92.87% (+0 production +3 roundtrip)
-- cf2616e chore: lock snapshot after CBZ commit (parity 59207->59215)
-- 927f06f chore: update digest.md for CBZ commit (parity 92.86%->92.87% +8)
 
 ## Suggested Next 3 Items
 
