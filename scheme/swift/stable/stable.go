@@ -8707,6 +8707,12 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			tjPrefix = "method descriptor for "
 			sEnd -= 2
 		}
+	} else if sEnd >= 3 && p.s[sEnd-2:] == "Tu" {
+		prev := p.s[sEnd-3]
+		if prev == 'F' {
+			tjPrefix = "async function pointer to "
+			sEnd -= 2
+		}
 	}
 	// QOMQ wrapper: "opaque type descriptor for <<opaque return type of ...>>"
 	isQOMQ := false
