@@ -8954,6 +8954,22 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 				continue
 			}
 			declName = ident
+			// Operator decode (oi/op/oP suffix).
+			if !p.eof() && p.s[p.i] == 'o' && p.i+1 < len(p.s) {
+				ok := p.s[p.i+1]
+				if ok == 'i' || ok == 'p' || ok == 'P' {
+					p.i += 2
+					decoded := decodeOperatorName(ident)
+					switch ok {
+					case 'i':
+						declName = decoded + " infix"
+					case 'p':
+						declName = decoded + " prefix"
+					case 'P':
+						declName = decoded + " postfix"
+					}
+				}
+			}
 			break
 		}
 	}
