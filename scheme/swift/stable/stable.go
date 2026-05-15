@@ -8942,7 +8942,7 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 		if sEnd >= 3 && p.s[sEnd-2:sEnd] == "Tu" {
 			prev := p.s[sEnd-3]
 			if prev == 'F' || prev == 'C' || prev == 'c' ||
-				prev == 'j' || prev == 'q' {
+				prev == 'j' || prev == 'q' || prev == 'Z' {
 				tjPrefix += "async function pointer to "
 				sEnd -= 2
 				stripped = true
