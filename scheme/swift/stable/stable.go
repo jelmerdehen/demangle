@@ -9059,8 +9059,10 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 		isFn = true
 		isStatic = true
 	}
-	// mFWC / mlFWC — enum case witness. Apple short form:
+	// FWC — enum case witness. Apple short form:
 	//   `enum case for <Host>.<Nested>.<case>(<labels>)`
+	// Direct shapes: mFWC / mlFWC. Indirect: ...m<constraint>...FWC where
+	// `m` is somewhere before FWC (constraint bytes between).
 	isEnumCase := false
 	enumCaseHasLocalGen := false
 	if sEnd >= 5 && p.s[sEnd-5:sEnd] == "mlFWC" {
@@ -9070,6 +9072,28 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 	} else if sEnd >= 4 && p.s[sEnd-4:sEnd] == "mFWC" {
 		isEnumCase = true
 		sEnd -= 4
+	} else if sEnd >= 3 && p.s[sEnd-3:sEnd] == "FWC" {
+		// Indirect: scan backward up to 30 bytes for `m`. If found and
+		// nothing weird in between, treat as enum case.
+		mAt := -1
+		for k := sEnd - 4; k >= sEnd-33 && k >= 0; k-- {
+			if p.s[k] == 'm' {
+				// Verify next char isn't a digit (which would indicate
+				// `m` is part of an identifier length-prefix).
+				if k+1 < len(p.s) && (p.s[k+1] < '0' || p.s[k+1] > '9') {
+					mAt = k
+					break
+				}
+			}
+		}
+		if mAt >= 0 {
+			isEnumCase = true
+			// Local-gen if `l` immediately precedes FWC.
+			if sEnd >= 4 && p.s[sEnd-4] == 'l' {
+				enumCaseHasLocalGen = true
+			}
+			sEnd -= 3
+		}
 	}
 	// Mc / WP terminal — protocol conformance descriptor / witness table.
 	// Allow ObjC hosts (no body bound-gen) OR any host with bound-gen on
