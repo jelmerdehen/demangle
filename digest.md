@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- e3a50f73 swift-parity: CCY threshold lowered to >30 — parity 93.69%->93.69% (+2 production +24 roundtrip)
+- ed963405 chore: lock snapshot after CCX commit (parity 59726->59729, roundtrip 18770->18834)
+- 493923ad chore: update digest.md for CCX commit (+3 production)
 - f1768bbd swift-parity: CCX threshold lowered to >35 — parity 93.69%->93.69% (+3 production +64 roundtrip)
 - 9961e9a5 chore: lock snapshot after CCW commit (parity 59692->59726, roundtrip 18714->18770)
 - 866dff77 chore: update digest.md for CCW commit (+34 production)
@@ -36,9 +39,6 @@
 - 5bf9211a chore: defer plateau-2026-05-15-ccv-mc-bucket-needs-deep-render (deferred-1)
 - e154a13c chore: defer plateau-2026-05-15-ccu-multi-nested-host-regress (deferred-1)
 - ab00c9da chore: defer plateau-2026-05-15-cct-known-module-filter-noop (deferred-1)
-- f6efe4c1 chore: defer plateau-2026-05-15-ccs-ext-mod-constraint-scan-too-broad (deferred-1)
-- 56e81f79 chore: lock snapshot after CCR commit (parity 59664->59692, roundtrip 18674->18714)
-- 52990c8b chore: update digest.md for CCR commit (+28 production)
 
 ## Suggested Next 3 Items
 
