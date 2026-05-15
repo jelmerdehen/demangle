@@ -30,6 +30,19 @@ and function-entity. Estimated 50-100 LOC. Reason for deferral: risk
 of regressing single-label Qr functions and the static-property Qr
 path that AAV unlocked.
 
+### protocol-init-multi-label [~10 syms, deferred-1]
+
+BAY probed: extending tryStdlibCopyInit to accept Protocol-kind
+hosts for shapes like SF.signOf/magnitudeOf init. Pattern:
+\`<host=Proto><labelN>...<x repeated><_<x>>*t cfC[Tj|Tq]?\`. Uses
+bare `x` (generic-A) not S<N><letter>. Different from BAX compact
+form. ~10 syms: SF/SH/SQ multi-arg labeled inits + their dispatch
+thunks.
+
+Fix: new handler tryProtocolMultiLabelInit similar to BAX but
+parsing bare generic params. Or extend tryProtocolInitMember beyond
+its current xycfC exact shape. Multi-fire.
+
 ### stdlib-S2-compact-multi-arg-init [~6 syms, deferred-1]
 
 BAW probed: extending tryStdlibLiteralInit to support multi-label
