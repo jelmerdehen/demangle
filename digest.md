@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 92.88% (59215/63757) — 2026-05-15T04:19:11Z
+**Parity**: 92.90% (59229/63757) — 2026-05-15T04:22:20Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 4057 parse-errors + 485 mismatches
+**Failures**: 4057 parse-errors + 471 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,16 +29,16 @@
 
 ## Last 10 Commits
 
+- ac40f8e swift-parity: CCD last-resort fast-path skip y...G generic-bracket separators — parity 92.89%->92.89% (+2 production)
+- 900a5fe chore: defer plateau-2026-05-15-ccc-double-underscore-sep-too-broad (deferred-1)
+- 5dd7595 chore: lock snapshot after CCB commit (parity 59215->59229)
+- 93fb1e1 chore: update digest.md for CCB commit (parity 92.87%->92.89% +14)
 - b2c5590 swift-parity: CCB last-resort fast-path positional count for inits — parity 92.87%->92.89% (+14 production)
 - dbaa15d chore: lock snapshot after CCA commit (roundtrip 17359->17362)
 - 3280476 chore: update digest.md for CCA commit (parity 92.87%->92.87% +0)
 - e16faf4 swift-parity: CCA last-resort fast-path QOMQ wrapper — parity 92.87%->92.87% (+0 production +3 roundtrip)
 - cf2616e chore: lock snapshot after CBZ commit (parity 59207->59215)
 - 927f06f chore: update digest.md for CBZ commit (parity 92.86%->92.87% +8)
-- 7ab3835 swift-parity: CBZ separator detection adds m (metatype) — parity 92.86%->92.87% (+8 production)
-- e555bca chore: lock snapshot after CBY commit (parity 59180->59207)
-- 62d6503 chore: update digest.md for CBY commit (parity 92.82%->92.86% +27)
-- ea8421d swift-parity: CBY last-resort fast-path positional param count for fns — parity 92.82%->92.86% (+27 production)
 
 ## Suggested Next 3 Items
 
