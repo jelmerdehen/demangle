@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 95.33% (60779/63757) — 2026-05-15T13:36:14Z
+**Parity**: 95.33% (60781/63757) — 2026-05-15T13:43:24Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 233 parse-errors + 2745 mismatches
+**Failures**: 233 parse-errors + 2743 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- 42e85d93 swift-parity: CEJ relax CEI last-byte check — accept any non-y ending — parity 95.33%->95.34% (+2 production +0 roundtrip)
+- 2a5e3e9c chore: lock snapshot after CEI commit (parity 60779->60781)
+- 204c692f chore: update digest.md for CEI commit (+2 production)
 - b915387d swift-parity: CEI fast-path empty-labels y<arg>F → 1 unlabeled arg — parity 95.33%->95.33% (+2 production +0 roundtrip)
 - 610d8e4b chore: lock snapshot after CEG commit (parity 60771->60779)
 - f36b53c1 chore: update digest.md for CEG commit (+8 production)
@@ -36,9 +39,6 @@
 - bdd20cac chore: lock snapshot after CED commit (parity 60770->60771)
 - d7fd72db chore: update digest.md for CED commit (+1 production)
 - 5ea42145 swift-parity: CED reduce family expand from () also at fast-path fn-emit — parity 95.31%->95.32% (+1 production +0 roundtrip)
-- bc2a5164 chore: lock snapshot after CEB commit (parity 60769->60770)
-- 65f64eb6 chore: update digest.md for CEB commit (+1 production)
-- 987101b3 swift-parity: CEB A-branch accept E followed by A/S/x/q with constraint marker — parity 95.31%->95.31% (+1 production +0 roundtrip)
 
 ## Suggested Next 3 Items
 
