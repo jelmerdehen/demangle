@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- 0ce659f7 swift-parity: DAE indirect FWC enum-case detection — parity 94.64%->94.65% (+6 production +12 roundtrip)
+- 9fbe6684 chore: lock snapshot after DAD commit (parity 60338->60340)
+- 124e5fd9 chore: update digest.md for DAD commit (+2 production)
 - c3a1e082 swift-parity: DAD Mc/WP gen-sig prefix from constraint — parity 94.63%->94.64% (+2 production +0 roundtrip)
 - 9f6fa889 chore: lock snapshot after DAC commit (parity 60332->60338, roundtrip 20781->20871)
 - c556024f chore: update digest.md for DAC commit (+6 production +90 roundtrip)
@@ -36,9 +39,6 @@
 - 965ff3dc chore: lock snapshot after DAB commit (parity 60317->60332, roundtrip 20762->20781)
 - 13644d0c chore: update digest.md for DAB commit (+15 production +19 roundtrip)
 - 043c3705 swift-parity: DAB user-mod path accept word-sub `0` for name — parity 94.60%->94.62% (+15 production +19 roundtrip)
-- 7e2a739a chore: lock snapshot after DAA commit (parity 60259->60317, roundtrip 20670->20762)
-- 52d13676 chore: update digest.md for DAA commit (+58 production +92 roundtrip)
-- 13208c5d swift-parity: DAA fast-path mFWC/mlFWC enum case witness — parity 94.51%->94.60% (+58 production +92 roundtrip)
 
 ## Suggested Next 3 Items
 
