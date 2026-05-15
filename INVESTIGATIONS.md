@@ -30,6 +30,20 @@ and function-entity. Estimated 50-100 LOC. Reason for deferral: risk
 of regressing single-label Qr functions and the static-property Qr
 path that AAV unlocked.
 
+### plateau-2026-05-15-cbk-stdlib-short-digit-ext-mod [deferred-1]
+
+CBK fire: tried digit-led ext-mod fast-path in tryTypeFirstExt for
+stdlib short hosts (Sq7CombineE9PublisherV...). Target sym
+parsed but emitted `Optional.Publisher.compactMap<A>()` instead of
+`(_:)` (no labels for unnamed params). Also caused -168 parity
+regression — fast-path intercepted syms other handlers handle
+correctly. Reverted. Need:
+- Count actual params from rest-of-body (currently I only peek
+  named labels, count=0 → empty `()`)
+- Tighter predicate: only fire if other handlers definitively
+  failed (currently fires before tryExtensionEntity could try)
+Multi-fire investigation.
+
 ### plateau-2026-05-15-cbd-roundtrip-mechanism-found [deferred-1]
 
 CBD fire: implemented swift.fastpath.rawBody attr in tryInitDeinit
