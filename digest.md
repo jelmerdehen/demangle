@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 90.53% (57718/63757) — 2026-05-15T01:15:08Z
+**Parity**: 90.53% (57721/63757) — 2026-05-15T01:19:14Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 6016 parse-errors + 23 mismatches
+**Failures**: 6016 parse-errors + 20 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -10,7 +10,6 @@
 - (extension in Foundation):__C.NSCoder.decodeDictio… 1
 - AsyncSequence.dropFirst(_:)                1
 - AsyncSequence.prefix(_:)                   1
-- SerialExecutor<>.isSameExclusiveExecutionContext(o… 1
 - SliderTickContentForEach.init<A>(_:content:) 1
 - Swift.!= infix(Any.Type?, Any.Type?) -> Swift.Bool 1
 - Swift.== infix(Any.Type?, Any.Type?) -> Swift.Bool 1
@@ -20,12 +19,13 @@
 - dispatch thunk                             1
 - globalConcurrentExecutor.getter            1
 - method descriptor                          1
-- static Task<>.checkCancellation()          1
-- static Task<>.startOnMainActor(priority:_:) 1
 - withTaskExecutorPreference<A>(_:operation:) 1
 
 ## Last 10 Commits
 
+- 2a00327 swift-parity: CAK Sc<X> stdlib2 hosts to concurrency map — parity 90.54%->90.54% (+2 production)
+- d10faf5 chore: lock snapshot after CAJ commit (parity 57718->57721)
+- 0f2c6c0 chore: update digest.md for CAJ commit (parity 90.53%->90.54% +3)
 - 4738eaf swift-parity: CAJ Sc<X> ext-method <> placeholder — parity 90.53%->90.54% (+3 production)
 - e503c75 chore: lock snapshot after CAI commit (parity 57703->57718)
 - d70e263 chore: update digest.md for CAI commit (parity 90.50%->90.53% +15)
@@ -33,9 +33,6 @@
 - b274302 chore: defer plateau-2026-05-15-cah-oracle-down to multi-fire (deferred-1)
 - 263aae2 chore: defer plateau-2026-05-15-cag-oracle-down to multi-fire (deferred-1)
 - fe69186 chore: defer plateau-2026-05-15-caf to multi-fire (deferred-1)
-- 257773e chore: defer plateau-2026-05-15-cae to multi-fire (deferred-1)
-- f98d0b4 chore: defer plateau-2026-05-15-cad to multi-fire (deferred-1)
-- d8ddb23 chore: defer plateau-2026-05-15-cac to multi-fire (deferred-1)
 
 ## Suggested Next 3 Items
 
