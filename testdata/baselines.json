@@ -3,9 +3,9 @@
   "apple_curated_total": 153,
   "swiftc_three_way_pass": 222,
   "swiftc_three_way_total": 222,
-  "production_parity_pass": 60247,
-  "production_roundtrip_pass": 20663,
+  "production_parity_pass": 60249,
+  "production_roundtrip_pass": 20666,
   "fuzz_crashers": 0,
   "snapshot_commit": "",
-  "snapshot_ts": "2026-05-15T07:44:52.95394597Z"
+  "snapshot_ts": "2026-05-15T07:48:26.112740959Z"
 }
