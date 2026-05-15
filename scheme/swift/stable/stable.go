@@ -8657,6 +8657,25 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 		// Direct entity — no ext marker, no decl-name (anonymous subscript
 		// or protocol method requirement with body following host).
 		fpDirectEntity = true
+	} else if !p.eof() && p.s[p.i] == 'A' {
+		// Ext via back-ref: A<X>E<...> — self-extension on host.
+		eAt := -1
+		for k := p.i; k < len(p.s)-1 && k < p.i+10; k++ {
+			if p.s[k] == 'E' {
+				eAt = k
+				break
+			}
+		}
+		if eAt < 0 {
+			revert()
+			return nil, false
+		}
+		fpConstraintBytes = p.s[p.i:eAt]
+		p.i = eAt + 1
+		// Re-check direct-entity after consuming back-ref ext.
+		if !p.eof() && p.s[p.i] == 'y' {
+			fpDirectEntity = true
+		}
 	} else if p.s[p.i] >= '1' && p.s[p.i] <= '9' {
 		// Could be: (a) digit-led ext mod identifier + E, OR (b) direct
 		// decl-name (protocol method requirement). Try ext-mod first; if
