@@ -8657,6 +8657,10 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 		// Direct entity — no ext marker, no decl-name (anonymous subscript
 		// or protocol method requirement with body following host).
 		fpDirectEntity = true
+	} else if !p.eof() && p.s[p.i] == '_' {
+		// Init with leading `_` label (allocator/initializer with first
+		// underscore label). Skip path-det; labels-peek consumes labels.
+		fpDirectEntity = true
 	} else if !p.eof() && p.s[p.i] == 'A' {
 		// Ext via back-ref: A<X>E<...> — self-extension on host.
 		eAt := -1
