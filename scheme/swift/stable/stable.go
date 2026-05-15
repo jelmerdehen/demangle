@@ -8690,6 +8690,48 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 	isStatic := false
 	isFn := false
 	isClassAlloc := false
+	isPropAcc := false
+	isPropDesc := false
+	propAcc := ""
+	propStaticPfx := ""
+	if sEnd >= 5 && p.s[sEnd-5:sEnd] == "vpZMV" {
+		isPropDesc = true
+		propStaticPfx = "static "
+		sEnd -= 5
+	} else if sEnd >= 4 && p.s[sEnd-4:sEnd] == "vpMV" {
+		isPropDesc = true
+		sEnd -= 4
+	} else if sEnd >= 3 && p.s[sEnd-3:sEnd] == "vgZ" {
+		isPropAcc = true
+		propAcc = ".getter"
+		propStaticPfx = "static "
+		sEnd -= 3
+	} else if sEnd >= 3 && p.s[sEnd-3:sEnd] == "vsZ" {
+		isPropAcc = true
+		propAcc = ".setter"
+		propStaticPfx = "static "
+		sEnd -= 3
+	} else if sEnd >= 2 && p.s[sEnd-2:sEnd] == "vg" {
+		isPropAcc = true
+		propAcc = ".getter"
+		sEnd -= 2
+	} else if sEnd >= 2 && p.s[sEnd-2:sEnd] == "vs" {
+		isPropAcc = true
+		propAcc = ".setter"
+		sEnd -= 2
+	} else if sEnd >= 2 && p.s[sEnd-2:sEnd] == "vM" {
+		isPropAcc = true
+		propAcc = ".modify"
+		sEnd -= 2
+	} else if sEnd >= 2 && p.s[sEnd-2:sEnd] == "vw" {
+		isPropAcc = true
+		propAcc = ".willset"
+		sEnd -= 2
+	} else if sEnd >= 2 && p.s[sEnd-2:sEnd] == "vW" {
+		isPropAcc = true
+		propAcc = ".didset"
+		sEnd -= 2
+	}
 	if sEnd >= 2 && (p.s[sEnd-2:sEnd] == "fC" || p.s[sEnd-2:sEnd] == "fc") {
 		isInit = true
 		if p.s[sEnd-2:sEnd] == "fC" {
@@ -8706,7 +8748,7 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 		isFn = true
 		isStatic = true
 	}
-	if !isInit && !isFn {
+	if !isInit && !isFn && !isPropAcc && !isPropDesc {
 		revert()
 		return nil, false
 	}
@@ -8905,7 +8947,16 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 		nameOut = "." + declName
 	}
 
-	text := staticPfx + hostStr + nameOut + localGen + labelStr
+	var text string
+	if isPropAcc {
+		// "[static ]Host.declName.<accessor>" — labels-only (no params).
+		text = propStaticPfx + hostStr + "." + declName + propAcc
+	} else if isPropDesc {
+		// "property descriptor for [static ]Host.declName"
+		text = "property descriptor for " + propStaticPfx + hostStr + "." + declName
+	} else {
+		text = staticPfx + hostStr + nameOut + localGen + labelStr
+	}
 	if isQOMQ {
 		text = "opaque type descriptor for <<opaque return type of " + text + ">>"
 	}
