@@ -40,6 +40,14 @@ production), 18 remaining mismatches each need bespoke surgery:
   `s2eeoiySbypXpSg_ABtF` / `s2neoi...`): `AB` back-ref resolves to
   `Any.Type` (entry 1) instead of `Any.Type?` (entry 2). Subs push
   for `Sg` Optional wrapper not happening for operator-decl args.
+  CAM attempt: generalised tryFunctionEntity equatable-symmetry rule
+  to fire when `args[1] != args[0]` (not just `args[1] == ret`).
+  Targeted +2 syms but regressed -4 parity / -12 roundtrip across
+  Optional / non-symmetric op-decl callers (lhs/rhs distinct types
+  resolved correctly, force-equal broke them). Reverted. Need
+  narrower predicate: only force when args[1] is the BASE of args[0]
+  via Sg/Xp wrapper loss; preserve genuinely distinct args (e.g.
+  Set + array, mixed-type comparators). Probe more syms first.
 - `_CalendarProtocol.init` Tj/Tq (2 syms): parser emits 5 args, want
   6. Last label `gregorianStartDate` consumed but `At`-style back-ref
   in tuple breaks separator detection.
