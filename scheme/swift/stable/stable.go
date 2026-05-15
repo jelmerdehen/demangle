@@ -14402,7 +14402,7 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 			}
 			// reduce/scan/tryReduce/tryScan: 2 args. Binary infix: 2 args.
 			// zip/combineLatest/map: arg count = local-generic count.
-			if labelStr == "(_:)" {
+			if labelStr == "(_:)" || labelStr == "()" {
 				if declName == "reduce" || declName == "tryReduce" ||
 					declName == "scan" || declName == "tryScan" ||
 					strings.HasSuffix(declName, " infix") {
