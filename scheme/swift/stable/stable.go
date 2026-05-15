@@ -9487,8 +9487,16 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 		if isStatic && bodyEnd >= 1 {
 			bodyEnd--
 		}
+		// Throws marker `K` precedes F: strip if present.
+		if bodyEnd >= 1 && body[bodyEnd-1] == 'K' {
+			bodyEnd--
+		}
 		if bodyEnd >= 1 && body[bodyEnd-1] == 't' {
 			bodyEnd--
+		}
+		// Detect `yy` (empty args + empty result) → 0 args.
+		if bodyEnd == 2 && body[0] == 'y' && body[1] == 'y' {
+			bodyEnd = 0
 		}
 		if bodyEnd > 0 {
 			body = body[:bodyEnd]
