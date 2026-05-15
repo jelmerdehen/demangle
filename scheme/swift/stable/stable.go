@@ -8882,12 +8882,11 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			fpMcConstraintStart = p.i
 		}
 	}
-	// Nested-extension recovery: if no decl-name found yet and we have at
-	// least one nested type, scan for `E<digit>` (2nd ext marker) within
-	// window. Bytes between are nested-ext constraint bytes which apply
-	// extMarker to the last nested type.
+	// Nested-extension recovery: loop until decl-name found or no more E
+	// found. Each iteration scans for `E<digit>` past current p.i, treats
+	// preceding bytes as nested-ext constraint, then re-enters nested-walk.
 	fpNestedExtMarker := ""
-	if fpTopLevelDecl == "" && !fpDirectEntity && declName == "" &&
+	for fpTopLevelDecl == "" && !fpDirectEntity && declName == "" &&
 		len(nestedNames) > 0 && !p.eof() && p.s[p.i] != 'y' {
 		eAt := -1
 		for k := p.i; k < len(p.s)-1 && k < p.i+120; k++ {
@@ -8896,35 +8895,36 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 				break
 			}
 		}
-		if eAt > p.i {
-			constraintBytes := p.s[p.i:eAt]
-			if strings.Contains(constraintBytes, "rl") {
-				fpNestedExtMarker = "<>"
-			} else if strings.Contains(constraintBytes, "Rsz") ||
-				strings.Contains(constraintBytes, "Rz") {
-				fpNestedExtMarker = "<A>"
-			} else if len(constraintBytes) > 2 {
-				fpNestedExtMarker = "<>"
-			}
-			p.i = eAt + 1
-			// Re-enter nested-walk to capture decl-name (may also pick up
-			// further nested types, though typically just decl).
-			for !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
-				saveP := p.i
-				ident, err := p.parseIdentifier()
-				if err != nil {
-					p.i = saveP
-					break
-				}
-				if !p.eof() && (p.s[p.i] == 'V' || p.s[p.i] == 'C' ||
-					p.s[p.i] == 'O' || p.s[p.i] == 'P') {
-					nestedNames = append(nestedNames, ident)
-					p.i++
-					continue
-				}
-				declName = ident
+		if eAt <= p.i {
+			break
+		}
+		constraintBytes := p.s[p.i:eAt]
+		// Last-iteration ext-marker decides display (overwritten each loop).
+		if strings.Contains(constraintBytes, "rl") {
+			fpNestedExtMarker = "<>"
+		} else if strings.Contains(constraintBytes, "Rsz") ||
+			strings.Contains(constraintBytes, "Rz") {
+			fpNestedExtMarker = "<A>"
+		} else if len(constraintBytes) > 2 {
+			fpNestedExtMarker = "<>"
+		}
+		p.i = eAt + 1
+		// Re-enter nested-walk to capture decl-name or next nested types.
+		for !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+			saveP := p.i
+			ident, err := p.parseIdentifier()
+			if err != nil {
+				p.i = saveP
 				break
 			}
+			if !p.eof() && (p.s[p.i] == 'V' || p.s[p.i] == 'C' ||
+				p.s[p.i] == 'O' || p.s[p.i] == 'P') {
+				nestedNames = append(nestedNames, ident)
+				p.i++
+				continue
+			}
+			declName = ident
+			break
 		}
 	}
 
