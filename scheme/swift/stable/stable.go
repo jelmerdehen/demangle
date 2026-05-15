@@ -9159,6 +9159,13 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 		isFn = true
 		isStatic = true
 	}
+	// TL — protocol requirements base descriptor. Apple short form:
+	//   `protocol requirements base descriptor for <Host>.<Nested>`
+	isTL := false
+	if sEnd >= 2 && p.s[sEnd-2:sEnd] == "TL" {
+		isTL = true
+		sEnd -= 2
+	}
 	// FWC — enum case witness. Apple short form:
 	//   `enum case for <Host>.<Nested>.<case>(<labels>)`
 	// Direct shapes: mFWC / mlFWC. Indirect: ...m<constraint>...FWC where
@@ -9209,7 +9216,7 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			sEnd -= 2
 		}
 	}
-	if !isInit && !isFn && !isPropAcc && !isPropDesc && !isSubscript && !isMc && !isWP && !isEnumCase {
+	if !isInit && !isFn && !isPropAcc && !isPropDesc && !isSubscript && !isMc && !isWP && !isEnumCase && !isTL {
 		revert()
 		return nil, false
 	}
@@ -9465,7 +9472,9 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 	}
 
 	var text string
-	if isEnumCase {
+	if isTL {
+		text = "protocol requirements base descriptor for " + hostStr + "." + declName
+	} else if isEnumCase {
 		gen := localGen
 		if gen == "" && enumCaseHasLocalGen {
 			// Detect multi-arg local-gen: ...r<N>_lFWC pattern.
