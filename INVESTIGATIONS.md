@@ -30,6 +30,13 @@ and function-entity. Estimated 50-100 LOC. Reason for deferral: risk
 of regressing single-label Qr functions and the static-property Qr
 path that AAV unlocked.
 
+### plateau-2026-05-15-ccv-mc-bucket-needs-deep-render [deferred-1]
+
+CCV fire at 93.63%. Top remaining error suffix is `Mc` (255 syms,
+protocol conformance descriptors). Sample: `Published<A>.Publisher`
+needs bound-generic host rendering + conformance suffix wrapper.
+Too complex for last-resort fast-path. Defer to multi-fire.
+
 ### plateau-2026-05-15-ccu-multi-nested-host-regress [deferred-1]
 
 CCU fire at 93.63%. Tried walking multiple nested nominals in
