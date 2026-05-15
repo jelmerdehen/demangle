@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 95.09% (60625/63757) — 2026-05-15T10:51:13Z
+**Parity**: 95.11% (60642/63757) — 2026-05-15T10:59:51Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 233 parse-errors + 2899 mismatches
+**Failures**: 233 parse-errors + 2882 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- 7f658f62 swift-parity: CDH track last-nominal-kind for __allocating_init — parity 95.12%->95.13% (+6 production +0 roundtrip)
+- 3acab56a chore: lock snapshot after DBF commit (parity 60627->60642)
+- 8229d278 chore: update digest.md for DBF commit (+15 production)
 - 2e62afd8 swift-parity: DBF reduce/scan family → 2 args — parity 95.10%->95.12% (+15 production +0 roundtrip)
 - 4fa7e8e5 chore: lock snapshot after DBE commit (parity 60625->60627)
 - 4dc68cfc chore: update digest.md for DBE commit (+2 production)
@@ -36,9 +39,6 @@
 - 31ba7594 chore: lock snapshot after DBC commit (parity 60615->60625)
 - 1c03cad5 chore: update digest.md for DBC commit (+10 production)
 - e959940b swift-parity: DBC fast-path CDN op-decode (oi/op/oP) — parity 95.07%->95.09% (+10 production +0 roundtrip)
-- 622f501d docs: log swift-demangle flags table to CLAUDE.md
-- bbe18a0d chore: lock snapshot after DBB commit (parity 60598->60615)
-- 3366cf69 chore: update digest.md for DBB commit (+17 production)
 
 ## Suggested Next 3 Items
 
