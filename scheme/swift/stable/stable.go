@@ -8969,6 +8969,9 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 				names[i] = string(rune('A' + i))
 			}
 			localGen = "<" + strings.Join(names, ", ") + ">"
+		} else if lOff >= 1 && p.s[lOff-1] == 'r' {
+			// ...rl → conditional-conformance only → "<>"
+			localGen = "<>"
 		} else if lOff >= 1 && p.s[lOff-1] != 'r' {
 			localGen = "<A>"
 		}
