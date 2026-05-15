@@ -1,4 +1,4 @@
-# snapshot-pass-set update 2026-05-15T00:28:42Z — union with previous (high-water)
+# snapshot-pass-set update 2026-05-15T00:33:00Z — union with previous (high-water)
 _$s10Foreground7SwiftUI18LabelGroupStyle_v0PTl
 _$s10Foundation10CocoaErrorV010formattingC0AC4CodeVvgZ
 _$s10Foundation10CocoaErrorV010formattingC0AC4CodeVvpZMV
@@ -40596,6 +40596,9 @@ _$sScF7enqueueyys3JobVnFTj
 _$sScF7enqueueyys3JobVnFTq
 _$sScFMp
 _$sScFTL
+_$sScFsE18_isComplexEqualitySbvg
+_$sScFsE18_isComplexEqualitySbvpMV
+_$sScFsE7enqueueyyScJF
 _$sScG11isCancelledSbvg
 _$sScG11isCancelledSbvpMV
 _$sScG17makeAsyncIteratorScG0C0Vyx_GyF
@@ -40807,6 +40810,12 @@ _$sScf7enqueueyys3JobVnFTq
 _$sScfMp
 _$sScfScFTb
 _$sScfTL
+_$sScfsE13checkIsolatedyyF
+_$sScfsE14isMainExecutorSbvg
+_$sScfsE14isMainExecutorSbvpMV
+_$sScfsE23asUnownedSerialExecutorSceyF
+_$sScfsE25isIsolatingCurrentContextSbSgyF
+_$sScfsE31isSameExclusiveExecutionContext5otherSbx_tF
 _$sScg10nextResults0B0Oyxq_GSgyYaKF
 _$sScg10nextResults0B0Oyxq_GSgyYaKFTu
 _$sScg11_waitForAllyyYaKF
@@ -40856,6 +40865,7 @@ _$sSch7enqueueyys3JobVnFTq
 _$sSchMp
 _$sSchScFTb
 _$sSchTL
+_$sSchsE21asUnownedTaskExecutors0bcD0VyF
 _$sSci13AsyncIteratorSci_ScITn
 _$sSci17makeAsyncIterator0bC0QzyFTj
 _$sSci17makeAsyncIterator0bC0QzyFTq
