@@ -8548,6 +8548,7 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 	var hostStr string
 	var fpTopLevelDecl string
 	fpHostIsObjC := false
+	fpHostIsSwiftClass := false
 	fpMcGenSig := ""
 	// Special: `xSg<...>Mc` / `xSg<...>WP` — Optional<gen-param> conformance
 	// descriptor or protocol witness table. Apple short form is `<A> A?`.
@@ -8723,6 +8724,9 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 		if kind == 'C' || kind == 'V' || kind == 'O' || kind == 'P' {
 			p.i++
 			hostStr = name
+			if kind == 'C' {
+				fpHostIsSwiftClass = true
+			}
 		} else {
 			fpTopLevelDecl = name
 		}
@@ -9490,10 +9494,7 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 	}
 	nameOut := ""
 	if isInit {
-		// For ObjC class hosts (So-prefix), Apple emits plain `init` even
-		// for the allocating variant. Only native Swift class hosts use
-		// `__allocating_init` for the allocator (fC/KfC) variant.
-		if isClassAlloc && !fpHostIsObjC && tjPrefix != "" {
+		if isClassAlloc && !fpHostIsObjC && fpHostIsSwiftClass {
 			nameOut = ".__allocating_init"
 		} else {
 			nameOut = ".init"
