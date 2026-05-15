@@ -9516,6 +9516,11 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 		if bodyEnd >= 1 && body[bodyEnd-1] == 'K' {
 			bodyEnd--
 		}
+		// Single-arg escape-closure detection: body ends `XE` directly
+		// (NO trailing `t` before F). Multi-arg fns end `XEt` (outer
+		// tuple-end). Capture this before t-strip.
+		singleClosureArg := bodyEnd >= 2 &&
+			body[bodyEnd-2] == 'X' && body[bodyEnd-1] == 'E'
 		if bodyEnd >= 1 && body[bodyEnd-1] == 't' {
 			bodyEnd--
 		}
@@ -9567,7 +9572,9 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			}
 			// Trailing `y` after F/Z strip = empty params marker.
 			emptyParams := len(body) >= 1 && body[len(body)-1] == 'y'
-			if sepCount > 0 {
+			if singleClosureArg {
+				fpLabels = []string{"_"}
+			} else if sepCount > 0 {
 				fpLabels = make([]string, sepCount+1)
 				for i := range fpLabels {
 					fpLabels[i] = "_"
