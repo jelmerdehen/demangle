@@ -8797,27 +8797,42 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 	// Strip when preceded by F (function/init) OR by a subscript accessor
 	// byte (g/s/M/w/W/r — these follow the `lui<acc>` subscript terminal).
 	tjPrefix := ""
-	if sEnd >= 3 && p.s[sEnd-2:] == "Tj" {
-		prev := p.s[sEnd-3]
-		if prev == 'F' || prev == 'g' || prev == 's' || prev == 'M' ||
-			prev == 'w' || prev == 'W' || prev == 'r' ||
-			prev == 'C' || prev == 'c' {
-			tjPrefix = "dispatch thunk of "
-			sEnd -= 2
+	// Allow chained suffixes: Tu can wrap Tj/Tq (`async function pointer
+	// to dispatch thunk of <inner>`). Strip from outermost (rightmost) →
+	// outermost prefix appears first in display.
+	for {
+		stripped := false
+		if sEnd >= 3 && p.s[sEnd-2:sEnd] == "Tu" {
+			prev := p.s[sEnd-3]
+			if prev == 'F' || prev == 'C' || prev == 'c' ||
+				prev == 'j' || prev == 'q' {
+				tjPrefix += "async function pointer to "
+				sEnd -= 2
+				stripped = true
+			}
 		}
-	} else if sEnd >= 3 && p.s[sEnd-2:] == "Tq" {
-		prev := p.s[sEnd-3]
-		if prev == 'F' || prev == 'g' || prev == 's' || prev == 'M' ||
-			prev == 'w' || prev == 'W' || prev == 'r' ||
-			prev == 'C' || prev == 'c' {
-			tjPrefix = "method descriptor for "
-			sEnd -= 2
+		if !stripped && sEnd >= 3 && p.s[sEnd-2:sEnd] == "Tj" {
+			prev := p.s[sEnd-3]
+			if prev == 'F' || prev == 'g' || prev == 's' || prev == 'M' ||
+				prev == 'w' || prev == 'W' || prev == 'r' ||
+				prev == 'C' || prev == 'c' {
+				tjPrefix += "dispatch thunk of "
+				sEnd -= 2
+				stripped = true
+			}
 		}
-	} else if sEnd >= 3 && p.s[sEnd-2:] == "Tu" {
-		prev := p.s[sEnd-3]
-		if prev == 'F' || prev == 'C' || prev == 'c' {
-			tjPrefix = "async function pointer to "
-			sEnd -= 2
+		if !stripped && sEnd >= 3 && p.s[sEnd-2:sEnd] == "Tq" {
+			prev := p.s[sEnd-3]
+			if prev == 'F' || prev == 'g' || prev == 's' || prev == 'M' ||
+				prev == 'w' || prev == 'W' || prev == 'r' ||
+				prev == 'C' || prev == 'c' {
+				tjPrefix += "method descriptor for "
+				sEnd -= 2
+				stripped = true
+			}
+		}
+		if !stripped {
+			break
 		}
 	}
 	// QOMQ wrapper: "opaque type descriptor for <<opaque return type of ...>>"
@@ -9000,6 +9015,13 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			}
 		}
 		if bad {
+			break
+		}
+		// If next byte starts an associated-type marker (`Q` = Qz/Qy
+		// dependent-member), this `ident` is a TYPE name, not a label.
+		// Rewind peekI to before the length-prefix and break.
+		if peekI < len(p.s) && p.s[peekI] == 'Q' {
+			peekI = lblStart
 			break
 		}
 		fpLabels = append(fpLabels, lbl)
