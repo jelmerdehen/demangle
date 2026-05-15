@@ -583,6 +583,10 @@ func (p *parser) parseGlobal() (*demangle.Node, error) {
 			inner = wrapped
 			continue
 		}
+		if wrapped, ok := p.tryProtocolMultiLabelInit(inner); ok {
+			inner = wrapped
+			continue
+		}
 		if wrapped, ok := p.tryNestedProtocolDescriptor(inner); ok {
 			inner = wrapped
 			continue
@@ -3537,6 +3541,106 @@ func (p *parser) tryProtocolInitMember(inner *demangle.Node) (*demangle.Node, bo
 	}
 	wrap := common.NewNode(common.KindTypeMangling)
 	wrap.Text = termPrefix + body
+	return wrap, true
+}
+
+// tryProtocolMultiLabelInit matches the multi-label protocol-init shape:
+//
+//	<Protocol-Type> <digit-label>+ 'x' 'x' ('_' 'x')* 't' 'c' 'f' 'C' ('T' ('j'|'q'))?
+//
+// All params and result are the depth-0 generic A. Renders as:
+//
+//	[<termPrefix>] <Proto>.init(<lbl1>: A, <lbl2>: A, ...) -> A
+//
+// Drains SF.signOf/magnitudeOf and similar multi-label protocol inits.
+func (p *parser) tryProtocolMultiLabelInit(inner *demangle.Node) (*demangle.Node, bool) {
+	if p.eof() || !(p.s[p.i] >= '0' && p.s[p.i] <= '9') {
+		return inner, false
+	}
+	innerProto := inner
+	if common.NodeKind(innerProto.Kind) == common.KindType && len(innerProto.Children) > 0 {
+		innerProto = innerProto.Children[0]
+	}
+	if common.NodeKind(innerProto.Kind) != common.KindProtocol {
+		return inner, false
+	}
+	save := p.i
+	saveSubs := p.subs
+	saveWords := p.words
+	revert := func() { p.i = save; p.subs = saveSubs; p.words = saveWords }
+
+	var labels []string
+	for !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+		lblSave := p.i
+		lblSubs := p.subs
+		lblWords := p.words
+		lbl, err := p.parseIdentifier()
+		if err != nil || lbl == "" {
+			p.i = lblSave
+			p.subs = lblSubs
+			p.words = lblWords
+			break
+		}
+		labels = append(labels, lbl)
+	}
+	if len(labels) < 2 {
+		revert()
+		return inner, false
+	}
+	// Result type: single 'x' (generic A).
+	if p.eof() || p.s[p.i] != 'x' {
+		revert()
+		return inner, false
+	}
+	p.i++
+	// Params: 'x' (_<x>)*.
+	if p.eof() || p.s[p.i] != 'x' {
+		revert()
+		return inner, false
+	}
+	p.i++
+	paramCount := 1
+	for !p.eof() && p.s[p.i] == '_' {
+		p.i++
+		if p.eof() || p.s[p.i] != 'x' {
+			revert()
+			return inner, false
+		}
+		p.i++
+		paramCount++
+	}
+	if paramCount != len(labels) {
+		revert()
+		return inner, false
+	}
+	if p.eof() || p.s[p.i] != 't' {
+		revert()
+		return inner, false
+	}
+	p.i++ // consume 't'
+	if p.i+2 >= len(p.s) || p.s[p.i] != 'c' || p.s[p.i+1] != 'f' || p.s[p.i+2] != 'C' {
+		revert()
+		return inner, false
+	}
+	p.i += 3
+	termPrefix := ""
+	if p.i+1 < len(p.s) && p.s[p.i] == 'T' {
+		switch p.s[p.i+1] {
+		case 'j':
+			termPrefix = "dispatch thunk of "
+			p.i += 2
+		case 'q':
+			termPrefix = "method descriptor for "
+			p.i += 2
+		}
+	}
+	innerStr := common.Print(inner, common.DefaultPrintOptions())
+	parts := make([]string, len(labels))
+	for i, lbl := range labels {
+		parts[i] = lbl + ": A"
+	}
+	wrap := common.NewNode(common.KindTypeMangling)
+	wrap.Text = termPrefix + innerStr + ".init(" + strings.Join(parts, ", ") + ") -> A"
 	return wrap, true
 }
 
