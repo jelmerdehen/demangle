@@ -8579,12 +8579,34 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			return nil, false
 		}
 		p.i += 2
+	} else if p.i < len(p.s) && p.s[p.i] >= '1' && p.s[p.i] <= '9' {
+		// User-mod direct host: <n><mod><n><name><kind>
+		_, mErr := p.parseIdentifier()
+		if mErr != nil || p.eof() ||
+			!(p.s[p.i] >= '1' && p.s[p.i] <= '9') {
+			revert()
+			return nil, false
+		}
+		name, nErr := p.parseIdentifier()
+		if nErr != nil || p.eof() {
+			revert()
+			return nil, false
+		}
+		kind := p.s[p.i]
+		if kind != 'C' && kind != 'V' && kind != 'O' && kind != 'P' {
+			revert()
+			return nil, false
+		}
+		p.i++
+		hostStr = name
 	} else {
 		revert()
 		return nil, false
 	}
 
-	// Expect digit-led ext mod identifier.
+	// Now: either digit-led ext mod, 's' Swift mod, or a direct method
+	// (no extension marker — typically protocol-method-requirement on user
+	// type, where decl-name follows immediately).
 	if p.eof() {
 		revert()
 		return nil, false
