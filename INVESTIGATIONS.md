@@ -30,6 +30,24 @@ and function-entity. Estimated 50-100 LOC. Reason for deferral: risk
 of regressing single-label Qr functions and the static-property Qr
 path that AAV unlocked.
 
+### plateau-2026-05-15-cag-oracle-down [deferred-1]
+
+CAG fire at 90.50%. Oracle host kodo unreachable
+(`ssh: connect to host kodo port 22: No route to host`). Cannot
+probe authoritative Apple swift-demangle output for any candidate
+bucket. Mission step 3 (probe vs oracle) is non-skippable, so this
+fire pivots without picking a fix. Top divergence buckets observed:
+103 `10FoundationE17Messa` (NSNotificationCenter MessageIdentifier
+PAAE multi-conformance — likely belongs to existing
+paae-protocol-extension-same-module-backref), 63
+`AASo11NSDimensionCRb` (already deferred:
+aa-backref-constraint-ext-foundation-measurement), 62
+`AAE10searchable4text` (SwiftUI View PAAE Qr opaque-return
+multi-label — overlaps qr-multilabel-fn-entity-opaque-return), 59
+`y5ValueQyd__qd__mcAA` (PreviewContext / UIMutableTraits subscript
+thunk Tj/Tq with associated-type generic). Resume next fire when
+oracle reachable.
+
 ### plateau-2026-05-15-caf [deferred-1]
 
 CAF fire at 90.50%. After 5 consecutive defers (CAB-CAF), surface
