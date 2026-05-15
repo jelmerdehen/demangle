@@ -8936,7 +8936,34 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 	// Apple emits `<host>.subscript.<accessor>`.
 	isSubscript := false
 	subAcc := ""
-	if sEnd >= 4 && p.s[sEnd-4:sEnd-2] == "lu" && p.s[sEnd-2] == 'i' {
+	if sEnd >= 5 && p.s[sEnd-5:sEnd-3] == "lu" && p.s[sEnd-3] == 'i' && p.s[sEnd-1] == 'Z' {
+		// Subscript STATIC accessor with lu prefix: ...luiXZ
+		switch p.s[sEnd-2] {
+		case 'g':
+			isSubscript = true
+			subAcc = ".getter"
+		case 's':
+			isSubscript = true
+			subAcc = ".setter"
+		case 'M':
+			isSubscript = true
+			subAcc = ".modify"
+		case 'w':
+			isSubscript = true
+			subAcc = ".willset"
+		case 'W':
+			isSubscript = true
+			subAcc = ".didset"
+		case 'r':
+			isSubscript = true
+			subAcc = ".read"
+		}
+		if isSubscript {
+			propStaticPfx = "static "
+			sEnd -= 5
+		}
+	}
+	if !isSubscript && sEnd >= 4 && p.s[sEnd-4:sEnd-2] == "lu" && p.s[sEnd-2] == 'i' {
 		switch p.s[sEnd-1] {
 		case 'g':
 			isSubscript = true
@@ -8960,7 +8987,7 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 		if isSubscript {
 			sEnd -= 4
 		}
-	} else if sEnd >= 3 && p.s[sEnd-3] == 'c' && p.s[sEnd-2] == 'i' {
+	} else if !isSubscript && sEnd >= 3 && p.s[sEnd-3] == 'c' && p.s[sEnd-2] == 'i' {
 		// Subscript without lu local-generic prefix: <fn-sig>cig/cis/ciM/ciw/ciW/cir.
 		switch p.s[sEnd-1] {
 		case 'g':
@@ -9410,8 +9437,8 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 		// "property descriptor for [static ]Host.declName"
 		text = "property descriptor for " + propStaticPfx + hostStr + "." + declName
 	} else if isSubscript {
-		// "Host.subscript.<accessor>" — Apple convention.
-		text = hostStr + ".subscript" + subAcc
+		// "[static ]Host.subscript.<accessor>" — Apple convention.
+		text = propStaticPfx + hostStr + ".subscript" + subAcc
 	} else {
 		text = staticPfx + hostStr + nameOut + localGen + labelStr
 	}
