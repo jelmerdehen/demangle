@@ -8718,6 +8718,51 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 		declName = ident
 		break
 	}
+	// Nested-extension recovery: if no decl-name found yet and we have at
+	// least one nested type, scan for `E<digit>` (2nd ext marker) within
+	// window. Bytes between are nested-ext constraint bytes which apply
+	// extMarker to the last nested type.
+	fpNestedExtMarker := ""
+	if fpTopLevelDecl == "" && !fpDirectEntity && declName == "" &&
+		len(nestedNames) > 0 && !p.eof() && p.s[p.i] != 'y' {
+		eAt := -1
+		for k := p.i; k < len(p.s)-1 && k < p.i+120; k++ {
+			if p.s[k] == 'E' && k+1 < len(p.s) && p.s[k+1] >= '0' && p.s[k+1] <= '9' {
+				eAt = k
+				break
+			}
+		}
+		if eAt > p.i {
+			constraintBytes := p.s[p.i:eAt]
+			if strings.Contains(constraintBytes, "rl") {
+				fpNestedExtMarker = "<>"
+			} else if strings.Contains(constraintBytes, "Rsz") ||
+				strings.Contains(constraintBytes, "Rz") {
+				fpNestedExtMarker = "<A>"
+			} else if len(constraintBytes) > 2 {
+				fpNestedExtMarker = "<>"
+			}
+			p.i = eAt + 1
+			// Re-enter nested-walk to capture decl-name (may also pick up
+			// further nested types, though typically just decl).
+			for !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+				saveP := p.i
+				ident, err := p.parseIdentifier()
+				if err != nil {
+					p.i = saveP
+					break
+				}
+				if !p.eof() && (p.s[p.i] == 'V' || p.s[p.i] == 'C' ||
+					p.s[p.i] == 'O' || p.s[p.i] == 'P') {
+					nestedNames = append(nestedNames, ident)
+					p.i++
+					continue
+				}
+				declName = ident
+				break
+			}
+		}
+	}
 
 	// Determine terminal: init (fC/fc/KfC/Kfc) OR function (F/FZ).
 	sEnd := len(p.s)
@@ -8993,11 +9038,15 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 					}
 				}
 			}
+			// Trailing `y` after F/Z strip = empty params marker.
+			emptyParams := len(body) >= 1 && body[len(body)-1] == 'y'
 			if sepCount > 0 {
 				fpLabels = make([]string, sepCount+1)
 				for i := range fpLabels {
 					fpLabels[i] = "_"
 				}
+			} else if emptyParams {
+				// 0 params — leave fpLabels empty.
 			} else if hasType {
 				fpLabels = []string{"_"}
 			} else if len(body) >= 2 && body[0] == 'y' && body[1] != 't' {
@@ -9072,7 +9121,15 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 	}
 	hostStr += fpExtMarker
 	if len(nestedNames) > 0 {
-		hostStr += "." + strings.Join(nestedNames, ".")
+		if fpNestedExtMarker != "" {
+			// Apply ext-marker to the LAST nested type (the one being extended).
+			parts := make([]string, len(nestedNames))
+			copy(parts, nestedNames)
+			parts[len(parts)-1] += fpNestedExtMarker
+			hostStr += "." + strings.Join(parts, ".")
+		} else {
+			hostStr += "." + strings.Join(nestedNames, ".")
+		}
 	}
 
 	// Determine name (init vs decl).
