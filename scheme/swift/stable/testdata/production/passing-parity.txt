@@ -1,4 +1,4 @@
-# snapshot-pass-set update 2026-05-14T23:53:46Z — union with previous (high-water)
+# snapshot-pass-set update 2026-05-15T00:02:17Z — union with previous (high-water)
 _$s10Foreground7SwiftUI18LabelGroupStyle_v0PTl
 _$s10Foundation10CocoaErrorV010formattingC0AC4CodeVvgZ
 _$s10Foundation10CocoaErrorV010formattingC0AC4CodeVvpZMV
@@ -48297,6 +48297,7 @@ _$ss12StaticStringV11descriptionSSvg
 _$ss12StaticStringV11descriptionSSvpMV
 _$ss12StaticStringV12customMirrors0D0Vvg
 _$ss12StaticStringV12customMirrors0D0VvpMV
+_$ss12StaticStringV13stringLiteralA2B_tcfC
 _$ss12StaticStringV13unicodeScalarABBi32__tcfC
 _$ss12StaticStringV13unicodeScalars7UnicodeO0D0Vvg
 _$ss12StaticStringV13unicodeScalars7UnicodeO0D0VvpMV
@@ -48314,9 +48315,11 @@ _$ss12StaticStringV18_utf8CodeUnitCountBwvM
 _$ss12StaticStringV18_utf8CodeUnitCountBwvg
 _$ss12StaticStringV18_utf8CodeUnitCountBwvpMV
 _$ss12StaticStringV18_utf8CodeUnitCountBwvs
+_$ss12StaticStringV20unicodeScalarLiteralA2B_tcfC
 _$ss12StaticStringV24hasPointerRepresentationSbvg
 _$ss12StaticStringV24hasPointerRepresentationSbvpMV
 _$ss12StaticStringV28_builtinUnicodeScalarLiteralABBi32__tcfC
+_$ss12StaticStringV30extendedGraphemeClusterLiteralA2B_tcfC
 _$ss12StaticStringV38_builtinExtendedGraphemeClusterLiteral17utf8CodeUnitCount7isASCIIABBp_BwBi1_tcfC
 _$ss12StaticStringV6_flagsBi8_vM
 _$ss12StaticStringV6_flagsBi8_vg
@@ -55990,6 +55993,7 @@ _$ss7Float16V12SIMD8StorageVyABSiciM
 _$ss7Float16V12SIMD8StorageVyABSicig
 _$ss7Float16V12SIMD8StorageVyABSicipMV
 _$ss7Float16V12SIMD8StorageVyABSicis
+_$ss7Float16V12floatLiteralA2B_tcfC
 _$ss7Float16V12signalingNaNABvgZ
 _$ss7Float16V12signalingNaNABvpZMV
 _$ss7Float16V13SIMD16StorageV11scalarCountSivg
@@ -56263,6 +56267,7 @@ _$ss7UInt128V5WordsV5index5afterS2i_tF
 _$ss7UInt128V5WordsV5index6beforeS2i_tF
 _$ss7UInt128V5WordsV6_valueABvg
 _$ss7UInt128V5WordsV6_valueABvpMV
+_$ss7UInt128V5WordsV6_valueAdB_tcfC
 _$ss7UInt128V5WordsV7indicesSnySiGvg
 _$ss7UInt128V5WordsV7indicesSnySiGvpMV
 _$ss7UInt128V5WordsV8endIndexSivg
@@ -56872,6 +56877,7 @@ _$ss7UnicodeO6ScalarV8UTF8ViewV5valueADvM
 _$ss7UnicodeO6ScalarV8UTF8ViewV5valueADvg
 _$ss7UnicodeO6ScalarV8UTF8ViewV5valueADvpMV
 _$ss7UnicodeO6ScalarV8UTF8ViewV5valueADvs
+_$ss7UnicodeO6ScalarV8UTF8ViewV5valueAfD_tcfC
 _$ss7UnicodeO6ScalarV8UTF8ViewV8endIndexSivg
 _$ss7UnicodeO6ScalarV8UTF8ViewV8endIndexSivpMV
 _$ss7UnicodeO6ScalarV8UTF8ViewVMa
@@ -56893,6 +56899,7 @@ _$ss7UnicodeO6ScalarV9UTF16ViewV5valueADvM
 _$ss7UnicodeO6ScalarV9UTF16ViewV5valueADvg
 _$ss7UnicodeO6ScalarV9UTF16ViewV5valueADvpMV
 _$ss7UnicodeO6ScalarV9UTF16ViewV5valueADvs
+_$ss7UnicodeO6ScalarV9UTF16ViewV5valueAfD_tcfC
 _$ss7UnicodeO6ScalarV9UTF16ViewV8endIndexSivg
 _$ss7UnicodeO6ScalarV9UTF16ViewV8endIndexSivpMV
 _$ss7UnicodeO6ScalarV9UTF16ViewVMa
