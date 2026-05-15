@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 93.69% (59731/63757) — 2026-05-15T06:00:03Z
+**Parity**: 93.70% (59739/63757) — 2026-05-15T06:05:10Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 2534 parse-errors + 1492 mismatches
+**Failures**: 2534 parse-errors + 1484 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- 7a094bf8 swift-parity: CDC Rsz constraint extMarker — parity 93.70%->93.70% (+2 production +0 roundtrip)
+- f24cf557 chore: lock snapshot after CDB commit (parity 59731->59739)
+- 72031c75 chore: update digest.md for CDB commit (+8 production)
 - ce461b9e swift-parity: CDB fast-path body y<non-t> defaults to 1 param — parity 93.69%->93.70% (+8 production +0 roundtrip)
 - 20a79671 chore: defer plateau-2026-05-15-cdb to multi-fire (deferred-1)
 - 47262f1c chore: lock snapshot after CDA commit (roundtrip 18885->18885)
@@ -36,9 +39,6 @@
 - 7bddce1c swift-parity: CDA threshold lowered to >20 — parity 93.69%->93.69% (+0 production +5 roundtrip)
 - e8a63ee3 chore: lock snapshot after CCZ commit (roundtrip 18858->18880)
 - b7bfeacc chore: update digest.md for CCZ commit (+22 roundtrip)
-- cdc7cdbe swift-parity: CCZ threshold lowered to >25 — parity 93.69%->93.69% (+0 production +22 roundtrip)
-- 3f19c344 chore: lock snapshot after CCY commit (parity 59729->59731, roundtrip 18834->18858)
-- 7ef101e7 chore: update digest.md for CCY commit (+2 production)
 
 ## Suggested Next 3 Items
 
