@@ -8952,7 +8952,7 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			prev := p.s[sEnd-3]
 			if prev == 'F' || prev == 'g' || prev == 's' || prev == 'M' ||
 				prev == 'w' || prev == 'W' || prev == 'r' ||
-				prev == 'C' || prev == 'c' {
+				prev == 'C' || prev == 'c' || prev == 'Z' {
 				tjPrefix += "dispatch thunk of "
 				sEnd -= 2
 				stripped = true
@@ -8962,7 +8962,7 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			prev := p.s[sEnd-3]
 			if prev == 'F' || prev == 'g' || prev == 's' || prev == 'M' ||
 				prev == 'w' || prev == 'W' || prev == 'r' ||
-				prev == 'C' || prev == 'c' {
+				prev == 'C' || prev == 'c' || prev == 'Z' {
 				tjPrefix += "method descriptor for "
 				sEnd -= 2
 				stripped = true
