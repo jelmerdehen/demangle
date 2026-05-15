@@ -9441,14 +9441,18 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 		if bad {
 			break
 		}
-		// If next byte starts an associated-type marker (`Q` = Qz/Qy
-		// dependent-member), this `ident` is a TYPE name, not a label.
-		// Rewind peekI to before the length-prefix and break.
-		if peekI < len(p.s) && p.s[peekI] == 'Q' {
+		// Q-marker after this ident: if ident starts uppercase (TYPE
+		// naming convention), it's a type name not a label — rewind.
+		// Lowercase-leading short idents are real labels; keep them.
+		if peekI < len(p.s) && p.s[peekI] == 'Q' &&
+			len(lbl) > 0 && lbl[0] >= 'A' && lbl[0] <= 'Z' {
 			peekI = lblStart
 			break
 		}
 		fpLabels = append(fpLabels, lbl)
+		if peekI < len(p.s) && p.s[peekI] == 'Q' {
+			break
+		}
 		if peekI < len(p.s) {
 			nb := p.s[peekI]
 			if !(nb >= '0' && nb <= '9') && nb != '_' {
