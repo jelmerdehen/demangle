@@ -7761,6 +7761,9 @@ var swiftConcurrencyRuntimeTypes = map[string]bool{
 	"UnimplementedMainExecutor":   true,
 	"UnimplementedTaskExecutor":   true,
 	"UnownedTaskExecutor":         true,
+	"Executor":                    true,
+	"SerialExecutor":              true,
+	"TaskExecutor":                true,
 	// Top-level concurrency-context functions: Apple emits these in
 	// simplified form (labels-only, no module prefix, no types, no return).
 	"withCheckedContinuation":         true,
@@ -9122,8 +9125,18 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 		letter := p.s[p.i]
 		stdNode, ok := common.BuildStdlibNominal(letter)
 		if !ok {
-			restore()
-			return nil, false, nil
+			// Sc<X> concurrency stdlib substitution (2-byte). Extension host
+			// for SerialExecutor / Executor / TaskExecutor etc.
+			if letter == 'c' && p.i+1 < len(p.s) {
+				stdNode, ok = common.BuildStdlibNominal2(p.s[p.i+1])
+				if ok {
+					p.i++ // consume second letter
+				}
+			}
+			if !ok {
+				restore()
+				return nil, false, nil
+			}
 		}
 		p.i++ // consume letter
 		// Extract type name from the built node (KindType → KindStructure/Protocol/etc. → Identifier child)
