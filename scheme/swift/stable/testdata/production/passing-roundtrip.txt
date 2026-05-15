@@ -1,4 +1,4 @@
-# snapshot-pass-set update 2026-05-15T05:42:49Z — union with previous (high-water)
+# snapshot-pass-set update 2026-05-15T05:45:42Z — union with previous (high-water)
 _$s10Foundation10CocoaErrorV03_nsC0ACSo7NSErrorC_tcfC
 _$s10Foundation10CocoaErrorV14stringEncodingSSAAE0E0VSgvg
 _$s10Foundation10CocoaErrorV14stringEncodingSSAAE0E0VSgvpMV
@@ -15444,8 +15444,12 @@ _$sSq7SwiftUIAA8CommandsRzlE05_makeC07content6inputsAA01_C7OutputsVAA11_GraphVal
 _$sSq7SwiftUISHRzlE14allowsMultipleSbvg
 _$sSq7SwiftUISHRzlE14allowsMultipleSbvpMV
 _$sSq7SwiftUISHRzlE5apply2as9operationyqd__m_yqd__XEtSHRd__lF
+_$sSq7SwiftUISHRzlE5countSivg
+_$sSq7SwiftUISHRzlE5countSivpMV
+_$sSq7SwiftUISHRzlE7isEmptySbvg
 _$sSq7SwiftUISHRzlE7isEmptySbvpMV
 _$sSq7SwiftUISHRzlE8contains2idSbqd___tSHRd__lF
+_$sSq7flatMapyqd__SgABxKXEKlF
 _$sSqMa
 _$sSqMn
 _$sSqsSeRzlE4fromxSgs7Decoder_p_tKcfC
@@ -15486,6 +15490,7 @@ _$sSs20unicodeScalarLiteralSsSS_tcfC
 _$sSs21withMutableCharactersyxxSszXElF
 _$sSs30extendedGraphemeClusterLiteralSsSS_tcfC
 _$sSs7cStringSsSPys4Int8VG_tcfC
+_$sSs8UTF8ViewV5_baseSSAAVvpMV
 _$sSs8UTF8ViewV6_slices5SliceVySSAAVGvM
 _$sSs8UTF8ViewV6_slices5SliceVySSAAVGvg
 _$sSs8UTF8ViewV6_slices5SliceVySSAAVGvpMV
@@ -15496,6 +15501,7 @@ _$sSs8UTF8ViewVMa
 _$sSs8UTF8ViewVMn
 _$sSs8UTF8ViewV_7_boundsABSSAAV_SnySS5IndexVGtcfC
 _$sSs8decoding2asSsx_q_mtcSlRzs16_UnicodeEncodingR_8CodeUnitQy_7ElementRtzr0_lufC
+_$sSs9UTF16ViewV5_baseSSAAVvpMV
 _$sSs9UTF16ViewV6_slices5SliceVySSAAVGvM
 _$sSs9UTF16ViewV6_slices5SliceVySSAAVGvg
 _$sSs9UTF16ViewV6_slices5SliceVySSAAVGvpMV
@@ -15643,6 +15649,14 @@ _$sSy7cStringxSPys4Int8VG_tcfCTj
 _$sSy7cStringxSPys4Int8VG_tcfCTq
 _$sSyMp
 _$sSyTL
+_$sSysE1goiySbx_qd__tSyRd__lFZ
+_$sSysE1loiySbx_qd__tSyRd__lFZ
+_$sSysE2eeoiySbx_qd__tSyRd__lFZ
+_$sSysE2geoiySbx_qd__tSyRd__lFZ
+_$sSysE2leoiySbx_qd__tSyRd__lFZ
+_$sSysE2neoiySbx_qd__tSyRd__lFZ
+_$sSysE9hasPrefixySbqd__SyRd__lF
+_$sSysE9hasSuffixySbqd__SyRd__lF
 _$sSz10FoundationE9formattedy12FormatOutputQyd__qd__0C5InputQyd__RszAA0C5StyleRd__lF
 _$sSz10FoundationE9formattedy12FormatOutputQyd__qd__AA0C5StyleRd__Sz0C5InputRpd__lF
 _$sSz10FoundationE_6format7lenientxSS_AA14IntFormatStyleV7PercentVyx_GSbtKcfC
@@ -15663,7 +15677,15 @@ _$sSz8clampingxqd___tcSzRd__lufCTj
 _$sSz8clampingxqd___tcSzRd__lufCTq
 _$sSzMp
 _$sSzTL
+_$sSzsE1goiySbx_qd__tSzRd__lFZ
+_$sSzsE1loiySbx_qd__tSzRd__lFZ
 _$sSzsE20quotientAndRemainder10dividingByx0A0_x9remaindertx_tF
+_$sSzsE2eeoiySbx_qd__tSzRd__lFZ
+_$sSzsE2geoiySbx_qd__tSzRd__lFZ
+_$sSzsE2ggoiyxx_qd__tSzRd__lFZ
+_$sSzsE2leoiySbx_qd__tSzRd__lFZ
+_$sSzsE2lloiyxx_qd__tSzRd__lFZ
+_$sSzsE2neoiySbx_qd__tSzRd__lFZ
 _$sSzyxqd__cSBRd__lufCTj
 _$sSzyxqd__cSBRd__lufCTq
 _$sSzyxqd__cSzRd__lufCTj
