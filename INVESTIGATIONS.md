@@ -30,6 +30,17 @@ and function-entity. Estimated 50-100 LOC. Reason for deferral: risk
 of regressing single-label Qr functions and the static-property Qr
 path that AAV unlocked.
 
+### plateau-2026-05-15-cbr-positional-count-heuristic-limits [deferred-1]
+
+CBR fire at 92.13%. Top remaining mismatches show heuristic limits:
+- Publisher.zip etc. want `(_:_:)` for 2 params separated by `Qz_`
+  (assoc-type+sep) — my V_/C_/O_/P_/G_ check misses
+- Scene.defaultWindowPlacement closure-param case wants `(_:)` for
+  1 closure param but body has `V_` inside the closure shape — my
+  check counts it incorrectly
+Need: handle Q[zy]_ separator (assoc-type) and detect closure scope
+(skip V_/etc. inside `tc` closure-end markers). Multi-fire.
+
 ### plateau-2026-05-15-cbp-init-promote-declname-as-label [deferred-1]
 
 CBP fire: tried promoting parsed declName to first label when
