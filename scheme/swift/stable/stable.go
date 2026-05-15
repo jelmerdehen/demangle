@@ -9532,6 +9532,9 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 	fpExtMarker := ""
 	if strings.Contains(fpConstraintBytes, "rl") {
 		fpExtMarker = "<>"
+	} else if isInit && (strings.Contains(fpConstraintBytes, "Rsz") ||
+		strings.Contains(fpConstraintBytes, "Rz")) {
+		fpExtMarker = "<A>"
 	}
 	// Bound-generic-on-host decoration (Mc/WP only): inject before nested.
 	// Optional → A?; other hosts → Host<A>/<A, B>/etc.
