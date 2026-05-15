@@ -481,6 +481,19 @@ complete. The `n` modifier handling requires identifying the exact
 speculative branch and either consuming `n` or wrapping in applyMod.
 Multi-fire.
 
+### plateau-2026-05-15-dal [deferred-1]
+
+DAL attempt: reorder main-parser init-fast-path extMarker checks
+(line 13942) to prioritize Rsz/Rz over rl. Logic: when both match
+substring, Rz constraint is more specific.
+
+Result: -247 parity. Many symbols rely on the existing rl-first order
+(SwiftUI conditional-conformance inits get `<>` correctly today; with
+Rz-first they'd get `<A>` incorrectly).
+
+Fix: needs full constraint-bytes parser to distinguish Rz constraint
+proper from Rzl-as-`Rz+l`-tokens. Multi-fire structural change.
+
 ### plateau-2026-05-15-dak [deferred-1]
 
 DAK attempt: Rsz-only check (3 chars, more specific than Rz) in
