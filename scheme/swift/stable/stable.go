@@ -8714,6 +8714,8 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 		fpDirectEntity = true
 	} else if !p.eof() && p.s[p.i] == 'A' {
 		// Ext via back-ref: A<X>E<...> — self-extension on host.
+		// OR: direct entity (init/fn) where body starts with back-ref-typed
+		// return — leave as direct entity (no decl-name).
 		eAt := -1
 		for k := p.i; k < len(p.s)-1 && k < p.i+10; k++ {
 			if p.s[k] == 'E' {
@@ -8721,14 +8723,16 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 				break
 			}
 		}
-		if eAt < 0 {
-			revert()
-			return nil, false
-		}
-		fpConstraintBytes = p.s[p.i:eAt]
-		p.i = eAt + 1
-		// Re-check direct-entity after consuming back-ref ext.
-		if !p.eof() && p.s[p.i] == 'y' {
+		if eAt >= 0 {
+			fpConstraintBytes = p.s[p.i:eAt]
+			p.i = eAt + 1
+			if !p.eof() && p.s[p.i] == 'y' {
+				fpDirectEntity = true
+			}
+		} else {
+			// No E in window — direct entity with body starting at A.
+			// Common for init shapes like `<host>ACy<ret>cSbRszrlufC` where
+			// AC is back-ref-typed return + closure + constraint + init.
 			fpDirectEntity = true
 		}
 	} else if p.s[p.i] >= '1' && p.s[p.i] <= '9' {
@@ -9168,6 +9172,7 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			body = body[:bodyEnd]
 			sepCount := 0
 			hasType := false
+			emptyParamsAtClosure := false
 			depth := 0 // generic-bracket depth via y...G pairs
 			for j := 0; j < len(body); j++ {
 				c := body[j]
@@ -9188,6 +9193,10 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 				if depth > 0 {
 					continue
 				}
+				// `yc` at depth 0 = empty params for closure-typed body.
+				if isInit && c == 'y' && j+1 < len(body) && body[j+1] == 'c' {
+					emptyParamsAtClosure = true
+				}
 				if j > 0 && c == '_' {
 					prev := body[j-1]
 					if prev == 'V' || prev == 'C' || prev == 'O' ||
@@ -9206,7 +9215,7 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 				for i := range fpLabels {
 					fpLabels[i] = "_"
 				}
-			} else if emptyParams {
+			} else if emptyParams || emptyParamsAtClosure {
 				// 0 params — leave fpLabels empty.
 			} else if hasType {
 				fpLabels = []string{"_"}
