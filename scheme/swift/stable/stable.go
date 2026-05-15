@@ -17679,6 +17679,27 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 						p.subs = saveSubsL
 						break
 					}
+					// Chain lookahead: ident followed by digit-led ident + V/C/O/P
+					// kind byte means current ident is a module/outer name (start
+					// of a type), not a label. e.g. `12CoreGraphics7CGFloatV` →
+					// CoreGraphics.CGFloat type.
+					if !p.eof() && p.s[p.i] >= '1' && p.s[p.i] <= '9' {
+						saveCh := p.i
+						saveSubsCh := p.subs
+						saveWordsCh := p.words
+						_, chErr := p.parseIdentifier()
+						isType := chErr == nil && !p.eof() &&
+							(p.s[p.i] == 'V' || p.s[p.i] == 'C' ||
+								p.s[p.i] == 'O' || p.s[p.i] == 'P')
+						p.i = saveCh
+						p.subs = saveSubsCh
+						p.words = saveWordsCh
+						if isType {
+							p.i = savePosL
+							p.subs = saveSubsL
+							break
+						}
+					}
 					// Lookahead: if '_' + digit-led ident + Q(z|y|Z|Y) follows, this
 					// identifier and the chain are a chained dependent-member-type
 					// result (e.g. '8Encoding_07EncodedC0QZ' = A.Encoding.EncodedScalar).
