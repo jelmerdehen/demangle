@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- a9adb9c1 swift-parity: CDZ subscript prop-desc localGen + first-label inject — parity 94.50%->94.51% (+10 production +4 roundtrip)
+- e2b7d5c5 chore: lock snapshot after CDY commit (parity 60247->60249, roundtrip 20663->20666)
+- 2af13051 chore: update digest.md for CDY commit (+2 production +3 roundtrip)
 - f7578fd0 swift-parity: CDY bound-gen 2-arg yxq__G — parity 94.49%->94.50% (+2 production +3 roundtrip)
 - d9ce8ba9 chore: lock snapshot after CDX commit (parity 60243->60247, roundtrip 20633->20663)
 - d415987d chore: update digest.md for CDX commit (+4 production +30 roundtrip)
@@ -36,9 +39,6 @@
 - 1dabfadd chore: lock snapshot after CDW commit (parity 60235->60243, roundtrip 20595->20633)
 - 54b687a1 chore: update digest.md for CDW commit (+8 production +38 roundtrip)
 - 06c049c4 swift-parity: CDW ObjC So<n><name>C<...>Mc/WP early-emit — parity 94.48%->94.49% (+8 production +38 roundtrip)
-- 66eda674 chore: lock snapshot after CDV commit (parity 60224->60235, roundtrip 20582->20595)
-- 1c3cb3da chore: update digest.md for CDV commit (+11 production +13 roundtrip)
-- 8a04c910 swift-parity: CDV xSg<...>WP variant — parity 94.46%->94.48% (+11 production +13 roundtrip)
 
 ## Suggested Next 3 Items
 
