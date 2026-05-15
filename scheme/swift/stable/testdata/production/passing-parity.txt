@@ -1,4 +1,4 @@
-# snapshot-pass-set update 2026-05-15T01:36:57Z — union with previous (high-water)
+# snapshot-pass-set update 2026-05-15T01:40:15Z — union with previous (high-water)
 _$s10Foreground7SwiftUI18LabelGroupStyle_v0PTl
 _$s10Foundation10CocoaErrorV010formattingC0AC4CodeVvgZ
 _$s10Foundation10CocoaErrorV010formattingC0AC4CodeVvpZMV
@@ -52295,6 +52295,8 @@ _$ss26__EmptyDictionarySingletonCfd
 _$ss26_forceBridgeFromObjectiveCyxyXl_xmtlF
 _$ss26_isFastAssertConfigurationSbyF
 _$ss26_stdlib_isOSVersionAtLeastyBi1_Bw_BwBwtF
+_$ss26withTaskExecutorPreference_9operationxSch_pSg_xyYaYbKXEtYaKs8SendableRzlF
+_$ss26withTaskExecutorPreference_9operationxSch_pSg_xyYaYbKXEtYaKs8SendableRzlFTu
 _$ss27AsyncThrowingFilterSequenceV04makeA8IteratorAB0F0Vyx_GyF
 _$ss27AsyncThrowingFilterSequenceV10isIncludedySb7ElementQzYaKcvg
 _$ss27AsyncThrowingFilterSequenceV10isIncludedySb7ElementQzYaKcvpMV
