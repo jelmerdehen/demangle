@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 95.30% (60761/63757) — 2026-05-15T12:59:17Z
+**Parity**: 95.31% (60768/63757) — 2026-05-15T13:04:13Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 233 parse-errors + 2763 mismatches
+**Failures**: 233 parse-errors + 2756 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- 3f00eaaa swift-parity: CEA last-resort init expand args by generic count — parity 95.31%->95.31% (+1 production +0 roundtrip)
+- 1d5ad8bc chore: lock snapshot after CDZ commit (parity 60766->60768)
+- 5cd5c8c4 chore: update digest.md for CDZ commit (+2 production)
 - f92782c5 swift-parity: CDZ binary infix → 2 args at fast-path fn-emit — parity 95.31%->95.31% (+2 production +0 roundtrip)
 - 9d52b70a chore: lock snapshot after CDY commit (parity 60761->60766)
 - 681218b4 chore: update digest.md for CDY commit (+5 production)
@@ -36,9 +39,6 @@
 - 30747cdc chore: lock snapshot after CDX commit (parity 60753->60761)
 - 0fc123ab chore: update digest.md for CDX commit (+8 production)
 - 3f3c6caf swift-parity: CDX reduce/scan/zip/combineLatest arg count at fast-path fn-emit — parity 95.29%->95.30% (+8 production +0 roundtrip)
-- 6b8e129b chore: lock snapshot after CDV commit (parity 60751->60753)
-- 39a2e399 chore: update digest.md for CDV commit (+2 production)
-- 2eec0ddd swift-parity: CDV skip depth++ for leading y in body counter — parity 95.29%->95.29% (+2 production +0 roundtrip)
 
 ## Suggested Next 3 Items
 
