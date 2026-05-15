@@ -30,6 +30,15 @@ and function-entity. Estimated 50-100 LOC. Reason for deferral: risk
 of regressing single-label Qr functions and the static-property Qr
 path that AAV unlocked.
 
+### plateau-2026-05-15-cbp-init-promote-declname-as-label [deferred-1]
+
+CBP fire: tried promoting parsed declName to first label when
+symbol ends in init terminal (declName parsed as label-name e.g.
+`from` for Codable inits). +12 parity but -1 roundtrip — promotes
+some sym from slow-path-success (roundtrip OK) to fast-path
+(roundtrip mostly OK but one sym broke). Revert. Need narrower
+promotion or fix the sym whose roundtrip broke first.
+
 ### plateau-2026-05-15-cbo-positional-param-count [deferred-1]
 
 CBO fire at 92.08%. Top mismatches (173 total) dominated by `(_:)` 
