@@ -1,4 +1,4 @@
-# snapshot-pass-set update 2026-05-15T01:20:20Z — union with previous (high-water)
+# snapshot-pass-set update 2026-05-15T01:36:57Z — union with previous (high-water)
 _$s10Foreground7SwiftUI18LabelGroupStyle_v0PTl
 _$s10Foundation10CocoaErrorV010formattingC0AC4CodeVvgZ
 _$s10Foundation10CocoaErrorV010formattingC0AC4CodeVvpZMV
@@ -52016,6 +52016,7 @@ _$ss24_DestructorSafeContainerMp
 _$ss24_OpaqueStringSwitchCacheVMa
 _$ss24_OpaqueStringSwitchCacheVMn
 _$ss24_OpaqueStringSwitchCacheVN
+_$ss24globalConcurrentExecutorSch_pvg
 _$ss24unimplemented_utf8_32bit_4file4lines5NeverOSS_s12StaticStringVSutF
 _$ss25AnyRandomAccessCollectionV10startIndexs0aF0Vvg
 _$ss25AnyRandomAccessCollectionV10startIndexs0aF0VvpMV
