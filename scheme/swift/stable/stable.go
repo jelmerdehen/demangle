@@ -8549,18 +8549,26 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 	var fpTopLevelDecl string
 	fpHostIsObjC := false
 	fpMcGenSig := ""
-	// Special: `xSg<...>Mc` — Optional<gen-param> conformance descriptor.
-	// Apple short form is `<A> A?`. Recognize prefix then emit immediately.
-	if len(p.s) >= 4 && p.s[0] == 'x' && p.s[1] == 'S' && p.s[2] == 'g' &&
-		p.s[len(p.s)-2:] == "Mc" {
-		hostStr = "A?"
-		fpMcGenSig = "<A>"
-		p.i = len(p.s) // consume everything
-		// Build text directly and short-circuit downstream emission.
-		wrap := common.NewNode(common.KindTypeMangling)
-		wrap.Text = "protocol conformance descriptor for " + fpMcGenSig + " " + hostStr
-		wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
-		return wrap, true
+	// Special: `xSg<...>Mc` / `xSg<...>WP` — Optional<gen-param> conformance
+	// descriptor or protocol witness table. Apple short form is `<A> A?`.
+	if len(p.s) >= 4 && p.s[0] == 'x' && p.s[1] == 'S' && p.s[2] == 'g' {
+		tail := p.s[len(p.s)-2:]
+		var prefix string
+		switch tail {
+		case "Mc":
+			prefix = "protocol conformance descriptor for "
+		case "WP":
+			prefix = "protocol witness table for "
+		}
+		if prefix != "" {
+			hostStr = "A?"
+			fpMcGenSig = "<A>"
+			p.i = len(p.s)
+			wrap := common.NewNode(common.KindTypeMangling)
+			wrap.Text = prefix + fpMcGenSig + " " + hostStr
+			wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
+			return wrap, true
+		}
 	}
 	// ObjC host: So<n><name>C
 	if p.i+1 < len(p.s) && p.s[p.i] == 'S' && p.s[p.i+1] == 'o' {
