@@ -13445,7 +13445,8 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 			extMarker := ""
 			if bytes.Contains(constraintBytes, []byte("rl")) {
 				extMarker = "<>"
-			} else if bytes.Contains(constraintBytes, []byte("Rz")) {
+			} else if bytes.Contains(constraintBytes, []byte("Rz")) ||
+				bytes.Contains(constraintBytes, []byte("Rsz")) {
 				extMarker = "<A>"
 			} else if len(constraintBytes) > 2 && !isBareModuleDescriptor(constraintBytes) {
 				extMarker = "<>"
@@ -13538,7 +13539,8 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 			extMarker := ""
 			if bytes.Contains(constraintBytes, []byte("rl")) {
 				extMarker = "<>"
-			} else if bytes.Contains(constraintBytes, []byte("Rz")) {
+			} else if bytes.Contains(constraintBytes, []byte("Rz")) ||
+				bytes.Contains(constraintBytes, []byte("Rsz")) {
 				extMarker = "<A>"
 			} else if len(constraintBytes) > 2 && !isBareModuleDescriptor(constraintBytes) {
 				extMarker = "<>"
@@ -14253,7 +14255,8 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 					extMarker := ""
 					if hasCondReq {
 						extMarker = "<>"
-					} else if bytes.Contains(constraintBytes, []byte("Rz")) {
+					} else if bytes.Contains(constraintBytes, []byte("Rz")) ||
+						bytes.Contains(constraintBytes, []byte("Rsz")) {
 						extMarker = "<A>"
 					} else if len(constraintBytes) > 2 {
 						extMarker = "<>"
@@ -14366,7 +14369,8 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 					extMarker := ""
 					if hasCondReq {
 						extMarker = "<>"
-					} else if bytes.Contains(constraintBytes, []byte("Rz")) {
+					} else if bytes.Contains(constraintBytes, []byte("Rz")) ||
+						bytes.Contains(constraintBytes, []byte("Rsz")) {
 						extMarker = "<A>"
 					} else if len(constraintBytes) > 2 {
 						extMarker = "<>"
@@ -14409,7 +14413,8 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 					extMarker := ""
 					if hasCondReq {
 						extMarker = "<>"
-					} else if bytes.Contains(constraintBytes, []byte("Rz")) {
+					} else if bytes.Contains(constraintBytes, []byte("Rz")) ||
+						bytes.Contains(constraintBytes, []byte("Rsz")) {
 						extMarker = "<A>"
 					} else if len(constraintBytes) > 2 {
 						extMarker = "<>"
@@ -14528,7 +14533,8 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 					extMarker := ""
 					if hasCondReq {
 						extMarker = "<>"
-					} else if bytes.Contains(constraintBytes, []byte("Rz")) {
+					} else if bytes.Contains(constraintBytes, []byte("Rz")) ||
+						bytes.Contains(constraintBytes, []byte("Rsz")) {
 						extMarker = "<A>"
 					} else if len(constraintBytes) > 2 {
 						extMarker = "<>"
@@ -14865,7 +14871,8 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 		extMarker := ""
 		if hasCondReq {
 			extMarker = "<>"
-		} else if bytes.Contains(constraintBytes, []byte("Rz")) {
+		} else if bytes.Contains(constraintBytes, []byte("Rz")) ||
+			bytes.Contains(constraintBytes, []byte("Rsz")) {
 			extMarker = "<A>"
 		} else if len(constraintBytes) > 2 {
 			extMarker = "<>"
