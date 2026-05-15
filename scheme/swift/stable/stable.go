@@ -8750,6 +8750,31 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 		if isSubscript {
 			sEnd -= 4
 		}
+	} else if sEnd >= 3 && p.s[sEnd-3] == 'c' && p.s[sEnd-2] == 'i' {
+		// Subscript without lu local-generic prefix: <fn-sig>cig/cis/ciM/ciw/ciW/cir.
+		switch p.s[sEnd-1] {
+		case 'g':
+			isSubscript = true
+			subAcc = ".getter"
+		case 's':
+			isSubscript = true
+			subAcc = ".setter"
+		case 'M':
+			isSubscript = true
+			subAcc = ".modify"
+		case 'w':
+			isSubscript = true
+			subAcc = ".willset"
+		case 'W':
+			isSubscript = true
+			subAcc = ".didset"
+		case 'r':
+			isSubscript = true
+			subAcc = ".read"
+		}
+		if isSubscript {
+			sEnd -= 3
+		}
 	}
 	if sEnd >= 5 && p.s[sEnd-5:sEnd] == "vpZMV" {
 		isPropDesc = true
