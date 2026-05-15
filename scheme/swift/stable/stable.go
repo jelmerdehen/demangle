@@ -8730,7 +8730,7 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 				if j > 0 && c == '_' {
 					prev := body[j-1]
 					if prev == 'V' || prev == 'C' || prev == 'O' ||
-						prev == 'P' || prev == 'G' {
+						prev == 'P' || prev == 'G' || prev == 'm' {
 						sepCount++
 					} else if j >= 2 && (prev == 'z' || prev == 'y') &&
 						body[j-2] == 'Q' {
@@ -13371,9 +13371,9 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 						continue
 					}
 					prev := body[j-1]
-					// Type-kind byte preceding `_` (V/C/O/P/G).
+					// Type-kind byte preceding `_` (V/C/O/P/G/m metatype).
 					if prev == 'V' || prev == 'C' || prev == 'O' ||
-						prev == 'P' || prev == 'G' {
+						prev == 'P' || prev == 'G' || prev == 'm' {
 						sepCount++
 						continue
 					}
