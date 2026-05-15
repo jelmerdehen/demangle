@@ -30,6 +30,13 @@ and function-entity. Estimated 50-100 LOC. Reason for deferral: risk
 of regressing single-label Qr functions and the static-property Qr
 path that AAV unlocked.
 
+### plateau-2026-05-15-ccu-multi-nested-host-regress [deferred-1]
+
+CCU fire at 93.63%. Tried walking multiple nested nominals in
+last-resort host parse (Publishers.Drop). -13 parity / -86
+roundtrip — multi-nested walk consumed nested types that were
+decl-name parts in other patterns. Reverted.
+
 ### plateau-2026-05-15-cct-known-module-filter-noop [deferred-1]
 
 CCT fire at 93.63%. Tried gating constraint scan by known Apple
