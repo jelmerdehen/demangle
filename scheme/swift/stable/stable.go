@@ -9517,7 +9517,9 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 					depth--
 					continue
 				}
-				if c == 'y' && j+1 < len(body) {
+				// Skip depth++ for leading `y` at j==0 — that's the labels-empty
+				// marker for the function body, not a bound-generic opener.
+				if j > 0 && c == 'y' && j+1 < len(body) {
 					nx := body[j+1]
 					if nx == 'S' || nx == 'A' || nx == 'x' || nx == 'q' ||
 						(nx >= '0' && nx <= '9') {
