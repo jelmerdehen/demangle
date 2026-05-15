@@ -30,6 +30,14 @@ and function-entity. Estimated 50-100 LOC. Reason for deferral: risk
 of regressing single-label Qr functions and the static-property Qr
 path that AAV unlocked.
 
+### plateau-2026-05-15-ccs-ext-mod-constraint-scan-too-broad [deferred-1]
+
+CCS fire at 93.63%. Tried scanning for E within 80-byte window
+after digit-led ext-mod identifier (to handle constraint sigs like
+Sq7SwiftUIAA10TabContentRzlE). -44 parity regression — scanner
+catches Es in non-constraint positions (e.g. inside type names).
+Reverted.
+
 ### plateau-2026-05-15-ccp-empty-declname-roundtrip [deferred-1]
 
 CCP fire at 93.54%. Tried rejecting prop accessor/descriptor when
