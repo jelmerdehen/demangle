@@ -8708,10 +8708,11 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 		revert()
 		return nil, false
 	}
-	// If labels empty but isFn AND body has type markers, count positional
-	// from V_/C_/O_/P_/G_/Qz_/Qy_ separators. Default 1 if body has at
+	// If labels empty AND body has type markers, count positional from
+	// V_/C_/O_/P_/G_/m_/Qz_/Qy_ separators. Default 1 if body has at
 	// least one type-kind byte (V/C/O/P/G) but no separators (1 param).
-	if isFn && len(fpLabels) == 0 {
+	// Applies to both functions and inits.
+	if (isFn || isInit) && len(fpLabels) == 0 {
 		body := p.s[peekI:sEnd]
 		// Strip trailing F or FZ + optional 't' tuple end.
 		bodyEnd := len(body)
