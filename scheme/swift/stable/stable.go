@@ -9926,6 +9926,7 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 				// tuple element, not the standalone result.
 				notTypeEnd := nc == 'F' || nc == 'l' || nc == 'K' || nc == 'Y' ||
 					nc == 'r' || nc == 'u' || nc == '_' || nc == 't' ||
+					nc == 'n' || nc == 'h' || nc == 'z' ||
 					(nc == 'v' && !propTermAtEnd)
 				// `y` followed by F/l/K/Y/r/u (empty-params + entity terminator)
 				// indicates the leading y we tentatively consumed was the
