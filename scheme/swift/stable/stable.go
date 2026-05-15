@@ -6412,11 +6412,15 @@ func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 					hostStr = id.Children[1].Text
 				}
 			}
-			if hostStr == "" && len(pathSteps) > 0 {
-				lastStep := pathSteps[len(pathSteps)-1]
-				if lastStep != nil {
-					hostStr = lastStep.Text
+			if hostStr == "" && len(pathSteps) > 1 {
+				// Skip module (pathSteps[0]); join nested type names with '.'
+				var parts []string
+				for _, s := range pathSteps[1:] {
+					if s != nil && s.Text != "" {
+						parts = append(parts, s.Text)
+					}
 				}
+				hostStr = strings.Join(parts, ".")
 			}
 			_ = lastKind
 			if hostStr != "" {
