@@ -481,6 +481,31 @@ complete. The `n` modifier handling requires identifying the exact
 speculative branch and either consuming `n` or wrapping in applyMod.
 Multi-fire.
 
+### plateau-2026-05-15-cdf [deferred-1]
+
+CDF attempt: extend fast-path digit-led ext-mod path to scan past
+constraint bytes for E (currently rigid `p.s[p.i]=='E'` only), AND
+add Rsz/Rz extMarker for `<A>` shape.
+
+Probe: `_$sSq7SwiftUIAA10TabContentRzlE15_identifiedView011_IdentifiedF0QzSgvg`
+- Want: `Optional<A>._identifiedView.getter`
+- Got pre-CDF: `Optional.SwiftUI.getter` (declName captured mod name)
+- Got with CDF: `Optional<A>._identifiedView.getter` (correct)
+
+But smoke regressed -21 parity (+7 roundtrip). Root: opening Rsz/Rz
+match in fpExtMarker branch is too eager. Many symbols have these
+substrings inside type bytes (e.g. inside generic args), causing
+false `<A>` decoration on hosts that shouldn't have it.
+
+Fix path: only treat constraint bytes BEFORE E as match scope. Don't
+fall back to scanning the entire post-host body. Need to confirm
+constraint scope is precise vs the digit-led scan; current impl uses
+the same scan window as the `s` Swift-mod branch but the digit-led
+path likely captures a broader range that includes type bytes after
+the actual E.
+
+Multi-fire: revisit with constraint-scope precision.
+
 ### plateau-2026-05-15-cdb [deferred-1]
 
 CDB fire at 93.69%. Threshold-lowering on tryGlobalLastResortFastPath
