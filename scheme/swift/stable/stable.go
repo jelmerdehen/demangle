@@ -8570,6 +8570,34 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			return wrap, true
 		}
 	}
+	// Special: `So<n><name>C<...>Mc` — ObjC class conformance descriptor.
+	// Apple short form is `protocol conformance descriptor for <ObjCName>`.
+	// Bypass path-det/nested-walk/terminal block.
+	if len(p.s) >= 6 && p.s[0] == 'S' && p.s[1] == 'o' &&
+		(p.s[len(p.s)-2:] == "Mc" || p.s[len(p.s)-2:] == "WP") {
+		probeI := 2
+		// Parse identifier length-prefix.
+		nameLen := 0
+		for probeI < len(p.s) && p.s[probeI] >= '0' && p.s[probeI] <= '9' {
+			nameLen = nameLen*10 + int(p.s[probeI]-'0')
+			probeI++
+		}
+		if nameLen > 0 && probeI+nameLen < len(p.s) {
+			objcName := p.s[probeI : probeI+nameLen]
+			kindByte := p.s[probeI+nameLen]
+			if kindByte == 'C' || kindByte == 'V' || kindByte == 'O' || kindByte == 'P' {
+				prefix := "protocol conformance descriptor for "
+				if p.s[len(p.s)-2:] == "WP" {
+					prefix = "protocol witness table for "
+				}
+				p.i = len(p.s)
+				wrap := common.NewNode(common.KindTypeMangling)
+				wrap.Text = prefix + objcName
+				wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
+				return wrap, true
+			}
+		}
+	}
 	// ObjC host: So<n><name>C
 	if p.i+1 < len(p.s) && p.s[p.i] == 'S' && p.s[p.i+1] == 'o' {
 		p.i += 2
