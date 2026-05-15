@@ -3819,9 +3819,13 @@ func (p *parser) tryNominalCopyInit(inner *demangle.Node) (*demangle.Node, bool)
 	default:
 		return inner, false
 	}
-	if common.RootModuleOf(inner) != "Swift" {
+	// Render full-form for Swift/Foundation hosts; non-stdlib hosts use
+	// Apple's simplified output: `<bare-host>.init(_:)` with no return.
+	innerMod := common.RootModuleOf(inner)
+	if innerMod == "" {
 		return inner, false
 	}
+	fullForm := innerMod == "Swift" || innerMod == "Foundation"
 	save := p.i
 	// Optional single digit-led label before the A-backref. Labeled form:
 	//   <host> <digits><label> <A-backref> _t cfC → init(<label>: ...)
@@ -3923,6 +3927,17 @@ func (p *parser) tryNominalCopyInit(inner *demangle.Node) (*demangle.Node, bool)
 		paramStr = common.Print(parentType, common.DefaultPrintOptions())
 	}
 	wrap := common.NewNode(common.KindTypeMangling)
+	if !fullForm {
+		// Simplified form for non-stdlib hosts: bare type name + `.init(<label>:)`
+		// with no return-type annotation.
+		bareHost := strings.TrimPrefix(hostStr, innerMod+".")
+		if label != "" {
+			wrap.Text = bareHost + ".init(" + label + ":)"
+		} else {
+			wrap.Text = bareHost + ".init(_:)"
+		}
+		return wrap, true
+	}
 	if label != "" {
 		wrap.Text = hostStr + ".init(" + label + ": " + paramStr + ") -> " + hostStr
 	} else {
