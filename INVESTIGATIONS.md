@@ -30,6 +30,13 @@ and function-entity. Estimated 50-100 LOC. Reason for deferral: risk
 of regressing single-label Qr functions and the static-property Qr
 path that AAV unlocked.
 
+### plateau-2026-05-15-ccc-double-underscore-sep-too-broad [deferred-1]
+
+CCC fire at 92.89%. Tried adding `__` (double-underscore) as
+separator for depth-N generic params. -1 parity regression: heuristic
+catches non-separator `__` patterns (Apple A_<n>_ back-refs, etc.).
+Reverted. Need more context-aware predicate or skip this fix.
+
 ### plateau-2026-05-15-cbw-objc-host-digit-mod-needs-handler-coordination [deferred-1]
 
 CBW fire at 92.51%. Same family as CBV. Implementation needs
