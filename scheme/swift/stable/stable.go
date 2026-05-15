@@ -13031,8 +13031,40 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 			if isStatic {
 				staticPfx = "static "
 			}
+			// Build host path with nested types: declared nestedTypesSuffix
+			// plus any leading nested types encoded inside constraintBytes
+			// (pattern `<n><name><V|C|O|P>...`).
+			hostStr := hostName
+			if len(nestedTypesSuffix) > 0 {
+				hostStr += "." + strings.Join(nestedTypesSuffix, ".")
+			}
+			cb := constraintBytes
+			for len(cb) > 0 && cb[0] >= '1' && cb[0] <= '9' {
+				lenEnd := 0
+				for lenEnd < len(cb) && cb[lenEnd] >= '0' && cb[lenEnd] <= '9' {
+					lenEnd++
+				}
+				if lenEnd >= len(cb) {
+					break
+				}
+				n := 0
+				for _, d := range cb[:lenEnd] {
+					n = n*10 + int(d-'0')
+				}
+				if n <= 0 || lenEnd+n >= len(cb) {
+					break
+				}
+				name := string(cb[lenEnd : lenEnd+n])
+				kindPos := lenEnd + n
+				if cb[kindPos] != 'V' && cb[kindPos] != 'C' &&
+					cb[kindPos] != 'O' && cb[kindPos] != 'P' {
+					break
+				}
+				hostStr += "." + name
+				cb = cb[kindPos+1:]
+			}
 			wrap := common.NewNode(common.KindTypeMangling)
-			wrap.Text = staticPfx + hostName + extMarker + "." + declName + fnLocalGen + labelStr
+			wrap.Text = staticPfx + hostStr + extMarker + "." + declName + fnLocalGen + labelStr
 			wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
 			p.i = len(p.s)
 			return wrap, true, nil
