@@ -10985,7 +10985,11 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 		}
 		wrap.Text = "(extension in Foundation):" + extHostMod + "." + hostPath + "." + declName + genericPartFoundation + verboseParamStr(labels) + throwsStr + verboseRetStr(true)
 	} else {
-		wrap.Text = hostPath + "." + declName + genericPart + makeLabelStr(paramCount)
+		fnExtMarker := ""
+		if len(constraintBytes) > 2 {
+			fnExtMarker = "<>"
+		}
+		wrap.Text = hostPath + fnExtMarker + "." + declName + genericPart + makeLabelStr(paramCount)
 	}
 	// Swift.DiscontiguousSlice.index(before:): arg loses host BG <A>.
 	if hostPath == "DiscontiguousSlice" && declName == "index" {
