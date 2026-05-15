@@ -1140,6 +1140,51 @@ Tried: count `_` separator after `S<lowercase>` (Sg/Sf/Sa/Sd/Si/Sb/Sh/SS).
 Result: -7 parity. Stdlib type suffix occurs in result-type position too.
 Multi-fire — needs structural args/result distinction.
 
+## defer-ceo-foundation-swift-full-form-renderer [~1500 syms, deferred-1] (2026-05-15)
+
+Meta-bucket spanning most remaining mismatches. The verbose-form
+target output for Foundation + Swift symbols requires:
+1. Module qualifier prefix on path (`Foundation.X` not `X`)
+2. Extension marker `(extension in Foundation):` when applicable
+3. Constraint signature `< where A: ..., A.X == B.Y>` rendered
+4. Argument-type list `(label: Type, ...)` rendered verbose
+5. Return-type annotation ` -> Type` appended
+6. `throws` / `async` markers
+7. `inout`/`__shared`/`__owned` modifiers
+8. Variadic `...` / Pack expansion `Pack{repeat X}` / `each` modifier
+
+Affected buckets (count = mismatches per digest.md Top-20):
+- property descriptor (Foundation full form) 305
+- static (extension in Foundation) 134
+- dispatch thunk (Foundation/Swift) 91
+- method descriptor (Foundation/Swift) 91
+- Foundation.PredicateExpr 85
+- protocol conformance descriptor 82 (subset)
+- protocol witness table 46 (subset)
+- enum case 36 (Foundation full form)
+- AttributedString.init 26
+- String.init 21
+- UnkeyedEncodingContainer.encode 18
+- RawRepresentable.init 16
+- AttributedString.Runs.subscript.getter 12
+- ... etc
+
+Fast-path emits short form only (host.declName + labels). Main parser
+has full-form code at stable.go:5907-5920 but symbols fall through to
+last-resort fast-path because main parser can't complete the body.
+
+Multi-fire roadmap:
+- Phase A: parse type-mangling tail bytes in fast-path to a Node tree
+  (or hand a typed-AST stub to common.Print)
+- Phase B: detect Foundation/Swift module in fast-path; switch to
+  full-form emit when present (prefix + type annotation)
+- Phase C: handle constraint-sig rendering — Rz/Rsz/rl decomposition
+- Phase D: variadic / pack / inout modifier rendering
+
+Tier 1 — bound-generic-subs-indexing adjacent. Skip remaining fires
+that try to fix subsets piecemeal; converge on Phase A as the next
+substantive parity-recovery commit.
+
 ## defer-cen-nested-walk-inner-extmod-word-capture [72 syms, deferred-1] (2026-05-15)
 
 Pattern: `<host>C<mod1>E<host2>P<mod2>...E<decl-name>` — second-level
