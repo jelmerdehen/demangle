@@ -8944,7 +8944,15 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 		isFn = true
 		isStatic = true
 	}
-	if !isInit && !isFn && !isPropAcc && !isPropDesc && !isSubscript {
+	// Mc terminal — protocol conformance descriptor. Only handle simple
+	// ObjC hosts with no nested types and no body-side bound generic.
+	isMc := false
+	if sEnd >= 2 && p.s[sEnd-2:sEnd] == "Mc" && fpHostIsObjC && !isInit && !isFn &&
+		!isPropAcc && !isPropDesc && !isSubscript {
+		isMc = true
+		sEnd -= 2
+	}
+	if !isInit && !isFn && !isPropAcc && !isPropDesc && !isSubscript && !isMc {
 		revert()
 		return nil, false
 	}
@@ -9174,7 +9182,10 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 	}
 
 	var text string
-	if isPropAcc {
+	if isMc {
+		// "protocol conformance descriptor for <Host>"
+		text = "protocol conformance descriptor for " + hostStr
+	} else if isPropAcc {
 		// "[static ]Host.declName.<accessor>" — labels-only (no params).
 		text = propStaticPfx + hostStr + "." + declName + propAcc
 	} else if isPropDesc && isSubscript {
