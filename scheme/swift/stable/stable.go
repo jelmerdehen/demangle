@@ -8561,6 +8561,22 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 		}
 		p.i++
 		hostStr = name
+	} else if p.i+2 < len(p.s) && p.s[p.i] == 'S' && p.s[p.i+1] == 'c' {
+		// Stdlib2 short host: Sc<X> (Sc<X> = concurrency types)
+		letter := p.s[p.i+2]
+		stdNode, ok := common.BuildStdlibNominal2(letter)
+		if !ok {
+			revert()
+			return nil, false
+		}
+		if len(stdNode.Children) > 0 && len(stdNode.Children[0].Children) > 1 {
+			hostStr = stdNode.Children[0].Children[1].Text
+		}
+		if hostStr == "" {
+			revert()
+			return nil, false
+		}
+		p.i += 3
 	} else if p.i+1 < len(p.s) && p.s[p.i] == 'S' &&
 		p.s[p.i+1] != 'o' && p.s[p.i+1] != 'C' && p.s[p.i+1] != 'c' {
 		// Stdlib short host: S<letter>
