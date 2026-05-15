@@ -8702,6 +8702,52 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 		revert()
 		return nil, false
 	}
+	// If labels empty but isFn AND body has type markers, count positional
+	// from V_/C_/O_/P_/G_/Qz_/Qy_ separators. Default 1 if body has at
+	// least one type-kind byte (V/C/O/P/G) but no separators (1 param).
+	if isFn && len(fpLabels) == 0 {
+		body := p.s[peekI:sEnd]
+		// Strip trailing F or FZ + optional 't' tuple end.
+		bodyEnd := len(body)
+		if bodyEnd >= 1 {
+			bodyEnd--
+		}
+		if isStatic && bodyEnd >= 1 {
+			bodyEnd--
+		}
+		if bodyEnd >= 1 && body[bodyEnd-1] == 't' {
+			bodyEnd--
+		}
+		if bodyEnd > 0 {
+			body = body[:bodyEnd]
+			sepCount := 0
+			hasType := false
+			for j := 0; j < len(body); j++ {
+				c := body[j]
+				if c == 'V' || c == 'C' || c == 'O' || c == 'P' || c == 'G' {
+					hasType = true
+				}
+				if j > 0 && c == '_' {
+					prev := body[j-1]
+					if prev == 'V' || prev == 'C' || prev == 'O' ||
+						prev == 'P' || prev == 'G' {
+						sepCount++
+					} else if j >= 2 && (prev == 'z' || prev == 'y') &&
+						body[j-2] == 'Q' {
+						sepCount++
+					}
+				}
+			}
+			if sepCount > 0 {
+				fpLabels = make([]string, sepCount+1)
+				for i := range fpLabels {
+					fpLabels[i] = "_"
+				}
+			} else if hasType {
+				fpLabels = []string{"_"}
+			}
+		}
+	}
 
 	// Local generic sig from `lF`/`l u f<C|c>`.
 	localGen := ""
