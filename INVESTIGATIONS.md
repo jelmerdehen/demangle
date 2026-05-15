@@ -481,6 +481,28 @@ complete. The `n` modifier handling requires identifying the exact
 speculative branch and either consuming `n` or wrapping in applyMod.
 Multi-fire.
 
+### plateau-2026-05-15-cdf-v3 [deferred-1]
+
+CDF retry: heuristic "stripped-t + y-opener body → default 2 params"
+in fast-path label-counter.
+
+Probe: Just/Publisher.reduce/scan/map/combineLatest etc. emit (_:)
+for what should be (_:_:); body shape `y<T1><T2>t` (trailing t = tuple-end).
+Single-param functions don't use trailing t, so t-presence + y-opener
+should imply N≥2 params.
+
+Result: -4 parity. The t-end heuristic is wrong: single-param with a
+tuple-typed param (e.g. `func f(_ x: (Int, String))`) ALSO has trailing
+t inside the type. Defaulting to 2 broke those symbols.
+
+Fix path: count actual depth-0 type-expression starts between y and t
+(Sx, So, x, qd_, qy_, AA, A<digit>_, <digit><name><kind>). Each
+depth-0 start = +1 param. Stop at the closing t. Requires sub-parser
+state machine that can recognize bound-generic, optional-Sg, etc.
+without full type-parse.
+
+Multi-fire — needs ≥3 primitives.
+
 ### plateau-2026-05-15-cdf [deferred-1]
 
 CDF attempt: extend fast-path digit-led ext-mod path to scan past
