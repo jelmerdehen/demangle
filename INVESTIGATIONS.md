@@ -30,6 +30,16 @@ and function-entity. Estimated 50-100 LOC. Reason for deferral: risk
 of regressing single-label Qr functions and the static-property Qr
 path that AAV unlocked.
 
+### plateau-2026-05-15-cbo-positional-param-count [deferred-1]
+
+CBO fire at 92.08%. Top mismatches (173 total) dominated by `(_:)` 
+vs `(_:_:)` etc. — fast-path emits 0 or 1 underscore but Apple shows
+2-3 positional params for unlabeled methods. Pattern: speculative-y
+in tryExtensionEntity consumes the empty-labels marker as 1 label,
+so labels=["_"] not [] — labelStr becomes `(_:)` regardless of
+actual param count. Need: count tuple separators in body remainder
+between speculative-y consumption and final F. Multi-fire surface.
+
 ### plateau-2026-05-15-cbl-fastpath-roundtrip-vs-parity-tradeoff [deferred-1]
 
 CBL fire: tried operator-decoding + label imputation + nested-host
