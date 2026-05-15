@@ -30,6 +30,31 @@ and function-entity. Estimated 50-100 LOC. Reason for deferral: risk
 of regressing single-label Qr functions and the static-property Qr
 path that AAV unlocked.
 
+### post-cao-leftover-mismatches [15 syms, deferred-1]
+
+CAP fire: refresh shows 15 remaining mismatches after CAI/CAJ/CAK/
+CAN/CAO landed (+23 parity total this session, 90.50% -> 90.55%).
+
+All remaining mismatches need bespoke surgery:
+- 4 syms: Foundation back-ref drift (_CalendarProtocol init missing
+  6th arg; NSKeyedUnarchiver.unarchivedDictionary / NSCoder.decode-
+  Dictionary wrong arg type — same root cause: subs counting in
+  multi-arg labelled init when middle arg is a back-ref)
+- 6 syms: ClosedRange / FlattenSequence / LazyPrefixWhileSequence
+  Index `<` and `==` operators — arg-render needs extension-wrapper
+  form when arg is a nested type of the extension host
+- 2 syms: UnsafeBufferPointer / UnsafeRawBufferPointer Iterator init
+  back-ref Sg loss (related to Swift.==/!= Any.Type? case)
+- 2 syms: Swift.== / != infix Any.Type? back-ref Sg loss (CAM
+  attempt deferred — needs narrower predicate)
+- 1 sym: SliderTickContentForEach.init<A> generic-count cap (Apple
+  shows local init generic only, ignoring host's depth-1 q_ params)
+
+Pivot to top parse-error buckets next fires. Top tractable
+candidates per BAR plateau (multi-fire): qr-multilabel-fn-entity,
+PAAE multi-conf, depth-1 generics. INVESTIGATIONS already has
+fire-plans for each.
+
 ### post-cak-leftover-mismatches [18 syms, deferred-1]
 
 After CAI/CAJ/CAK landed Sc<X> simplified rendering for ext-prop +
