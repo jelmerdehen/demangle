@@ -6454,8 +6454,16 @@ func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 					}
 				}
 				labelStr := "(" + strings.Join(parts, "") + ")"
+				// Class hosts with allocating-init (fC) use __allocating_init;
+				// struct/enum/protocol use init.
+				initName := ".init"
+				lastTwo := p.s[sEnd-2:]
+				if lastKind == 'C' && (lastTwo == "fC" ||
+					(sEnd >= 3 && p.s[sEnd-3:] == "KfC")) {
+					initName = ".__allocating_init"
+				}
 				wrap := common.NewNode(common.KindTypeMangling)
-				wrap.Text = hostStr + ".init" + localGenPart + labelStr
+				wrap.Text = hostStr + initName + localGenPart + labelStr
 				wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
 				p.i = len(p.s)
 				return wrap, true, nil
