@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 95.32% (60771/63757) — 2026-05-15T13:20:12Z
+**Parity**: 95.33% (60779/63757) — 2026-05-15T13:36:14Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 233 parse-errors + 2753 mismatches
+**Failures**: 233 parse-errors + 2745 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- b915387d swift-parity: CEI fast-path empty-labels y<arg>F → 1 unlabeled arg — parity 95.33%->95.33% (+2 production +0 roundtrip)
+- 610d8e4b chore: lock snapshot after CEG commit (parity 60771->60779)
+- f36b53c1 chore: update digest.md for CEG commit (+8 production)
 - 758d1a1d swift-parity: CEG tighten extMarker — require Rb/Rd marker for fallback <> — parity 95.32%->95.33% (+8 production +0 roundtrip)
 - bdd20cac chore: lock snapshot after CED commit (parity 60770->60771)
 - d7fd72db chore: update digest.md for CED commit (+1 production)
@@ -36,9 +39,6 @@
 - bc2a5164 chore: lock snapshot after CEB commit (parity 60769->60770)
 - 65f64eb6 chore: update digest.md for CEB commit (+1 production)
 - 987101b3 swift-parity: CEB A-branch accept E followed by A/S/x/q with constraint marker — parity 95.31%->95.31% (+1 production +0 roundtrip)
-- 6aaf5352 chore: lock snapshot after CEA commit (parity 60768->60769)
-- a128f971 chore: update digest.md for CEA commit (+1 production)
-- 3f00eaaa swift-parity: CEA last-resort init expand args by generic count — parity 95.31%->95.31% (+1 production +0 roundtrip)
 
 ## Suggested Next 3 Items
 
