@@ -8546,6 +8546,7 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 	p.i = 0
 
 	var hostStr string
+	var fpTopLevelDecl string
 	// ObjC host: So<n><name>C
 	if p.i+1 < len(p.s) && p.s[p.i] == 'S' && p.s[p.i+1] == 'o' {
 		p.i += 2
@@ -8597,7 +8598,9 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 		p.i += 2
 	} else if p.i+1 < len(p.s) && p.s[p.i] == 's' &&
 		p.s[p.i+1] >= '0' && p.s[p.i+1] <= '9' {
-		// Swift-mod nominal host: s<n><name><kind>
+		// Swift-mod entity: s<n><name>[<kind>]
+		// If followed by kind byte: nominal host (Result.Publisher etc).
+		// Else: top-level free function in Swift module (withTaskGroup etc).
 		p.i++ // consume 's'
 		name, nErr := p.parseIdentifier()
 		if nErr != nil || p.eof() {
@@ -8605,12 +8608,13 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			return nil, false
 		}
 		kind := p.s[p.i]
-		if kind != 'C' && kind != 'V' && kind != 'O' && kind != 'P' {
-			revert()
-			return nil, false
+		if kind == 'C' || kind == 'V' || kind == 'O' || kind == 'P' {
+			p.i++
+			hostStr = name
+		} else {
+			// Top-level: name is the decl. Mark for path-det skip.
+			fpTopLevelDecl = name
 		}
-		p.i++
-		hostStr = name
 	} else if p.i < len(p.s) && p.s[p.i] >= '1' && p.s[p.i] <= '9' {
 		// User-mod direct host: <n><mod><n><name><kind>
 		_, mErr := p.parseIdentifier()
@@ -8640,11 +8644,13 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 	// (no extension marker — typically protocol-method-requirement on user
 	// type, where decl-name follows immediately).
 	var fpConstraintBytes string
-	if p.eof() {
+	if p.eof() && fpTopLevelDecl == "" {
 		revert()
 		return nil, false
 	}
-	if p.s[p.i] >= '1' && p.s[p.i] <= '9' {
+	if fpTopLevelDecl != "" {
+		// Top-level fn: skip path-determination and nested-walk.
+	} else if p.s[p.i] >= '1' && p.s[p.i] <= '9' {
 		// Could be: (a) digit-led ext mod identifier + E, OR (b) direct
 		// decl-name (protocol method requirement). Try ext-mod first; if
 		// no E follows, restore and let the nested-walk loop pick up
@@ -8686,7 +8692,10 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 	// Walk nested-type chain + decl-name.
 	var nestedNames []string
 	declName := ""
-	for !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+	if fpTopLevelDecl != "" {
+		declName = fpTopLevelDecl
+	}
+	for fpTopLevelDecl == "" && !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
 		saveP := p.i
 		ident, err := p.parseIdentifier()
 		if err != nil {
@@ -9059,6 +9068,9 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 		// `__allocating_init` (handled by tryInitDeinitEntity fast-path).
 		_ = isClassAlloc
 		nameOut = ".init"
+	} else if hostStr == "" {
+		// Top-level fn — no host prefix, no leading dot.
+		nameOut = declName
 	} else {
 		nameOut = "." + declName
 	}
