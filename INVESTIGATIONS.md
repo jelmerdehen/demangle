@@ -30,6 +30,13 @@ and function-entity. Estimated 50-100 LOC. Reason for deferral: risk
 of regressing single-label Qr functions and the static-property Qr
 path that AAV unlocked.
 
+### plateau-2026-05-15-cci-chain-aware-extension-regress [deferred-1]
+
+CCI fire at 92.91%. Tried applying chain-aware label-stop to
+tryTypeFirstExtensionEntity label loop. +1 parity, -1 roundtrip
+INVARIANT violation. Reverted. Different code path semantics —
+ext-entity labels include some forms that look like type-chains.
+
 ### plateau-2026-05-15-ccg-vcop-label-stop-noop [deferred-1]
 
 CCG fire at 92.89%. Tried adding V/C/O/P-after-ident label-stop in
