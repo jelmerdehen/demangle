@@ -8729,10 +8729,25 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			body = body[:bodyEnd]
 			sepCount := 0
 			hasType := false
+			depth := 0 // generic-bracket depth via y...G pairs
 			for j := 0; j < len(body); j++ {
 				c := body[j]
 				if c == 'V' || c == 'C' || c == 'O' || c == 'P' || c == 'G' {
 					hasType = true
+				}
+				if c == 'G' && depth > 0 {
+					depth--
+					continue
+				}
+				if c == 'y' && j+1 < len(body) {
+					nx := body[j+1]
+					if nx == 'S' || nx == 'A' || nx == 'x' || nx == 'q' ||
+						(nx >= '0' && nx <= '9') {
+						depth++
+					}
+				}
+				if depth > 0 {
+					continue
 				}
 				if j > 0 && c == '_' {
 					prev := body[j-1]
