@@ -1139,3 +1139,32 @@ Tried: count `_` separator after `S<lowercase>` (Sg/Sf/Sa/Sd/Si/Sb/Sh/SS).
 
 Result: -7 parity. Stdlib type suffix occurs in result-type position too.
 Multi-fire — needs structural args/result distinction.
+
+## defer-cem-prop-desc-foundation-full-form [305 syms, deferred-1] (2026-05-15)
+
+Top divergence bucket: property descriptors in Foundation/Swift modules.
+
+Probe sym: `_$s10Foundation13__DataStorageC12_deallocatorySv_SitcSgvpMV`
+- got:  "property descriptor for __DataStorage._deallocator"
+- want: "property descriptor for Foundation.__DataStorage._deallocator : ((Swift.UnsafeMutableRawPointer, Swift.Int) -> ())?"
+
+Two parts missing in fast-path emit (stable.go:9766-9768):
+1. Module qualifier "Foundation." prefix on path
+2. Type annotation " : <verbose-type>"
+
+Main parser already handles full form for Foundation/Swift property
+descriptors (stable.go:5907-5920). Issue: fast-path fires as
+last-resort when main parser can't complete the body. Cannot patch
+fast-path emit cheaply — needs verbose type-rendering of the
+declared-type-string, which fast-path doesn't currently do.
+
+Options for multi-fire:
+- Skip fast-path entirely for Foundation/Swift `vpMV` suffix and force
+  main-parser fix instead. Requires fixing whatever causes main-parser
+  to fail on these symbols first.
+- Add a small type-printer to fast-path that handles the tail bytes
+  before `vpMV` as a type-mangling node. Risk: cycle-prone — fast-path
+  intentionally avoids full type-parsing.
+
+Tier-2 — bound-generic-subs-indexing adjacent (see goal pointer). Skip
+this fire; pivot.
