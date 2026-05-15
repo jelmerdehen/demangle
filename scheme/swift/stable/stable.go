@@ -12984,6 +12984,14 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 		sEnd := len(p.s)
 		isStatic := false
 		isFnFP := false
+		// QOMQ = opaque type descriptor for <<opaque return type of ...>>
+		// suffix. When present, treat the trailing F as the function-entity
+		// terminal and wrap output accordingly.
+		isQOMQ := false
+		if sEnd >= 5 && p.s[sEnd-4:] == "QOMQ" && p.s[sEnd-5] == 'F' {
+			isQOMQ = true
+			sEnd -= 4 // strip QOMQ for fn detection
+		}
 		if sEnd >= 1 && p.s[sEnd-1] == 'F' {
 			isFnFP = true
 		} else if sEnd >= 2 && p.s[sEnd-2] == 'F' && p.s[sEnd-1] == 'Z' {
@@ -13106,8 +13114,12 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 				hostStr += "." + name
 				cb = cb[kindPos+1:]
 			}
+			text := staticPfx + hostStr + extMarker + "." + declName + fnLocalGen + labelStr
+			if isQOMQ {
+				text = "opaque type descriptor for <<opaque return type of " + text + ">>"
+			}
 			wrap := common.NewNode(common.KindTypeMangling)
-			wrap.Text = staticPfx + hostStr + extMarker + "." + declName + fnLocalGen + labelStr
+			wrap.Text = text
 			wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
 			p.i = len(p.s)
 			return wrap, true, nil
