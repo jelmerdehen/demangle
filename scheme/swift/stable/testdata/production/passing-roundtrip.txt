@@ -1,4 +1,4 @@
-# snapshot-pass-set update 2026-05-15T08:18:35Z — union with previous (high-water)
+# snapshot-pass-set update 2026-05-15T08:27:03Z — union with previous (high-water)
 _$s10Foundation10CocoaErrorV03_nsC0ACSo7NSErrorC_tcfC
 _$s10Foundation10CocoaErrorV14stringEncodingSSAAE0E0VSgvg
 _$s10Foundation10CocoaErrorV14stringEncodingSSAAE0E0VSgvpMV
@@ -20824,6 +20824,7 @@ _$ss9TaskLocalC12wrappedValueAByxGx_tcfCTq
 _$ss9TaskLocalC12wrappedValueAByxGx_tcfc
 _$ss9TaskLocalC13withValueImpl_9operation4file4lineqd__xn_qd__yYaKXESSSutYaKlF
 _$ss9TaskLocalC13withValueImpl_9operation4file4lineqd__xn_qd__yYaKXESSSutYaKlFTu
+_$ss9TaskLocalC18_enclosingInstance7wrapped7storagexs5NeverO_s24ReferenceWritableKeyPathCyAGxGAIyAgByxGGtcigZ
 _$ss9TaskLocalC3getxyF
 _$ss9TaskLocalC9withValue_9operation4file4lineqd__x_qd__yKXESSSutKlF
 _$ss9TaskLocalC9withValue_9operation4file4lineqd__x_qd__yYaKXESSSutYaKlF
