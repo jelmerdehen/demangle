@@ -1,4 +1,4 @@
-# snapshot-pass-set update 2026-05-15T05:37:47Z — union with previous (high-water)
+# snapshot-pass-set update 2026-05-15T05:40:43Z — union with previous (high-water)
 _$s10Foreground7SwiftUI18LabelGroupStyle_v0PTl
 _$s10Foundation10CocoaErrorV010formattingC0AC4CodeVvgZ
 _$s10Foundation10CocoaErrorV010formattingC0AC4CodeVvpZMV
@@ -19996,6 +19996,8 @@ _$s7Combine4JustV14setFailureType2tos6ResultOAAE9PublisherVyxqd___Gqd__m_ts5Erro
 _$s7Combine4JustV16removeDuplicates2byACyxGSbx_xtXE_tF
 _$s7Combine4JustV19tryRemoveDuplicates2bys6ResultOAAE9PublisherVyxs5Error_p_GSbx_xtKXE_tF
 _$s7Combine4JustV3mapyACyqd__Gqd__xXElF
+_$s7Combine4JustV3max2byACyxGSbx_xtXE_tF
+_$s7Combine4JustV3min2byACyxGSbx_xtXE_tF
 _$s7Combine4JustV4drop5whileSqAAE9PublisherVyx_GSbxXE_tF
 _$s7Combine4JustV4last5whereSqAAE9PublisherVyx_GSbxXE_tF
 _$s7Combine4JustV4lastACyxGyF
@@ -43166,6 +43168,7 @@ _$sSh6update4withxSgxn_tF
 _$sSh7SwiftUIE14allowsMultipleSbvg
 _$sSh7SwiftUIE14allowsMultipleSbvpMV
 _$sSh7SwiftUIE5apply2as9operationyqd__m_yqd__XEtSHRd__lF
+_$sSh7SwiftUIE8contains2idSbqd___tSHRd__lF
 _$sSh7_nativeShyxGs10_NativeSetVyxGn_tcfC
 _$sSh7isEmptySbvg
 _$sSh7isEmptySbvpMV
