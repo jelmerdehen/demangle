@@ -8835,6 +8835,40 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 		_, idErr := p.parseIdentifier()
 		if idErr == nil && !p.eof() && p.s[p.i] == 'E' {
 			p.i++ // consume E
+		} else if idErr == nil && !p.eof() &&
+			p.s[p.i] != 'V' && p.s[p.i] != 'C' &&
+			p.s[p.i] != 'O' && p.s[p.i] != 'P' {
+			// Constraint section before E: scan ahead but only accept if
+			// constraint bytes contain a real constraint marker (Rz/Rsz/Rb/rl).
+			// Skip when next byte is a nested-type kind (V/C/O/P).
+			eAt := -1
+			for k := p.i; k < len(p.s)-1 && k < p.i+120; k++ {
+				if p.s[k] == 'E' && k+1 < len(p.s) {
+					nx := p.s[k+1]
+					if (nx >= '0' && nx <= '9') || nx == 'y' || nx == '_' {
+						eAt = k
+						break
+					}
+				}
+			}
+			accepted := false
+			if eAt >= 0 {
+				cb := p.s[p.i:eAt]
+				if strings.Contains(cb, "Rz") || strings.Contains(cb, "Rsz") ||
+					strings.Contains(cb, "Rb") || strings.Contains(cb, "rl") {
+					fpConstraintBytes = cb
+					p.i = eAt + 1
+					if !p.eof() && (p.s[p.i] == 'y' || p.s[p.i] == '_') {
+						fpDirectEntity = true
+					}
+					accepted = true
+				}
+			}
+			if !accepted {
+				p.i = saveExt
+				p.subs = saveSubsExt
+				p.words = saveWordsExt
+			}
 		} else {
 			// Not an ext-mod; revert and treat as decl-name path.
 			p.i = saveExt
@@ -9535,8 +9569,9 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 	fpExtMarker := ""
 	if strings.Contains(fpConstraintBytes, "rl") {
 		fpExtMarker = "<>"
-	} else if isInit && (strings.Contains(fpConstraintBytes, "Rsz") ||
-		strings.Contains(fpConstraintBytes, "Rz")) {
+	} else if (isInit || isPropDesc || isPropAcc) &&
+		(strings.Contains(fpConstraintBytes, "Rsz") ||
+			strings.Contains(fpConstraintBytes, "Rz")) {
 		fpExtMarker = "<A>"
 	}
 	// Bound-generic-on-host decoration (Mc/WP only): inject before nested.
