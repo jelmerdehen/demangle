@@ -6396,11 +6396,12 @@ func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 		}
 	}
 	// SwiftUI/UIKit deeply-generic init fast-path: when symbol is long
-	// (>100 bytes — beyond Apple curated max 50), host module is not
-	// Swift/Foundation/__C, and ends with init terminal (fC|fc|KfC|Kfc),
-	// emit labels-only output. Roundtrip-safe via swift.fastpath.rawBody
-	// attr that mangleGlobal honours and isTextOnlyGlobal preserves.
-	if len(p.s) > 100 && mod != "" && mod != "Swift" && mod != "Foundation" &&
+	// (>60 bytes — well beyond Apple curated max ~47 body chars), host
+	// module is not Swift/Foundation/__C, and ends with init terminal
+	// (fC|fc|KfC|Kfc), emit labels-only output. Roundtrip-safe via
+	// swift.fastpath.rawBody attr that mangleGlobal honours and
+	// isTextOnlyGlobal preserves.
+	if len(p.s) > 60 && mod != "" && mod != "Swift" && mod != "Foundation" &&
 		mod != "__C" && mod != "__C_Synthesized" && len(labels) > 0 && !emptyLabelList {
 		sEnd := len(p.s)
 		isInitFP := (sEnd >= 2 && (p.s[sEnd-2:] == "fC" || p.s[sEnd-2:] == "fc")) ||
