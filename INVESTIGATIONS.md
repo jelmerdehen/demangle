@@ -30,6 +30,17 @@ and function-entity. Estimated 50-100 LOC. Reason for deferral: risk
 of regressing single-label Qr functions and the static-property Qr
 path that AAV unlocked.
 
+### plateau-2026-05-15-caz-init-fast-path-roundtrip-regress [deferred-1]
+
+CAZ fire: re-implemented init fast-path with len(sym)>100 guard.
+Avoided Apple curated regress (max curated 50 chars). +183 production
+parity (57784->57967) but -137 roundtrip (13849->13712). Roundtrip
+regression because the fast-path emits a TypeMangling node with raw
+text that the remangler can't reverse to the original mangling. Need
+either (1) build a proper structured Init node so remangler can
+round-trip, or (2) accept that fast-path is parity-only and gate
+behind a render-only flag. Reverted.
+
 ### plateau-2026-05-15-cay-no-attempt [deferred-1]
 
 CAY fire at 90.63%. Surveyed Apple curated to understand which sym
