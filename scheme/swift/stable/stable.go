@@ -9114,6 +9114,12 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 		isSubscript = true
 		fpSubscriptHasLocalGen = true
 		sEnd -= 6
+	} else if sEnd >= 6 && p.s[sEnd-6:sEnd] == "cipZMV" {
+		// Subscript STATIC property descriptor (no local-gen).
+		isPropDesc = true
+		isSubscript = true
+		propStaticPfx = "static "
+		sEnd -= 6
 	} else if sEnd >= 5 && p.s[sEnd-5:sEnd] == "cipMV" {
 		// Subscript property descriptor (no local-gen).
 		isPropDesc = true
