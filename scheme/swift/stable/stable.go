@@ -8990,9 +8990,11 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 	// Nested-extension recovery: loop until decl-name found or no more E
 	// found. Each iteration scans for `E<digit>` past current p.i, treats
 	// preceding bytes as nested-ext constraint, then re-enters nested-walk.
+	// Skip when body starts with `_` (label-list separator) — that's an
+	// init/fn arg-label section, not a nested-ext constraint.
 	fpNestedExtMarker := ""
 	for fpTopLevelDecl == "" && !fpDirectEntity && declName == "" &&
-		len(nestedNames) > 0 && !p.eof() && p.s[p.i] != 'y' {
+		len(nestedNames) > 0 && !p.eof() && p.s[p.i] != 'y' && p.s[p.i] != '_' {
 		eAt := -1
 		for k := p.i; k < len(p.s)-1 && k < p.i+120; k++ {
 			if p.s[k] == 'E' && k+1 < len(p.s) && p.s[k+1] >= '0' && p.s[k+1] <= '9' {
