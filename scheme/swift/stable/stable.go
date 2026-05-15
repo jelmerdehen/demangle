@@ -9450,6 +9450,9 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 				}
 			} else if emptyParams || emptyParamsAtClosure {
 				// 0 params — leave fpLabels empty.
+			} else if strings.HasSuffix(declName, " infix") {
+				// Binary operators always take 2 unlabeled params (lhs, rhs).
+				fpLabels = []string{"_", "_"}
 			} else if hasType {
 				fpLabels = []string{"_"}
 			} else if len(body) >= 2 && body[0] == 'y' && body[1] != 't' {
