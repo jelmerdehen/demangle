@@ -9617,7 +9617,7 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 	fpExtMarker := ""
 	if strings.Contains(fpConstraintBytes, "rl") {
 		fpExtMarker = "<>"
-	} else if (isInit || isPropDesc || isPropAcc) &&
+	} else if (isInit || isPropDesc || isPropAcc || isFn) &&
 		(strings.Contains(fpConstraintBytes, "Rsz") ||
 			strings.Contains(fpConstraintBytes, "Rz")) {
 		fpExtMarker = "<A>"
