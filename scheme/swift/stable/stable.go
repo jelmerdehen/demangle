@@ -8621,18 +8621,24 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 
 	// Determine terminal: init (fC/fc/KfC/Kfc) OR function (F/FZ).
 	sEnd := len(p.s)
+	// QOMQ wrapper: "opaque type descriptor for <<opaque return type of ...>>"
+	isQOMQ := false
+	if sEnd >= 5 && p.s[sEnd-4:] == "QOMQ" && p.s[sEnd-5] == 'F' {
+		isQOMQ = true
+		sEnd -= 4
+	}
 	isInit := false
 	isStatic := false
 	isFn := false
 	isClassAlloc := false
-	if sEnd >= 2 && (p.s[sEnd-2:] == "fC" || p.s[sEnd-2:] == "fc") {
+	if sEnd >= 2 && (p.s[sEnd-2:sEnd] == "fC" || p.s[sEnd-2:sEnd] == "fc") {
 		isInit = true
-		if p.s[sEnd-2:] == "fC" {
+		if p.s[sEnd-2:sEnd] == "fC" {
 			isClassAlloc = true
 		}
-	} else if sEnd >= 3 && (p.s[sEnd-3:] == "KfC" || p.s[sEnd-3:] == "Kfc") {
+	} else if sEnd >= 3 && (p.s[sEnd-3:sEnd] == "KfC" || p.s[sEnd-3:sEnd] == "Kfc") {
 		isInit = true
-		if p.s[sEnd-3:] == "KfC" {
+		if p.s[sEnd-3:sEnd] == "KfC" {
 			isClassAlloc = true
 		}
 	} else if sEnd >= 1 && p.s[sEnd-1] == 'F' {
@@ -8824,8 +8830,12 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 		nameOut = "." + declName
 	}
 
+	text := staticPfx + hostStr + nameOut + localGen + labelStr
+	if isQOMQ {
+		text = "opaque type descriptor for <<opaque return type of " + text + ">>"
+	}
 	wrap := common.NewNode(common.KindTypeMangling)
-	wrap.Text = staticPfx + hostStr + nameOut + localGen + labelStr
+	wrap.Text = text
 	wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
 	p.i = len(p.s)
 	return wrap, true
