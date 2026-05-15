@@ -30,6 +30,43 @@ and function-entity. Estimated 50-100 LOC. Reason for deferral: risk
 of regressing single-label Qr functions and the static-property Qr
 path that AAV unlocked.
 
+### post-cak-leftover-mismatches [18 syms, deferred-1]
+
+After CAI/CAJ/CAK landed Sc<X> simplified rendering for ext-prop +
+ext-method + Sc<X> stdlib2 host map (parity 90.50% -> 90.54%, +20
+production), 18 remaining mismatches each need bespoke surgery:
+
+- `Swift.== / != infix(Any.Type?, Any) -> Swift.Bool` (2 syms,
+  `s2eeoiySbypXpSg_ABtF` / `s2neoi...`): `AB` back-ref resolves to
+  `Any.Type` (entry 1) instead of `Any.Type?` (entry 2). Subs push
+  for `Sg` Optional wrapper not happening for operator-decl args.
+- `_CalendarProtocol.init` Tj/Tq (2 syms): parser emits 5 args, want
+  6. Last label `gregorianStartDate` consumed but `At`-style back-ref
+  in tuple breaks separator detection.
+- `NSKeyedUnarchiver.unarchivedDictionary` / `NSCoder.decodeDictionary`
+  (2 syms): Foundation-ext methods, AL-back-ref resolves to result
+  type instead of arg-list back-ref (subs counting drift).
+- ClosedRange/FlattenSequence/LazyPrefixWhileSequence Index `<`/`==`
+  (6 syms, `static (extension` bucket): operator-decl args render as
+  bare `Index<A>` but Apple wraps in full `(extension in
+  Swift):Swift.Host<A><sig>.Index` form when arg is the host's
+  nested type.
+- `globalConcurrentExecutor.getter` (1 sym, `s24...Sch_pvg`):
+  top-level Swift module property of TYPE `any TaskExecutor`. Need
+  `IsConcurrencyType` to walk through existential wrapper, then
+  property-handler simplifies.
+- `withTaskExecutorPreference<A>(_:operation:)` + Tu (2 syms,
+  `s26...Sch_pSg_xy...`): top-level Swift fn with concurrency-type
+  param. Apple simplifies module + label + param-types.
+- `UnsafeBufferPointer.Iterator.init` / `UnsafeRawBufferPointer.Iterator.init`
+  (2 syms): back-ref `AG`/`AE` for 2nd arg loses `Sg` Optional.
+- `SliderTickContentForEach.init<A>(_:content:)` (1 sym): generic
+  count rendering — Apple shows `<A>` despite 3 mangled generic params
+  (q_, q0_); simplified mode collapses constraints.
+
+Each fix is bounded but isolated render-path / subs-counting work
+in different parser handlers. Pivot to other buckets in next fires.
+
 ### plateau-2026-05-15-cah-oracle-down [deferred-1]
 
 CAH fire at 90.50%. Oracle host kodo still unreachable (No route
