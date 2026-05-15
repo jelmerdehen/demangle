@@ -1013,3 +1013,129 @@ Parser misidentifies host as `LocalizationValue` (nested type from param-type st
 - 2026-05-12 SD (`5ba59a6`): Foundation local-generic-sig drop — +29 prod via removing isWC guard at `stable.go:13554`. Unlocked URL.append, AttributedString.{+,+=,append,insert,Index.isValid}, etc — any Foundation method with single protocol-constrained generic param.
 - 2026-05-12 SC (`ef61987`): dependent-member constraint Rp/Rt with stdlib defining-proto — +12 prod via new 4-part scan in `extractConstraintSigFullOpts`. Unlocked RawRepresentable, _SwiftNewtypeWrapper, CodingKeyRepresentable clusters.
 - 2026-05-12 SB (`6c85d27`): preview-init cross-module bare-marker — +9 prod via `isBareModuleDescriptor` gate at `stable.go:9323`.
+
+## defer-cdi-init-multi-arg (2026-05-15)
+
+Pattern: `dispatch thunk of <Class>.__allocating_init(_:_:_:)` for multi-closure-arg inits like ClosureBasedAnySubscriber, Sink. We emit `(_:)` (1 arg) instead.
+
+Symbol: `_$s7Combine25ClosureBasedAnySubscriberCyACyxq_GyAA12Subscription_pc_AA11SubscribersO6DemandVxcyAG10CompletionOy_q_GctcfCTj`
+
+Body bytes after Class C: `yACyxq_GyAA12Subscription_pc_AA11SubscribersO6DemandVxcyAG10CompletionOy_q_GctcfC`
+
+Tried:
+- Strip `f` for fC (CDI v1) — no effect
+- Add `c` to separator-prev list (CDI v2) — no effect
+- Strip outer `c` of function-type-marker (CDI v3) — no effect
+- Reorder strips: C, f, c, t (CDI v4) — no effect
+
+Issue: depth-tracking in fast-path treats outer `y...G` as bound-generic wrap (the `y` after Class C is part of T1 closure encoding, not args-tuple opener). Whole body parses as depth>0 = no `_` separators at depth 0.
+
+Need: structural arg-tuple parser that respects function-type encoding `<args><result>c`. Multi-fire territory.
+
+## defer-cdk-digit-led-ext-scan-ahead (2026-05-15)
+
+Symbol: `_$sSq7SwiftUIAA10TabContentRzlE15_identifiedView011_IdentifiedF0QzSgvpMV`
+Pattern: `Optional.SwiftUI` (wrong) → want `Optional<A>._identifiedView`.
+
+Tried: in fast-path digit-led ext-mod branch (line 8827-8843), when
+identifier parses but next byte isn't E, scan ahead 120 bytes for E
+followed by digit/y/_, treat as ext-mod with constraint section.
+
+Fixed target symbol but regressed 93 OTHER symbols (60675→60582).
+Many digit-led identifiers that appear before E aren't ext-mods —
+they're nested-walk decl-name candidates. Greedy E-search misroutes.
+
+Need: stronger discriminator. Maybe check if scanned constraint-bytes
+contain `Rz`/`Rsz`/`rl` (real constraint markers) before accepting.
+Multi-fire territory.
+
+## defer-cdo-nested-walk-extmod-recovery (2026-05-15)
+
+Symbol: `_$sSo20NSNotificationCenterC10FoundationE17MessageIdentifierP5UIKitAbCE04BasedE0V...`
+Pattern: nested ext on protocol with second-level UIKit ext + back-ref.
+
+Tried: in fast-path nested-walk, when ident followed by uppercase letter,
+scan ahead for E with constraint-marker (Rz/Rsz/Rb/rl), treat as nested ext-mod.
+
+Result: +1 parity but -1 roundtrip — disqualified per goal contract
+monotone non-decreasing on both. Symbol got partial fix
+(`.state` instead of `.stateChanged`) — decl name partially captured.
+
+Need: full word-sub decoding through chained nested extensions
+to capture `5stateJ0` → `stateChanged` correctly. Multi-fire territory.
+
+## defer-cds-opaque-closure-arg-count (2026-05-15)
+
+Multiple symbols emit `(_:_:)` when want `(_:)` (or vice-versa) for fns with opaque-Qr return + closure-typed single arg:
+- `_$s7SwiftUI4ViewPAAE19onScrollPhaseChange...F` (over)
+- `_$s7SwiftUI5ScenePAAE22defaultWindowPlacement...F` (over)
+- `_$s7SwiftUI4ViewPAAE20fileDialogURLEnabled...F` (over)
+- `_$s5UIKit22UIWindowScenePlacement...replacing...FZ` (under)
+- `_$s5UIKit25UIHostingViewBaseDelegatePAAE20baseSceneResignedKey...F` (under)
+
+Tried: in fast-path body-counter, detect `Qr` substring + body ending in `c` →
+override to 1 arg. No effect (didn't fire). Multiple instrumentation passes
+showed neither fast-path emit (line 9740) nor tryExtensionEntity emits (15553/15631)
+fire for these — output produced via path I haven't located yet.
+
+Multi-fire: needs structural arg-tuple parser that respects function-type
+encoding `<args><result>c` and recognizes Qr-opaque return-type pattern.
+
+## defer-cdu-uppercase-label-rewind-extension (2026-05-15)
+
+Symbol: `_$s5UIKit35UIPhasedModifierTransitionComponentV10inputModel3for05InputG0QzAG_tF`
+Got: `(for:Input:)` — Want: `(for:)`
+
+Word-sub `05InputG0` resolves to "Input" (G ref unresolved → undo, return "Input").
+Adjacent `Q` byte signals TYPE not label. Tried CDU rewind in:
+- fast-path label-peek word-sub branch (line 9403)
+- main parser label loop (line 11217)
+- tryExtensionEntity label loop (line 14118)
+
+None fire — emit comes via path I haven't located. Multi-fire territory.
+
+## defer-cec-empty-labels-default-1arg (2026-05-15)
+
+Tried: at fast-path fn-emit (line 14315 area), when labels list is empty
+AND body has type-kind byte, default to 1 unlabeled arg `(_:)`.
+
+Result: -44 parity. Many existing 0-arg fns broke. Empty labels with
+type bytes is not a reliable signal — type bytes occur in result-type
+position too.
+
+Need: distinguish between "label-list empty + result-only" (0 args) and
+"label-list empty + 1 unlabeled arg" cases. Multi-fire territory.
+
+## defer-cee-qd-digit-sep (2026-05-15)
+
+Tried: at fast-path fn-emit body counter, count `_` as separator when
+preceded by `qd_<digit>_` or `qd__` (depth-N dependent gen-param).
+
+Result: -10 parity. Pattern matches inside other constructs. Multi-fire.
+
+## defer-cef-static-empty-labels-1arg (2026-05-15)
+
+Tried: at fast-path fn-emit, when isStatic + extMarker set + empty
+labels + body has type byte → default 1 arg.
+
+Result: -3 parity. Static 0-arg fns with typed result also break.
+Multi-fire.
+
+## defer-ceh-empty-labels-y-arg-1arg (2026-05-15)
+
+Tried: in fast-path fn-emit body counter, when len(parts)==0 + extMarker
+set + body[0]=='y' + body[1]=type-start + no `_` + last byte=type-kind →
+1 unlabeled arg.
+
+Result: didn't fire. body == p.s[:sEnd-1] = full mangled body including
+declName prefix. Body[0] is digit (length-prefix of declName), not `y`.
+
+Need: locate args-start position (peekI after declName) and check from
+there. Multi-fire — requires refactoring body counter to track args-start.
+
+## defer-cel-stdlib-suffix-sep (2026-05-15)
+
+Tried: count `_` separator after `S<lowercase>` (Sg/Sf/Sa/Sd/Si/Sb/Sh/SS).
+
+Result: -7 parity. Stdlib type suffix occurs in result-type position too.
+Multi-fire — needs structural args/result distinction.
