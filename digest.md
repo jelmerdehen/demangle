@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 95.31% (60769/63757) — 2026-05-15T13:08:16Z
+**Parity**: 95.32% (60771/63757) — 2026-05-15T13:20:12Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 233 parse-errors + 2755 mismatches
+**Failures**: 233 parse-errors + 2753 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- 758d1a1d swift-parity: CEG tighten extMarker — require Rb/Rd marker for fallback <> — parity 95.32%->95.33% (+8 production +0 roundtrip)
+- bdd20cac chore: lock snapshot after CED commit (parity 60770->60771)
+- d7fd72db chore: update digest.md for CED commit (+1 production)
 - 5ea42145 swift-parity: CED reduce family expand from () also at fast-path fn-emit — parity 95.31%->95.32% (+1 production +0 roundtrip)
 - bc2a5164 chore: lock snapshot after CEB commit (parity 60769->60770)
 - 65f64eb6 chore: update digest.md for CEB commit (+1 production)
@@ -36,9 +39,6 @@
 - 6aaf5352 chore: lock snapshot after CEA commit (parity 60768->60769)
 - a128f971 chore: update digest.md for CEA commit (+1 production)
 - 3f00eaaa swift-parity: CEA last-resort init expand args by generic count — parity 95.31%->95.31% (+1 production +0 roundtrip)
-- 1d5ad8bc chore: lock snapshot after CDZ commit (parity 60766->60768)
-- 5cd5c8c4 chore: update digest.md for CDZ commit (+2 production)
-- f92782c5 swift-parity: CDZ binary infix → 2 args at fast-path fn-emit — parity 95.31%->95.31% (+2 production +0 roundtrip)
 
 ## Suggested Next 3 Items
 
