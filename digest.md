@@ -29,16 +29,16 @@
 
 ## Last 10 Commits
 
-- 5ed7c3b swift-parity: CCQ last-resort fast-path subscript accessors — parity 93.54%->93.59% (+29 production +81 roundtrip)
-- f9d494f chore: defer plateau-2026-05-15-ccp-empty-declname-roundtrip (deferred-1)
-- d5bd0f8 chore: lock snapshot after CCO commit (parity 59600->59635, roundtrip 18444->18593)
-- 16d532b chore: update digest.md for CCO commit (+35 production)
-- cb722c5 swift-parity: CCO last-resort threshold lowered to >40 — parity 93.48%->93.54% (+35 production +149 roundtrip)
-- d89111e chore: lock snapshot after CCN commit (parity 59372->59600, roundtrip 18026->18444)
-- adfcf31 chore: update digest.md for CCN commit (+228 production)
-- 9adedbc swift-parity: CCN last-resort fast-path property accessors + descriptors — parity 93.12%->93.48% (+228 production +418 roundtrip)
-- 03251bc chore: defer plateau-2026-05-15-ccm-foundation-skip-roundtrip-regress (deferred-1)
-- 9e61c36 chore: lock snapshot after CCL commit (parity 59260->59372, roundtrip 17461->18026)
+- afbf40d7 swift-parity: CCR Tj/Tq detection allows subscript-accessor prev byte — parity 93.59%->93.63% (+28 production +40 roundtrip)
+- 3f8fb7da chore: lock snapshot after CCQ commit (parity 59635->59664, roundtrip 18593->18674)
+- 5ba5a469 chore: update digest.md for CCQ commit (+29 production)
+- 5ed7c3b7 swift-parity: CCQ last-resort fast-path subscript accessors — parity 93.54%->93.59% (+29 production +81 roundtrip)
+- f9d494fd chore: defer plateau-2026-05-15-ccp-empty-declname-roundtrip (deferred-1)
+- d5bd0f8d chore: lock snapshot after CCO commit (parity 59600->59635, roundtrip 18444->18593)
+- 16d532bd chore: update digest.md for CCO commit (+35 production)
+- cb722c56 swift-parity: CCO last-resort threshold lowered to >40 — parity 93.48%->93.54% (+35 production +149 roundtrip)
+- d89111ed chore: lock snapshot after CCN commit (parity 59372->59600, roundtrip 18026->18444)
+- adfcf317 chore: update digest.md for CCN commit (+228 production)
 
 ## Suggested Next 3 Items
 
