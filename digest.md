@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- 621d5e5c swift-parity: DAT Tu prev-byte allowlist add Z (FZ static fn) — parity 95.01%->95.02% (+5 production +7 roundtrip)
+- d8f7e34a chore: lock snapshot after DAS commit
+- 41b88942 chore: update digest.md for DAS commit (correctness fix)
 - 134b7760 swift-parity: DAS native Swift class fC always __allocating_init — parity 95.01%->95.01% (+0 production +0 roundtrip)
 - fa13c2cb chore: lock snapshot after DAR commit (parity 60574->60575)
 - 10a36a52 chore: update digest.md for DAR commit (+1 production +1 roundtrip)
@@ -36,9 +39,6 @@
 - 3b9af595 chore: defer plateau-2026-05-15-daq to multi-fire (deferred-1)
 - b51df0ce chore: lock snapshot after DAP commit (parity 60498->60574, roundtrip 20979->21135)
 - d39ca0ed chore: update digest.md for DAP commit (+76 production +156 roundtrip)
-- dcc15d87 swift-parity: DAP word-sub `0` decl-name path-det pass-through — parity 94.89%->95.01% (+76 production +156 roundtrip)
-- 540bb1bd chore: lock snapshot after DAO commit (parity 60495->60498)
-- abc5bf4f chore: update digest.md for DAO commit (+3 production +3 roundtrip)
 
 ## Suggested Next 3 Items
 
