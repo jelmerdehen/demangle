@@ -8810,12 +8810,14 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 	//   yxq_q__G    → 3 args <A, B, C> (rare; keep narrow for now)
 	fpBoundGenOnHost := false
 	fpBoundGenArgs := 0
+	fpMcConstraintStart := -1
 	if !p.eof() && p.i+3 < len(p.s) && p.s[p.i] == 'y' {
 		// 1-arg: yx_G
 		if p.s[p.i+1] == 'x' && p.s[p.i+2] == '_' && p.s[p.i+3] == 'G' {
 			fpBoundGenOnHost = true
 			fpBoundGenArgs = 1
 			p.i += 4
+			fpMcConstraintStart = p.i
 		} else if p.i+5 < len(p.s) && p.s[p.i+1] == 'x' &&
 			p.s[p.i+2] == 'q' && p.s[p.i+3] == '_' && p.s[p.i+4] == '_' &&
 			p.s[p.i+5] == 'G' {
@@ -8823,6 +8825,7 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			fpBoundGenOnHost = true
 			fpBoundGenArgs = 2
 			p.i += 6
+			fpMcConstraintStart = p.i
 		}
 	}
 	// Nested-extension recovery: if no decl-name found yet and we have at
@@ -9349,10 +9352,27 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			ls = "(_:)"
 		}
 		text = "enum case for " + hostStr + "." + declName + gen + ls
-	} else if isMc {
-		text = "protocol conformance descriptor for " + hostStr
-	} else if isWP {
-		text = "protocol witness table for " + hostStr
+	} else if isMc || isWP {
+		// Optional gen-sig prefix from constraint bytes between bound-gen
+		// end and Mc/WP terminal.
+		genSigPrefix := ""
+		if fpBoundGenOnHost && fpMcConstraintStart >= 0 && fpMcConstraintStart < sEnd {
+			constr := p.s[fpMcConstraintStart:sEnd]
+			if strings.Contains(constr, "rl") {
+				genSigPrefix = "<> "
+			} else if strings.Contains(constr, "Rz") {
+				gnames := make([]string, fpBoundGenArgs)
+				for gi := range gnames {
+					gnames[gi] = string(rune('A' + gi))
+				}
+				genSigPrefix = "<" + strings.Join(gnames, ", ") + "> "
+			}
+		}
+		if isMc {
+			text = "protocol conformance descriptor for " + genSigPrefix + hostStr
+		} else {
+			text = "protocol witness table for " + genSigPrefix + hostStr
+		}
 	} else if isPropAcc {
 		// "[static ]Host.declName.<accessor>" — labels-only (no params).
 		text = propStaticPfx + hostStr + "." + declName + propAcc
