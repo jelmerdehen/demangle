@@ -9051,6 +9051,18 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 		isFn = true
 		isStatic = true
 	}
+	// mFWC / mlFWC — enum case witness. Apple short form:
+	//   `enum case for <Host>.<Nested>.<case>(<labels>)`
+	isEnumCase := false
+	enumCaseHasLocalGen := false
+	if sEnd >= 5 && p.s[sEnd-5:sEnd] == "mlFWC" {
+		isEnumCase = true
+		enumCaseHasLocalGen = true
+		sEnd -= 5
+	} else if sEnd >= 4 && p.s[sEnd-4:sEnd] == "mFWC" {
+		isEnumCase = true
+		sEnd -= 4
+	}
 	// Mc / WP terminal — protocol conformance descriptor / witness table.
 	// Allow ObjC hosts (no body bound-gen) OR any host with bound-gen on
 	// host (yx_G consumed earlier).
@@ -9065,7 +9077,7 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			sEnd -= 2
 		}
 	}
-	if !isInit && !isFn && !isPropAcc && !isPropDesc && !isSubscript && !isMc && !isWP {
+	if !isInit && !isFn && !isPropAcc && !isPropDesc && !isSubscript && !isMc && !isWP && !isEnumCase {
 		revert()
 		return nil, false
 	}
@@ -9316,7 +9328,18 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 	}
 
 	var text string
-	if isMc {
+	if isEnumCase {
+		gen := localGen
+		if gen == "" && enumCaseHasLocalGen {
+			gen = "<A>"
+		}
+		// Default 1-arg if no labels detected.
+		ls := labelStr
+		if ls == "()" {
+			ls = "(_:)"
+		}
+		text = "enum case for " + hostStr + "." + declName + gen + ls
+	} else if isMc {
 		text = "protocol conformance descriptor for " + hostStr
 	} else if isWP {
 		text = "protocol witness table for " + hostStr
