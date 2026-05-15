@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- e16faf4 swift-parity: CCA last-resort fast-path QOMQ wrapper — parity 92.87%->92.87% (+0 production +3 roundtrip)
+- cf2616e chore: lock snapshot after CBZ commit (parity 59207->59215)
+- 927f06f chore: update digest.md for CBZ commit (parity 92.86%->92.87% +8)
 - 7ab3835 swift-parity: CBZ separator detection adds m (metatype) — parity 92.86%->92.87% (+8 production)
 - e555bca chore: lock snapshot after CBY commit (parity 59180->59207)
 - 62d6503 chore: update digest.md for CBY commit (parity 92.82%->92.86% +27)
@@ -36,9 +39,6 @@
 - a31874a chore: lock snapshot after CBX commit (parity 58981->59180, roundtrip 16792->17359)
 - b5c9e4d chore: update digest.md for CBX commit (parity 92.51%->92.82% +199)
 - da1fdbc swift-parity: CBX last-resort fast-path stdlib/ObjC host + digit-led ext-mod — parity 92.51%->92.82% (+199 production +567 roundtrip)
-- 3167aa0 chore: defer plateau-2026-05-15-cbw-objc-host-digit-mod-needs-handler-coordination (deferred-1)
-- e8db069 chore: defer plateau-2026-05-15-cbv-objc-host-digit-mod (deferred-1)
-- 52acf16 chore: lock snapshot after CBU commit (parity 58743->58981, roundtrip 15918->16792)
 
 ## Suggested Next 3 Items
 
