@@ -481,6 +481,24 @@ complete. The `n` modifier handling requires identifying the exact
 speculative branch and either consuming `n` or wrapping in applyMod.
 Multi-fire.
 
+### plateau-2026-05-15-dag [deferred-1]
+
+DAG attempt: extend fpExtMarker (host-base ext-marker for fast-path)
+to recognize `Rz`/`Rsz` in constraint bytes → "<A>", in addition to
+`rl` → "<>". Order: Rz first (since "Rzl" contains "rl" by accident).
+
+Probe: SceneStorage.init<>(_:) symbol with `s23ExpressibleByNilLiteralRzl`
+constraint — got `<>` (matched "rl" substring), want `<A>` (Rz constraint).
+
+Result: -3 parity. Rz substring also appears in some symbols where
+`<>` is correct, breaking them. The fpConstraintBytes capture is
+position-dependent and can include identifier bytes that contain
+"Rz" coincidentally.
+
+Fix path: capture only PROPER constraint bytes (e.g. between known
+constraint markers like `R<X><Y>` patterns), not raw bytes between
+`s` and `E`. Multi-fire — needs structured constraint parser.
+
 ### plateau-2026-05-15-cdf-v3 [deferred-1]
 
 CDF retry: heuristic "stripped-t + y-opener body → default 2 params"
