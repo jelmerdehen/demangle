@@ -30,6 +30,21 @@ and function-entity. Estimated 50-100 LOC. Reason for deferral: risk
 of regressing single-label Qr functions and the static-property Qr
 path that AAV unlocked.
 
+### plateau-2026-05-15-cad [deferred-1]
+
+CAD fire at 90.50%. Attempted to find where Sc<X>sE method body
+parses to add owned-modifier consumption. Verified `n` byte after
+parseType-returned Type is NOT consumed somewhere in the param-loop.
+parseType doesn't postfix-eat `n`. Issue likely in a speculative
+sub-branch of tryFunctionEntity or tryTypeFirstExtensionEntity body
+parsing that bails on `n` between Type and `F`.
+
+Investigation: probe `_$sScFsE7enqueueyy` (partial) fails at offset 6,
+suggesting tryTypeFirstExtensionEntity rolls back when body doesn't
+complete. The `n` modifier handling requires identifying the exact
+speculative branch and either consuming `n` or wrapping in applyMod.
+Multi-fire.
+
 ### plateau-2026-05-15-cac [deferred-1]
 
 CAC fire at 90.50%. Remaining errors all multi-fire territory:
