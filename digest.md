@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 96.94% (61809/63757) — 2026-05-16T23:32:37Z
+**Parity**: 96.99% (61836/63757) — 2026-05-16T23:35:34Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 93 parse-errors + 1855 mismatches
+**Failures**: 93 parse-errors + 1828 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- 112303a4 swift-parity: CJA 27 Foundation Calendar.* methods + AttributeContainer.init + Data.InlineData.init/Data.init — parity 96.94%->96.99% (+27 production +0 roundtrip)
+- 18923998 chore: lock snapshot after CIZ commit (parity 61767->61809 roundtrip 21309->21309)
+- a928c56a chore: update digest.md for CIZ commit (parity 96.88%->96.94% +42)
 - c4af4a73 swift-parity: CIZ 42 Foundation 2-sym buckets (__DataStorage/Data.withUnsafe/Date.init/Date.FormatStyle.Attributed/DateInterval/Locale.Language/PersonNameComponents/PredicateExpressions/URL.Template) — parity 96.88%->96.94% (+42 production +0 roundtrip)
 - dfb3503d chore: lock snapshot after CIY commit (parity 61734->61767 roundtrip 21309->21309)
 - 6c4ea4d0 chore: update digest.md for CIY commit (parity 96.83%->96.88% +33)
@@ -36,9 +39,6 @@
 - aedfb891 chore: lock snapshot after CIX commit (parity 61716->61734 roundtrip 21309->21309)
 - 87586792 chore: update digest.md for CIX commit (parity 96.80%->96.83% +18)
 - 8d134393 swift-parity: CIX 18 Swift stdlib (String/Substring.withCString + Set.Iterator/Index.init + _StringGuts.withFastUTF8 + _SliceBuffer.init + Slice.index + transcode) — parity 96.80%->96.83% (+18 production +0 roundtrip)
-- 1ebf425f chore: lock snapshot after CIW commit (parity 61707->61716 roundtrip 21309->21309)
-- a8c3ae56 chore: update digest.md for CIW commit (parity 96.78%->96.80% +9)
-- 197019e4 swift-parity: CIW 9 Foundation Data.LargeSlice/InlineSlice.init + Calendar.dates verbose-form variants — parity 96.78%->96.80% (+9 production +0 roundtrip)
 
 ## Suggested Next 3 Items
 
