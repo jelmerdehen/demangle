@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 95.43% (60844/63757) — 2026-05-16T13:18:32Z
+**Parity**: 95.46% (60863/63757) — 2026-05-16T13:45:25Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 147 parse-errors + 2766 mismatches
+**Failures**: 147 parse-errors + 2747 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- 17847177 swift-parity: CFA empty-tuple-args yt detection in fast-path sepCount — parity 95.46%->95.46% (+2 production +0 roundtrip)
+- 34bc9cfb chore: lock snapshot after CEZ commit (parity 60844->60863)
+- df7a0fdf chore: update digest.md for CEZ commit (parity 95.43%->95.46% +19)
 - 96a01427 swift-parity: CEZ word-sub labels in tryGlobalLastResortFastPath fnFP peek — parity 95.43%->95.46% (+19 production +0 roundtrip)
 - 81c1254f chore: plateau SOS at 95.43% — 5 consecutive zero-gain fires
 - 6e9d5f43 chore: defer publisher-encode-output-confusion to multi-fire (deferred-1)
@@ -36,9 +39,6 @@
 - 725df58a chore: defer stdlib-boundgen-conformance-suffix to multi-fire (deferred-1)
 - 0579b3b8 chore: defer objc-conformance-srcmod to multi-fire (deferred-1)
 - 8c40abad chore: lock snapshot after CEV commit (parity 60842->60844)
-- 0e9aa557 chore: update digest.md for CEV commit (parity 95.43%->95.43% +2)
-- 6be0abcb swift-parity: CEV default-argument fA_ off-by-one — parity 95.43%->95.43% (+2 production +0 roundtrip)
-- 6196b779 chore: lock snapshot after CEU commit (parity 60800->60842)
 
 ## Suggested Next 3 Items
 
