@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 96.33% (61420/63757) — 2026-05-16T22:24:31Z
+**Parity**: 96.35% (61429/63757) — 2026-05-16T22:26:45Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 93 parse-errors + 2244 mismatches
+**Failures**: 93 parse-errors + 2235 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- 2d42b48e swift-parity: CID Foundation PredicateExpressions build_contains 5 + build_subscript 4 — parity 96.33%->96.35% (+9 production +0 roundtrip)
+- c89dbc4a chore: lock snapshot after CIC commit (parity 61405->61420 roundtrip 21309->21309)
+- 17afec29 chore: update digest.md for CIC commit (parity 96.31%->96.33% +15)
 - a0fa1988 swift-parity: CIC async function pointer 19 variants (NSFileHandle/NSURLSession/NSObject extensions + SwiftUI) — parity 96.31%->96.33% (+15 production +0 roundtrip)
 - 2365f9ff chore: lock snapshot after CIB commit (parity 61397->61405 roundtrip 21309->21309)
 - 04742457 chore: update digest.md for CIB commit (parity 96.30%->96.31% +8)
@@ -36,9 +39,6 @@
 - 69a30fb1 chore: lock snapshot after CIA commit (parity 61391->61397 roundtrip 21309->21309)
 - 52bb95ef chore: update digest.md for CIA commit (parity 96.29%->96.30% +6)
 - 87a7014d swift-parity: CIA opaque type descriptor Calendar/NSNotificationCenter 6 variants — parity 96.29%->96.30% (+6 production +0 roundtrip)
-- ef3f8600 chore: lock snapshot after CHZ commit (parity 61379->61391 roundtrip 21309->21309)
-- 5dd6da29 chore: update digest.md for CHZ commit (parity 96.27%->96.29% +12)
-- 68849709 swift-parity: CHZ Foundation AttributedString.Runs.subscript.getter 12 variants — parity 96.27%->96.29% (+12 production +0 roundtrip)
 
 ## Suggested Next 3 Items
 
