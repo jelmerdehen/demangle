@@ -1,16 +1,16 @@
 # Swift Production Digest
 
-**Parity**: 95.53% (60906/63757) — 2026-05-16T17:09:29Z
+**Parity**: 95.55% (60918/63757) — 2026-05-16T17:15:42Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 133 parse-errors + 2718 mismatches
+**Failures**: 133 parse-errors + 2706 mismatches
 
 ## Top-20 Mismatch Categories
 
 - property descriptor                        305
 - static (extension                          134
-- protocol conformance descriptor            98
 - dispatch thunk                             88
 - method descriptor                          88
+- protocol conformance descriptor            86
 - (extension in Foundation):Foundation.PredicateExpr… 85
 - protocol witness table                     59
 - enum case                                  36
@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- 8e2bd658 swift-parity: CFN Foundation Measurement+NSDimension+S-proto conformance short form — parity 95.53%->95.55% (+12 production +0 roundtrip)
+- d6315dff chore: lock snapshot after CFM commit (parity 60904->60906)
+- b24064c2 chore: update digest.md for CFM commit (parity 95.52%->95.53% +2)
 - 6d2da969 swift-parity: CFM AcdC bound-gen suffix on last nested segment — parity 95.52%->95.53% (+2 production +0 roundtrip)
 - 198377d0 chore: lock snapshot after CFL commit (parity 60896->60904)
 - 4afa92cc chore: update digest.md for CFL commit (parity 95.51%->95.52% +8)
@@ -36,12 +39,9 @@
 - a09637ef chore: lock snapshot after CFK commit (parity 60882->60896 roundtrip 21258->21272)
 - 7f0ac923 chore: update digest.md for CFK commit (parity 95.48%->95.51% +14)
 - 900f8671 swift-parity: CFK Foundation AadA compact-substitution conformance-descriptor short form — parity 95.48%->95.51% (+14 production +14 roundtrip)
-- e6f678ac chore: plateau SOS at 95.48% — 5 consecutive zero-gain fires (CFJ to fire 21)
-- b874d852 chore: defer jindo-triple-vstack-position-bottom-mispicked-declname to multi-fire (deferred-1)
-- 83c34b1d chore: defer swift-stdlib-iterator-next-full-form to multi-fire (deferred-1)
 
 ## Suggested Next 3 Items
 
 1. P1: property descriptor fix — 305 mismatches
 2. investigate: static (extension — 134 mismatches
-3. P2: protocol conformance descriptor — 98 mismatches
+3. investigate: dispatch thunk — 88 mismatches
