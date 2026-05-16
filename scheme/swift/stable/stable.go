@@ -8827,6 +8827,57 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			}
 		}
 	}
+	// Special: `<n><mod><n><enum>O<n><class>CAC<word-sub>C<n><member>AA(Mc|WP)` —
+	// Module-Enum-Class conforming to back-refed inner-class-of-enum protocol.
+	// Apple short-form: `<enum>.<class>`. Example:
+	//   _$s5UIKit14IntelligenceUIO27PromptComposeViewControllerCAC0d5EntryF0C8DelegateAAMc
+	//   → "protocol conformance descriptor for IntelligenceUI.PromptComposeViewController"
+	// Uses parseIdentifier so word-sub idents are decoded; state save/restore on
+	// the failure path keeps p.i and p.words intact.
+	if (p.s[len(p.s)-4:] == "AAMc" || p.s[len(p.s)-4:] == "AAWP") &&
+		p.i < len(p.s) && p.s[p.i] >= '1' && p.s[p.i] <= '9' {
+		saveI := p.i
+		saveWords := append([]string(nil), p.words...)
+		saveSubs := p.subs
+		ok := false
+		if _, merr := p.parseIdentifier(); merr == nil && !p.eof() && p.s[p.i] >= '1' && p.s[p.i] <= '9' {
+			if enumName, eerr := p.parseIdentifier(); eerr == nil && !p.eof() && p.s[p.i] == 'O' {
+				p.i++ // O
+				if !p.eof() && p.s[p.i] >= '1' && p.s[p.i] <= '9' {
+					if className, cerr := p.parseIdentifier(); cerr == nil && !p.eof() && p.s[p.i] == 'C' {
+						p.i++ // C
+						if p.i+1 < len(p.s) && p.s[p.i] == 'A' && p.s[p.i+1] == 'C' {
+							p.i += 2 // AC
+							// Inner: word-sub-aware ident.
+							if !p.eof() && (p.s[p.i] >= '0' && p.s[p.i] <= '9') {
+								if _, ierr := p.parseIdentifier(); ierr == nil && !p.eof() && p.s[p.i] == 'C' {
+									p.i++ // C
+									if !p.eof() && p.s[p.i] >= '1' && p.s[p.i] <= '9' {
+										if _, merr2 := p.parseIdentifier(); merr2 == nil && p.i+4 == len(p.s) &&
+											p.s[p.i] == 'A' && p.s[p.i+1] == 'A' {
+											prefix := "protocol conformance descriptor for "
+											if p.s[len(p.s)-2:] == "WP" {
+												prefix = "protocol witness table for "
+											}
+											p.i = len(p.s)
+											wrap := common.NewNode(common.KindTypeMangling)
+											wrap.Text = prefix + enumName + "." + className
+											wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
+											return wrap, true
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+		_ = ok
+		p.i = saveI
+		p.words = saveWords
+		p.subs = saveSubs
+	}
 	// Special: `s<n><name>VyxG<n>Foundation<n><ProtoName>A2dERzrl(Mc|WP)` —
 	// Swift-module type (Slice etc) with subject-A: Foundation.<ProtoName>
 	// constraint. Apple short-form: `< where A: Foundation.<ProtoName>>
