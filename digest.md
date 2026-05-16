@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 95.95% (61178/63757) — 2026-05-16T20:33:25Z
+**Parity**: 95.96% (61182/63757) — 2026-05-16T20:36:04Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 93 parse-errors + 2486 mismatches
+**Failures**: 93 parse-errors + 2482 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- e6ac279c swift-parity: CGV Foundation NSAttributedString init<A>(_:including:) AttributeScope-constraint Key/Type variants — parity 95.95%->95.96% (+4 production +0 roundtrip)
+- f0682fad chore: lock snapshot after CGU commit (parity 61174->61178 roundtrip 21309->21309)
+- 1516b942 chore: update digest.md for CGU commit (parity 95.95%->95.95% +4)
 - 49478176 swift-parity: CGU Foundation NSSortDescriptor extension init<A>(SortDescriptor<A>) NSObject-constraint variant — parity 95.95%->95.95% (+4 production +0 roundtrip)
 - a1e1c6cc chore: lock snapshot after CGT commit (parity 61170->61174 roundtrip 21309->21309)
 - 4d141458 chore: update digest.md for CGT commit (parity 95.94%->95.94% +4)
@@ -36,9 +39,6 @@
 - e7999c4b chore: lock snapshot after CGS commit (parity 61158->61170 roundtrip 21309->21309)
 - db049e32 chore: update digest.md for CGS commit (parity 95.92%->95.94% +12)
 - 66e291f9 swift-parity: CGS Foundation BinaryInteger/BinaryFloatingPoint init(_:format:lenient:) IntFormatStyle/FloatFormatStyle inner — parity 95.92%->95.94% (+12 production +0 roundtrip)
-- b6ba4a55 chore: lock snapshot after CGR commit (parity 61128->61158 roundtrip 21309->21309)
-- b22c6f34 chore: update digest.md for CGR commit (parity 95.88%->95.92% +30)
-- 2539c5f2 swift-parity: CGR Swift KeyedDecodingContainer(Protocol)? decode(_:forKey:) stdlib integer types verbose form — parity 95.88%->95.92% (+30 production +0 roundtrip)
 
 ## Suggested Next 3 Items
 
