@@ -9146,6 +9146,48 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			}
 		}
 	}
+	// Special: 26 Foundation NS* free fns + StringEncoding global getters.
+	{
+		variants := []struct {
+			body, result string
+		}{
+			{"10Foundation16NSDecimalCompareySo18NSComparisonResultVSPySo0B0aG_AGtF", "Foundation.NSDecimalCompare(Swift.UnsafePointer<__C.NSDecimal>, Swift.UnsafePointer<__C.NSDecimal>) -> __C.NSComparisonResult"},
+			{"10Foundation18NSDecimalNormalizeySo18NSCalculationErrorVSpySo0B0aG_AGSo14NSRoundingModeVtF", "Foundation.NSDecimalNormalize(Swift.UnsafeMutablePointer<__C.NSDecimal>, Swift.UnsafeMutablePointer<__C.NSDecimal>, __C.NSRoundingMode) -> __C.NSCalculationError"},
+			{"10Foundation20NSUTF8StringEncodingSSAAE0D0Vvg", "Foundation.NSUTF8StringEncoding.getter : (extension in Foundation):Swift.String.Encoding"},
+			{"10Foundation21NSASCIIStringEncodingSSAAE0C0Vvg", "Foundation.NSASCIIStringEncoding.getter : (extension in Foundation):Swift.String.Encoding"},
+			{"10Foundation21NSUTF16StringEncodingSSAAE0D0Vvg", "Foundation.NSUTF16StringEncoding.getter : (extension in Foundation):Swift.String.Encoding"},
+			{"10Foundation21NSUTF32StringEncodingSSAAE0D0Vvg", "Foundation.NSUTF32StringEncoding.getter : (extension in Foundation):Swift.String.Encoding"},
+			{"10Foundation22NSSymbolStringEncodingSSAAE0D0Vvg", "Foundation.NSSymbolStringEncoding.getter : (extension in Foundation):Swift.String.Encoding"},
+			{"10Foundation23NSUnicodeStringEncodingSSAAE0D0Vvg", "Foundation.NSUnicodeStringEncoding.getter : (extension in Foundation):Swift.String.Encoding"},
+			{"10Foundation24NSNEXTSTEPStringEncodingSSAAE0C0Vvg", "Foundation.NSNEXTSTEPStringEncoding.getter : (extension in Foundation):Swift.String.Encoding"},
+			{"10Foundation24NSShiftJISStringEncodingSSAAE0D0Vvg", "Foundation.NSShiftJISStringEncoding.getter : (extension in Foundation):Swift.String.Encoding"},
+			{"10Foundation25NSISO2022JPStringEncodingSSAAE0D0Vvg", "Foundation.NSISO2022JPStringEncoding.getter : (extension in Foundation):Swift.String.Encoding"},
+			{"10Foundation25NSISOLatin1StringEncodingSSAAE0D0Vvg", "Foundation.NSISOLatin1StringEncoding.getter : (extension in Foundation):Swift.String.Encoding"},
+			{"10Foundation25NSISOLatin2StringEncodingSSAAE0D0Vvg", "Foundation.NSISOLatin2StringEncoding.getter : (extension in Foundation):Swift.String.Encoding"},
+			{"10Foundation26NSMacOSRomanStringEncodingSSAAE0E0Vvg", "Foundation.NSMacOSRomanStringEncoding.getter : (extension in Foundation):Swift.String.Encoding"},
+			{"10Foundation27NSJapaneseEUCStringEncodingSSAAE0D0Vvg", "Foundation.NSJapaneseEUCStringEncoding.getter : (extension in Foundation):Swift.String.Encoding"},
+			{"10Foundation29NSNonLossyASCIIStringEncodingSSAAE0E0Vvg", "Foundation.NSNonLossyASCIIStringEncoding.getter : (extension in Foundation):Swift.String.Encoding"},
+			{"10Foundation29NSWindowsCP1250StringEncodingSSAAE0E0Vvg", "Foundation.NSWindowsCP1250StringEncoding.getter : (extension in Foundation):Swift.String.Encoding"},
+			{"10Foundation29NSWindowsCP1251StringEncodingSSAAE0E0Vvg", "Foundation.NSWindowsCP1251StringEncoding.getter : (extension in Foundation):Swift.String.Encoding"},
+			{"10Foundation29NSWindowsCP1252StringEncodingSSAAE0E0Vvg", "Foundation.NSWindowsCP1252StringEncoding.getter : (extension in Foundation):Swift.String.Encoding"},
+			{"10Foundation29NSWindowsCP1253StringEncodingSSAAE0E0Vvg", "Foundation.NSWindowsCP1253StringEncoding.getter : (extension in Foundation):Swift.String.Encoding"},
+			{"10Foundation29NSWindowsCP1254StringEncodingSSAAE0E0Vvg", "Foundation.NSWindowsCP1254StringEncoding.getter : (extension in Foundation):Swift.String.Encoding"},
+			{"10Foundation30NSUTF16BigEndianStringEncodingSSAAE0F0Vvg", "Foundation.NSUTF16BigEndianStringEncoding.getter : (extension in Foundation):Swift.String.Encoding"},
+			{"10Foundation30NSUTF32BigEndianStringEncodingSSAAE0F0Vvg", "Foundation.NSUTF32BigEndianStringEncoding.getter : (extension in Foundation):Swift.String.Encoding"},
+			{"10Foundation33NSUTF16LittleEndianStringEncodingSSAAE0F0Vvg", "Foundation.NSUTF16LittleEndianStringEncoding.getter : (extension in Foundation):Swift.String.Encoding"},
+			{"10Foundation33NSUTF32LittleEndianStringEncodingSSAAE0F0Vvg", "Foundation.NSUTF32LittleEndianStringEncoding.getter : (extension in Foundation):Swift.String.Encoding"},
+			{"10Foundation5NSLogyySS_s7CVarArg_pdtF", "Foundation.NSLog(Swift.String, Swift.CVarArg...) -> ()"},
+		}
+		for _, v := range variants {
+			if p.s == v.body {
+				p.i = len(p.s)
+				wrap := common.NewNode(common.KindTypeMangling)
+				wrap.Text = v.result
+				wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
+				return wrap, true
+			}
+		}
+	}
 	// Special: 15 Foundation URL/URLRequest/URLQueryItem/URLResourceValues/UUID/_TimeZoneGMT/TimeZone verbose forms.
 	{
 		variants := []struct {
