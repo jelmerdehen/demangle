@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 96.49% (61516/63757) — 2026-05-16T22:50:39Z
+**Parity**: 96.50% (61526/63757) — 2026-05-16T22:53:47Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 93 parse-errors + 2148 mismatches
+**Failures**: 93 parse-errors + 2138 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -10,7 +10,7 @@
 - static (extension                          122
 - (extension in Foundation):Foundation.PredicateExpr… 85
 - dispatch thunk                             67
-- method descriptor                          67
+- method descriptor                          57
 - enum case                                  36
 - (extension in Foundation):Swift.Duration.UnitsForm… 22
 - (extension in Foundation):__C.NSNotificationCenter… 22
@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- a7470498 swift-parity: CIM method descriptor 10 (Foundation __DataStorage/PropertyListDecoder + Swift _ArrayBufferProtocol) — parity 96.49%->96.50% (+10 production +0 roundtrip)
+- 18dc2eb7 chore: lock snapshot after CIL commit (parity 61511->61516 roundtrip 21309->21309)
+- 990c8f72 chore: update digest.md for CIL commit (parity 96.48%->96.49% +5)
 - 0989faf9 swift-parity: CIL static Foundation.FormatStyle< where A == X>.Y 5 variants (ByteCount/PersonNameComponents/Date) — parity 96.48%->96.49% (+5 production +0 roundtrip)
 - 79cf8ced chore: lock snapshot after CIK commit (parity 61500->61511 roundtrip 21309->21309)
 - 9e7a33f8 chore: update digest.md for CIK commit (parity 96.46%->96.48% +11)
@@ -36,9 +39,6 @@
 - 41a575e7 chore: lock snapshot after CIJ commit (parity 61489->61500 roundtrip 21309->21309)
 - 34d1f106 chore: update digest.md for CIJ commit (parity 96.44%->96.46% +11)
 - e40ea1cc swift-parity: CIJ property descriptor 11 Swift Substring/String UTF8View/UTF16View/UnicodeScalarView — parity 96.44%->96.46% (+11 production +0 roundtrip)
-- ce43f794 chore: lock snapshot after CII commit (parity 61480->61489 roundtrip 21309->21309)
-- 71089660 chore: update digest.md for CII commit (parity 96.43%->96.44% +9)
-- fb66dd62 swift-parity: CII property descriptor 9 Foundation stored vars (UUID/Data/Date.FormatStyle.Attributed/Locale/LocalizedStringResource) — parity 96.43%->96.44% (+9 production +0 roundtrip)
 
 ## Suggested Next 3 Items
 
