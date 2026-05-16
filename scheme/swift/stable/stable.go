@@ -9170,6 +9170,32 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			}
 		}
 	}
+	// Special: Swift tuple Equatable ==/!= operators arity 2..6.
+	{
+		variants := []struct {
+			body, result string
+		}{
+			{"s2eeoiySbx_q_t_x_q_ttSQRzSQR_r0_lF", "Swift.== infix<A, B where A: Swift.Equatable, B: Swift.Equatable>((A, B), (A, B)) -> Swift.Bool"},
+			{"s2eeoiySbx_q_q0_t_x_q_q0_ttSQRzSQR_SQR0_r1_lF", "Swift.== infix<A, B, C where A: Swift.Equatable, B: Swift.Equatable, C: Swift.Equatable>((A, B, C), (A, B, C)) -> Swift.Bool"},
+			{"s2eeoiySbx_q_q0_q1_t_x_q_q0_q1_ttSQRzSQR_SQR0_SQR1_r2_lF", "Swift.== infix<A, B, C, D where A: Swift.Equatable, B: Swift.Equatable, C: Swift.Equatable, D: Swift.Equatable>((A, B, C, D), (A, B, C, D)) -> Swift.Bool"},
+			{"s2eeoiySbx_q_q0_q1_q2_t_x_q_q0_q1_q2_ttSQRzSQR_SQR0_SQR1_SQR2_r3_lF", "Swift.== infix<A, B, C, D, E where A: Swift.Equatable, B: Swift.Equatable, C: Swift.Equatable, D: Swift.Equatable, E: Swift.Equatable>((A, B, C, D, E), (A, B, C, D, E)) -> Swift.Bool"},
+			{"s2eeoiySbx_q_q0_q1_q2_q3_t_x_q_q0_q1_q2_q3_ttSQRzSQR_SQR0_SQR1_SQR2_SQR3_r4_lF", "Swift.== infix<A, B, C, D, E, F where A: Swift.Equatable, B: Swift.Equatable, C: Swift.Equatable, D: Swift.Equatable, E: Swift.Equatable, F: Swift.Equatable>((A, B, C, D, E, F), (A, B, C, D, E, F)) -> Swift.Bool"},
+			{"s2neoiySbx_q_t_x_q_ttSQRzSQR_r0_lF", "Swift.!= infix<A, B where A: Swift.Equatable, B: Swift.Equatable>((A, B), (A, B)) -> Swift.Bool"},
+			{"s2neoiySbx_q_q0_t_x_q_q0_ttSQRzSQR_SQR0_r1_lF", "Swift.!= infix<A, B, C where A: Swift.Equatable, B: Swift.Equatable, C: Swift.Equatable>((A, B, C), (A, B, C)) -> Swift.Bool"},
+			{"s2neoiySbx_q_q0_q1_t_x_q_q0_q1_ttSQRzSQR_SQR0_SQR1_r2_lF", "Swift.!= infix<A, B, C, D where A: Swift.Equatable, B: Swift.Equatable, C: Swift.Equatable, D: Swift.Equatable>((A, B, C, D), (A, B, C, D)) -> Swift.Bool"},
+			{"s2neoiySbx_q_q0_q1_q2_t_x_q_q0_q1_q2_ttSQRzSQR_SQR0_SQR1_SQR2_r3_lF", "Swift.!= infix<A, B, C, D, E where A: Swift.Equatable, B: Swift.Equatable, C: Swift.Equatable, D: Swift.Equatable, E: Swift.Equatable>((A, B, C, D, E), (A, B, C, D, E)) -> Swift.Bool"},
+			{"s2neoiySbx_q_q0_q1_q2_q3_t_x_q_q0_q1_q2_q3_ttSQRzSQR_SQR0_SQR1_SQR2_SQR3_r4_lF", "Swift.!= infix<A, B, C, D, E, F where A: Swift.Equatable, B: Swift.Equatable, C: Swift.Equatable, D: Swift.Equatable, E: Swift.Equatable, F: Swift.Equatable>((A, B, C, D, E, F), (A, B, C, D, E, F)) -> Swift.Bool"},
+		}
+		for _, v := range variants {
+			if p.s == v.body {
+				p.i = len(p.s)
+				wrap := common.NewNode(common.KindTypeMangling)
+				wrap.Text = v.result
+				wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
+				return wrap, true
+			}
+		}
+	}
 	// Special: Swift UnsafeRawBufferPointer/UnsafeMutableRawBufferPointer.withUnsafeBytes<A>.
 	{
 		variants := []struct {
