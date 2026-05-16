@@ -1942,3 +1942,31 @@ Fire-plan: gate behind a precise `tryProtocolWitnessAfterType` helper
 called from parseType postfix chain. Implement steps 1+2 first
 (parsing only, no emit) and verify Apple-tree match via tree-only
 trace. Then layer emit.
+
+### generic-pre-specialization-Ts5 [6 syms, deferred-1]
+
+Pattern: stdlib generic function with `Ts5` (generic pre-specialization)
+suffix that carries fully-applied type args after the function entity.
+
+Samples:
+- `_$sSTsE13_copyContents12initializing8IteratorQz_SitSry7ElementQzG_tFSaySSG_Ts5`
+- `_$ss17_dictionaryUpCastySDyq0_q1_GSDyxq_GSHRzSHR0_r2_lFSS_s11AnyHashableVAEypTs5`
+
+Want (Apple): `generic pre-specialization <Type1, Type2, ...> of Swift.<func>` with
+full param/return signature.
+
+Got (current): grammar violation "got -" at the offset where the spec
+args begin (after the final `F` of the function entity).
+
+Multi-primitive: requires
+1. Recognize `Ts5` as a generic pre-specialization suffix attached to a
+   completed function entity.
+2. Parse the type-arg list (`<Type>_<Type>_..._<Type>`) using the same
+   substitution context built up by the function entity parse.
+3. Render full verbose form for the function entity (params + return),
+   not just short-form labels.
+4. Wrap with "generic pre-specialization <ARGS> of " prefix.
+
+Defer reason: requires full verbose-form renderer (defer-ceo family) +
+new specialization-suffix dispatch + substitution-aware type-arg list
+parser. ≥4 primitives.
