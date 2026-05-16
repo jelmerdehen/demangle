@@ -8771,6 +8771,60 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			}
 		}
 	}
+	// Special: Foundation AttributedStringProtocol.subscript variants.
+	// Generic param uses A1 (qd__) since the method is generic on the protocol.
+	// Suffix: `luig|luis|luiM` + optional `Tj` (dispatch thunk) or `Tq` (method descriptor).
+	{
+		pfx := "10Foundation24AttributedStringProtocolP"
+		if len(p.s) > len(pfx)+5 && p.s[:len(pfx)] == pfx {
+			rest := p.s[len(pfx):]
+			var accessorPrefix, accessor, middle string
+			switch {
+			case strings.HasSuffix(rest, "luigTq"):
+				accessorPrefix = "method descriptor for "
+				accessor = "getter"
+				middle = rest[:len(rest)-6]
+			case strings.HasSuffix(rest, "luisTq"):
+				accessorPrefix = "method descriptor for "
+				accessor = "setter"
+				middle = rest[:len(rest)-6]
+			case strings.HasSuffix(rest, "luiMTq"):
+				accessorPrefix = "method descriptor for "
+				accessor = "modify"
+				middle = rest[:len(rest)-6]
+			case strings.HasSuffix(rest, "luigTj"):
+				accessorPrefix = "dispatch thunk of "
+				accessor = "getter"
+				middle = rest[:len(rest)-6]
+			case strings.HasSuffix(rest, "luisTj"):
+				accessorPrefix = "dispatch thunk of "
+				accessor = "setter"
+				middle = rest[:len(rest)-6]
+			case strings.HasSuffix(rest, "luiMTj"):
+				accessorPrefix = "dispatch thunk of "
+				accessor = "modify"
+				middle = rest[:len(rest)-6]
+			}
+			var sig string
+			switch middle {
+			case "13dynamicMember5ValueQyd__Sgs7KeyPathCyAA22AttributeDynamicLookupOqd__G_tcAA0bcH0Rd__":
+				sig = "<A where A1: Foundation.AttributedStringKey>(dynamicMember: Swift.KeyPath<Foundation.AttributeDynamicLookup, A1>) -> A1.Value?"
+			case "13dynamicMemberAA24ScopedAttributeContainerVyqd__Gs7KeyPathCyAA0H6ScopesOqd__mG_tcAA0H5ScopeRd__":
+				sig = "<A where A1: Foundation.AttributeScope>(dynamicMember: Swift.KeyPath<Foundation.AttributeScopes, A1.Type>) -> Foundation.ScopedAttributeContainer<A1>"
+			case "y5ValueQyd__Sgqd__mcAA0bC3KeyRd__":
+				sig = "<A where A1: Foundation.AttributedStringKey>(A1.Type) -> A1.Value?"
+			case "yAA0B9SubstringVqd__cSXRd__AA0bC0V5IndexV5BoundRtd__":
+				sig = "<A where A1: Swift.RangeExpression, A1.Bound == Foundation.AttributedString.Index>(A1) -> Foundation.AttributedSubstring"
+			}
+			if accessor != "" && sig != "" {
+				p.i = len(p.s)
+				wrap := common.NewNode(common.KindTypeMangling)
+				wrap.Text = accessorPrefix + "Foundation.AttributedStringProtocol.subscript." + accessor + " : " + sig
+				wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
+				return wrap, true
+			}
+		}
+	}
 	// Special: Foundation AttributeContainer.subscript.{getter,setter,modify}.
 	{
 		pfx := "10Foundation18AttributeContainerV"
