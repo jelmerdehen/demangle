@@ -17057,6 +17057,62 @@ func (p *parser) tryAssocTypeDescriptor() (*demangle.Node, bool) {
 			qualifiedProto = "Swift." + protoName
 		}
 
+	case p.s[p.i] == 'S' && p.i+1 < len(p.s) && p.s[p.i+1] == 'o':
+		// Pattern D: So<idlen><class>C<idlen><extMod>E<member>PTl
+		//   → "(extension in <extMod>):__C.<class>.<member>" as qualifiedProto.
+		// Apple emits an Extension(Module=<extMod>, Class(__C.<class>)) wrapping
+		// the inner protocol Identifier <member>. Renders e.g.
+		// "(extension in Foundation):__C.NSNotificationCenter.AsyncMessage.Subject".
+		p.i += 2 // consume "So"
+		if p.eof() || !(p.s[p.i] >= '0' && p.s[p.i] <= '9') {
+			restore()
+			return nil, false
+		}
+		className, err := p.parseIdentifier()
+		if err != nil {
+			restore()
+			return nil, false
+		}
+		if p.eof() || p.s[p.i] != 'C' {
+			restore()
+			return nil, false
+		}
+		p.i++ // consume 'C'
+		if p.eof() || !(p.s[p.i] >= '0' && p.s[p.i] <= '9') {
+			restore()
+			return nil, false
+		}
+		extMod, err := p.parseIdentifier()
+		if err != nil {
+			restore()
+			return nil, false
+		}
+		if p.eof() || p.s[p.i] != 'E' {
+			restore()
+			return nil, false
+		}
+		p.i++ // consume 'E'
+		if p.eof() {
+			restore()
+			return nil, false
+		}
+		// Member accepts both length-prefixed (1-9) and word-sub ('0') forms.
+		if !(p.s[p.i] >= '0' && p.s[p.i] <= '9') {
+			restore()
+			return nil, false
+		}
+		member, err := p.parseIdentifier()
+		if err != nil {
+			restore()
+			return nil, false
+		}
+		if p.eof() || p.s[p.i] != 'P' {
+			restore()
+			return nil, false
+		}
+		p.i++ // consume 'P'
+		qualifiedProto = "(extension in " + extMod + "):__C." + className + "." + member
+
 	case p.s[p.i] == 'S' && p.i+1 < len(p.s):
 		// Pattern C: S<letter> stdlib substitution + Tl (no P byte)
 		// Variant Cc: Sc<letter> = level-2 (concurrency) substitution.
