@@ -8771,6 +8771,31 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			}
 		}
 	}
+	// Special: Foundation String.LocalizationValue.StringInterpolation.appendInterpolation<A>(_:).
+	// 3 constraint variants: CustomLocalizedStringResourceConvertible, _FormatSpecifiable, __C.NSObject.
+	{
+		pfx := "SS10FoundationE17LocalizationValueV19StringInterpolationV06appendE0yyx"
+		if len(p.s) >= len(pfx)+8 && p.s[:len(pfx)] == pfx && strings.HasSuffix(p.s, "lF") {
+			rest := p.s[len(pfx):]
+			middle := rest[:len(rest)-2] // strip `lF`
+			var constraint string
+			switch middle {
+			case "AA015CustomLocalizedD19ResourceConvertibleRz":
+				constraint = "Foundation.CustomLocalizedStringResourceConvertible"
+			case "AA18_FormatSpecifiableRz":
+				constraint = "Foundation._FormatSpecifiable"
+			case "So8NSObjectCRbz":
+				constraint = "__C.NSObject"
+			}
+			if constraint != "" {
+				p.i = len(p.s)
+				wrap := common.NewNode(common.KindTypeMangling)
+				wrap.Text = "(extension in Foundation):Swift.String.LocalizationValue.StringInterpolation.appendInterpolation<A where A: " + constraint + ">(A) -> ()"
+				wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
+				return wrap, true
+			}
+		}
+	}
 	// Special: Foundation NSDecimal init(_:format:lenient:) with FormatStyle inner.
 	// Pattern: `So9NSDecimala10FoundationE_6format7lenientABSS_AbCE11FormatStyleV[<n><Inner>V]?SbtKcfC`
 	{
