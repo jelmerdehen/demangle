@@ -8464,8 +8464,9 @@ func (p *parser) tryEntitySuffix(inner *demangle.Node) (*demangle.Node, bool) {
 					return wrap, true
 				}
 			} else if p.i+2 < len(p.s) && p.s[p.i+2] == '_' {
-				// fA_ → "default argument 1 of "
-				prefix = "default argument 1 of "
+				// fA_ → "default argument 0 of " (Apple's natural-number
+				// encoding: `_` alone = 0, `<n>_` = n+1).
+				prefix = "default argument 0 of "
 				p.i += 3
 				innerStr := common.Print(inner, descriptorPrintOpts(inner))
 				wrap := common.NewNode(common.KindTypeMangling)
