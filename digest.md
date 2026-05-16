@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 95.74% (61040/63757) — 2026-05-16T18:54:07Z
+**Parity**: 95.75% (61046/63757) — 2026-05-16T18:59:41Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 110 parse-errors + 2607 mismatches
+**Failures**: 104 parse-errors + 2607 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- dab56865 swift-parity: CGB UIKit IntelligenceUI module-enum-class inner-back-ref-proto AA(Mc|WP) short form — parity 95.75%->95.75% (+2 production +2 roundtrip)
+- b60d8aad chore: lock snapshot after CGA commit (parity 61040->61046 roundtrip 21292->21298)
+- fc8e8372 chore: update digest.md for CGA commit (parity 95.74%->95.75% +6)
 - b09ae77d swift-parity: CGA Foundation Locale/Calendar/TimeZone NSNotificationCenter word-sub host AAMc/WP — parity 95.74%->95.75% (+6 production +6 roundtrip)
 - 1df52240 chore: lock snapshot after CFZ commit (parity 61037->61040 roundtrip 21292->21292)
 - 45c47a8c chore: update digest.md for CFZ commit (parity 95.73%->95.74% +3)
@@ -36,9 +39,6 @@
 - 55aa229e chore: defer swiftui-protocol-conformance-witness-thunk-TW to multi-fire (deferred-1)
 - 62b11745 chore: lock snapshot after CFY commit (parity 61033->61037 roundtrip 21288->21292)
 - e11b2c26 chore: update digest.md for CFY commit (parity 95.73%->95.74% +4)
-- d82cb826 swift-parity: CFY UIKit UITextEffectView Pausable AAMc/WP short form — parity 95.73%->95.74% (+4 production +4 roundtrip)
-- bcd07c5d chore: lock snapshot after CFX commit (parity 61029->61033)
-- 1046529a chore: update digest.md for CFX commit (parity 95.72%->95.73% +4)
 
 ## Suggested Next 3 Items
 
