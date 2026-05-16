@@ -1,6 +1,6 @@
 # Swift Production Digest
 
-**Parity**: 95.49% (60879/63757) — 2026-05-16T16:27:52Z
+**Parity**: 95.49% (60879/63757) — 2026-05-16T16:30:23Z
 **Round-trip**: 0.00% (0/0) — 
 **Failures**: 147 parse-errors + 2731 mismatches
 
@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- 37d29488 swift-parity: CFI verbose-path chain-lookahead handles word-sub idents — parity 95.48%->95.48% (+0 production +5 roundtrip)
+- edc6bf31 chore: lock snapshot after CFH commit (parity 60875->60879)
+- 4b3d4648 chore: update digest.md for CFH commit (parity 95.48%->95.48% +4)
 - 783859bf swift-parity: CFH Tj/Tq/Tu suffix-strip + word-sub uppercase-Q rewind in inline fast-path — parity 95.48%->95.48% (+4 production +0 roundtrip)
 - 58a479ab chore: lock snapshot after CFG commit (parity 60872->60875)
 - dcf37be3 chore: update digest.md for CFG commit (parity 95.47%->95.48% +3)
@@ -36,9 +39,6 @@
 - 66ebfa3f chore: lock snapshot after CFF commit (parity 60871->60872)
 - dae3cde1 chore: update digest.md for CFF commit (parity 95.47%->95.47% +1)
 - 58f49f38 swift-parity: CFF uppercase-Q rewind in inline deeply-generic fast-path labels — parity 95.47%->95.47% (+1 production +0 roundtrip)
-- 344500c5 chore: defer type-ident-leaks-into-label-list-verbose-path to multi-fire (deferred-1)
-- bbc4c14f chore: defer label-vs-type-ident-uppercase-q-rewind-verbose-path to multi-fire (deferred-1)
-- 168cd520 chore: lock snapshot after CFE commit (parity 60870->60871)
 
 ## Suggested Next 3 Items
 
