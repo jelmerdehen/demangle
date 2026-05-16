@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 95.79% (61071/63757) — 2026-05-16T19:40:10Z
+**Parity**: 95.80% (61079/63757) — 2026-05-16T19:44:05Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 93 parse-errors + 2593 mismatches
+**Failures**: 93 parse-errors + 2585 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -15,9 +15,9 @@
 - Foundation.AttributedString.init<A where A: Founda… 26
 - (extension in Foundation):Swift.Duration.UnitsForm… 22
 - (extension in Foundation):__C.NSNotificationCenter… 22
-- protocol conformance descriptor            22
 - (extension in Swift):Swift.RawRepresentable< where… 18
 - (extension in Swift):Swift.UnkeyedEncodingContaine… 18
+- protocol conformance descriptor            18
 - (extension in Swift):Swift.FlattenSequence< where … 17
 - (extension in Foundation):Swift.String.Localizatio… 16
 - (extension in Foundation):(extension in Foundation… 15
@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- 660e06b8 swift-parity: CGJ Stdlib sequence A:Collection subject Index Comparable/Equatable conformance verbose — parity 95.79%->95.79% (+8 production +0 roundtrip)
+- c94e6737 chore: lock snapshot after CGI commit (parity 61069->61071 roundtrip 21309->21311)
+- 8a7ba02a chore: update digest.md for CGI commit (parity 95.78%->95.78% +2)
 - c214f442 swift-parity: CGI Stdlib UInt8-same-type word-sub Foundation proto (ContiguousArray.ContiguousBytes) — parity 95.78%->95.78% (+2 production +2 roundtrip)
 - d70d62fa chore: lock snapshot after CGH commit (parity 61068->61069 roundtrip 21309->21309)
 - 453a9df3 chore: update digest.md for CGH commit (parity 95.78%->95.78% +1)
@@ -36,9 +39,6 @@
 - 83d294a8 chore: lock snapshot after CGG commit (parity 61067->61068 roundtrip 21309->21309)
 - 3df66333 chore: update digest.md for CGG commit (parity 95.78%->95.78% +1)
 - 594423ab swift-parity: CGG ObjC class short-form chain walker accepts word-sub idents (UITextInputMode) — parity 95.78%->95.78% (+1 production +0 roundtrip)
-- a01a8270 chore: lock snapshot after CGF commit (parity 61061->61067 roundtrip 21309->21309)
-- 1e5a06e5 chore: update digest.md for CGF commit (parity 95.77%->95.78% +6)
-- 3bb07c4a swift-parity: CGF Foundation NSDecimal ObjC-typealias nested-extension external-proto conformance fast-path — parity 95.77%->95.78% (+6 production +0 roundtrip)
 
 ## Suggested Next 3 Items
 
