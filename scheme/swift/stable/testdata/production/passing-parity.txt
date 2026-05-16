@@ -1,4 +1,4 @@
-# snapshot-pass-set update 2026-05-16T21:48:11Z — union with previous (high-water)
+# snapshot-pass-set update 2026-05-16T21:51:22Z — union with previous (high-water)
 _$s10Foreground7SwiftUI18LabelGroupStyle_v0PTl
 _$s10Foundation10CocoaErrorV010formattingC0AC4CodeVvgZ
 _$s10Foundation10CocoaErrorV010formattingC0AC4CodeVvpZMV
@@ -42707,6 +42707,7 @@ _$sSW10Foundation12DataProtocolAAMc
 _$sSW10Foundation12DataProtocolAAWP
 _$sSW10Foundation15ContiguousBytesAAMc
 _$sSW10Foundation15ContiguousBytesAAWP
+_$sSW10FoundationE15withUnsafeBytesyxxSWKXEKlF
 _$sSW10FoundationE7regionss15CollectionOfOneVySWGvg
 _$sSW10FoundationE7regionss15CollectionOfOneVySWGvpMV
 _$sSW10bindMemory2toSRyxGxm_tlF
@@ -42716,6 +42717,7 @@ _$sSW10startIndexSivpMV
 _$sSW11baseAddressSVSgvg
 _$sSW11baseAddressSVSgvpMV
 _$sSW12makeIteratorSW0B0VyF
+_$sSW15withUnsafeBytesyxxSWKXEKlF
 _$sSW16debugDescriptionSSvg
 _$sSW16debugDescriptionSSvpMV
 _$sSW4_endSVSgvg
@@ -50468,6 +50470,7 @@ _$sSvySvSgSpyxGSgclufC
 _$sSvySvSpyxGclufC
 _$sSw10Foundation15ContiguousBytesAAMc
 _$sSw10Foundation15ContiguousBytesAAWP
+_$sSw10FoundationE15withUnsafeBytesyxxSWKXEKlF
 _$sSw10bindMemory2toSryxGxm_tlF
 _$sSw10copyMemory4fromySW_tF
 _$sSw10deallocateyyF
@@ -50477,6 +50480,7 @@ _$sSw10storeBytes2of12toByteOffset2asyx_SixmtlF
 _$sSw11baseAddressSvSgvg
 _$sSw11baseAddressSvSgvpMV
 _$sSw12makeIteratorSW0B0VyF
+_$sSw15withUnsafeBytesyxxSWKXEKlF
 _$sSw16debugDescriptionSSvg
 _$sSw16debugDescriptionSSvpMV
 _$sSw16initializeMemory2as9repeatingSryxGxm_xtlF
