@@ -8985,6 +8985,46 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			fpBoundGenArgs = 2
 			p.i += 6
 			fpMcConstraintStart = p.i
+		} else {
+			// Generic skip-level form: y _* (x|q<digits>?_)+ _* G.
+			// Apple uses `_` separators between nominal-chain levels — params
+			// at deeper levels appear after one `_` per skipped level. Count
+			// taus to derive args; preceding `_`s denote empty outer levels.
+			k := p.i + 1
+			argCount := 0
+			parseOK := true
+			for k < len(p.s) && p.s[k] != 'G' {
+				if p.s[k] == 'x' {
+					argCount++
+					k++
+					continue
+				}
+				if p.s[k] == 'q' {
+					k++
+					for k < len(p.s) && p.s[k] >= '0' && p.s[k] <= '9' {
+						k++
+					}
+					if k >= len(p.s) || p.s[k] != '_' {
+						parseOK = false
+						break
+					}
+					k++
+					argCount++
+					continue
+				}
+				if p.s[k] == '_' {
+					k++
+					continue
+				}
+				parseOK = false
+				break
+			}
+			if parseOK && k < len(p.s) && p.s[k] == 'G' && argCount >= 1 {
+				fpBoundGenOnHost = true
+				fpBoundGenArgs = argCount
+				p.i = k + 1
+				fpMcConstraintStart = p.i
+			}
 		}
 	}
 	// Nested-extension recovery: loop until decl-name found or no more E
