@@ -1,4 +1,4 @@
-# snapshot-pass-set update 2026-05-16T23:23:51Z — union with previous (high-water)
+# snapshot-pass-set update 2026-05-16T23:27:06Z — union with previous (high-water)
 _$s10Foreground7SwiftUI18LabelGroupStyle_v0PTl
 _$s10Foundation10CocoaErrorV010formattingC0AC4CodeVvgZ
 _$s10Foundation10CocoaErrorV010formattingC0AC4CodeVvpZMV
@@ -42342,6 +42342,8 @@ _$sSS11descriptionSSvg
 _$sSS11descriptionSSvpMV
 _$sSS11utf8CStrings15ContiguousArrayVys4Int8VGvg
 _$sSS11utf8CStrings15ContiguousArrayVys4Int8VGvpMV
+_$sSS11withCString9encodedAs_xq_m_xSPy8CodeUnitQy_GKXEtKs16_UnicodeEncodingR_r0_lF
+_$sSS11withCStringyxxSPys4Int8VGKXEKlF
 _$sSS12_boundsCheckyySNySS5IndexVGF
 _$sSS12_boundsCheckyySS5IndexVF
 _$sSS12_boundsCheckyySnySS5IndexVGF
@@ -44405,6 +44407,8 @@ _$sSh5IndexV1loiySbAByx_G_ADtFZ
 _$sSh5IndexV21_isUniquelyReferencedSbyF
 _$sSh5IndexV2eeoiySbAByx_G_ADtFZ
 _$sSh5IndexV4hash4intoys6HasherVz_tF
+_$sSh5IndexV6_cocoaAByx_Gs10__CocoaSetVAAVn_tcfC
+_$sSh5IndexV7_nativeAByx_Gs10_HashTableVAAV_tcfC
 _$sSh5IndexV8_VariantOMa
 _$sSh5IndexV8_VariantOMn
 _$sSh5IndexV8_variantAB8_VariantOyx__GvM
@@ -44446,6 +44450,8 @@ _$sSh8IteratorV12customMirrors0C0VvpMV
 _$sSh8IteratorV17_guaranteedNativeSbvg
 _$sSh8IteratorV17_guaranteedNativeSbvpMV
 _$sSh8IteratorV4nextxSgyF
+_$sSh8IteratorV6_cocoaAByx_Gs10__CocoaSetVAACn_tcfC
+_$sSh8IteratorV7_nativeAByx_Gs10_NativeSetVAAVyx_Gn_tcfC
 _$sSh8IteratorV8_VariantOMa
 _$sSh8IteratorV8_VariantOMn
 _$sSh8IteratorV8_variantAB8_VariantOyx__GvM
@@ -50227,6 +50233,8 @@ _$sSs10startIndexSS0B0VvpMV
 _$sSs10uppercasedSSyF
 _$sSs11descriptionSSvg
 _$sSs11descriptionSSvpMV
+_$sSs11withCString9encodedAs_xq_m_xSPy8CodeUnitQy_GKXEtKs16_UnicodeEncodingR_r0_lF
+_$sSs11withCStringyxxSPys4Int8VGKXEKlF
 _$sSs12_offsetRangeSnySiGvg
 _$sSs12_offsetRangeSnySiGvpMV
 _$sSs12_wholeStringSSvg
@@ -51752,6 +51760,8 @@ _$ss11_StringGutsV10startUTF16Spys6UInt16VGvpMV
 _$ss11_StringGutsV11isFastASCIISbvg
 _$ss11_StringGutsV11isFastASCIISbvpMV
 _$ss11_StringGutsV11scalarAlignySS5IndexVAEF
+_$ss11_StringGutsV12withFastUTF85range_xSnySiG_xSRys5UInt8VGKXEtKlF
+_$ss11_StringGutsV12withFastUTF8yxxSRys5UInt8VGKXEKlF
 _$ss11_StringGutsV14fastUTF8Scalar10startingAts7UnicodeO0E0VSi_tF
 _$ss11_StringGutsV14isUniqueNativeSbvg
 _$ss11_StringGutsV15_invariantCheckyyF
@@ -52261,6 +52271,8 @@ _$ss12_SliceBufferV5countSivM
 _$ss12_SliceBufferV5countSivg
 _$ss12_SliceBufferV5countSivpMV
 _$ss12_SliceBufferV5countSivs
+_$ss12_SliceBufferV5owner20subscriptBaseAddress10startIndex03endH8AndFlagsAByxGyXl_SpyxGSiSutcfC
+_$ss12_SliceBufferV5owner20subscriptBaseAddress7indices09hasNativeB0AByxGyXl_SpyxGSnySiGSbtcfC
 _$ss12_SliceBufferV5owneryXlvM
 _$ss12_SliceBufferV5owneryXlvg
 _$ss12_SliceBufferV5owneryXlvpMV
@@ -58446,6 +58458,8 @@ _$ss5SliceV11_startIndex0C0QzvM
 _$ss5SliceV11_startIndex0C0Qzvg
 _$ss5SliceV11_startIndex0C0QzvpMV
 _$ss5SliceV11_startIndex0C0Qzvs
+_$ss5SliceV20_failEarlyRangeCheck_6boundsy5IndexQz_SnyAFGtF
+_$ss5SliceV20_failEarlyRangeCheck_6boundsySny5IndexQzG_AGtF
 _$ss5SliceV4base6boundsAByxGx_Sny5IndexQzGtcfC
 _$ss5SliceV4basexvg
 _$ss5SliceV4basexvpMV
@@ -58453,7 +58467,9 @@ _$ss5SliceV5_basexvM
 _$ss5SliceV5_basexvg
 _$ss5SliceV5_basexvpMV
 _$ss5SliceV5_basexvs
+_$ss5SliceV5index5after5IndexQzAF_tF
 _$ss5SliceV5index_8offsetBy07limitedD05IndexQzSgAG_SiAGtF
+_$ss5SliceV5index_8offsetBy5IndexQzAF_SitF
 _$ss5SliceV7_boundsSny5IndexQzGvpMV
 _$ss5SliceV7indices7IndicesQzvg
 _$ss5SliceV7indices7IndicesQzvpMV
@@ -61689,6 +61705,8 @@ _$ss9_isUniqueySbxzlF
 _$ss9_slowPathyS2bF
 _$ss9_typeName_9qualifiedSSypXp_SbtF
 _$ss9getVaListys03CVaC7PointerVSays7CVarArg_pGF
+_$ss9transcode_4from2to15stoppingOnError4intoSbx_q_mq0_mSby8CodeUnitQy0_XEtStRzs16_UnicodeEncodingR_sAHR0_AFQy_7ElementRtzr1_lF
+_$ss9transcode____11stopOnErrorSbq_m_q0_mxy8CodeUnitQy0_XESbtStRzs12UnicodeCodecR_sAER0_ACQy_7ElementRtzr1_lF
 _$sxSg10Foundation26DecodableWithConfigurationA2bCRzlMc
 _$sxSg10Foundation26DecodableWithConfigurationA2bCRzlWP
 _$sxSg10Foundation26EncodableWithConfigurationA2bCRzlMc
