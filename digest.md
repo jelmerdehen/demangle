@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 96.19% (61330/63757) — 2026-05-16T22:01:01Z
+**Parity**: 96.20% (61337/63757) — 2026-05-16T22:03:38Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 93 parse-errors + 2334 mismatches
+**Failures**: 93 parse-errors + 2327 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- 7aa56050 swift-parity: CHV Foundation URL.init 7 variants (file/data/string init forms) — parity 96.19%->96.20% (+7 production +0 roundtrip)
+- 6c0b15d5 chore: lock snapshot after CHU commit (parity 61320->61330 roundtrip 21309->21309)
+- 41c31419 chore: update digest.md for CHU commit (parity 96.18%->96.19% +10)
 - 4f947ba1 swift-parity: CHU Swift tuple Equatable ==/!= operators arity 2..6 — parity 96.18%->96.19% (+10 production +0 roundtrip)
 - cc155853 chore: lock snapshot after CHT commit (parity 61318->61320 roundtrip 21309->21309)
 - baae9d0e chore: update digest.md for CHT commit (parity 96.17%->96.18% +2)
@@ -36,9 +39,6 @@
 - 1bff067c chore: lock snapshot after CHS commit (parity 61314->61318 roundtrip 21309->21309)
 - ae0fa07f chore: update digest.md for CHS commit (parity 96.17%->96.17% +4)
 - a8578830 swift-parity: CHS Swift UnsafeRawBufferPointer.withUnsafeBytes<A> 4 variants — parity 96.17%->96.17% (+4 production +0 roundtrip)
-- 3264fa0f chore: lock snapshot after CHR commit (parity 61310->61314 roundtrip 21309->21309)
-- cf2b39d1 chore: update digest.md for CHR commit (parity 96.16%->96.17% +4)
-- 86feeda1 swift-parity: CHR Swift stdlib free fns withUnsafeBytes/Pointer 4 variants — parity 96.16%->96.17% (+4 production +0 roundtrip)
 
 ## Suggested Next 3 Items
 
