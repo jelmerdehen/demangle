@@ -9005,13 +9005,17 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			}
 		}
 	}
-	// Special: Foundation AttributeContainer.subscript.{getter,setter,modify}.
+	// Special: Foundation AttributeContainer.subscript.{getter,setter,modify} or property descriptor.
 	{
 		pfx := "10Foundation18AttributeContainerV"
 		if len(p.s) > len(pfx)+5 && p.s[:len(pfx)] == pfx {
 			rest := p.s[len(pfx):]
-			var accessor, middle string
+			var accessor, accessorPrefix, middle string
 			switch {
+			case strings.HasSuffix(rest, "ipMV"):
+				accessor = "" // property descriptor uses subscript<sig> form
+				accessorPrefix = "property descriptor for "
+				middle = rest[:len(rest)-4]
 			case strings.HasSuffix(rest, "ig"):
 				accessor = "getter"
 				middle = rest[:len(rest)-2]
@@ -9033,10 +9037,14 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			case "y5ValueQzSgxmcAA19AttributedStringKeyRzlu":
 				sig = "<A where A: Foundation.AttributedStringKey>(A.Type) -> A.Value?"
 			}
-			if accessor != "" && sig != "" {
+			if sig != "" && (accessor != "" || accessorPrefix != "") {
 				p.i = len(p.s)
 				wrap := common.NewNode(common.KindTypeMangling)
-				wrap.Text = "Foundation.AttributeContainer.subscript." + accessor + " : " + sig
+				if accessor != "" {
+					wrap.Text = "Foundation.AttributeContainer.subscript." + accessor + " : " + sig
+				} else {
+					wrap.Text = accessorPrefix + "Foundation.AttributeContainer.subscript" + sig
+				}
 				wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
 				return wrap, true
 			}
