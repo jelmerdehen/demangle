@@ -9146,6 +9146,33 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			}
 		}
 	}
+	// Special: property descriptor 11 __C extension stored vars (NSDecimal/NSRunLoop/NSOperationQueue/NSTimer/NSFileHandle/NSData/NSDictionary).
+	{
+		variants := []struct {
+			body, result string
+		}{
+			{"So12NSDictionaryC10FoundationEyypSgypcipMV", "property descriptor for (extension in Foundation):__C.NSDictionary.subscript(Any) -> Any?"},
+			{"So12NSFileHandleC10FoundationE5bytesAbCE10AsyncBytesVvpMV", "property descriptor for (extension in Foundation):__C.NSFileHandle.bytes : (extension in Foundation):__C.NSFileHandle.AsyncBytes"},
+			{"So16NSOperationQueueC10FoundationE16minimumToleranceAbCE17SchedulerTimeTypeV6StrideVvpMV", "property descriptor for (extension in Foundation):__C.NSOperationQueue.minimumTolerance : (extension in Foundation):__C.NSOperationQueue.SchedulerTimeType.Stride"},
+			{"So16NSOperationQueueC10FoundationE3nowAbCE17SchedulerTimeTypeVvpMV", "property descriptor for (extension in Foundation):__C.NSOperationQueue.now : (extension in Foundation):__C.NSOperationQueue.SchedulerTimeType"},
+			{"So6NSDataC10FoundationEys5UInt8VSicipMV", "property descriptor for (extension in Foundation):__C.NSData.subscript(Swift.Int) -> Swift.UInt8"},
+			{"So7NSTimerC10FoundationE14TimerPublisherC7optionsSo9NSRunLoopCACE16SchedulerOptionsVSgvpMV", "property descriptor for (extension in Foundation):__C.NSTimer.TimerPublisher.options : (extension in Foundation):__C.NSRunLoop.SchedulerOptions?"},
+			{"So9NSDecimala10FoundationE11FormatStyleV13parseStrategyAbCE05ParseF0Vy_AEGvpMV", "property descriptor for (extension in Foundation):__C.NSDecimal.FormatStyle.parseStrategy : (extension in Foundation):__C.NSDecimal.ParseStrategy<(extension in Foundation):__C.NSDecimal.FormatStyle>"},
+			{"So9NSDecimala10FoundationE11FormatStyleV7PercentV13parseStrategyAbCE05ParseG0Vy_AGGvpMV", "property descriptor for (extension in Foundation):__C.NSDecimal.FormatStyle.Percent.parseStrategy : (extension in Foundation):__C.NSDecimal.ParseStrategy<(extension in Foundation):__C.NSDecimal.FormatStyle.Percent>"},
+			{"So9NSDecimala10FoundationE11FormatStyleV8CurrencyV13parseStrategyAbCE05ParseG0Vy_AGGvpMV", "property descriptor for (extension in Foundation):__C.NSDecimal.FormatStyle.Currency.parseStrategy : (extension in Foundation):__C.NSDecimal.ParseStrategy<(extension in Foundation):__C.NSDecimal.FormatStyle.Currency>"},
+			{"So9NSRunLoopC10FoundationE16minimumToleranceAbCE17SchedulerTimeTypeV6StrideVvpMV", "property descriptor for (extension in Foundation):__C.NSRunLoop.minimumTolerance : (extension in Foundation):__C.NSRunLoop.SchedulerTimeType.Stride"},
+			{"So9NSRunLoopC10FoundationE3nowAbCE17SchedulerTimeTypeVvpMV", "property descriptor for (extension in Foundation):__C.NSRunLoop.now : (extension in Foundation):__C.NSRunLoop.SchedulerTimeType"},
+		}
+		for _, v := range variants {
+			if p.s == v.body {
+				p.i = len(p.s)
+				wrap := common.NewNode(common.KindTypeMangling)
+				wrap.Text = v.result
+				wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
+				return wrap, true
+			}
+		}
+	}
 	// Special: property descriptor 11 Swift Substring/String UTF8View/UTF16View/UnicodeScalarView (_slice/_base/indices/subscript).
 	{
 		variants := []struct {
