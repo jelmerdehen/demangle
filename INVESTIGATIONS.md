@@ -6,6 +6,23 @@ fast loop fires — avoids re-deriving path/cause each fire. Bounded
 
 ## Active targets
 
+### swift-stdlib-iterator-next-full-form [~10 syms, deferred-1]
+
+Pattern: Swift stdlib Sequence/Collection Iterator.next() methods with chained dependent-member return type:
+- `_$ss14JoinedSequenceV8IteratorV4next7Element_AFQZSgyF` → want `Swift.JoinedSequence.Iterator.next() -> A.Element.Element?`
+- `_$ss15FlattenSequenceV8IteratorV4next7Element_AFQZSgyF` → same shape
+
+Our output drops `Swift.` prefix, mis-treats `7Element_AF` as labels, drops return-type.
+
+Extended underscore-chain Q lookahead in verbose tryPath to also accept `_A<letter>` back-refs (e.g. `_AFQZ`). Tested: didn't change output — sym path likely doesn't reach extended check (or extra label parser).
+
+Fire-plan:
+1. Trace which label parser is engaged (multiple `try*` paths; needs debug printf).
+2. Apply underscore-chain-with-A-backref extension to all label parsers.
+3. Layer Swift-stdlib-full-form emission for these Iterator.next syms.
+
+Reason for deferral: parser-locating + full-form rendering both required; not <3 primitives.
+
 ### label-list-arity-from-args-not-greedy [~10 syms, deferred-1]
 
 Our label parser walks digit-led idents greedily until non-label byte. Apple parses args first (knows arity) then takes N labels. For label-then-existential-arg syms, the existential's module qualifier looks like a label and is mis-consumed.
