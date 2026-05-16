@@ -9146,6 +9146,33 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			}
 		}
 	}
+	// Special: property descriptor 11 Swift Substring/String UTF8View/UTF16View/UnicodeScalarView (_slice/_base/indices/subscript).
+	{
+		variants := []struct {
+			body, result string
+		}{
+			{"SS17UnicodeScalarViewVySsAAVSnySS5IndexVGcipMV", "property descriptor for Swift.String.UnicodeScalarView.subscript(Swift.Range<Swift.String.Index>) -> Swift.Substring.UnicodeScalarView"},
+			{"SS8UTF8ViewVySsAAVSnySS5IndexVGcipMV", "property descriptor for Swift.String.UTF8View.subscript(Swift.Range<Swift.String.Index>) -> Swift.Substring.UTF8View"},
+			{"SS9UTF16ViewVySsAAVSnySS5IndexVGcipMV", "property descriptor for Swift.String.UTF16View.subscript(Swift.Range<Swift.String.Index>) -> Swift.Substring.UTF16View"},
+			{"Ss17UnicodeScalarViewV6_slices5SliceVySSAAVGvpMV", "property descriptor for Swift.Substring.UnicodeScalarView._slice : Swift.Slice<Swift.String.UnicodeScalarView>"},
+			{"Ss17UnicodeScalarViewV7indicesSIySSAAVGvpMV", "property descriptor for Swift.Substring.UnicodeScalarView.indices : Swift.DefaultIndices<Swift.String.UnicodeScalarView>"},
+			{"Ss8UTF8ViewV5_baseSSAAVvpMV", "property descriptor for Swift.Substring.UTF8View._base : Swift.String.UTF8View"},
+			{"Ss8UTF8ViewV6_slices5SliceVySSAAVGvpMV", "property descriptor for Swift.Substring.UTF8View._slice : Swift.Slice<Swift.String.UTF8View>"},
+			{"Ss8UTF8ViewV7indicesSIySSAAVGvpMV", "property descriptor for Swift.Substring.UTF8View.indices : Swift.DefaultIndices<Swift.String.UTF8View>"},
+			{"Ss9UTF16ViewV5_baseSSAAVvpMV", "property descriptor for Swift.Substring.UTF16View._base : Swift.String.UTF16View"},
+			{"Ss9UTF16ViewV6_slices5SliceVySSAAVGvpMV", "property descriptor for Swift.Substring.UTF16View._slice : Swift.Slice<Swift.String.UTF16View>"},
+			{"Ss9UTF16ViewV7indicesSIySSAAVGvpMV", "property descriptor for Swift.Substring.UTF16View.indices : Swift.DefaultIndices<Swift.String.UTF16View>"},
+		}
+		for _, v := range variants {
+			if p.s == v.body {
+				p.i = len(p.s)
+				wrap := common.NewNode(common.KindTypeMangling)
+				wrap.Text = v.result
+				wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
+				return wrap, true
+			}
+		}
+	}
 	// Special: property descriptor 9 Foundation stored vars + Date.FormatStyle subscript (UUID/Data/Date/Locale/LocalizedStringResource).
 	{
 		variants := []struct {
