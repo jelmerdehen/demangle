@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 96.12% (61285/63757) — 2026-05-16T21:27:39Z
+**Parity**: 96.13% (61287/63757) — 2026-05-16T21:30:17Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 93 parse-errors + 2379 mismatches
+**Failures**: 93 parse-errors + 2377 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -14,7 +14,7 @@
 - enum case                                  36
 - (extension in Foundation):Swift.Duration.UnitsForm… 22
 - (extension in Foundation):__C.NSNotificationCenter… 22
-- Foundation.AttributedString.init<A where A: Founda… 20
+- Foundation.AttributedString.init<A where A: Founda… 18
 - (extension in Swift):Swift.FlattenSequence< where … 17
 - (extension in Foundation):(extension in Foundation… 15
 - (extension in Foundation):Foundation.Measurement< … 14
@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- 9a5b3704 swift-parity: CHL Foundation AttributedString.init<A>(localized:options:table:bundle:localization:locale:comment:including:) — parity 96.12%->96.12% (+2 production +0 roundtrip)
+- ec589ecf chore: lock snapshot after CHK commit (parity 61283->61285 roundtrip 21309->21309)
+- 9d7dfd7e chore: update digest.md for CHK commit (parity 96.12%->96.12% +2)
 - e8b26b42 swift-parity: CHK Foundation AttributedString.init<A>(localized:options:table:...) partial — parity 96.12%->96.12% (+2 production +0 roundtrip)
 - 2b2d9514 chore: lock snapshot after CHJ commit (parity 61263->61283 roundtrip 21309->21309)
 - bbbe4602 chore: update digest.md for CHJ commit (parity 96.09%->96.12% +20)
@@ -36,9 +39,6 @@
 - 73080183 chore: lock snapshot after CHI commit (parity 61249->61263 roundtrip 21309->21309)
 - a95b0fa8 chore: update digest.md for CHI commit (parity 96.06%->96.09% +14)
 - 9fc6a3e7 swift-parity: CHI Foundation AttributeContainer + AttributeDynamicLookup subscript variants — parity 96.06%->96.09% (+14 production +0 roundtrip)
-- 7c1170b7 chore: lock snapshot after CHH commit (parity 61239->61249 roundtrip 21309->21309)
-- 3bc2d613 chore: update digest.md for CHH commit (parity 96.05%->96.06% +10)
-- 148e7580 swift-parity: CHH Foundation AttributedSubstring.subscript.{getter,setter,modify} 4 sig variants — parity 96.05%->96.06% (+10 production +0 roundtrip)
 
 ## Suggested Next 3 Items
 
