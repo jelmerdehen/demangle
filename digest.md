@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 95.98% (61192/63757) — 2026-05-16T20:43:09Z
+**Parity**: 95.98% (61196/63757) — 2026-05-16T20:48:51Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 93 parse-errors + 2472 mismatches
+**Failures**: 93 parse-errors + 2468 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -12,9 +12,9 @@
 - dispatch thunk                             77
 - method descriptor                          77
 - enum case                                  36
-- Foundation.AttributedString.init<A where A: Founda… 26
 - (extension in Foundation):Swift.Duration.UnitsForm… 22
 - (extension in Foundation):__C.NSNotificationCenter… 22
+- Foundation.AttributedString.init<A where A: Founda… 22
 - (extension in Swift):Swift.FlattenSequence< where … 17
 - (extension in Foundation):Swift.String.Localizatio… 16
 - (extension in Foundation):(extension in Foundation… 15
@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- e550f385 swift-parity: CGY Foundation AttributedString init<A>(markdown:including:options:baseURL:) String/Data×KeyPath/Type — parity 95.97%->95.98% (+4 production +0 roundtrip)
+- 5ab298d4 chore: lock snapshot after CGX commit (parity 61189->61192 roundtrip 21309->21309)
+- 60dd18de chore: update digest.md for CGX commit (parity 95.97%->95.97% +3)
 - 320b598c swift-parity: CGX Foundation NSDecimal init(_:format:lenient:) FormatStyle inner variants — parity 95.97%->95.97% (+3 production +0 roundtrip)
 - e13bfc47 chore: lock snapshot after CGW commit (parity 61182->61189 roundtrip 21309->21309)
 - d2603f14 chore: update digest.md for CGW commit (parity 95.96%->95.97% +7)
@@ -36,9 +39,6 @@
 - aacfa07a chore: lock snapshot after CGV commit (parity 61178->61182 roundtrip 21309->21309)
 - c7b105fb chore: update digest.md for CGV commit (parity 95.95%->95.96% +4)
 - e6ac279c swift-parity: CGV Foundation NSAttributedString init<A>(_:including:) AttributeScope-constraint Key/Type variants — parity 95.95%->95.96% (+4 production +0 roundtrip)
-- f0682fad chore: lock snapshot after CGU commit (parity 61174->61178 roundtrip 21309->21309)
-- 1516b942 chore: update digest.md for CGU commit (parity 95.95%->95.95% +4)
-- 49478176 swift-parity: CGU Foundation NSSortDescriptor extension init<A>(SortDescriptor<A>) NSObject-constraint variant — parity 95.95%->95.95% (+4 production +0 roundtrip)
 
 ## Suggested Next 3 Items
 
