@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 96.73% (61670/63757) — 2026-05-16T23:14:38Z
+**Parity**: 96.75% (61682/63757) — 2026-05-16T23:17:42Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 93 parse-errors + 1994 mismatches
+**Failures**: 93 parse-errors + 1982 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- cb47e581 swift-parity: CIU 12 init verbose-form variants (Foundation Locale/IndexSet/DateComponents + Swift.ManagedBufferPointer) — parity 96.73%->96.75% (+12 production +0 roundtrip)
+- 2be73a03 chore: lock snapshot after CIT commit (parity 61661->61670 roundtrip 21309->21309)
+- 8bbe2e0d chore: update digest.md for CIT commit (parity 96.71%->96.73% +9)
 - 860be892 swift-parity: CIT property descriptor 9 Foundation AttributedString/AttributedSubstring/DiscontiguousAttributedSubstring subscript<A> — parity 96.71%->96.73% (+9 production +0 roundtrip)
 - db0dce17 chore: lock snapshot after CIS commit (parity 61625->61661 roundtrip 21309->21309)
 - 560b9d4e chore: update digest.md for CIS commit (parity 96.66%->96.71% +36)
@@ -36,9 +39,6 @@
 - c5674391 chore: lock snapshot after CIR commit (parity 61618->61625 roundtrip 21309->21309)
 - 42d567c2 chore: update digest.md for CIR commit (parity 96.65%->96.66% +7)
 - 606e179c swift-parity: CIR property descriptor static 7 (Foundation AttributeContainer/String/NSNotificationCenter + Swift AnyKeyPath/Hasher) — parity 96.65%->96.66% (+7 production +0 roundtrip)
-- a2937728 chore: lock snapshot after CIQ commit (parity 61578->61618 roundtrip 21309->21309)
-- ba535a0c chore: update digest.md for CIQ commit (parity 96.58%->96.65% +40)
-- fe8c7178 swift-parity: CIQ method descriptor 40 Swift stdlib (StringProtocol/FixedWidthInteger/Sequence/RangeReplaceableCollection/Collection/ExpressibleBy*/etc Tq) — parity 96.58%->96.65% (+40 production +0 roundtrip)
 
 ## Suggested Next 3 Items
 
