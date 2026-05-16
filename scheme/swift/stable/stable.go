@@ -9146,6 +9146,41 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			}
 		}
 	}
+	// Special: async function pointer to (extension in Foundation):__C.NS* + SwiftUI 19 variants.
+	{
+		variants := []struct {
+			body, result string
+		}{
+			{"So12NSFileHandleC10FoundationE10AsyncBytesV8IteratorV4nexts5UInt8VSgyYaKFTu", "async function pointer to (extension in Foundation):__C.NSFileHandle.AsyncBytes.Iterator.next() async throws -> Swift.UInt8?"},
+			{"So12NSURLSessionC10FoundationE10AsyncBytesV8IteratorV4nexts5UInt8VSgyYaKFTu", "async function pointer to (extension in Foundation):__C.NSURLSession.AsyncBytes.Iterator.next() async throws -> Swift.UInt8?"},
+			{"So12NSURLSessionC10FoundationE4data3for8delegateAC4DataV_So13NSURLResponseCtAC10URLRequestV_So0A12TaskDelegate_pSgtYaKFTu", "async function pointer to (extension in Foundation):__C.NSURLSession.data(for: Foundation.URLRequest, delegate: __C.NSURLSessionTaskDelegate?) async throws -> (Foundation.Data, __C.NSURLResponse)"},
+			{"So12NSURLSessionC10FoundationE4data4from8delegateAC4DataV_So13NSURLResponseCtAC3URLV_So0A12TaskDelegate_pSgtYaKFTu", "async function pointer to (extension in Foundation):__C.NSURLSession.data(from: Foundation.URL, delegate: __C.NSURLSessionTaskDelegate?) async throws -> (Foundation.Data, __C.NSURLResponse)"},
+			{"So12NSURLSessionC10FoundationE5bytes3for8delegateAbCE10AsyncBytesV_So13NSURLResponseCtAC10URLRequestV_So0A12TaskDelegate_pSgtYaKFTu", "async function pointer to (extension in Foundation):__C.NSURLSession.bytes(for: Foundation.URLRequest, delegate: __C.NSURLSessionTaskDelegate?) async throws -> ((extension in Foundation):__C.NSURLSession.AsyncBytes, __C.NSURLResponse)"},
+			{"So12NSURLSessionC10FoundationE5bytes4from8delegateAbCE10AsyncBytesV_So13NSURLResponseCtAC3URLV_So0A12TaskDelegate_pSgtYaKFTu", "async function pointer to (extension in Foundation):__C.NSURLSession.bytes(from: Foundation.URL, delegate: __C.NSURLSessionTaskDelegate?) async throws -> ((extension in Foundation):__C.NSURLSession.AsyncBytes, __C.NSURLResponse)"},
+			{"So12NSURLSessionC10FoundationE6upload3for4from8delegateAC4DataV_So13NSURLResponseCtAC10URLRequestV_AISo0A12TaskDelegate_pSgtYaKFTu", "async function pointer to (extension in Foundation):__C.NSURLSession.upload(for: Foundation.URLRequest, from: Foundation.Data, delegate: __C.NSURLSessionTaskDelegate?) async throws -> (Foundation.Data, __C.NSURLResponse)"},
+			{"So12NSURLSessionC10FoundationE6upload3for8fromFile8delegateAC4DataV_So13NSURLResponseCtAC10URLRequestV_AC3URLVSo0A12TaskDelegate_pSgtYaKFTu", "async function pointer to (extension in Foundation):__C.NSURLSession.upload(for: Foundation.URLRequest, fromFile: Foundation.URL, delegate: __C.NSURLSessionTaskDelegate?) async throws -> (Foundation.Data, __C.NSURLResponse)"},
+			{"So12NSURLSessionC10FoundationE8download10resumeFrom8delegateAC3URLV_So13NSURLResponseCtAC4DataV_So0A12TaskDelegate_pSgtYaKFTu", "async function pointer to (extension in Foundation):__C.NSURLSession.download(resumeFrom: Foundation.Data, delegate: __C.NSURLSessionTaskDelegate?) async throws -> (Foundation.URL, __C.NSURLResponse)"},
+			{"So12NSURLSessionC10FoundationE8download3for8delegateAC3URLV_So13NSURLResponseCtAC10URLRequestV_So0A12TaskDelegate_pSgtYaKFTu", "async function pointer to (extension in Foundation):__C.NSURLSession.download(for: Foundation.URLRequest, delegate: __C.NSURLSessionTaskDelegate?) async throws -> (Foundation.URL, __C.NSURLResponse)"},
+			{"So12NSURLSessionC10FoundationE8download4from8delegateAC3URLV_So13NSURLResponseCtAH_So0A12TaskDelegate_pSgtYaKFTu", "async function pointer to (extension in Foundation):__C.NSURLSession.download(from: Foundation.URL, delegate: __C.NSURLSessionTaskDelegate?) async throws -> (Foundation.URL, __C.NSURLResponse)"},
+			{"So20NSNotificationCenterC10FoundationE13NotificationsC8IteratorV4nextAC12NotificationVSgyYaFTu", "async function pointer to (extension in Foundation):__C.NSNotificationCenter.Notifications.Iterator.next() async -> Foundation.Notification?"},
+			{"So8NSObjectC10FoundationE23KeyValueObservedChangesC8IteratorV4nextAC05NSKeydE6ChangeVyq_GSgyYaFTu", "async function pointer to (extension in Foundation):__C.NSObject.KeyValueObservedChanges.Iterator.next() async -> Foundation.NSKeyValueObservedChange<B>?"},
+			{"7SwiftUI12RemoteScenesV7SessionPAAE04openC5SceneyyYaKFTu", "async function pointer to RemoteScenes.Session.openRemoteScene()"},
+			{"7SwiftUI15PreviewModifierPAAyt7ContextRtzrlE010makeSharedE0yyYaKFZTu", "async function pointer to static PreviewModifier<>.makeSharedContext()"},
+			{"5UIKit16UITextEffectViewC015ReplacementTextC0C8DelegateP015performAnimatedE03for6effect9animationyAA0bcF5ChunkC_A2E19AnimationParametersVtYaFTjTu", "async function pointer to dispatch thunk of UITextEffectView.ReplacementTextEffect.Delegate.performAnimatedReplacement(for:effect:animation:)"},
+			{"5UIKit16UITextEffectViewC015ReplacementTextC0C8DelegateP07performE03for6effect9animationyAA0bcF5ChunkC_A2E19AnimationParametersVtYaFTjTu", "async function pointer to dispatch thunk of UITextEffectView.ReplacementTextEffect.Delegate.performReplacement(for:effect:animation:)"},
+			{"5UIKit16UITextEffectViewC015ReplacementTextC0C8DelegateP07performE18AndGeneratePreview3for6effect9animationSo010UITargetedK0CSgAA0bcF5ChunkC_A2E19AnimationParametersVtYaFTjTu", "async function pointer to dispatch thunk of UITextEffectView.ReplacementTextEffect.Delegate.performReplacementAndGeneratePreview(for:effect:animation:)"},
+			{"5UIKit37UIIndirectScribbleInteractionDelegateP08indirectcD0_20focusElementIfNeeded14referencePointSo11UITextInput_So11UIResponderCXcSgSo13UIInteraction_p_0H10IdentifierQzSo7CGPointVtYaFTjTu", "async function pointer to dispatch thunk of UIIndirectScribbleInteractionDelegate.indirectScribbleInteraction(_:focusElementIfNeeded:referencePoint:)"},
+		}
+		for _, v := range variants {
+			if p.s == v.body {
+				p.i = len(p.s)
+				wrap := common.NewNode(common.KindTypeMangling)
+				wrap.Text = v.result
+				wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
+				return wrap, true
+			}
+		}
+	}
 	// Special: protocol conformance descriptor 8 variants (Foundation/Combine extensions + Swift stdlib Hashable conformances).
 	{
 		variants := []struct {
