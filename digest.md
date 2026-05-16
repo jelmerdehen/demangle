@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 95.49% (60882/63757) — 2026-05-16T16:37:58Z
+**Parity**: 95.51% (60896/63757) — 2026-05-16T17:03:31Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 147 parse-errors + 2728 mismatches
+**Failures**: 133 parse-errors + 2728 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,16 +29,16 @@
 
 ## Last 10 Commits
 
+- 900f8671 swift-parity: CFK Foundation AadA compact-substitution conformance-descriptor short form — parity 95.48%->95.51% (+14 production +14 roundtrip)
+- e6f678ac chore: plateau SOS at 95.48% — 5 consecutive zero-gain fires (CFJ to fire 21)
+- b874d852 chore: defer jindo-triple-vstack-position-bottom-mispicked-declname to multi-fire (deferred-1)
+- 83c34b1d chore: defer swift-stdlib-iterator-next-full-form to multi-fire (deferred-1)
+- 38491b3d chore: defer label-list-arity-from-args-not-greedy to multi-fire (deferred-1)
+- 3bec91e7 chore: defer type-first-extension-entity-roundtrip-breach to multi-fire (deferred-1)
+- 0f52350f chore: lock snapshot after CFJ commit (parity 60879->60882)
+- 8f7e58d0 chore: update digest.md for CFJ commit (parity 95.48%->95.48% +3)
 - 9255db57 swift-parity: CFJ extension-entity label parser chain-lookahead + module-name rewind — parity 95.48%->95.48% (+3 production +0 roundtrip)
 - 8dbf85e8 chore: defer nsnotif-messageident-property-desc-uikit-declname to multi-fire (deferred-1)
-- 4a8c08fb chore: lock snapshot after CFI commit (parity 60879->60879 roundtrip 21253->21258)
-- 1f142b43 chore: update digest.md for CFI commit (parity 95.48%->95.48% +0)
-- 37d29488 swift-parity: CFI verbose-path chain-lookahead handles word-sub idents — parity 95.48%->95.48% (+0 production +5 roundtrip)
-- edc6bf31 chore: lock snapshot after CFH commit (parity 60875->60879)
-- 4b3d4648 chore: update digest.md for CFH commit (parity 95.48%->95.48% +4)
-- 783859bf swift-parity: CFH Tj/Tq/Tu suffix-strip + word-sub uppercase-Q rewind in inline fast-path — parity 95.48%->95.48% (+4 production +0 roundtrip)
-- 58a479ab chore: lock snapshot after CFG commit (parity 60872->60875)
-- dcf37be3 chore: update digest.md for CFG commit (parity 95.47%->95.48% +3)
 
 ## Suggested Next 3 Items
 
