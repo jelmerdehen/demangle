@@ -8715,6 +8715,67 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			}
 		}
 	}
+	// Special: KeyedDecodingContainer(Protocol)? decode(_:forKey:) for stdlib integer types.
+	// Three variants:
+	//   Struct: `s22KeyedDecodingContainerV6decode_6forKeys<n><Name>VAFm_xtKF`
+	//     → "Swift.KeyedDecodingContainer.decode(_: Swift.<Name>.Type, forKey: A) throws -> Swift.<Name>"
+	//   Proto Tj: `s30KeyedDecodingContainerProtocolP6decode_6forKeys<n><Name>VAFm_0G0QztKFTj`
+	//     → "dispatch thunk of Swift.KeyedDecodingContainerProtocol.decode(_: Swift.<Name>.Type, forKey: A.Key) throws -> Swift.<Name>"
+	//   Proto Tq: `...FTq` → "method descriptor for ..."
+	{
+		structPfx := "s22KeyedDecodingContainerV6decode_6forKeys"
+		protoPfx := "s30KeyedDecodingContainerProtocolP6decode_6forKeys"
+		var prefixStr, hostFull, keyArg, midSuf, tailSuf, accessor string
+		// midSuf is the bytes between `<n><Name>V` and the tail.
+		switch {
+		case len(p.s) >= len(structPfx) && p.s[:len(structPfx)] == structPfx:
+			prefixStr = structPfx
+			hostFull = "Swift.KeyedDecodingContainer"
+			keyArg = "A"
+			midSuf = "AFm_xtKF"
+			tailSuf = ""
+			accessor = ""
+		case len(p.s) >= len(protoPfx) && p.s[:len(protoPfx)] == protoPfx:
+			prefixStr = protoPfx
+			hostFull = "Swift.KeyedDecodingContainerProtocol"
+			keyArg = "A.Key"
+			midSuf = "AFm_0G0QztKF"
+			switch {
+			case strings.HasSuffix(p.s, "Tj"):
+				tailSuf = "Tj"
+				accessor = "dispatch thunk of "
+			case strings.HasSuffix(p.s, "Tq"):
+				tailSuf = "Tq"
+				accessor = "method descriptor for "
+			}
+		}
+		if prefixStr != "" && (tailSuf != "" || prefixStr == structPfx) {
+			typeStart := len(prefixStr)
+			// Type spec: s<n><Name>V (only digit-led form observed).
+			if typeStart+1 < len(p.s) && p.s[typeStart] >= '1' && p.s[typeStart] <= '9' {
+				nLen := 0
+				nPos := typeStart
+				for nPos < len(p.s) && p.s[nPos] >= '0' && p.s[nPos] <= '9' {
+					nLen = nLen*10 + int(p.s[nPos]-'0')
+					nPos++
+				}
+				if nLen > 0 && nPos+nLen+1 < len(p.s) && p.s[nPos+nLen] == 'V' {
+					typeName := p.s[nPos : nPos+nLen]
+					afterType := nPos + nLen + 1
+					expectedEnd := afterType + len(midSuf) + len(tailSuf)
+					if expectedEnd == len(p.s) &&
+						p.s[afterType:afterType+len(midSuf)] == midSuf &&
+						p.s[afterType+len(midSuf):] == tailSuf {
+						p.i = len(p.s)
+						wrap := common.NewNode(common.KindTypeMangling)
+						wrap.Text = accessor + hostFull + ".decode(_: Swift." + typeName + ".Type, forKey: " + keyArg + ") throws -> Swift." + typeName
+						wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
+						return wrap, true
+					}
+				}
+			}
+		}
+	}
 	// Special: `s24UnkeyedEncodingContainer(P|PsE)6encode10contentsOfyqd___tKSTRd__<type>7ElementR(p|t)d__lF(|Tj|Tq)` —
 	// UnkeyedEncodingContainer protocol/extension encode(contentsOf:) with element
 	// conformance (Rp) or same-type (Rt) constraint.
