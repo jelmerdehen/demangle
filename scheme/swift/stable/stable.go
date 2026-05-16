@@ -9146,6 +9146,62 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			}
 		}
 	}
+	// Special: method descriptor 40 Swift stdlib (StringProtocol/FixedWidthInteger/UnkeyedEncodingContainer/Sequence/RangeReplaceableCollection/etc Tq).
+	{
+		variants := []struct {
+			body, result string
+		}{
+			{"SM39withContiguousMutableStorageIfAvailableyqd__Sgqd__Sry7ElementQzGzKXEKlFTq", "method descriptor for Swift.MutableCollection.withContiguousMutableStorageIfAvailable<A>((inout Swift.UnsafeMutableBufferPointer<A.Element>) throws -> A1) throws -> A1?"},
+			{"SM42_withUnsafeMutableBufferPointerIfSupportedyqd__Sgqd__Sry7ElementQzGzKXEKlFTq", "method descriptor for Swift.MutableCollection._withUnsafeMutableBufferPointerIfSupported<A>((inout Swift.UnsafeMutableBufferPointer<A.Element>) throws -> A1) throws -> A1?"},
+			{"SM9partition2by5IndexQzSb7ElementQzKXE_tKFTq", "method descriptor for Swift.MutableCollection.partition(by: (A.Element) throws -> Swift.Bool) throws -> A.Index"},
+			{"ST32withContiguousStorageIfAvailableyqd__Sgqd__SRy7ElementQzGKXEKlFTq", "method descriptor for Swift.Sequence.withContiguousStorageIfAvailable<A>((Swift.UnsafeBufferPointer<A.Element>) throws -> A1) throws -> A1?"},
+			{"SX8relative2toSny5BoundQzGqd___tSlRd__5IndexQyd__ADRSlFTq", "method descriptor for Swift.RangeExpression.relative<A where A1: Swift.Collection, A.Bound == A1.Index>(to: A1) -> Swift.Range<A.Bound>"},
+			{"Sl30_customIndexOfEquatableElementy0B0QzSgSg0E0QzFTq", "method descriptor for Swift.Collection._customIndexOfEquatableElement(A.Element) -> A.Index??"},
+			{"Sl34_customLastIndexOfEquatableElementy0C0QzSgSg0F0QzFTq", "method descriptor for Swift.Collection._customLastIndexOfEquatableElement(A.Element) -> A.Index??"},
+			{"Sm9removeAll5whereySb7ElementQzKXE_tKFTq", "method descriptor for Swift.RangeReplaceableCollection.removeAll(where: (A.Element) throws -> Swift.Bool) throws -> ()"},
+			{"Sm9repeating5countx7ElementQz_SitcfCTq", "method descriptor for Swift.RangeReplaceableCollection.init(repeating: A.Element, count: Swift.Int) -> A"},
+			{"Sy11withCString9encodedAs_qd__qd_0_m_qd__SPy8CodeUnitQyd_0_GKXEtKs16_UnicodeEncodingRd_0_r0_lFTq", "method descriptor for Swift.StringProtocol.withCString<A, B where B1: Swift._UnicodeEncoding>(encodedAs: B1.Type, _: (Swift.UnsafePointer<B1.CodeUnit>) throws -> A1) throws -> A1"},
+			{"Sy11withCStringyqd__qd__SPys4Int8VGKXEKlFTq", "method descriptor for Swift.StringProtocol.withCString<A>((Swift.UnsafePointer<Swift.Int8>) throws -> A1) throws -> A1"},
+			{"Sy8decoding2asxqd___qd_0_mtcSlRd__s16_UnicodeEncodingRd_0_8CodeUnitQyd_0_7ElementRtd__r0_lufCTq", "method descriptor for Swift.StringProtocol.init<A, B where A1: Swift.Collection, B1: Swift._UnicodeEncoding, A1.Element == B1.CodeUnit>(decoding: A1, as: B1.Type) -> A"},
+			{"Sz20quotientAndRemainder10dividingByx0A0_x9remaindertx_tFTq", "method descriptor for Swift.BinaryInteger.quotientAndRemainder(dividingBy: A) -> (quotient: A, remainder: A)"},
+			{"s12_AnyIndexBoxP6_unboxqd__SgySLRd__lFTq", "method descriptor for Swift._AnyIndexBox._unbox<A where A1: Swift.Comparable>() -> A1?"},
+			{"s14_UnicodeParserP11parseScalar4froms0A0O11ParseResultOy_8Encoding_07EncodedD0QZGqd__z_tStRd__AI_8CodeUnitQZ7ElementRtd__lFTq", "method descriptor for Swift._UnicodeParser.parseScalar<A where A1: Swift.IteratorProtocol, A1.Element == A.Encoding.CodeUnit>(from: inout A1) -> Swift.Unicode.ParseResult<A.Encoding.EncodedScalar>"},
+			{"s15_AnyHashableBoxP6_unboxqd__SgySHRd__lFTq", "method descriptor for Swift._AnyHashableBox._unbox<A where A1: Swift.Hashable>() -> A1?"},
+			{"s15_AnySequenceBoxC4_mapySayqd__Gqd__xKXEKlFTq", "method descriptor for Swift._AnySequenceBox._map<A>((A) throws -> A1) throws -> [A1]"},
+			{"s15_AnySequenceBoxC5_drop5whileAByxGSbxKXE_tKFTq", "method descriptor for Swift._AnySequenceBox._drop(while: (A) throws -> Swift.Bool) throws -> Swift._AnySequenceBox<A>"},
+			{"s15_AnySequenceBoxC7_filterySayxGSbxKXEKFTq", "method descriptor for Swift._AnySequenceBox._filter((A) throws -> Swift.Bool) throws -> [A]"},
+			{"s15_AnySequenceBoxC7_prefix5whileSayxGSbxKXE_tKFTq", "method descriptor for Swift._AnySequenceBox._prefix(while: (A) throws -> Swift.Bool) throws -> [A]"},
+			{"s17FixedWidthIntegerP012dividingFullB0yx8quotient_x9remaindertx4high_9MagnitudeQz3lowt_tFTq", "method descriptor for Swift.FixedWidthInteger.dividingFullWidth((high: A, low: A.Magnitude)) -> (quotient: A, remainder: A)"},
+			{"s17FixedWidthIntegerP12littleEndianxx_tcfCTq", "method descriptor for Swift.FixedWidthInteger.init(littleEndian: A) -> A"},
+			{"s17FixedWidthIntegerP9bigEndianxx_tcfCTq", "method descriptor for Swift.FixedWidthInteger.init(bigEndian: A) -> A"},
+			{"s17_AnyCollectionBoxC11_startIndex03endE0AByxGs01_aeC0_p_sAF_ptcfCTq", "method descriptor for Swift._AnyCollectionBox.__allocating_init(_startIndex: Swift._AnyIndexBox, endIndex: Swift._AnyIndexBox) -> Swift._AnyCollectionBox<A>"},
+			{"s17_AnyCollectionBoxC5start3endAByxGs01_a5IndexC0_p_sAF_ptcigTq", "method descriptor for Swift._AnyCollectionBox.subscript.getter : (start: Swift._AnyIndexBox, end: Swift._AnyIndexBox) -> Swift._AnyCollectionBox<A>"},
+			{"s17_AnyCollectionBoxC7_prefix5whileAByxGSbxKXE_tKFTq", "method descriptor for Swift._AnyCollectionBox._prefix(while: (A) throws -> Swift.Bool) throws -> Swift._AnyCollectionBox<A>"},
+			{"s18_HashTableDelegateP9moveEntry4from2toys01_aB0V6BucketV_AItFTq", "method descriptor for Swift._HashTableDelegate.moveEntry(from: Swift._HashTable.Bucket, to: Swift._HashTable.Bucket) -> ()"},
+			{"s19_HasContiguousBytesP010withUnsafeC0yqd__qd__SWKXEKlFTq", "method descriptor for Swift._HasContiguousBytes.withUnsafeBytes<A>((Swift.UnsafeRawBufferPointer) throws -> A1) throws -> A1"},
+			{"s24UnkeyedEncodingContainerP17encodeConditionalyyqd__KRld__CSERd__lFTq", "method descriptor for Swift.UnkeyedEncodingContainer.encodeConditional<A where A1: AnyObject, A1: Swift.Encodable>(A1) throws -> ()"},
+			{"s25ExpressibleByArrayLiteralP05arrayD0x0cD7ElementQzd_tcfCTq", "method descriptor for Swift.ExpressibleByArrayLiteral.init(arrayLiteral: A.ArrayLiteralElement...) -> A"},
+			{"s25ExpressibleByFloatLiteralP05floatD0x0cD4TypeQz_tcfCTq", "method descriptor for Swift.ExpressibleByFloatLiteral.init(floatLiteral: A.FloatLiteralType) -> A"},
+			{"s26ExpressibleByStringLiteralP06stringD0x0cD4TypeQz_tcfCTq", "method descriptor for Swift.ExpressibleByStringLiteral.init(stringLiteral: A.StringLiteralType) -> A"},
+			{"s27ExpressibleByBooleanLiteralP07booleanD0x0cD4TypeQz_tcfCTq", "method descriptor for Swift.ExpressibleByBooleanLiteral.init(booleanLiteral: A.BooleanLiteralType) -> A"},
+			{"s27ExpressibleByIntegerLiteralP07integerD0x0cD4TypeQz_tcfCTq", "method descriptor for Swift.ExpressibleByIntegerLiteral.init(integerLiteral: A.IntegerLiteralType) -> A"},
+			{"s30ExpressibleByDictionaryLiteralP010dictionaryD0x3KeyQz_5ValueQztd_tcfCTq", "method descriptor for Swift.ExpressibleByDictionaryLiteral.init(dictionaryLiteral: (A.Key, A.Value)...) -> A"},
+			{"s30KeyedEncodingContainerProtocolP17encodeConditional_6forKeyyqd___0H0QztKRld__CSERd__lFTq", "method descriptor for Swift.KeyedEncodingContainerProtocol.encodeConditional<A where A1: AnyObject, A1: Swift.Encodable>(_: A1, forKey: A.Key) throws -> ()"},
+			{"s32ExpressibleByStringInterpolationP06stringD0x0cD0Qz_tcfCTq", "method descriptor for Swift.ExpressibleByStringInterpolation.init(stringInterpolation: A.StringInterpolation) -> A"},
+			{"s33ExpressibleByUnicodeScalarLiteralP07unicodedE0x0cdE4TypeQz_tcfCTq", "method descriptor for Swift.ExpressibleByUnicodeScalarLiteral.init(unicodeScalarLiteral: A.UnicodeScalarLiteralType) -> A"},
+			{"s43ExpressibleByExtendedGraphemeClusterLiteralP08extendeddeF0x0cdeF4TypeQz_tcfCTq", "method descriptor for Swift.ExpressibleByExtendedGraphemeClusterLiteral.init(extendedGraphemeClusterLiteral: A.ExtendedGraphemeClusterLiteralType) -> A"},
+			{"s9OptionSetP8rawValuex03RawD0Qz_tcfCTq", "method descriptor for Swift.OptionSet.init(rawValue: A.RawValue) -> A"},
+		}
+		for _, v := range variants {
+			if p.s == v.body {
+				p.i = len(p.s)
+				wrap := common.NewNode(common.KindTypeMangling)
+				wrap.Text = v.result
+				wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
+				return wrap, true
+			}
+		}
+	}
 	// Special: dispatch thunk 15 Swift stdlib (ExpressibleBy* + Collection/BinaryInteger/_HashTable/_HasContiguousBytes/KeyedEncoding).
 	{
 		variants := []struct {
