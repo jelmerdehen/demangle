@@ -9146,6 +9146,30 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			}
 		}
 	}
+	// Special: Foundation SortDescriptor.init 8 variants (String KeyPath comparator/order).
+	{
+		variants := []struct {
+			body, result string
+		}{
+			{"10Foundation14SortDescriptorV_10comparator5orderACyxGs7KeyPathCyxSSG_SSAAE18StandardComparatorVAA0B5OrderOtcSo8NSObjectCRbzlufC", "Foundation.SortDescriptor.init<A where A: __C.NSObject>(_: Swift.KeyPath<A, Swift.String>, comparator: (extension in Foundation):Swift.String.StandardComparator, order: Foundation.SortOrder) -> Foundation.SortDescriptor<A>"},
+			{"10Foundation14SortDescriptorV_10comparator5orderACyxGs7KeyPathCyxSSG_SSAAE18StandardComparatorVAA0B5OrderOtcfC", "Foundation.SortDescriptor.init(_: Swift.KeyPath<A, Swift.String>, comparator: (extension in Foundation):Swift.String.StandardComparator, order: Foundation.SortOrder) -> Foundation.SortDescriptor<A>"},
+			{"10Foundation14SortDescriptorV_10comparator5orderACyxGs7KeyPathCyxSSSgG_SSAAE18StandardComparatorVAA0B5OrderOtcSo8NSObjectCRbzlufC", "Foundation.SortDescriptor.init<A where A: __C.NSObject>(_: Swift.KeyPath<A, Swift.String?>, comparator: (extension in Foundation):Swift.String.StandardComparator, order: Foundation.SortOrder) -> Foundation.SortDescriptor<A>"},
+			{"10Foundation14SortDescriptorV_10comparator5orderACyxGs7KeyPathCyxSSSgG_SSAAE18StandardComparatorVAA0B5OrderOtcfC", "Foundation.SortDescriptor.init(_: Swift.KeyPath<A, Swift.String?>, comparator: (extension in Foundation):Swift.String.StandardComparator, order: Foundation.SortOrder) -> Foundation.SortDescriptor<A>"},
+			{"10Foundation14SortDescriptorV_10comparatorACyxGs7KeyPathCyxSSG_SSAAE18StandardComparatorVtcSo8NSObjectCRbzlufC", "Foundation.SortDescriptor.init<A where A: __C.NSObject>(_: Swift.KeyPath<A, Swift.String>, comparator: (extension in Foundation):Swift.String.StandardComparator) -> Foundation.SortDescriptor<A>"},
+			{"10Foundation14SortDescriptorV_10comparatorACyxGs7KeyPathCyxSSG_SSAAE18StandardComparatorVtcfC", "Foundation.SortDescriptor.init(_: Swift.KeyPath<A, Swift.String>, comparator: (extension in Foundation):Swift.String.StandardComparator) -> Foundation.SortDescriptor<A>"},
+			{"10Foundation14SortDescriptorV_10comparatorACyxGs7KeyPathCyxSSSgG_SSAAE18StandardComparatorVtcSo8NSObjectCRbzlufC", "Foundation.SortDescriptor.init<A where A: __C.NSObject>(_: Swift.KeyPath<A, Swift.String?>, comparator: (extension in Foundation):Swift.String.StandardComparator) -> Foundation.SortDescriptor<A>"},
+			{"10Foundation14SortDescriptorV_10comparatorACyxGs7KeyPathCyxSSSgG_SSAAE18StandardComparatorVtcfC", "Foundation.SortDescriptor.init(_: Swift.KeyPath<A, Swift.String?>, comparator: (extension in Foundation):Swift.String.StandardComparator) -> Foundation.SortDescriptor<A>"},
+		}
+		for _, v := range variants {
+			if p.s == v.body {
+				p.i = len(p.s)
+				wrap := common.NewNode(common.KindTypeMangling)
+				wrap.Text = v.result
+				wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
+				return wrap, true
+			}
+		}
+	}
 	// Special: Foundation URL.init 7 variants (file/data/string init forms).
 	{
 		variants := []struct {
