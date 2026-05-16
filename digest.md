@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 95.55% (60920/63757) — 2026-05-16T17:21:18Z
+**Parity**: 95.57% (60930/63757) — 2026-05-16T17:25:18Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 133 parse-errors + 2704 mismatches
+**Failures**: 123 parse-errors + 2704 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- 8ab4c69f swift-parity: CFP Measurement double-constraint nested AAMc conformance short form — parity 95.55%->95.57% (+10 production +10 roundtrip)
+- 3144eb4d chore: lock snapshot after CFO commit (parity 60918->60920)
+- d98a54a4 chore: update digest.md for CFO commit (parity 95.55%->95.55% +2)
 - 3d8cb03e swift-parity: CFO Measurement-NSDimension with AA-word-sub proto FormatStyle — parity 95.55%->95.55% (+2 production +0 roundtrip)
 - aad4ac1f chore: lock snapshot after CFN commit (parity 60906->60918)
 - 62aa0466 chore: update digest.md for CFN commit (parity 95.53%->95.55% +12)
@@ -36,9 +39,6 @@
 - d6315dff chore: lock snapshot after CFM commit (parity 60904->60906)
 - b24064c2 chore: update digest.md for CFM commit (parity 95.52%->95.53% +2)
 - 6d2da969 swift-parity: CFM AcdC bound-gen suffix on last nested segment — parity 95.52%->95.53% (+2 production +0 roundtrip)
-- 198377d0 chore: lock snapshot after CFL commit (parity 60896->60904)
-- 4afa92cc chore: update digest.md for CFL commit (parity 95.51%->95.52% +8)
-- 015679de swift-parity: CFL ObjC-typealias AcdC compact-substitution conformance — parity 95.51%->95.52% (+8 production +0 roundtrip)
 
 ## Suggested Next 3 Items
 
