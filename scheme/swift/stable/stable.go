@@ -8794,6 +8794,56 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			}
 		}
 	}
+	// Special: `s<n><name>VyxG<n>Foundation<n><ProtoName>A2dERzrl(Mc|WP)` —
+	// Swift-module type (Slice etc) with subject-A: Foundation.<ProtoName>
+	// constraint. Apple short-form: `< where A: Foundation.<ProtoName>>
+	// Swift.<name><A> : Foundation.<ProtoName> in Foundation`.
+	if len(p.s) >= 25 && p.s[0] == 's' && p.s[1] >= '1' && p.s[1] <= '9' {
+		suf := "A2dERzrl"
+		sufLen := len(suf)
+		if len(p.s) >= sufLen+2 &&
+			p.s[len(p.s)-2-sufLen:len(p.s)-2] == suf &&
+			(p.s[len(p.s)-2:] == "Mc" || p.s[len(p.s)-2:] == "WP") {
+			probeI := 1
+			nLen := 0
+			nPos := probeI
+			for nPos < len(p.s) && p.s[nPos] >= '0' && p.s[nPos] <= '9' {
+				nLen = nLen*10 + int(p.s[nPos]-'0')
+				nPos++
+			}
+			if nLen > 0 && nPos+nLen+4 < len(p.s) && p.s[nPos+nLen] == 'V' &&
+				p.s[nPos+nLen+1] == 'y' && p.s[nPos+nLen+2] == 'x' &&
+				p.s[nPos+nLen+3] == 'G' {
+				hostName := p.s[nPos : nPos+nLen]
+				probeI = nPos + nLen + 4
+				end := len(p.s) - 2 - sufLen
+				if probeI+12 < end && p.s[probeI:probeI+12] == "10Foundation" {
+					probeI += 12
+					if p.s[probeI] >= '1' && p.s[probeI] <= '9' {
+						plen := 0
+						pStart := probeI
+						for pStart < end && p.s[pStart] >= '0' && p.s[pStart] <= '9' {
+							plen = plen*10 + int(p.s[pStart]-'0')
+							pStart++
+						}
+						if plen > 0 && pStart+plen == end {
+							protoName := p.s[pStart : pStart+plen]
+							prefix := "protocol conformance descriptor for "
+							if p.s[len(p.s)-2:] == "WP" {
+								prefix = "protocol witness table for "
+							}
+							p.i = len(p.s)
+							wrap := common.NewNode(common.KindTypeMangling)
+							wrap.Text = prefix + "< where A: Foundation." + protoName + "> Swift." + hostName + "<A>" +
+								" : Foundation." + protoName + " in Foundation"
+							wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
+							return wrap, true
+						}
+					}
+				}
+			}
+		}
+	}
 	// Special: `(SayxG|xSg)<n>Foundation<n><ProtoName>A2bCRzl(Mc|WP)` —
 	// Array<A> or Optional<A> conforming to Foundation proto with subject-A
 	// constraint. Apple short-form: `<A where A: Foundation.<ProtoName>>
