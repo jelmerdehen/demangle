@@ -8715,6 +8715,32 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			}
 		}
 	}
+	// Special: Foundation NSAttributedString extension init<A>(_:including:) with
+	// AttributeScope constraint. Two `including:` variants:
+	//   KeyPath: `...V_s7KeyPathCyAC15AttributeScopesOxmGtKcAC0H5ScopeRzluf(C|c)`
+	//   A.Type:  `...V_xmtKcAC14AttributeScopeRzluf(C|c)`
+	{
+		pfx := "So18NSAttributedStringC10FoundationE_9includingAbC010AttributedB0V_"
+		if len(p.s) >= len(pfx)+10 && p.s[:len(pfx)] == pfx &&
+			(strings.HasSuffix(p.s, "fC") || strings.HasSuffix(p.s, "fc")) {
+			rest := p.s[len(pfx):]
+			var includingType string
+			var sufA = "s7KeyPathCyAC15AttributeScopesOxmGtKcAC0H5ScopeRzluf"
+			var sufB = "xmtKcAC14AttributeScopeRzluf"
+			if strings.HasPrefix(rest, sufA) && len(rest) == len(sufA)+1 {
+				includingType = "Swift.KeyPath<Foundation.AttributeScopes, A.Type>"
+			} else if strings.HasPrefix(rest, sufB) && len(rest) == len(sufB)+1 {
+				includingType = "A.Type"
+			}
+			if includingType != "" {
+				p.i = len(p.s)
+				wrap := common.NewNode(common.KindTypeMangling)
+				wrap.Text = "(extension in Foundation):__C.NSAttributedString.init<A where A: Foundation.AttributeScope>(_: Foundation.AttributedString, including: " + includingType + ") throws -> __C.NSAttributedString"
+				wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
+				return wrap, true
+			}
+		}
+	}
 	// Special: Foundation NSSortDescriptor extension init<A>(Foundation.SortDescriptor<A>).
 	// Two forms (allocating fC / non-allocating fc), each with/without `where A: __C.NSObject`.
 	// Pattern: `So16NSSortDescriptorC10FoundationEyAbC04SortB0VyxGc[So8NSObjectCRbz]?luf(C|c)`
