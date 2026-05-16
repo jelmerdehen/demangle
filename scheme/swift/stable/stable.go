@@ -8710,6 +8710,59 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			}
 		}
 	}
+	// Special: `<mod>V<n><name>V[<n><name>V]*AadA(Mc|WP)` —
+	// Foundation-internal compact-substitution conformance descriptor
+	// where the protocol = second segment after the module.
+	// Apple's short-form is `protocol conformance descriptor for
+	// <Mod>.<host-chain> : <Mod>.<chain[1]> in <Mod>`.
+	if (p.s[len(p.s)-6:] == "AadAMc" || p.s[len(p.s)-6:] == "AadAWP") &&
+		p.i < len(p.s) && p.s[p.i] >= '1' && p.s[p.i] <= '9' {
+		probeI := p.i
+		modLen := 0
+		modPos := probeI
+		for modPos < len(p.s) && p.s[modPos] >= '0' && p.s[modPos] <= '9' {
+			modLen = modLen*10 + int(p.s[modPos]-'0')
+			modPos++
+		}
+		if modLen > 0 && modPos+modLen < len(p.s) {
+			modName := p.s[modPos : modPos+modLen]
+			probeI = modPos + modLen
+			// Walk nested chain: <digit><name>V/C/O/P repeated.
+			nested := []string{}
+			for probeI < len(p.s)-6 && p.s[probeI] >= '1' && p.s[probeI] <= '9' {
+				nlen := 0
+				nstart := probeI
+				for nstart < len(p.s) && p.s[nstart] >= '0' && p.s[nstart] <= '9' {
+					nlen = nlen*10 + int(p.s[nstart]-'0')
+					nstart++
+				}
+				if nlen <= 0 || nstart+nlen >= len(p.s) {
+					break
+				}
+				nname := p.s[nstart : nstart+nlen]
+				nk := p.s[nstart+nlen]
+				if nk != 'V' && nk != 'C' && nk != 'O' && nk != 'P' {
+					break
+				}
+				nested = append(nested, nname)
+				probeI = nstart + nlen + 1
+			}
+			// At this point we should be exactly 6 chars before end (AadAMc/WP).
+			if probeI == len(p.s)-6 && len(nested) >= 2 {
+				prefix := "protocol conformance descriptor for "
+				if p.s[len(p.s)-2:] == "WP" {
+					prefix = "protocol witness table for "
+				}
+				hostFull := modName + "." + strings.Join(nested, ".")
+				protoName := modName + "." + nested[1]
+				p.i = len(p.s)
+				wrap := common.NewNode(common.KindTypeMangling)
+				wrap.Text = prefix + hostFull + " : " + protoName + " in " + modName
+				wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
+				return wrap, true
+			}
+		}
+	}
 	// ObjC host: So<n><name>C
 	if p.i+1 < len(p.s) && p.s[p.i] == 'S' && p.s[p.i+1] == 'o' {
 		p.i += 2
