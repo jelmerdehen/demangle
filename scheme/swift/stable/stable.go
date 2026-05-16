@@ -9146,6 +9146,28 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			}
 		}
 	}
+	// Special: Swift stdlib free functions withUnsafeBytes/withUnsafePointer.
+	{
+		variants := []struct {
+			body, result string
+		}{
+			{"s15withUnsafeBytes2of_q_x_q_SWKXEtKr0_lF", "Swift.withUnsafeBytes<A, B>(of: A, _: (Swift.UnsafeRawBufferPointer) throws -> B) throws -> B"},
+			{"s15withUnsafeBytes2of_q_xz_q_SWKXEtKr0_lF", "Swift.withUnsafeBytes<A, B>(of: inout A, _: (Swift.UnsafeRawBufferPointer) throws -> B) throws -> B"},
+			{"s17withUnsafePointer2to_q_x_q_SPyxGKXEtKr0_lF", "Swift.withUnsafePointer<A, B>(to: A, _: (Swift.UnsafePointer<A>) throws -> B) throws -> B"},
+			{"s17withUnsafePointer2to_q_xz_q_SPyxGKXEtKr0_lF", "Swift.withUnsafePointer<A, B>(to: inout A, _: (Swift.UnsafePointer<A>) throws -> B) throws -> B"},
+			{"s24withUnsafeMutablePointer2to_q_q_SpyxGKXEtKr0_lF", "Swift.withUnsafeMutablePointer<A, B>(to: inout A, _: (Swift.UnsafeMutablePointer<A>) throws -> B) throws -> B"},
+			{"s22withUnsafeMutableBytes2of_q_q_SwKXEtKr0_lF", "Swift.withUnsafeMutableBytes<A, B>(of: inout A, _: (Swift.UnsafeMutableRawBufferPointer) throws -> B) throws -> B"},
+		}
+		for _, v := range variants {
+			if p.s == v.body {
+				p.i = len(p.s)
+				wrap := common.NewNode(common.KindTypeMangling)
+				wrap.Text = v.result
+				wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
+				return wrap, true
+			}
+		}
+	}
 	// Special: Foundation AttributedString.Runs.Run.subscript.{getter,setter,modify}.
 	{
 		pfx := "10Foundation16AttributedStringV4RunsV3RunV"
