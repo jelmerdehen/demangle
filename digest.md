@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 97.01% (61851/63757) — 2026-05-16T23:38:46Z
+**Parity**: 97.05% (61877/63757) — 2026-05-16T23:41:44Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 93 parse-errors + 1813 mismatches
+**Failures**: 93 parse-errors + 1787 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- 28619a83 swift-parity: CJC 26 Foundation NS* free fns + StringEncoding global getters — parity 97.01%->97.05% (+26 production +0 roundtrip)
+- edca628b chore: lock snapshot after CJB commit (parity 61836->61851 roundtrip 21309->21309)
+- 5501f969 chore: update digest.md for CJB commit (parity 96.99%->97.01% +15)
 - a725686c swift-parity: CJB 15 Foundation URL/URLRequest/URLQueryItem/URLResourceValues/UUID/_TimeZoneGMT/TimeZone — parity 96.99%->97.01% (+15 production +0 roundtrip)
 - d36e7d81 chore: lock snapshot after CJA commit (parity 61809->61836 roundtrip 21309->21309)
 - 5fb1a3ea chore: update digest.md for CJA commit (parity 96.94%->96.99% +27)
@@ -36,9 +39,6 @@
 - 18923998 chore: lock snapshot after CIZ commit (parity 61767->61809 roundtrip 21309->21309)
 - a928c56a chore: update digest.md for CIZ commit (parity 96.88%->96.94% +42)
 - c4af4a73 swift-parity: CIZ 42 Foundation 2-sym buckets (__DataStorage/Data.withUnsafe/Date.init/Date.FormatStyle.Attributed/DateInterval/Locale.Language/PersonNameComponents/PredicateExpressions/URL.Template) — parity 96.88%->96.94% (+42 production +0 roundtrip)
-- dfb3503d chore: lock snapshot after CIY commit (parity 61734->61767 roundtrip 21309->21309)
-- 6c4ea4d0 chore: update digest.md for CIY commit (parity 96.83%->96.88% +33)
-- 3ada6b4f swift-parity: CIY 34 Swift free fns (sequence/print/Mirror/isKnownUniquelyReferenced/AnyRandomAccessCollection/AnyBidirectionalCollection/_stdlib_atomic) — parity 96.83%->96.88% (+33 production +0 roundtrip)
 
 ## Suggested Next 3 Items
 
