@@ -9050,11 +9050,20 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			}
 		}
 	}
-	// Special: Foundation AttributeDynamicLookup.subscript.getter (Enum kind O).
+	// Special: Foundation AttributeDynamicLookup.subscript.getter or property descriptor (Enum kind O).
 	{
 		pfx := "10Foundation22AttributeDynamicLookupO"
-		if len(p.s) > len(pfx)+5 && p.s[:len(pfx)] == pfx && strings.HasSuffix(p.s, "ig") {
-			middle := p.s[len(pfx) : len(p.s)-2]
+		if len(p.s) > len(pfx)+5 && p.s[:len(pfx)] == pfx {
+			rest := p.s[len(pfx):]
+			var accessor, accessorPrefix, middle string
+			switch {
+			case strings.HasSuffix(rest, "ipMV"):
+				accessorPrefix = "property descriptor for "
+				middle = rest[:len(rest)-4]
+			case strings.HasSuffix(rest, "ig"):
+				accessor = "getter"
+				middle = rest[:len(rest)-2]
+			}
 			var sig string
 			switch middle {
 			case "13dynamicMemberxs7KeyPathCyAA0B6ScopesO0A10AttributesV012NumberFormatJ0VxG_tcAA016AttributedStringG0Rzlu":
@@ -9066,10 +9075,14 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			case "yxxmcAA19AttributedStringKeyRzlu":
 				sig = "<A where A: Foundation.AttributedStringKey>(A.Type) -> A"
 			}
-			if sig != "" {
+			if sig != "" && (accessor != "" || accessorPrefix != "") {
 				p.i = len(p.s)
 				wrap := common.NewNode(common.KindTypeMangling)
-				wrap.Text = "Foundation.AttributeDynamicLookup.subscript.getter : " + sig
+				if accessor != "" {
+					wrap.Text = "Foundation.AttributeDynamicLookup.subscript.getter : " + sig
+				} else {
+					wrap.Text = accessorPrefix + "Foundation.AttributeDynamicLookup.subscript" + sig
+				}
 				wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
 				return wrap, true
 			}
