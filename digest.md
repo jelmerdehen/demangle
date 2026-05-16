@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 95.66% (60987/63757) — 2026-05-16T17:38:04Z
+**Parity**: 95.66% (60989/63757) — 2026-05-16T17:41:33Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 123 parse-errors + 2647 mismatches
+**Failures**: 121 parse-errors + 2647 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- 43a1d132 swift-parity: CFS Foundation type ext NSNotificationCenter AAMc proto — parity 95.66%->95.66% (+2 production +2 roundtrip)
+- b2e9c6bd chore: lock snapshot after CFR commit (parity 60984->60987)
+- 85308902 chore: update digest.md for CFR commit (parity 95.65%->95.66% +3)
 - 2b2d3d43 swift-parity: CFR Combine.Publisher ACMc word-sub proto for ObjC ext — parity 95.65%->95.66% (+3 production +0 roundtrip)
 - 12f92f43 chore: lock snapshot after CFQ commit (parity 60930->60984)
 - adf42db8 chore: update digest.md for CFQ commit (parity 95.57%->95.65% +54)
@@ -36,9 +39,6 @@
 - 8b44ab1d chore: lock snapshot after CFP commit (parity 60920->60930 roundtrip 21272->21282)
 - ce1d1f28 chore: update digest.md for CFP commit (parity 95.55%->95.57% +10)
 - 8ab4c69f swift-parity: CFP Measurement double-constraint nested AAMc conformance short form — parity 95.55%->95.57% (+10 production +10 roundtrip)
-- 3144eb4d chore: lock snapshot after CFO commit (parity 60918->60920)
-- d98a54a4 chore: update digest.md for CFO commit (parity 95.55%->95.55% +2)
-- 3d8cb03e swift-parity: CFO Measurement-NSDimension with AA-word-sub proto FormatStyle — parity 95.55%->95.55% (+2 production +0 roundtrip)
 
 ## Suggested Next 3 Items
 
