@@ -1140,6 +1140,23 @@ Tried: count `_` separator after `S<lowercase>` (Sg/Sf/Sa/Sd/Si/Sb/Sh/SS).
 Result: -7 parity. Stdlib type suffix occurs in result-type position too.
 Multi-fire — needs structural args/result distinction.
 
+## oracle-restored-2026-05-16
+
+`ssh claude@kodo xcrun swift-demangle` is back online (user confirmed
+2026-05-16). Oracle-blocked deferred-1 entries become actionable
+again — pick them in future fires:
+- defer-cer-word-capture-acronym-end (4 syms): needs Apple word-array
+  ground-truth via `--tree-only` to confirm split algorithm.
+- defer-ceo-foundation-swift-full-form-renderer (~1500 syms): Phase A
+  verbose-type renderer scaffold — diff our output against plain
+  swift-demangle (no `--simplified`) to validate per-bucket.
+- defer-cep / defer-ceq fn-arg-overcount: probe with `--tree-only`
+  to see Apple's tryFunctionEntity structural decomposition.
+
+CES (this fire) used a non-oracle fix (word-sub nested-host loop in
+fast-path constraint scanner). Next fires can either continue
+non-oracle pickings or open the oracle-gated ones.
+
 ## plateau-2026-05-15T20:50Z [SOS] perpetual-99 ratchet stalled at 95.36%
 
 **Status:** parity 60797/63757 (95.36%). 5 consecutive zero-gain fires
