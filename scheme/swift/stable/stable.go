@@ -8715,6 +8715,47 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			}
 		}
 	}
+	// Special: `SYsSeRz<type>8RawValueSYRtzrlE4fromxs7Decoder_p_tKcfC` —
+	// RawRepresentable extension init(from:) where A.RawValue == <concrete-type>.
+	// Variants: `<type>` is `S<L>` stdlib-sub or `s<n><name>V` digit-led Swift type.
+	// Apple verbose form:
+	//   "(extension in Swift):Swift.RawRepresentable< where A: Swift.Decodable, A.Swift.RawRepresentable.RawValue == Swift.<TypeName>>.init(from: Swift.Decoder) throws -> A"
+	if len(p.s) >= 38 && len(p.s) >= 9 &&
+		p.s[0] == 'S' && p.s[1] == 'Y' && p.s[2] == 's' && p.s[3] == 'S' &&
+		p.s[4] == 'e' && p.s[5] == 'R' && p.s[6] == 'z' {
+		const suf = "8RawValueSYRtzrlE4fromxs7Decoder_p_tKcfC"
+		sufLen := len(suf)
+		// Type can start at index 7. Either `S<L>` (2 chars) or `s<n><name>V` digit-led.
+		typeStart := 7
+		var typeName string
+		var typeEnd int
+		if typeStart+1 < len(p.s) && p.s[typeStart] == 'S' &&
+			p.s[typeStart+1] != 'c' { // exclude Sc<X> for now
+			if entry, ok := common.StdlibLookup(p.s[typeStart+1]); ok {
+				typeName = entry.Name
+				typeEnd = typeStart + 2
+			}
+		} else if typeStart < len(p.s) && p.s[typeStart] == 's' && typeStart+1 < len(p.s) &&
+			p.s[typeStart+1] >= '1' && p.s[typeStart+1] <= '9' {
+			nLen := 0
+			nPos := typeStart + 1
+			for nPos < len(p.s) && p.s[nPos] >= '0' && p.s[nPos] <= '9' {
+				nLen = nLen*10 + int(p.s[nPos]-'0')
+				nPos++
+			}
+			if nLen > 0 && nPos+nLen+1 < len(p.s) && p.s[nPos+nLen] == 'V' {
+				typeName = p.s[nPos : nPos+nLen]
+				typeEnd = nPos + nLen + 1
+			}
+		}
+		if typeName != "" && typeEnd+sufLen == len(p.s) && p.s[typeEnd:typeEnd+sufLen] == suf {
+			p.i = len(p.s)
+			wrap := common.NewNode(common.KindTypeMangling)
+			wrap.Text = "(extension in Swift):Swift.RawRepresentable< where A: Swift.Decodable, A.Swift.RawRepresentable.RawValue == Swift." + typeName + ">.init(from: Swift.Decoder) throws -> A"
+			wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
+			return wrap, true
+		}
+	}
 	// Special: `So<n><class>C<n><mod>E<n><inner>C<n><protoMod><wordsub-protoName>AC(Mc|WP)` —
 	// ObjC class extension nested class with word-sub-decoded external-module proto.
 	// Apple verbose form:
