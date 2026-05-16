@@ -6,6 +6,35 @@ fast loop fires — avoids re-deriving path/cause each fire. Bounded
 
 ## Active targets
 
+### bound-gen-depth-tracking-zero-impact [infra, deferred-1]
+
+Fast-path bound-gen placement at line 9784 always attaches `<A>`
+to host. Apple's mangling encodes depth via leading `_` chars in
+`y<args>G`:
+- `yx_G` (no `_`) → bound-gen on host (depth 0)
+- `y_xG` (1 `_`) → bound-gen on nestedNames[0] (depth 1)
+- `y__xq_G` (2 `_`) → bound-gen on nestedNames[1] (depth 2)
+
+Prototyped: track `fpBoundGenDepth` from leading `_` count and
+attach boundGenSig to `parts[depth-1]` when depth > 0.
+
+Verified correctness:
+- Combine.Published<A>.Publisher (depth 0) → preserved
+- UIView.Invalidations.Tuple<A, B> (depth 2 via CFC branch, not main fast-path) → preserved
+- NSDecimal.ParseStrategy<A> (depth 1) → output matches short form
+
+Zero parity impact on current corpus: depth-1+ cases (NSDecimal
+ParseStrategy etc.) want FULL Foundation form not short form;
+depth-0 case (Published) already passes with old behavior.
+
+Fire-plan (multi-fire): land depth-tracking as prep work for
+Foundation-full-form rendering. Once full-form land, the
+short-form correctness becomes load-bearing for the inner type
+path computation.
+
+Reason for deferral: zero-immediate-parity, blocked on Foundation-
+full-form bucket (separate multi-fire).
+
 ### closure-arg-tuple-overcount-in-fastpath [~12 syms, deferred-1]
 
 Pattern: function with single closure arg has its inner tuple
