@@ -8733,6 +8733,56 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			}
 		}
 	}
+	// Special: `s<n><name>VyxG<n>Foundation<n><ProtoName>ADs5UInt8VRszl(Mc|WP)` —
+	// Swift-module stdlib type (s<n><name>V) with UInt8 same-type
+	// constraint conforming to Foundation proto. Apple short-form:
+	// `<A where A == Swift.UInt8> Swift.<name><A> : Foundation.<ProtoName> in Foundation`.
+	if len(p.s) >= 25 && p.s[0] == 's' && p.s[1] >= '1' && p.s[1] <= '9' {
+		suf := "ADs5UInt8VRszl"
+		sufLen := len(suf)
+		if len(p.s) >= sufLen+2 &&
+			p.s[len(p.s)-2-sufLen:len(p.s)-2] == suf &&
+			(p.s[len(p.s)-2:] == "Mc" || p.s[len(p.s)-2:] == "WP") {
+			probeI := 1
+			nLen := 0
+			nPos := probeI
+			for nPos < len(p.s) && p.s[nPos] >= '0' && p.s[nPos] <= '9' {
+				nLen = nLen*10 + int(p.s[nPos]-'0')
+				nPos++
+			}
+			if nLen > 0 && nPos+nLen+4 < len(p.s) && p.s[nPos+nLen] == 'V' &&
+				p.s[nPos+nLen+1] == 'y' && p.s[nPos+nLen+2] == 'x' &&
+				p.s[nPos+nLen+3] == 'G' {
+				hostName := p.s[nPos : nPos+nLen]
+				probeI = nPos + nLen + 4
+				end := len(p.s) - 2 - sufLen
+				if probeI+12 < end && p.s[probeI:probeI+12] == "10Foundation" {
+					probeI += 12
+					if p.s[probeI] >= '1' && p.s[probeI] <= '9' {
+						plen := 0
+						pStart := probeI
+						for pStart < end && p.s[pStart] >= '0' && p.s[pStart] <= '9' {
+							plen = plen*10 + int(p.s[pStart]-'0')
+							pStart++
+						}
+						if plen > 0 && pStart+plen == end {
+							protoName := p.s[pStart : pStart+plen]
+							prefix := "protocol conformance descriptor for "
+							if p.s[len(p.s)-2:] == "WP" {
+								prefix = "protocol witness table for "
+							}
+							p.i = len(p.s)
+							wrap := common.NewNode(common.KindTypeMangling)
+							wrap.Text = prefix + "<A where A == Swift.UInt8> Swift." + hostName + "<A>" +
+								" : Foundation." + protoName + " in Foundation"
+							wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
+							return wrap, true
+						}
+					}
+				}
+			}
+		}
+	}
 	// Special: `S<letter>yxG<n>Foundation<n><ProtoName>ABs5UInt8VRszl(Mc|WP)` —
 	// Stdlib bound-generic type (SR/Sa/Sr) with same-type-equals-UInt8 constraint
 	// conforming to Foundation proto. Apple short-form:
