@@ -9146,6 +9146,37 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			}
 		}
 	}
+	// Special: dispatch thunk 15 Swift stdlib (ExpressibleBy* + Collection/BinaryInteger/_HashTable/_HasContiguousBytes/KeyedEncoding).
+	{
+		variants := []struct {
+			body, result string
+		}{
+			{"Sl30_customIndexOfEquatableElementy0B0QzSgSg0E0QzFTj", "dispatch thunk of Swift.Collection._customIndexOfEquatableElement(A.Element) -> A.Index??"},
+			{"Sl34_customLastIndexOfEquatableElementy0C0QzSgSg0F0QzFTj", "dispatch thunk of Swift.Collection._customLastIndexOfEquatableElement(A.Element) -> A.Index??"},
+			{"Sz20quotientAndRemainder10dividingByx0A0_x9remaindertx_tFTj", "dispatch thunk of Swift.BinaryInteger.quotientAndRemainder(dividingBy: A) -> (quotient: A, remainder: A)"},
+			{"s18_HashTableDelegateP9moveEntry4from2toys01_aB0V6BucketV_AItFTj", "dispatch thunk of Swift._HashTableDelegate.moveEntry(from: Swift._HashTable.Bucket, to: Swift._HashTable.Bucket) -> ()"},
+			{"s19_HasContiguousBytesP010withUnsafeC0yqd__qd__SWKXEKlFTj", "dispatch thunk of Swift._HasContiguousBytes.withUnsafeBytes<A>((Swift.UnsafeRawBufferPointer) throws -> A1) throws -> A1"},
+			{"s25ExpressibleByArrayLiteralP05arrayD0x0cD7ElementQzd_tcfCTj", "dispatch thunk of Swift.ExpressibleByArrayLiteral.init(arrayLiteral: A.ArrayLiteralElement...) -> A"},
+			{"s25ExpressibleByFloatLiteralP05floatD0x0cD4TypeQz_tcfCTj", "dispatch thunk of Swift.ExpressibleByFloatLiteral.init(floatLiteral: A.FloatLiteralType) -> A"},
+			{"s26ExpressibleByStringLiteralP06stringD0x0cD4TypeQz_tcfCTj", "dispatch thunk of Swift.ExpressibleByStringLiteral.init(stringLiteral: A.StringLiteralType) -> A"},
+			{"s27ExpressibleByBooleanLiteralP07booleanD0x0cD4TypeQz_tcfCTj", "dispatch thunk of Swift.ExpressibleByBooleanLiteral.init(booleanLiteral: A.BooleanLiteralType) -> A"},
+			{"s27ExpressibleByIntegerLiteralP07integerD0x0cD4TypeQz_tcfCTj", "dispatch thunk of Swift.ExpressibleByIntegerLiteral.init(integerLiteral: A.IntegerLiteralType) -> A"},
+			{"s30ExpressibleByDictionaryLiteralP010dictionaryD0x3KeyQz_5ValueQztd_tcfCTj", "dispatch thunk of Swift.ExpressibleByDictionaryLiteral.init(dictionaryLiteral: (A.Key, A.Value)...) -> A"},
+			{"s30KeyedEncodingContainerProtocolP17encodeConditional_6forKeyyqd___0H0QztKRld__CSERd__lFTj", "dispatch thunk of Swift.KeyedEncodingContainerProtocol.encodeConditional<A where A1: AnyObject, A1: Swift.Encodable>(_: A1, forKey: A.Key) throws -> ()"},
+			{"s32ExpressibleByStringInterpolationP06stringD0x0cD0Qz_tcfCTj", "dispatch thunk of Swift.ExpressibleByStringInterpolation.init(stringInterpolation: A.StringInterpolation) -> A"},
+			{"s33ExpressibleByUnicodeScalarLiteralP07unicodedE0x0cdE4TypeQz_tcfCTj", "dispatch thunk of Swift.ExpressibleByUnicodeScalarLiteral.init(unicodeScalarLiteral: A.UnicodeScalarLiteralType) -> A"},
+			{"s43ExpressibleByExtendedGraphemeClusterLiteralP08extendeddeF0x0cdeF4TypeQz_tcfCTj", "dispatch thunk of Swift.ExpressibleByExtendedGraphemeClusterLiteral.init(extendedGraphemeClusterLiteral: A.ExtendedGraphemeClusterLiteralType) -> A"},
+		}
+		for _, v := range variants {
+			if p.s == v.body {
+				p.i = len(p.s)
+				wrap := common.NewNode(common.KindTypeMangling)
+				wrap.Text = v.result
+				wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
+				return wrap, true
+			}
+		}
+	}
 	// Special: dispatch thunk 26 Foundation/Swift stdlib (Calendar/TimeZone/PropertyListEncoder + MutableCollection/Sequence/RangeExpression/RangeReplaceableCollection/etc).
 	{
 		variants := []struct {
