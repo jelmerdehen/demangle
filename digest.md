@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 95.36% (60797/63757) — 2026-05-16T12:47:22Z
+**Parity**: 95.36% (60800/63757) — 2026-05-16T12:56:26Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 233 parse-errors + 2727 mismatches
+**Failures**: 233 parse-errors + 2724 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,16 +29,16 @@
 
 ## Last 10 Commits
 
+- e06310e0 swift-parity: CEU fast-path bound-gen y _* (x|q<n>_)+ G pattern — parity 95.36%->95.43% (+42 production +86 roundtrip)
+- 727a3bb3 chore: defer uikit-inner-ext-decl-name-loss to multi-fire (deferred-1)
+- d0cfcaec chore: mark oracle restored in INVESTIGATIONS.md (unblocks oracle-gated defers)
+- 24982749 chore: lock snapshot after CES commit (parity 60797->60800)
+- 064e3b75 chore: update digest.md for CES commit (parity 95.36%->95.36% +3)
 - 87d8382f swift-parity: CES word-sub nested-host in fast-path constraint loop — parity 95.36%->95.36% (+3 production +0 roundtrip)
 - e08e86cd chore: plateau SOS at 95.36% — perpetual-99 stalled, oracle access needed
 - 85e2d8e7 chore: defer word-capture-acronym-end to multi-fire (deferred-1)
 - 4494e753 chore: defer main-parser-qr-arg-overcount to multi-fire (deferred-1)
 - be44fc9b chore: lock snapshot after CEM commit (parity 60796->60797)
-- f807ffbf chore: update digest.md for CEM commit (+1 production)
-- b1b89e6b swift-parity: CEM body ends XE → single escape-closure arg — parity 95.36%->95.36% (+1 production +0 roundtrip)
-- b3055581 chore: defer qomq-fn-arg-overcount to multi-fire (deferred-1)
-- 6f62d0e3 chore: defer foundation-swift-full-form-renderer to multi-fire (deferred-1)
-- e6a83671 chore: defer nested-walk-inner-extmod-word-capture to multi-fire (deferred-1)
 
 ## Suggested Next 3 Items
 
