@@ -20585,6 +20585,14 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 							fpLabels = nil
 							break
 						}
+						// Uppercase-leading ident + 'Q' next = type name in
+						// DependentMemberType slot (e.g. 5IndexQz = A.Index),
+						// not a label. Rewind peek and stop label scan.
+						if peekI < len(p.s) && p.s[peekI] == 'Q' &&
+							len(lbl) > 0 && lbl[0] >= 'A' && lbl[0] <= 'Z' {
+							peekI = lblStart
+							break
+						}
 						// Capture label as word so subsequent word-sub labels can
 						// resolve their back-refs against this ident's sub-words.
 						p.captureWords(lbl)
