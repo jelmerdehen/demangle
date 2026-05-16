@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 95.43% (60842/63757) — 2026-05-16T13:09:30Z
+**Parity**: 95.43% (60844/63757) — 2026-05-16T13:18:32Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 147 parse-errors + 2768 mismatches
+**Failures**: 147 parse-errors + 2766 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,16 +29,16 @@
 
 ## Last 10 Commits
 
+- 96a01427 swift-parity: CEZ word-sub labels in tryGlobalLastResortFastPath fnFP peek — parity 95.43%->95.46% (+19 production +0 roundtrip)
+- 81c1254f chore: plateau SOS at 95.43% — 5 consecutive zero-gain fires
+- 6e9d5f43 chore: defer publisher-encode-output-confusion to multi-fire (deferred-1)
+- 97ea3b16 chore: defer boundgen-suffix-at-deepest-nested to tier-2 multi-fire
+- 725df58a chore: defer stdlib-boundgen-conformance-suffix to multi-fire (deferred-1)
+- 0579b3b8 chore: defer objc-conformance-srcmod to multi-fire (deferred-1)
+- 8c40abad chore: lock snapshot after CEV commit (parity 60842->60844)
+- 0e9aa557 chore: update digest.md for CEV commit (parity 95.43%->95.43% +2)
 - 6be0abcb swift-parity: CEV default-argument fA_ off-by-one — parity 95.43%->95.43% (+2 production +0 roundtrip)
 - 6196b779 chore: lock snapshot after CEU commit (parity 60800->60842)
-- 2a0ed18f chore: update digest.md for CEU commit (parity 95.36%->95.43% +42)
-- e06310e0 swift-parity: CEU fast-path bound-gen y _* (x|q<n>_)+ G pattern — parity 95.36%->95.43% (+42 production +86 roundtrip)
-- 727a3bb3 chore: defer uikit-inner-ext-decl-name-loss to multi-fire (deferred-1)
-- d0cfcaec chore: mark oracle restored in INVESTIGATIONS.md (unblocks oracle-gated defers)
-- 24982749 chore: lock snapshot after CES commit (parity 60797->60800)
-- 064e3b75 chore: update digest.md for CES commit (parity 95.36%->95.36% +3)
-- 87d8382f swift-parity: CES word-sub nested-host in fast-path constraint loop — parity 95.36%->95.36% (+3 production +0 roundtrip)
-- e08e86cd chore: plateau SOS at 95.36% — perpetual-99 stalled, oracle access needed
 
 ## Suggested Next 3 Items
 
