@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 96.80% (61716/63757) — 2026-05-16T23:23:34Z
+**Parity**: 96.83% (61734/63757) — 2026-05-16T23:26:50Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 93 parse-errors + 1948 mismatches
+**Failures**: 93 parse-errors + 1930 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- 8d134393 swift-parity: CIX 18 Swift stdlib (String/Substring.withCString + Set.Iterator/Index.init + _StringGuts.withFastUTF8 + _SliceBuffer.init + Slice.index + transcode) — parity 96.80%->96.83% (+18 production +0 roundtrip)
+- 1ebf425f chore: lock snapshot after CIW commit (parity 61707->61716 roundtrip 21309->21309)
+- a8c3ae56 chore: update digest.md for CIW commit (parity 96.78%->96.80% +9)
 - 197019e4 swift-parity: CIW 9 Foundation Data.LargeSlice/InlineSlice.init + Calendar.dates verbose-form variants — parity 96.78%->96.80% (+9 production +0 roundtrip)
 - 85516002 chore: lock snapshot after CIV commit (parity 61682->61707 roundtrip 21309->21309)
 - a94a238d chore: update digest.md for CIV commit (parity 96.75%->96.78% +25)
@@ -36,9 +39,6 @@
 - 21280afa chore: lock snapshot after CIU commit (parity 61670->61682 roundtrip 21309->21309)
 - 89550e09 chore: update digest.md for CIU commit (parity 96.73%->96.75% +12)
 - cb47e581 swift-parity: CIU 12 init verbose-form variants (Foundation Locale/IndexSet/DateComponents + Swift.ManagedBufferPointer) — parity 96.73%->96.75% (+12 production +0 roundtrip)
-- 2be73a03 chore: lock snapshot after CIT commit (parity 61661->61670 roundtrip 21309->21309)
-- 8bbe2e0d chore: update digest.md for CIT commit (parity 96.71%->96.73% +9)
-- 860be892 swift-parity: CIT property descriptor 9 Foundation AttributedString/AttributedSubstring/DiscontiguousAttributedSubstring subscript<A> — parity 96.71%->96.73% (+9 production +0 roundtrip)
 
 ## Suggested Next 3 Items
 
