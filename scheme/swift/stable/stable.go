@@ -20445,6 +20445,30 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 							peekI++
 							continue
 						}
+						// Word-sub identifier (leading '0'): use parseIdentifier
+						// so word-back-refs resolve via p.words. Save/restore p.i;
+						// allow p.words to accumulate (matches Apple's algorithm).
+						if c == '0' {
+							savePI := p.i
+							saveSubs := p.subs
+							p.i = peekI
+							lbl, err := p.parseIdentifier()
+							peekI = p.i
+							p.i = savePI
+							p.subs = saveSubs
+							if err != nil || lbl == "" {
+								fpLabels = nil
+								break
+							}
+							fpLabels = append(fpLabels, lbl)
+							if peekI < len(p.s) {
+								nb := p.s[peekI]
+								if !(nb >= '0' && nb <= '9') && nb != '_' {
+									break
+								}
+							}
+							continue
+						}
 						if c < '0' || c > '9' {
 							break
 						}
@@ -20475,6 +20499,9 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 							fpLabels = nil
 							break
 						}
+						// Capture label as word so subsequent word-sub labels can
+						// resolve their back-refs against this ident's sub-words.
+						p.captureWords(lbl)
 						// Stop if peek consumed too much without seeing a non-digit
 						// type-start byte (heuristic: labels followed by 'A'/'S'/'s'/'q'/'x' etc.).
 						if peekI < len(p.s) {
