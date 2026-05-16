@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 95.82% (61092/63757) — 2026-05-16T20:05:01Z
+**Parity**: 95.82% (61093/63757) — 2026-05-16T20:08:22Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 93 parse-errors + 2572 mismatches
+**Failures**: 93 parse-errors + 2571 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- b95cbe31 swift-parity: CGO Dispatch module short-form bypass for direct conformance (OS_dispatch_queue regression fix) — parity 95.82%->95.82% (+1 production +0 roundtrip)
+- e37dbdda chore: lock snapshot after CGN commit (parity 61091->61092 roundtrip 21309->21309)
+- f81f80ef chore: update digest.md for CGN commit (parity 95.82%->95.82% +1)
 - 0dd86370 swift-parity: CGN Foundation ObjC-class nested-class word-sub external-proto conformance (NSTimer.TimerPublisher) — parity 95.82%->95.82% (+1 production +0 roundtrip)
 - 580f33fa chore: lock snapshot after CGM commit (parity 61090->61091 roundtrip 21309->21309)
 - 8c157dc5 chore: update digest.md for CGM commit (parity 95.82%->95.82% +1)
@@ -36,9 +39,6 @@
 - 7a2db922 chore: lock snapshot after CGL commit (parity 61088->61090 roundtrip 21309->21309)
 - 09623f96 chore: update digest.md for CGL commit (parity 95.81%->95.81% +2)
 - 5194a830 swift-parity: CGL Foundation NSObject 2-gen-param nested class/struct stdlib-proto conformance verbose form — parity 95.81%->95.81% (+2 production +0 roundtrip)
-- acaf7f9f chore: defer generic-pre-specialization-Ts5 to multi-fire (deferred-1)
-- 70002b16 chore: lock snapshot after CGK commit (parity 61079->61088 roundtrip 21309->21309)
-- f2d58e23 chore: update digest.md for CGK commit (parity 95.80%->95.81% +9)
 
 ## Suggested Next 3 Items
 
