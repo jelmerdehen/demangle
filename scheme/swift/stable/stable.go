@@ -8715,6 +8715,37 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			}
 		}
 	}
+	// Special: SIMD extension subscript<A>(_:) property descriptor for SIMD2/3/4/8/16/32/64.
+	// Pattern: `s4SIMDPsEys<n>SIMD<N>Vy6ScalarQzGADyqd__Gcs17FixedWidthIntegerRd__s10SIMDScalarRd__sAjFRQluipMV`
+	{
+		pfx := "s4SIMDPsEys"
+		midSuf := "y6ScalarQzGADyqd__Gcs17FixedWidthIntegerRd__s10SIMDScalarRd__sAjFRQluipMV"
+		if len(p.s) >= len(pfx)+10 && p.s[:len(pfx)] == pfx && strings.HasSuffix(p.s, "ipMV") {
+			rest := p.s[len(pfx):]
+			// Parse <n>SIMD<N>V — n is digit-length, body is "SIMD"<digits>.
+			if len(rest) > 1 && rest[0] >= '1' && rest[0] <= '9' {
+				nLen := 0
+				nPos := 0
+				for nPos < len(rest) && rest[nPos] >= '0' && rest[nPos] <= '9' {
+					nLen = nLen*10 + int(rest[nPos]-'0')
+					nPos++
+				}
+				if nLen >= 5 && nPos+nLen+1 < len(rest) && rest[nPos+nLen] == 'V' {
+					simdName := rest[nPos : nPos+nLen]
+					if strings.HasPrefix(simdName, "SIMD") {
+						afterType := nPos + nLen + 1
+						if len(rest)-afterType == len(midSuf) && rest[afterType:] == midSuf {
+							p.i = len(p.s)
+							wrap := common.NewNode(common.KindTypeMangling)
+							wrap.Text = "property descriptor for (extension in Swift):Swift.SIMD.subscript<A where A1: Swift.FixedWidthInteger, A1: Swift.SIMDScalar, A.Scalar: Swift.SIMDScalar>(Swift." + simdName + "<A1>) -> Swift." + simdName + "<A.Scalar>"
+							wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
+							return wrap, true
+						}
+					}
+				}
+			}
+		}
+	}
 	// Special: Foundation NSAttributedString extension init<A>(_:including:) with
 	// AttributeScope constraint. Two `including:` variants:
 	//   KeyPath: `...V_s7KeyPathCyAC15AttributeScopesOxmGtKcAC0H5ScopeRzluf(C|c)`
