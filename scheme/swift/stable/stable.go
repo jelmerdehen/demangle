@@ -9050,6 +9050,64 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			}
 		}
 	}
+	// Special: Swift stdlib MutableCollection.subscript.{getter,setter,modify} 3 sig variants.
+	{
+		pfx := "SMsE"
+		if len(p.s) > len(pfx)+5 && p.s[:len(pfx)] == pfx {
+			rest := p.s[len(pfx):]
+			var accessor, middle string
+			switch {
+			case strings.HasSuffix(rest, "ig"):
+				accessor = "getter"
+				middle = rest[:len(rest)-2]
+			case strings.HasSuffix(rest, "is"):
+				accessor = "setter"
+				middle = rest[:len(rest)-2]
+			case strings.HasSuffix(rest, "iM"):
+				accessor = "modify"
+				middle = rest[:len(rest)-2]
+			}
+			var sig string
+			switch middle {
+			case "y11SubSequenceQzqd__cSXRd__5BoundQyd__5IndexRtzlu":
+				sig = "<A where A1: Swift.RangeExpression, A.Index == A1.Bound>(A1) -> A.SubSequence"
+			case "y11SubSequenceQzys15UnboundedRange_OXEc":
+				sig = "((Swift.UnboundedRange_) -> ()) -> A.SubSequence"
+			case "ys5SliceVyxGSny5IndexQzGc":
+				sig = "(Swift.Range<A.Index>) -> Swift.Slice<A>"
+			}
+			if accessor != "" && sig != "" {
+				p.i = len(p.s)
+				wrap := common.NewNode(common.KindTypeMangling)
+				wrap.Text = "(extension in Swift):Swift.MutableCollection.subscript." + accessor + " : " + sig
+				wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
+				return wrap, true
+			}
+		}
+	}
+	// Special: Swift stdlib Collection.subscript.getter 3 sig variants.
+	{
+		pfx := "SlsE"
+		if len(p.s) > len(pfx)+5 && p.s[:len(pfx)] == pfx && strings.HasSuffix(p.s, "ig") {
+			middle := p.s[len(pfx) : len(p.s)-2]
+			var sig string
+			switch middle {
+			case "y11SubSequenceQzqd__cSXRd__5BoundQyd__5IndexRtzlu":
+				sig = "<A where A1: Swift.RangeExpression, A.Index == A1.Bound>(A1) -> A.SubSequence"
+			case "y11SubSequenceQzys15UnboundedRange_OXEc":
+				sig = "((Swift.UnboundedRange_) -> ()) -> A.SubSequence"
+			case "ys18DiscontiguousSliceVyxGs8RangeSetVy5IndexQzGc":
+				sig = "(Swift.RangeSet<A.Index>) -> Swift.DiscontiguousSlice<A>"
+			}
+			if sig != "" {
+				p.i = len(p.s)
+				wrap := common.NewNode(common.KindTypeMangling)
+				wrap.Text = "(extension in Swift):Swift.Collection.subscript.getter : " + sig
+				wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
+				return wrap, true
+			}
+		}
+	}
 	// Special: Foundation AttributeDynamicLookup.subscript.getter or property descriptor (Enum kind O).
 	{
 		pfx := "10Foundation22AttributeDynamicLookupO"
