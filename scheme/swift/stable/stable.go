@@ -8827,6 +8827,51 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			}
 		}
 	}
+	// Special: `So<n><class>a<n><mod>E<n><inner>Vy_xG S<protoLetter> AC (Mc|WP)` —
+	// ObjC TypeAlias-kind nominal with extension nested struct (bound-generic <A>)
+	// conforming to stdlib protocol via back-ref. Apple short-form:
+	//   "(extension in <mod>):__C.<class>.<inner><A> : Swift.<protoName> in <mod>"
+	// Example: So9NSDecimala10FoundationE13ParseStrategyVy_xGSEACMc
+	//   → "protocol conformance descriptor for (extension in Foundation):__C.NSDecimal.ParseStrategy<A> : Swift.Encodable in Foundation"
+	if len(p.s) >= 18 && p.s[0] == 'S' && p.s[1] == 'o' &&
+		(p.s[len(p.s)-2:] == "Mc" || p.s[len(p.s)-2:] == "WP") {
+		saveI := p.i
+		saveWords := append([]string(nil), p.words...)
+		saveSubs := p.subs
+		p.i = 2 // skip "So"
+		if !p.eof() && p.s[p.i] >= '1' && p.s[p.i] <= '9' {
+			if className, cerr := p.parseIdentifier(); cerr == nil && !p.eof() && p.s[p.i] == 'a' {
+				p.i++ // 'a' (TypeAlias kind for ObjC-imported types)
+				if !p.eof() && p.s[p.i] >= '1' && p.s[p.i] <= '9' {
+					if modName, merr := p.parseIdentifier(); merr == nil && !p.eof() && p.s[p.i] == 'E' {
+						p.i++ // 'E'
+						if !p.eof() && p.s[p.i] >= '1' && p.s[p.i] <= '9' {
+							if innerName, ierr := p.parseIdentifier(); ierr == nil &&
+								p.i+11 == len(p.s) &&
+								p.s[p.i:p.i+5] == "Vy_xG" && p.s[p.i+5] == 'S' &&
+								p.s[p.i+7] == 'A' && p.s[p.i+8] == 'C' {
+								protoLetter := p.s[p.i+6]
+								if entry, ok := common.StdlibLookup(protoLetter); ok {
+									prefix := "protocol conformance descriptor for "
+									if p.s[len(p.s)-2:] == "WP" {
+										prefix = "protocol witness table for "
+									}
+									p.i = len(p.s)
+									wrap := common.NewNode(common.KindTypeMangling)
+									wrap.Text = prefix + "(extension in " + modName + "):__C." + className + "." + innerName + "<A> : Swift." + entry.Name + " in " + modName
+									wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
+									return wrap, true
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+		p.i = saveI
+		p.words = saveWords
+		p.subs = saveSubs
+	}
 	// Special: `SC<ident>L<char>V<mod>E<wordsub-prop>SS(vgZ|vpZMV)` —
 	// __C_Synthesized type with RelatedEntityDeclName + extension property.
 	// Example: SC37UIApplicationCategoryDefaultErrorCodeLeV5UIKitE018retryAvailableDateD3KeySSvgZ
