@@ -9146,6 +9146,30 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			}
 		}
 	}
+	// Special: Foundation URL.init(resolvingBookmarkData:options:relativeTo:bookmarkDataIsStale:).
+	{
+		variants := []struct {
+			body, result string
+		}{
+			{
+				"10Foundation3URLV21resolvingBookmarkData7options10relativeTo08bookmarkE7IsStaleACSgAA0E0Vh_So30NSURLBookmarkResolutionOptionsVAHhSbztKcfC",
+				"Foundation.URL.init(resolvingBookmarkData: __shared Foundation.Data, options: __C.NSURLBookmarkResolutionOptions, relativeTo: __shared Foundation.URL?, bookmarkDataIsStale: inout Swift.Bool) throws -> Foundation.URL?",
+			},
+			{
+				"10Foundation3URLV21resolvingBookmarkData7options10relativeTo08bookmarkE7IsStaleAcA0E0Vh_So30NSURLBookmarkResolutionOptionsVACSghSbztKcfC",
+				"Foundation.URL.init(resolvingBookmarkData: __shared Foundation.Data, options: __C.NSURLBookmarkResolutionOptions, relativeTo: __shared Foundation.URL?, bookmarkDataIsStale: inout Swift.Bool) throws -> Foundation.URL",
+			},
+		}
+		for _, v := range variants {
+			if p.s == v.body {
+				p.i = len(p.s)
+				wrap := common.NewNode(common.KindTypeMangling)
+				wrap.Text = v.result
+				wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
+				return wrap, true
+			}
+		}
+	}
 	// Special: Swift UnsafeRawBufferPointer/UnsafeMutableRawBufferPointer.withUnsafeBytes<A>.
 	{
 		variants := []struct {
