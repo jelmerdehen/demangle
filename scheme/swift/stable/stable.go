@@ -9146,6 +9146,37 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			}
 		}
 	}
+	// Special: 15 Foundation URL/URLRequest/URLQueryItem/URLResourceValues/UUID/_TimeZoneGMT/TimeZone verbose forms.
+	{
+		variants := []struct {
+			body, result string
+		}{
+			{"10Foundation10URLRequestV3url11cachePolicy15timeoutIntervalAcA3URLV_So017NSURLRequestCacheE0VSdtcfC", "Foundation.URLRequest.init(url: Foundation.URL, cachePolicy: __C.NSURLRequestCachePolicy, timeoutInterval: Swift.Double) -> Foundation.URLRequest"},
+			{"10Foundation12URLQueryItemV4name5valueACSSh_SSSghtcfC", "Foundation.URLQueryItem.init(name: __shared Swift.String, value: __shared Swift.String?) -> Foundation.URLQueryItem"},
+			{"10Foundation12_TimeZoneGMTC020rawAndDaylightSavingB6Offset3for08repeatedB6Policy07skippedbL0Si0eI0_Sd08daylighthI0tAA4DateV_AA0bC0V0ghbL0OAOtF", "Foundation._TimeZoneGMT.rawAndDaylightSavingTimeOffset(for: Foundation.Date, repeatedTimePolicy: Foundation.TimeZone.DaylightSavingTimePolicy, skippedTimePolicy: Foundation.TimeZone.DaylightSavingTimePolicy) -> (rawOffset: Swift.Int, daylightSavingOffset: Swift.Double)"},
+			{"10Foundation17URLResourceValuesV16volumeIdentifierSo9NSCopying_So14NSSecureCodingSo8NSObjectpSgvg", "Foundation.URLResourceValues.volumeIdentifier.getter : (__C.NSCopying & __C.NSSecureCoding & __C.NSObject)?"},
+			{"10Foundation17URLResourceValuesV20generationIdentifierSo9NSCopying_So14NSSecureCodingSo8NSObjectpSgvg", "Foundation.URLResourceValues.generationIdentifier.getter : (__C.NSCopying & __C.NSSecureCoding & __C.NSObject)?"},
+			{"10Foundation17URLResourceValuesV22fileResourceIdentifierSo9NSCopying_So14NSSecureCodingSo8NSObjectpSgvg", "Foundation.URLResourceValues.fileResourceIdentifier.getter : (__C.NSCopying & __C.NSSecureCoding & __C.NSObject)?"},
+			{"10Foundation3URLV11FormatStyleV6scheme4user8password4host4port4path5query8fragmentA2E22ComponentDisplayOptionV_A2oE04HostnO0VA4OtcfC", "Foundation.URL.FormatStyle.init(scheme: Foundation.URL.FormatStyle.ComponentDisplayOption, user: Foundation.URL.FormatStyle.ComponentDisplayOption, password: Foundation.URL.FormatStyle.ComponentDisplayOption, host: Foundation.URL.FormatStyle.HostDisplayOption, port: Foundation.URL.FormatStyle.ComponentDisplayOption, path: Foundation.URL.FormatStyle.ComponentDisplayOption, query: Foundation.URL.FormatStyle.ComponentDisplayOption, fragment: Foundation.URL.FormatStyle.ComponentDisplayOption) -> Foundation.URL.FormatStyle"},
+			{"10Foundation3URLV13ParseStrategyV6scheme4user8password4host4port4path5query8fragmentA2E09ComponentcD0Oy__SSG_A3pOy__SiGA3PtcfC", "Foundation.URL.ParseStrategy.init(scheme: Foundation.URL.ParseStrategy.ComponentParseStrategy<Swift.String>, user: Foundation.URL.ParseStrategy.ComponentParseStrategy<Swift.String>, password: Foundation.URL.ParseStrategy.ComponentParseStrategy<Swift.String>, host: Foundation.URL.ParseStrategy.ComponentParseStrategy<Swift.String>, port: Foundation.URL.ParseStrategy.ComponentParseStrategy<Swift.Int>, path: Foundation.URL.ParseStrategy.ComponentParseStrategy<Swift.String>, query: Foundation.URL.ParseStrategy.ComponentParseStrategy<Swift.String>, fragment: Foundation.URL.ParseStrategy.ComponentParseStrategy<Swift.String>) -> Foundation.URL.ParseStrategy"},
+			{"10Foundation3URLV13ParseStrategyV9consuming_10startingAt2inSS5IndexV10upperBound_AC6outputtSgSS_AJSnyAJGtKF", "Foundation.URL.ParseStrategy.consuming(_: Swift.String, startingAt: Swift.String.Index, in: Swift.Range<Swift.String.Index>) throws -> (upperBound: Swift.String.Index, output: Foundation.URL)?"},
+			{"10Foundation3URLV17setResourceValuesyySDySo16NSURLResourceKeyayXlGKF", "Foundation.URL.setResourceValues([__C.NSURLResourceKey : Swift.AnyObject]) throws -> ()"},
+			{"10Foundation3URLV34withUnsafeFileSystemRepresentationyxxSPys4Int8VGSgKXEKlF", "Foundation.URL.withUnsafeFileSystemRepresentation<A>((Swift.UnsafePointer<Swift.Int8>?) throws -> A) throws -> A"},
+			{"10Foundation3URLV6append10components13directoryHintyxd_AC09DirectoryF0OtSyRzlF", "Foundation.URL.append<A where A: Swift.StringProtocol>(components: A..., directoryHint: Foundation.URL.DirectoryHint) -> ()"},
+			{"10Foundation3URLV9appending10components13directoryHintACxd_AC09DirectoryF0OtSyRzlF", "Foundation.URL.appending<A where A: Swift.StringProtocol>(components: A..., directoryHint: Foundation.URL.DirectoryHint) -> Foundation.URL"},
+			{"10Foundation4UUIDV4uuids5UInt8V_A15Ftvg", "Foundation.UUID.uuid.getter : (Swift.UInt8, Swift.UInt8, Swift.UInt8, Swift.UInt8, Swift.UInt8, Swift.UInt8, Swift.UInt8, Swift.UInt8, Swift.UInt8, Swift.UInt8, Swift.UInt8, Swift.UInt8, Swift.UInt8, Swift.UInt8, Swift.UInt8, Swift.UInt8)"},
+			{"10Foundation8TimeZoneV06SystembC16DidChangeMessageV08previousbC0AeCSg_tcfC", "Foundation.TimeZone.SystemTimeZoneDidChangeMessage.init(previousTimeZone: Foundation.TimeZone?) -> Foundation.TimeZone.SystemTimeZoneDidChangeMessage"},
+		}
+		for _, v := range variants {
+			if p.s == v.body {
+				p.i = len(p.s)
+				wrap := common.NewNode(common.KindTypeMangling)
+				wrap.Text = v.result
+				wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
+				return wrap, true
+			}
+		}
+	}
 	// Special: 27 Foundation Calendar.* methods + AttributeContainer.init + Data.InlineData.init/Data.init.
 	{
 		variants := []struct {
