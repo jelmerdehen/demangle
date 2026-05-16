@@ -1533,3 +1533,40 @@ Multi-fire — needs:
 3. Audit regression set to ensure depth-0 cases still attach to host.
 
 Tier-2 because attempt regressed parity; needs careful analysis.
+
+## defer-cey-publisher-encode-output-confusion [1 sym, deferred-1] (2026-05-16)
+
+Pattern: protocol-extension fn whose generic-sig has an
+associated-type conformance constraint (`<A> where A.Output: Encodable`).
+
+Probe sym:
+  `_$s7Combine9PublisherPAASE6OutputRpzrlE6encode7encoderAA10PublishersO6EncodeVy_xqd__Gqd___tAA15TopLevelEncoderRd__lF`
+
+Oracle: `Publisher<>.encode<A>(encoder:)`
+Got:    `Publisher.Output<A>()`
+
+The constraint section `AA SE 6OutputR pzrl E 6encode ...` has:
+- `AA` back-ref to Combine module
+- `SE` Swift.Encodable stdlib shortcut (proto-ref)
+- `6OutputR pz` `Output` assoc-type conformance to SE
+- `rl` end-sig
+- `E` actual extension marker
+- `6encode` actual decl-name
+
+Our parser apparently consumes `6Output` as the decl-name and emits
+`(_:)` as 1-arg, completely missing the actual extension's `encode`
+decl. Likely confusion between assoc-type-ref `6Output` (post `SE...R`)
+and a regular ident.
+
+Attempt: added `SE` SE/SR/SC stdlib-proto-shortcut filter to fast-path
+A-branch path-det E-scan (8794-8849). Result: smoke green but
+parity unchanged — this sym doesn't take the fast-path A-branch.
+
+Multi-fire — need to trace WHICH parser path this sym hits. Probably
+`tryExtensionEntity` (main parser, stable.go:12497) or
+`tryProtocolExtensionEntity`. The SE-filter logic needs to be
+applied at the matching path.
+
+Reach: oracle available; symbol class is small (1 known sym, may be
+more if SE-style assoc-type-conformance is common in libswiftcore
+extensions).
