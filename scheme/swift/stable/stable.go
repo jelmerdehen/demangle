@@ -8733,6 +8733,57 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			}
 		}
 	}
+	// Special: `S<letter>yxG<n>Foundation<n><ProtoName>ABs5UInt8VRszl(Mc|WP)` —
+	// Stdlib bound-generic type (SR/Sa/Sr) with same-type-equals-UInt8 constraint
+	// conforming to Foundation proto. Apple short-form:
+	// `<A where A == Swift.UInt8> <hostFull><A> : Foundation.<ProtoName> in Foundation`.
+	if len(p.s) >= 22 && p.s[0] == 'S' &&
+		(p.s[1] == 'R' || p.s[1] == 'a' || p.s[1] == 'r') &&
+		p.s[2] == 'y' && p.s[3] == 'x' && p.s[4] == 'G' {
+		suf := "ABs5UInt8VRszl"
+		sufLen := len(suf)
+		// Last 2 chars = Mc/WP. Suffix "ABs5UInt8VRszl" precedes.
+		if len(p.s) >= sufLen+2 &&
+			p.s[len(p.s)-2-sufLen:len(p.s)-2] == suf &&
+			(p.s[len(p.s)-2:] == "Mc" || p.s[len(p.s)-2:] == "WP") {
+			// Parse Foundation module + proto name between yxG and suffix.
+			start := 5
+			end := len(p.s) - 2 - sufLen
+			if start+12 < end && p.s[start:start+12] == "10Foundation" {
+				probeI := start + 12
+				if p.s[probeI] >= '1' && p.s[probeI] <= '9' {
+					nlen := 0
+					nstart := probeI
+					for nstart < end && p.s[nstart] >= '0' && p.s[nstart] <= '9' {
+						nlen = nlen*10 + int(p.s[nstart]-'0')
+						nstart++
+					}
+					if nlen > 0 && nstart+nlen == end {
+						protoName := p.s[nstart : nstart+nlen]
+						var hostFull string
+						switch p.s[1] {
+						case 'R':
+							hostFull = "Swift.UnsafeBufferPointer<A>"
+						case 'a':
+							hostFull = "[A]"
+						case 'r':
+							hostFull = "Swift.UnsafeMutableBufferPointer<A>"
+						}
+						prefix := "protocol conformance descriptor for "
+						if p.s[len(p.s)-2:] == "WP" {
+							prefix = "protocol witness table for "
+						}
+						p.i = len(p.s)
+						wrap := common.NewNode(common.KindTypeMangling)
+						wrap.Text = prefix + "<A where A == Swift.UInt8> " + hostFull +
+							" : Foundation." + protoName + " in Foundation"
+						wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
+						return wrap, true
+					}
+				}
+			}
+		}
+	}
 	// Special: `<n><mod>V<n><name>VSo6UIViewCAAE8MaterialAA(Mc|WP)` —
 	// UIKit struct ext conforming to UIView.Material proto. Apple short-form: `<name>`.
 	if len(p.s) >= 26 &&
