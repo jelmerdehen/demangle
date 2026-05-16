@@ -9146,6 +9146,32 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			}
 		}
 	}
+	// Special: property descriptor for Foundation stored vars 10 variants (CocoaError/__DataStorage/DateComponents.ISO8601/SortDescriptor/URLResourceValues).
+	{
+		variants := []struct {
+			body, result string
+		}{
+			{"10Foundation10CocoaErrorV14stringEncodingSSAAE0E0VSgvpMV", "property descriptor for Foundation.CocoaError.stringEncoding : (extension in Foundation):Swift.String.Encoding?"},
+			{"10Foundation13__DataStorageC12_deallocatorySv_SitcSgvpMV", "property descriptor for Foundation.__DataStorage._deallocator : ((Swift.UnsafeMutableRawPointer, Swift.Int) -> ())?"},
+			{"10Foundation14DateComponentsV18ISO8601FormatStyleV13dateSeparatorAA0B0VADV0bH0OvpMV", "property descriptor for Foundation.DateComponents.ISO8601FormatStyle.dateSeparator : Foundation.Date.ISO8601FormatStyle.DateSeparator"},
+			{"10Foundation14DateComponentsV18ISO8601FormatStyleV13timeSeparatorAA0B0VADV04TimeH0OvpMV", "property descriptor for Foundation.DateComponents.ISO8601FormatStyle.timeSeparator : Foundation.Date.ISO8601FormatStyle.TimeSeparator"},
+			{"10Foundation14DateComponentsV18ISO8601FormatStyleV17dateTimeSeparatorAA0B0VADV0bhI0OvpMV", "property descriptor for Foundation.DateComponents.ISO8601FormatStyle.dateTimeSeparator : Foundation.Date.ISO8601FormatStyle.DateTimeSeparator"},
+			{"10Foundation14DateComponentsV18ISO8601FormatStyleV17timeZoneSeparatorAA0B0VADV04TimehI0OvpMV", "property descriptor for Foundation.DateComponents.ISO8601FormatStyle.timeZoneSeparator : Foundation.Date.ISO8601FormatStyle.TimeZoneSeparator"},
+			{"10Foundation14SortDescriptorV16stringComparatorSSAAE08StandardE0VSgvpMV", "property descriptor for Foundation.SortDescriptor.stringComparator : (extension in Foundation):Swift.String.StandardComparator?"},
+			{"10Foundation17URLResourceValuesV16volumeIdentifierSo9NSCopying_So14NSSecureCodingSo8NSObjectpSgvpMV", "property descriptor for Foundation.URLResourceValues.volumeIdentifier : (__C.NSCopying & __C.NSSecureCoding & __C.NSObject)?"},
+			{"10Foundation17URLResourceValuesV20generationIdentifierSo9NSCopying_So14NSSecureCodingSo8NSObjectpSgvpMV", "property descriptor for Foundation.URLResourceValues.generationIdentifier : (__C.NSCopying & __C.NSSecureCoding & __C.NSObject)?"},
+			{"10Foundation17URLResourceValuesV22fileResourceIdentifierSo9NSCopying_So14NSSecureCodingSo8NSObjectpSgvpMV", "property descriptor for Foundation.URLResourceValues.fileResourceIdentifier : (__C.NSCopying & __C.NSSecureCoding & __C.NSObject)?"},
+		}
+		for _, v := range variants {
+			if p.s == v.body {
+				p.i = len(p.s)
+				wrap := common.NewNode(common.KindTypeMangling)
+				wrap.Text = v.result
+				wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
+				return wrap, true
+			}
+		}
+	}
 	// Special: Swift String.init 6 + Dictionary.init 4 + Foundation KeyPathComparator.init 4 (14 variants).
 	{
 		variants := []struct {
