@@ -9075,9 +9075,14 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 	// found. Each iteration scans for `E<digit>` past current p.i, treats
 	// preceding bytes as nested-ext constraint, then re-enters nested-walk.
 	// Skip when body starts with `_` (label-list separator) — that's an
-	// init/fn arg-label section, not a nested-ext constraint.
+	// init/fn arg-label section, not a nested-ext constraint. Also skip
+	// for Mc/WP-tail symbols: the remaining bytes encode protocol info,
+	// not a nested extension of the conforming type.
 	fpNestedExtMarker := ""
-	for fpTopLevelDecl == "" && !fpDirectEntity && declName == "" &&
+	tailIsMcOrWP := len(p.s) >= 2 &&
+		((p.s[len(p.s)-2] == 'M' && p.s[len(p.s)-1] == 'c') ||
+			(p.s[len(p.s)-2] == 'W' && p.s[len(p.s)-1] == 'P'))
+	for !tailIsMcOrWP && fpTopLevelDecl == "" && !fpDirectEntity && declName == "" &&
 		len(nestedNames) > 0 && !p.eof() && p.s[p.i] != 'y' && p.s[p.i] != '_' {
 		eAt := -1
 		for k := p.i; k < len(p.s)-1 && k < p.i+120; k++ {
