@@ -8691,15 +8691,22 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 								}
 								if cmLen > 0 && cmPos+cmLen+2 == len(p.s) {
 									confMod := p.s[cmPos : cmPos+cmLen]
-									prefix := "protocol conformance descriptor for "
-									if p.s[len(p.s)-2:] == "WP" {
-										prefix = "protocol witness table for "
+									// Production-simplified form for Dispatch module: drop `__C.`
+									// prefix and proto qualifier (matches Apple's --simplified). For
+									// other confMods (Foundation), keep verbose form.
+									if confMod == "Dispatch" {
+										// Fall through to the short-form recognizer below.
+									} else {
+										prefix := "protocol conformance descriptor for "
+										if p.s[len(p.s)-2:] == "WP" {
+											prefix = "protocol witness table for "
+										}
+										p.i = len(p.s)
+										wrap := common.NewNode(common.KindTypeMangling)
+										wrap.Text = prefix + "__C." + className + " : " + protoMod + "." + protoName + " in " + confMod
+										wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
+										return wrap, true
 									}
-									p.i = len(p.s)
-									wrap := common.NewNode(common.KindTypeMangling)
-									wrap.Text = prefix + "__C." + className + " : " + protoMod + "." + protoName + " in " + confMod
-									wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
-									return wrap, true
 								}
 							}
 						}
