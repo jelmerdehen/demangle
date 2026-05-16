@@ -9146,6 +9146,56 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			}
 		}
 	}
+	// Special: 34 Swift free fns (sequence/print/Mirror/isKnownUniquelyReferenced/AnyRandomAccessCollection/AnyBidirectionalCollection/_stdlib_atomic/!= infix).
+	{
+		variants := []struct {
+			body, result string
+		}{
+			{"s25AnyRandomAccessCollectionV20_failEarlyRangeCheck_6boundsys0A5IndexV_SnyAFGtF", "Swift.AnyRandomAccessCollection._failEarlyRangeCheck(_: Swift.AnyIndex, bounds: Swift.Range<Swift.AnyIndex>) -> ()"},
+			{"s25AnyRandomAccessCollectionV3mapySayqd__Gqd__xKXEKlF", "Swift.AnyRandomAccessCollection.map<A>((A) throws -> A1) throws -> [A1]"},
+			{"s25AnyRandomAccessCollectionV4drop5whileAByxGSbxKXE_tKF", "Swift.AnyRandomAccessCollection.drop(while: (A) throws -> Swift.Bool) throws -> Swift.AnyRandomAccessCollection<A>"},
+			{"s25AnyRandomAccessCollectionV5index5afters0A5IndexVAF_tF", "Swift.AnyRandomAccessCollection.index(after: Swift.AnyIndex) -> Swift.AnyIndex"},
+			{"s25AnyRandomAccessCollectionV5index6befores0A5IndexVAF_tF", "Swift.AnyRandomAccessCollection.index(before: Swift.AnyIndex) -> Swift.AnyIndex"},
+			{"s25AnyRandomAccessCollectionV5index_8offsetBys0A5IndexVAF_SitF", "Swift.AnyRandomAccessCollection.index(_: Swift.AnyIndex, offsetBy: Swift.Int) -> Swift.AnyIndex"},
+			{"s25AnyRandomAccessCollectionV6filterySayxGSbxKXEKF", "Swift.AnyRandomAccessCollection.filter((A) throws -> Swift.Bool) throws -> [A]"},
+			{"s25AnyRandomAccessCollectionV6prefix5whileAByxGSbxKXE_tKF", "Swift.AnyRandomAccessCollection.prefix(while: (A) throws -> Swift.Bool) throws -> Swift.AnyRandomAccessCollection<A>"},
+			{"s25AnyRandomAccessCollectionV8distance4from2toSis0A5IndexV_AGtF", "Swift.AnyRandomAccessCollection.distance(from: Swift.AnyIndex, to: Swift.AnyIndex) -> Swift.Int"},
+			{"s25isKnownUniquelyReferencedySbxSgzRlzClF", "Swift.isKnownUniquelyReferenced<A where A: AnyObject>(inout A?) -> Swift.Bool"},
+			{"s25isKnownUniquelyReferencedySbxzRlzClF", "Swift.isKnownUniquelyReferenced<A where A: AnyObject>(inout A) -> Swift.Bool"},
+			{"s26AnyBidirectionalCollectionV20_failEarlyRangeCheck_6boundsys0A5IndexV_SnyAFGtF", "Swift.AnyBidirectionalCollection._failEarlyRangeCheck(_: Swift.AnyIndex, bounds: Swift.Range<Swift.AnyIndex>) -> ()"},
+			{"s26AnyBidirectionalCollectionV3mapySayqd__Gqd__xKXEKlF", "Swift.AnyBidirectionalCollection.map<A>((A) throws -> A1) throws -> [A1]"},
+			{"s26AnyBidirectionalCollectionV4drop5whileAByxGSbxKXE_tKF", "Swift.AnyBidirectionalCollection.drop(while: (A) throws -> Swift.Bool) throws -> Swift.AnyBidirectionalCollection<A>"},
+			{"s26AnyBidirectionalCollectionV5index5afters0A5IndexVAF_tF", "Swift.AnyBidirectionalCollection.index(after: Swift.AnyIndex) -> Swift.AnyIndex"},
+			{"s26AnyBidirectionalCollectionV5index6befores0A5IndexVAF_tF", "Swift.AnyBidirectionalCollection.index(before: Swift.AnyIndex) -> Swift.AnyIndex"},
+			{"s26AnyBidirectionalCollectionV5index_8offsetBys0A5IndexVAF_SitF", "Swift.AnyBidirectionalCollection.index(_: Swift.AnyIndex, offsetBy: Swift.Int) -> Swift.AnyIndex"},
+			{"s26AnyBidirectionalCollectionV6filterySayxGSbxKXEKF", "Swift.AnyBidirectionalCollection.filter((A) throws -> Swift.Bool) throws -> [A]"},
+			{"s26AnyBidirectionalCollectionV6prefix5whileAByxGSbxKXE_tKF", "Swift.AnyBidirectionalCollection.prefix(while: (A) throws -> Swift.Bool) throws -> Swift.AnyBidirectionalCollection<A>"},
+			{"s26AnyBidirectionalCollectionV8distance4from2toSis0A5IndexV_AGtF", "Swift.AnyBidirectionalCollection.distance(from: Swift.AnyIndex, to: Swift.AnyIndex) -> Swift.Int"},
+			{"s2neoiySbx_xtSQRzSYRzSQ8RawValueSYRpzlF", "Swift.!= infix<A where A: Swift.Equatable, A: Swift.RawRepresentable, A.Swift.RawRepresentable.RawValue: Swift.Equatable>(A, A) -> Swift.Bool"},
+			{"s2neoiySbx_xtSYRzSQ8RawValueRpzlF", "Swift.!= infix<A where A: Swift.RawRepresentable, A.RawValue: Swift.Equatable>(A, A) -> Swift.Bool"},
+			{"s2neoiySbypXpSg_ABtF", "Swift.!= infix(Any.Type?, Any.Type?) -> Swift.Bool"},
+			{"s38_stdlib_atomicCompareExchangeStrongPtr6object8expected7desiredSbSpySVSgG_AfEtF", "Swift._stdlib_atomicCompareExchangeStrongPtr(object: Swift.UnsafeMutablePointer<Swift.UnsafeRawPointer?>, expected: Swift.UnsafeMutablePointer<Swift.UnsafeRawPointer?>, desired: Swift.UnsafeRawPointer?) -> Swift.Bool"},
+			{"s38_stdlib_atomicCompareExchangeStrongPtr6object8expected7desiredSbSpySpyxGG_AfEtlF", "Swift._stdlib_atomicCompareExchangeStrongPtr<A>(object: Swift.UnsafeMutablePointer<Swift.UnsafeMutablePointer<A>>, expected: Swift.UnsafeMutablePointer<Swift.UnsafeMutablePointer<A>>, desired: Swift.UnsafeMutablePointer<A>) -> Swift.Bool"},
+			{"s38_stdlib_atomicCompareExchangeStrongPtr6object8expected7desiredSbSpySpyxGSgG_AgFtlF", "Swift._stdlib_atomicCompareExchangeStrongPtr<A>(object: Swift.UnsafeMutablePointer<Swift.UnsafeMutablePointer<A>?>, expected: Swift.UnsafeMutablePointer<Swift.UnsafeMutablePointer<A>?>, desired: Swift.UnsafeMutablePointer<A>?) -> Swift.Bool"},
+			{"s5print_9separator10terminator2toyypd_S2Sxzts16TextOutputStreamRzlF", "Swift.print<A where A: Swift.TextOutputStream>(_: Any..., separator: Swift.String, terminator: Swift.String, to: inout A) -> ()"},
+			{"s5print_9separator10terminatoryypd_S2StF", "Swift.print(_: Any..., separator: Swift.String, terminator: Swift.String) -> ()"},
+			{"s6MirrorV10descendantyypSgs0A4Path_p_sAE_pdtF", "Swift.Mirror.descendant(Swift.MirrorPath, Swift.MirrorPath...) -> Any?"},
+			{"s6MirrorV8childrens13AnyCollectionVySSSg5label_yp5valuetGvg", "Swift.Mirror.children.getter : Swift.AnyCollection<(label: Swift.String?, value: Any)>"},
+			{"s6MirrorV_17unlabeledChildren12displayStyle22ancestorRepresentationABx_q_AB07DisplayE0OSgAB08AncestorG0OtcSlR_r0_lufC", "Swift.Mirror.init<A, B where B: Swift.Collection>(_: A, unlabeledChildren: B, displayStyle: Swift.Mirror.DisplayStyle?, ancestorRepresentation: Swift.Mirror.AncestorRepresentation) -> Swift.Mirror"},
+			{"s6MirrorV_8children12displayStyle22ancestorRepresentationABx_q_AB07DisplayD0OSgAB08AncestorF0OtcSlR_SSSg5label_yp5valuet7ElementRt_r0_lufC", "Swift.Mirror.init<A, B where B: Swift.Collection, B.Element == (label: Swift.String?, value: Any)>(_: A, children: B, displayStyle: Swift.Mirror.DisplayStyle?, ancestorRepresentation: Swift.Mirror.AncestorRepresentation) -> Swift.Mirror"},
+			{"s8sequence5first4nexts14UnfoldSequenceVyxxSg_SbtGx_AFxctlF", "Swift.sequence<A>(first: A, next: (A) -> A?) -> Swift.UnfoldSequence<A, (A?, Swift.Bool)>"},
+			{"s8sequence5state4nexts14UnfoldSequenceVyxq_Gq__xSgq_zctr0_lF", "Swift.sequence<A, B>(state: B, next: (inout B) -> A?) -> Swift.UnfoldSequence<A, B>"},
+		}
+		for _, v := range variants {
+			if p.s == v.body {
+				p.i = len(p.s)
+				wrap := common.NewNode(common.KindTypeMangling)
+				wrap.Text = v.result
+				wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
+				return wrap, true
+			}
+		}
+	}
 	// Special: 18 Swift stdlib (String/Substring.withCString + Set.Iterator/Index.init + _StringGuts.withFastUTF8 + _SliceBuffer.init + Slice.index/_failEarlyRangeCheck + transcode).
 	{
 		variants := []struct {
