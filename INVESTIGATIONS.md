@@ -6,6 +6,43 @@ fast loop fires — avoids re-deriving path/cause each fire. Bounded
 
 ## Active targets
 
+### closure-arg-tuple-overcount-in-fastpath [~12 syms, deferred-1]
+
+Pattern: function with single closure arg has its inner tuple
+mis-counted as multiple top-level args. Affects SwiftUI Scene
++ View methods with opaque-return:
+
+- `_$s7SwiftUI4ViewPAAE19onScrollPhaseChangeyQryAA0eF0O_AfA0efG7ContextVtcF`
+  got `View.onScrollPhaseChange(_:_:)` want `(_:)`
+- `_$s7SwiftUI5ScenePAAE22defaultWindowPlacementyQrAA0eF0VAA0E10LayoutRootV_AA0eF7ContextVtcF`
+  got `Scene.defaultWindowPlacement(_:_:)` want `(_:)`
+- 4 more Scene/View methods, all paired with QOMQ opaque-type-
+  descriptor wrappers (total ~12 syms after pairing).
+
+Body shape: `y Qr y<args>t c F` — outer `y` body start, `Qr`
+opaque-return, inner `y` starts closure-type body, `<args>t`
+inner-tuple args, `c` function-type marker.
+
+Fast-path sepCount loop (stable.go:9617) increments depth on
+`y` followed by S/A/x/q/digit. The intermediate `Qr y...c`
+closure body's depth tracking is off — likely `Q` opaque-
+return doesn't trigger depth++, then inner `y` does, but
+inner `G` (from nested bound-generic inside closure body)
+decrements prematurely so subsequent `_` separators are
+counted at depth 0.
+
+Fire-plan:
+1. Audit depth tracking: `Qr` should consume the next inner
+   `y...c` as a single closure arg (one separator group).
+2. Track open `c` markers — each `c` closes one closure depth
+   so subsequent `_` counts go to the outer args list, not
+   parent closure's args.
+3. Alternative: detect `Q[r|y|z]` opaque-return marker and skip
+   past its inner closure (find matching `c`).
+
+Reason for deferral: depth-tracking change risks regressions
+across all closure-arg fast-path cases; needs corpus replay.
+
 ### stdlib-protocol-init-dispatch-thunk-full-form [~6 syms, deferred-1]
 
 Pattern: `s<n><proto-name>P<n><label>xx_tcfCTj` (and `Tq`) —
