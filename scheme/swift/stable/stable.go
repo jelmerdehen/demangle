@@ -9146,6 +9146,35 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			}
 		}
 	}
+	// Special: dispatch thunk 13 Foundation (JSONDecoder/JSONEncoder/DataProtocol/__DataStorage/ContiguousBytes/_CalendarProtocol/PropertyListDecoder).
+	{
+		variants := []struct {
+			body, result string
+		}{
+			{"10Foundation11JSONDecoderC6decode_4from13configurationxxm_AA4DataVq_mtKAA26DecodableWithConfigurationRzAA08DecodingI9ProvidingR_0jI0Qy_AKRtzr0_lFTj", "dispatch thunk of Foundation.JSONDecoder.decode<A, B where A: Foundation.DecodableWithConfiguration, B: Foundation.DecodingConfigurationProviding, A.DecodingConfiguration == B.DecodingConfiguration>(_: A.Type, from: Foundation.Data, configuration: B.Type) throws -> A"},
+			{"10Foundation11JSONEncoderC6encode_13configurationAA4DataVx_q_mtKAA26EncodableWithConfigurationRzAA08EncodingH9ProvidingR_0iH0Qy_AJRtzr0_lFTj", "dispatch thunk of Foundation.JSONEncoder.encode<A, B where A: Foundation.EncodableWithConfiguration, B: Foundation.EncodingConfigurationProviding, A.EncodingConfiguration == B.EncodingConfiguration>(_: A, configuration: B.Type) throws -> Foundation.Data"},
+			{"10Foundation12DataProtocolP10firstRange2of2inSny5IndexQzGSgqd___qd_0_tAaBRd__SXRd_0_5BoundQyd_0_AHRSr0_lFTj", "dispatch thunk of Foundation.DataProtocol.firstRange<A, B where A1: Foundation.DataProtocol, B1: Swift.RangeExpression, A.Index == B1.Bound>(of: A1, in: B1) -> Swift.Range<A.Index>?"},
+			{"10Foundation12DataProtocolP9lastRange2of2inSny5IndexQzGSgqd___qd_0_tAaBRd__SXRd_0_5BoundQyd_0_AHRSr0_lFTj", "dispatch thunk of Foundation.DataProtocol.lastRange<A, B where A1: Foundation.DataProtocol, B1: Swift.RangeExpression, A.Index == B1.Bound>(of: A1, in: B1) -> Swift.Range<A.Index>?"},
+			{"10Foundation13__DataStorageC5bytes6length4copy11deallocator6offsetACSvSg_SiSbySv_SitcSgSitcfCTj", "dispatch thunk of Foundation.__DataStorage.__allocating_init(bytes: Swift.UnsafeMutableRawPointer?, length: Swift.Int, copy: Swift.Bool, deallocator: ((Swift.UnsafeMutableRawPointer, Swift.Int) -> ())?, offset: Swift.Int) -> Foundation.__DataStorage"},
+			{"10Foundation13__DataStorageC6offset5bytes8capacity10needToZero6length11deallocatorACSi_SvSiSbSiySv_SitcSgtcfCTj", "dispatch thunk of Foundation.__DataStorage.__allocating_init(offset: Swift.Int, bytes: Swift.UnsafeMutableRawPointer, capacity: Swift.Int, needToZero: Swift.Bool, length: Swift.Int, deallocator: ((Swift.UnsafeMutableRawPointer, Swift.Int) -> ())?) -> Foundation.__DataStorage"},
+			{"10Foundation15ContiguousBytesP010withUnsafeC0yqd__qd__SWKXEKlFTj", "dispatch thunk of Foundation.ContiguousBytes.withUnsafeBytes<A>((Swift.UnsafeRawBufferPointer) throws -> A1) throws -> A1"},
+			{"10Foundation17_CalendarProtocolP10identifier8timeZone6locale12firstWeekday22minimumDaysInFirstWeek18gregorianStartDatexAA0B0V10IdentifierO_AA04TimeF0VSgAA6LocaleVSgSiSgAtA0Q0VSgtcfCTj", "dispatch thunk of Foundation._CalendarProtocol.init(identifier: Foundation.Calendar.Identifier, timeZone: Foundation.TimeZone?, locale: Foundation.Locale?, firstWeekday: Swift.Int?, minimumDaysInFirstWeek: Swift.Int?, gregorianStartDate: Foundation.Date?) -> A"},
+			{"10Foundation17_CalendarProtocolP10ordinality2of2in3forSiSgAA0B0V9ComponentO_AlA4DateVtFTj", "dispatch thunk of Foundation._CalendarProtocol.ordinality(of: Foundation.Calendar.Component, in: Foundation.Calendar.Component, for: Foundation.Date) -> Swift.Int?"},
+			{"10Foundation17_CalendarProtocolP14dateComponents_4from2toAA04DateE0VAA0B0V12ComponentSetV_AA0H0VANtFTj", "dispatch thunk of Foundation._CalendarProtocol.dateComponents(_: Foundation.Calendar.ComponentSet, from: Foundation.Date, to: Foundation.Date) -> Foundation.DateComponents"},
+			{"10Foundation17_CalendarProtocolP5range2of2in3forSnySiGSgAA0B0V9ComponentO_AmA4DateVtFTj", "dispatch thunk of Foundation._CalendarProtocol.range(of: Foundation.Calendar.Component, in: Foundation.Calendar.Component, for: Foundation.Date) -> Swift.Range<Swift.Int>?"},
+			{"10Foundation19PropertyListDecoderC6decode_4from13configurationxxm_AA4DataVq_mtKAA26DecodableWithConfigurationRzAA08DecodingK9ProvidingR_0lK0Qy_AKRtzr0_lFTj", "dispatch thunk of Foundation.PropertyListDecoder.decode<A, B where A: Foundation.DecodableWithConfiguration, B: Foundation.DecodingConfigurationProviding, A.DecodingConfiguration == B.DecodingConfiguration>(_: A.Type, from: Foundation.Data, configuration: B.Type) throws -> A"},
+			{"10Foundation19PropertyListDecoderC6decode_4from6format13configurationxxm_AA4DataVSo010NSPropertyC6FormatVzq_mtKAA26DecodableWithConfigurationRzAA08DecodingN9ProvidingR_0oN0Qy_ANRtzr0_lFTj", "dispatch thunk of Foundation.PropertyListDecoder.decode<A, B where A: Foundation.DecodableWithConfiguration, B: Foundation.DecodingConfigurationProviding, A.DecodingConfiguration == B.DecodingConfiguration>(_: A.Type, from: Foundation.Data, format: inout __C.NSPropertyListFormat, configuration: B.Type) throws -> A"},
+		}
+		for _, v := range variants {
+			if p.s == v.body {
+				p.i = len(p.s)
+				wrap := common.NewNode(common.KindTypeMangling)
+				wrap.Text = v.result
+				wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
+				return wrap, true
+			}
+		}
+	}
 	// Special: method descriptor 10 (Foundation __DataStorage/PropertyListDecoder + Swift _ArrayBufferProtocol Tq).
 	{
 		variants := []struct {
