@@ -1,4 +1,4 @@
-# snapshot-pass-set update 2026-05-16T21:45:12Z — union with previous (high-water)
+# snapshot-pass-set update 2026-05-16T21:48:11Z — union with previous (high-water)
 _$s10Foreground7SwiftUI18LabelGroupStyle_v0PTl
 _$s10Foundation10CocoaErrorV010formattingC0AC4CodeVvgZ
 _$s10Foundation10CocoaErrorV010formattingC0AC4CodeVvpZMV
@@ -53302,6 +53302,8 @@ _$ss15_nonPointerBitsySuBbF
 _$ss15_persistCStringySays4Int8VGSgSPyACGSgF
 _$ss15_print_unlockedyyx_q_zts16TextOutputStreamR_r0_lF
 _$ss15_uint64ToString_5radix9uppercaseSSs6UInt64V_s5Int64VSbtF
+_$ss15withUnsafeBytes2of_q_x_q_SWKXEtKr0_lF
+_$ss15withUnsafeBytes2of_q_xz_q_SWKXEtKr0_lF
 _$ss16AsyncMapSequenceV04makeA8IteratorAB0E0Vyxq__GyF
 _$ss16AsyncMapSequenceV4basexvg
 _$ss16AsyncMapSequenceV4basexvpMV
@@ -53934,6 +53936,8 @@ _$ss17_stdlib_AtomicIntCyABSicfc
 _$ss17_swift_getKeyPath7pattern9argumentsSVSv_SVtF
 _$ss17_utf8ScalarLength_8endingAtSiSRys5UInt8VG_SitF
 _$ss17_utf8ScalarLengthySis5UInt8VF
+_$ss17withUnsafePointer2to_q_x_q_SPyxGKXEtKr0_lF
+_$ss17withUnsafePointer2to_q_xz_q_SPyxGKXEtKr0_lF
 _$ss18AdditiveArithmeticMp
 _$ss18AdditiveArithmeticP1poiyxx_xtFZTj
 _$ss18AdditiveArithmeticP1poiyxx_xtFZTq
