@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 96.35% (61429/63757) — 2026-05-16T22:26:45Z
+**Parity**: 96.38% (61449/63757) — 2026-05-16T22:29:41Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 93 parse-errors + 2235 mismatches
+**Failures**: 93 parse-errors + 2215 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- 20617314 swift-parity: CIE Swift tuple comparison </>/<=/>= operators arity 2..6 (20 variants) — parity 96.35%->96.38% (+20 production +0 roundtrip)
+- a7858873 chore: lock snapshot after CID commit (parity 61420->61429 roundtrip 21309->21309)
+- aa787429 chore: update digest.md for CID commit (parity 96.33%->96.35% +9)
 - 2d42b48e swift-parity: CID Foundation PredicateExpressions build_contains 5 + build_subscript 4 — parity 96.33%->96.35% (+9 production +0 roundtrip)
 - c89dbc4a chore: lock snapshot after CIC commit (parity 61405->61420 roundtrip 21309->21309)
 - 17afec29 chore: update digest.md for CIC commit (parity 96.31%->96.33% +15)
@@ -36,9 +39,6 @@
 - 2365f9ff chore: lock snapshot after CIB commit (parity 61397->61405 roundtrip 21309->21309)
 - 04742457 chore: update digest.md for CIB commit (parity 96.30%->96.31% +8)
 - 53c4e1fd swift-parity: CIB protocol conformance descriptor 8 variants (Foundation/Combine + Swift stdlib) — parity 96.30%->96.31% (+8 production +0 roundtrip)
-- 69a30fb1 chore: lock snapshot after CIA commit (parity 61391->61397 roundtrip 21309->21309)
-- 52bb95ef chore: update digest.md for CIA commit (parity 96.29%->96.30% +6)
-- 87a7014d swift-parity: CIA opaque type descriptor Calendar/NSNotificationCenter 6 variants — parity 96.29%->96.30% (+6 production +0 roundtrip)
 
 ## Suggested Next 3 Items
 
