@@ -9146,6 +9146,58 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			}
 		}
 	}
+	// Special: enum case 36 Foundation (JSONDecoder/JSONEncoder/InflectionRule/AttributeScopes/PresentationIntent/etc).
+	{
+		variants := []struct {
+			body, result string
+		}{
+			{"10Foundation11JSONDecoderC19KeyDecodingStrategyO6customyAEs06CodingC0_pSaysAG_pGccAEmFWC", "enum case for Foundation.JSONDecoder.KeyDecodingStrategy.custom(Foundation.JSONDecoder.KeyDecodingStrategy.Type) -> (([Swift.CodingKey]) -> Swift.CodingKey) -> Foundation.JSONDecoder.KeyDecodingStrategy"},
+			{"10Foundation11JSONDecoderC20DataDecodingStrategyO6customyAeA0C0Vs7Decoder_pKccAEmFWC", "enum case for Foundation.JSONDecoder.DataDecodingStrategy.custom(Foundation.JSONDecoder.DataDecodingStrategy.Type) -> ((Swift.Decoder) throws -> Foundation.Data) -> Foundation.JSONDecoder.DataDecodingStrategy"},
+			{"10Foundation11JSONDecoderC20DateDecodingStrategyO6customyAeA0C0Vs7Decoder_pKccAEmFWC", "enum case for Foundation.JSONDecoder.DateDecodingStrategy.custom(Foundation.JSONDecoder.DateDecodingStrategy.Type) -> ((Swift.Decoder) throws -> Foundation.Date) -> Foundation.JSONDecoder.DateDecodingStrategy"},
+			{"10Foundation11JSONEncoderC19KeyEncodingStrategyO6customyAEs06CodingC0_pSaysAG_pGccAEmFWC", "enum case for Foundation.JSONEncoder.KeyEncodingStrategy.custom(Foundation.JSONEncoder.KeyEncodingStrategy.Type) -> (([Swift.CodingKey]) -> Swift.CodingKey) -> Foundation.JSONEncoder.KeyEncodingStrategy"},
+			{"10Foundation11JSONEncoderC20DataEncodingStrategyO6customyAEyAA0C0V_s7Encoder_ptKccAEmFWC", "enum case for Foundation.JSONEncoder.DataEncodingStrategy.custom(Foundation.JSONEncoder.DataEncodingStrategy.Type) -> ((Foundation.Data, Swift.Encoder) throws -> ()) -> Foundation.JSONEncoder.DataEncodingStrategy"},
+			{"10Foundation11JSONEncoderC20DateEncodingStrategyO6customyAEyAA0C0V_s7Encoder_ptKccAEmFWC", "enum case for Foundation.JSONEncoder.DateEncodingStrategy.custom(Foundation.JSONEncoder.DateEncodingStrategy.Type) -> ((Foundation.Date, Swift.Encoder) throws -> ()) -> Foundation.JSONEncoder.DateEncodingStrategy"},
+			{"10Foundation14InflectionRuleO8explicityAcA10MorphologyVcACmFWC", "enum case for Foundation.InflectionRule.explicit(Foundation.InflectionRule.Type) -> (Foundation.Morphology) -> Foundation.InflectionRule"},
+			{"10Foundation15AttributeScopesO0A10AttributesV09ByteCountB0O9ComponentO4unityAiG4UnitOcAImFWC", "enum case for Foundation.AttributeScopes.FoundationAttributes.ByteCountAttribute.Component.unit(Foundation.AttributeScopes.FoundationAttributes.ByteCountAttribute.Component.Type) -> (Foundation.AttributeScopes.FoundationAttributes.ByteCountAttribute.Unit) -> Foundation.AttributeScopes.FoundationAttributes.ByteCountAttribute.Component"},
+			{"10Foundation18PresentationIntentV4KindO5tableyAESayAC11TableColumnVG_tcAEmFWC", "enum case for Foundation.PresentationIntent.Kind.table(Foundation.PresentationIntent.Kind.Type) -> ([Foundation.PresentationIntent.TableColumn]) -> Foundation.PresentationIntent.Kind"},
+			{"10Foundation18PresentationIntentV4KindO6headeryAESi_tcAEmFWC", "enum case for Foundation.PresentationIntent.Kind.header(Foundation.PresentationIntent.Kind.Type) -> (Swift.Int) -> Foundation.PresentationIntent.Kind"},
+			{"10Foundation18PresentationIntentV4KindO8listItemyAESi_tcAEmFWC", "enum case for Foundation.PresentationIntent.Kind.listItem(Foundation.PresentationIntent.Kind.Type) -> (Swift.Int) -> Foundation.PresentationIntent.Kind"},
+			{"10Foundation18PresentationIntentV4KindO8tableRowyAESi_tcAEmFWC", "enum case for Foundation.PresentationIntent.Kind.tableRow(Foundation.PresentationIntent.Kind.Type) -> (Swift.Int) -> Foundation.PresentationIntent.Kind"},
+			{"10Foundation18PresentationIntentV4KindO9codeBlockyAESSSg_tcAEmFWC", "enum case for Foundation.PresentationIntent.Kind.codeBlock(Foundation.PresentationIntent.Kind.Type) -> (Swift.String?) -> Foundation.PresentationIntent.Kind"},
+			{"10Foundation18PresentationIntentV4KindO9tableCellyAESi_tcAEmFWC", "enum case for Foundation.PresentationIntent.Kind.tableCell(Foundation.PresentationIntent.Kind.Type) -> (Swift.Int) -> Foundation.PresentationIntent.Kind"},
+			{"10Foundation23LocalizedStringResourceV17BundleDescriptionO5atURLyAeA0H0VcAEmFWC", "enum case for Foundation.LocalizedStringResource.BundleDescription.atURL(Foundation.LocalizedStringResource.BundleDescription.Type) -> (Foundation.URL) -> Foundation.LocalizedStringResource.BundleDescription"},
+			{"10Foundation23LocalizedStringResourceV17BundleDescriptionO8forClassyAEyXlXpcAEmFWC", "enum case for Foundation.LocalizedStringResource.BundleDescription.forClass(Foundation.LocalizedStringResource.BundleDescription.Type) -> (Swift.AnyObject.Type) -> Foundation.LocalizedStringResource.BundleDescription"},
+			{"10Foundation3URLV13ParseStrategyV09ComponentcD0O12defaultValueyAGy__xGxcAImSeRzSERzSHRzs8SendableRzlFWC", "enum case for Foundation.URL.ParseStrategy.ComponentParseStrategy.defaultValue<A where A: Swift.Decodable, A: Swift.Encodable, A: Swift.Hashable, A: Swift.Sendable>(Foundation.URL.ParseStrategy.ComponentParseStrategy<A>.Type) -> (A) -> Foundation.URL.ParseStrategy.ComponentParseStrategy<A>"},
+			{"10Foundation4DataV11DeallocatorO6customyAEySv_SitccAEmFWC", "enum case for Foundation.Data.Deallocator.custom(Foundation.Data.Deallocator.Type) -> ((Swift.UnsafeMutableRawPointer, Swift.Int) -> ()) -> Foundation.Data.Deallocator"},
+			{"10Foundation8CalendarV14RecurrenceRuleV7WeekdayO3nthyAGSi_AA6LocaleVAFOtcAGmFWC", "enum case for Foundation.Calendar.RecurrenceRule.Weekday.nth(Foundation.Calendar.RecurrenceRule.Weekday.Type) -> (Swift.Int, Foundation.Locale.Weekday) -> Foundation.Calendar.RecurrenceRule.Weekday"},
+			{"10Foundation8CalendarV14RecurrenceRuleV7WeekdayO5everyyAgA6LocaleVAFOcAGmFWC", "enum case for Foundation.Calendar.RecurrenceRule.Weekday.every(Foundation.Calendar.RecurrenceRule.Weekday.Type) -> (Foundation.Locale.Weekday) -> Foundation.Calendar.RecurrenceRule.Weekday"},
+			{"So25NSURLSessionWebSocketTaskC10FoundationE7MessageO4datayAeC4DataVcAEmFWC", "enum case for (extension in Foundation):__C.NSURLSessionWebSocketTask.Message.data((extension in Foundation):__C.NSURLSessionWebSocketTask.Message.Type) -> (Foundation.Data) -> (extension in Foundation):__C.NSURLSessionWebSocketTask.Message"},
+			{"s13DecodingErrorO11keyNotFoundyABs9CodingKey_p_AB7ContextVtcABmFWC", "enum case for Swift.DecodingError.keyNotFound(Swift.DecodingError.Type) -> (Swift.CodingKey, Swift.DecodingError.Context) -> Swift.DecodingError"},
+			{"s13DecodingErrorO12typeMismatchyABypXp_AB7ContextVtcABmFWC", "enum case for Swift.DecodingError.typeMismatch(Swift.DecodingError.Type) -> (Any.Type, Swift.DecodingError.Context) -> Swift.DecodingError"},
+			{"s13DecodingErrorO13dataCorruptedyA2B7ContextVcABmFWC", "enum case for Swift.DecodingError.dataCorrupted(Swift.DecodingError.Type) -> (Swift.DecodingError.Context) -> Swift.DecodingError"},
+			{"s13DecodingErrorO13valueNotFoundyABypXp_AB7ContextVtcABmFWC", "enum case for Swift.DecodingError.valueNotFound(Swift.DecodingError.Type) -> (Any.Type, Swift.DecodingError.Context) -> Swift.DecodingError"},
+			{"s13EncodingErrorO12invalidValueyAByp_AB7ContextVtcABmFWC", "enum case for Swift.EncodingError.invalidValue(Swift.EncodingError.Type) -> (Any, Swift.EncodingError.Context) -> Swift.EncodingError"},
+			{"s13_SwiftifyInfoO11nonescapingyABs01_A4ExprO_tcABmFWC", "enum case for Swift._SwiftifyInfo.nonescaping(Swift._SwiftifyInfo.Type) -> (Swift._SwiftifyExpr) -> Swift._SwiftifyInfo"},
+			{"s13_SwiftifyInfoO18lifetimeDependenceyABs01_A4ExprO_AEs01_D4TypeOtcABmFWC", "enum case for Swift._SwiftifyInfo.lifetimeDependence(Swift._SwiftifyInfo.Type) -> (Swift._SwiftifyExpr, Swift._SwiftifyExpr, Swift._DependenceType) -> Swift._SwiftifyInfo"},
+			{"s13_SwiftifyInfoO7endedByyABs01_A4ExprO_SitcABmFWC", "enum case for Swift._SwiftifyInfo.endedBy(Swift._SwiftifyInfo.Type) -> (Swift._SwiftifyExpr, Swift.Int) -> Swift._SwiftifyInfo"},
+			{"s13_SwiftifyInfoO7sizedByyABs01_A4ExprO_SStcABmFWC", "enum case for Swift._SwiftifyInfo.sizedBy(Swift._SwiftifyInfo.Type) -> (Swift._SwiftifyExpr, Swift.String) -> Swift._SwiftifyInfo"},
+			{"s13_SwiftifyInfoO9countedByyABs01_A4ExprO_SStcABmFWC", "enum case for Swift._SwiftifyInfo.countedBy(Swift._SwiftifyInfo.Type) -> (Swift._SwiftifyExpr, Swift.String) -> Swift._SwiftifyInfo"},
+			{"s21_StringRepresentationV5_FormO6_cocoayADyXl_tcADmFWC", "enum case for Swift._StringRepresentation._Form._cocoa(Swift._StringRepresentation._Form.Type) -> (Swift.AnyObject) -> Swift._StringRepresentation._Form"},
+			{"s21_StringRepresentationV5_FormO7_nativeyADyXl_tcADmFWC", "enum case for Swift._StringRepresentation._Form._native(Swift._StringRepresentation._Form.Type) -> (Swift.AnyObject) -> Swift._StringRepresentation._Form"},
+			{"s21_StringRepresentationV5_FormO9_immortalyADSu_tcADmFWC", "enum case for Swift._StringRepresentation._Form._immortal(Swift._StringRepresentation._Form.Type) -> (Swift.UInt) -> Swift._StringRepresentation._Form"},
+			{"s27_SwiftifyProtocolMethodInfoO6methodyABSS_Says01_aD0OGtcABmFWC", "enum case for Swift._SwiftifyProtocolMethodInfo.method(Swift._SwiftifyProtocolMethodInfo.Type) -> (Swift.String, [Swift._SwiftifyInfo]) -> Swift._SwiftifyProtocolMethodInfo"},
+			{"s6MirrorV22AncestorRepresentationO10customizedyAdByccADmFWC", "enum case for Swift.Mirror.AncestorRepresentation.customized(Swift.Mirror.AncestorRepresentation.Type) -> (() -> Swift.Mirror) -> Swift.Mirror.AncestorRepresentation"},
+		}
+		for _, v := range variants {
+			if p.s == v.body {
+				p.i = len(p.s)
+				wrap := common.NewNode(common.KindTypeMangling)
+				wrap.Text = v.result
+				wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
+				return wrap, true
+			}
+		}
+	}
 	// Special: property descriptor for static 7 (Foundation AttributeContainer/String/NSNotificationCenter + Swift AnyKeyPath/Hasher).
 	{
 		variants := []struct {
