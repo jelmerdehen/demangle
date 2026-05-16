@@ -6,6 +6,25 @@ fast loop fires — avoids re-deriving path/cause each fire. Bounded
 
 ## Active targets
 
+### nsnotif-messageident-property-desc-uikit-declname [72 syms, deferred-1]
+
+Pattern: `_$sSo<NSClass>C<digit><ExtMod>E17MessageIdentifierP<digit><UIKit>AbCE<word-sub>V<bound-gen>R<constraint>E<word-sub-declname>AM<accessor>`
+
+72 syms uniformly mis-emit `NSNotificationCenter.MessageIdentifier.UIKit` as host+declName, dropping word-sub decoded declName and `<>` extMarker.
+
+Sample: `_$sSo20NSNotificationCenterC10FoundationE17MessageIdentifierP5UIKitAbCE04BasedE0Vy_So10UIDocumentCAFE012StateChangedD0VGRszrlE05stateJ0AMvpZMV`
+- want `property descriptor for static NSNotificationCenter.MessageIdentifier<>.stateChanged`
+- got `property descriptor for static NSNotificationCenter.MessageIdentifier.UIKit`
+
+Fast-path / verbose path takes `5UIKit` (the inner-extension module ident after the `P` protocol marker) as the decl-name, dropping the actual word-sub-encoded decl-name (`05stateJ0` = stateChanged).
+
+Fire-plan:
+1. Recognize protocol-conformance-with-inner-extension pattern: after a `P` protocol marker, the next digit-led ident + `A<letter>CE` = inner extension reference.
+2. Skip past that compact-sub + E to find the real nested struct + decl-name + property-descriptor suffix.
+3. Emit short form with `MessageIdentifier<>.<word-sub-declname>`.
+
+Reason for deferral: requires (a) word-sub identifier decode in label position, (b) compact-substitution `AbC` recognition for inner-ext-ref, (c) novel host-chain composition for the property descriptor. Multi-primitive.
+
 ### type-ident-leaks-into-label-list-verbose-path [~20+ syms, deferred-1]
 
 Same family as [[label-vs-type-ident-uppercase-q-rewind-verbose-path]]
