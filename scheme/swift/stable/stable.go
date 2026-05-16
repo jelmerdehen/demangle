@@ -8708,6 +8708,72 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			}
 		}
 	}
+	// Special: `So<n><class>C<n><mod>E<n><inner>(C|V)y_xq_GS(c<L>|<L>)AC(Mc|WP)` —
+	// ObjC Class with 2-generic-param nested type conforming to stdlib protocol.
+	// Must run BEFORE the short-form `So<n><name>C<...>Mc` recognizer below to
+	// emit the verbose form Apple uses for these Foundation/NSObject cases.
+	// Example: So8NSObjectC10FoundationE23KeyValueObservedChangesCy_xq_GSciACMc
+	//   → "(extension in Foundation):__C.NSObject.KeyValueObservedChanges<A, B> : Swift.AsyncSequence in Foundation"
+	if len(p.s) >= 22 && p.s[0] == 'S' && p.s[1] == 'o' &&
+		(p.s[len(p.s)-2:] == "Mc" || p.s[len(p.s)-2:] == "WP") {
+		saveI := p.i
+		saveWords := append([]string(nil), p.words...)
+		saveSubs := p.subs
+		p.i = 2
+		if !p.eof() && p.s[p.i] >= '1' && p.s[p.i] <= '9' {
+			if className, cerr := p.parseIdentifier(); cerr == nil && !p.eof() && p.s[p.i] == 'C' {
+				p.i++ // 'C' class kind
+				if !p.eof() && p.s[p.i] >= '1' && p.s[p.i] <= '9' {
+					if modName, merr := p.parseIdentifier(); merr == nil && !p.eof() && p.s[p.i] == 'E' {
+						p.i++ // 'E'
+						if !p.eof() && p.s[p.i] >= '1' && p.s[p.i] <= '9' {
+							if innerName, ierr := p.parseIdentifier(); ierr == nil && p.i+10 <= len(p.s) {
+								innerKind := p.s[p.i]
+								if (innerKind == 'C' || innerKind == 'V') &&
+									p.s[p.i+1:p.i+7] == "y_xq_G" {
+									afterBG := p.i + 7
+									// Proto + back-ref + Mc/WP: `S<L>ACMc` (6 chars) or `Sc<L>ACMc` (7 chars).
+									if afterBG+6 == len(p.s) && p.s[afterBG] == 'S' &&
+										p.s[afterBG+2] == 'A' && p.s[afterBG+3] == 'C' {
+										protoLetter := p.s[afterBG+1]
+										if entry, ok := common.StdlibLookup(protoLetter); ok {
+											prefix := "protocol conformance descriptor for "
+											if p.s[len(p.s)-2:] == "WP" {
+												prefix = "protocol witness table for "
+											}
+											p.i = len(p.s)
+											wrap := common.NewNode(common.KindTypeMangling)
+											wrap.Text = prefix + "(extension in " + modName + "):__C." + className + "." + innerName + "<A, B> : Swift." + entry.Name + " in " + modName
+											wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
+											return wrap, true
+										}
+									}
+									if afterBG+7 == len(p.s) && p.s[afterBG] == 'S' && p.s[afterBG+1] == 'c' &&
+										p.s[afterBG+3] == 'A' && p.s[afterBG+4] == 'C' {
+										protoLetter := p.s[afterBG+2]
+										if entry, ok := common.StdlibLookup2(protoLetter); ok {
+											prefix := "protocol conformance descriptor for "
+											if p.s[len(p.s)-2:] == "WP" {
+												prefix = "protocol witness table for "
+											}
+											p.i = len(p.s)
+											wrap := common.NewNode(common.KindTypeMangling)
+											wrap.Text = prefix + "(extension in " + modName + "):__C." + className + "." + innerName + "<A, B> : Swift." + entry.Name + " in " + modName
+											wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
+											return wrap, true
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+		p.i = saveI
+		p.words = saveWords
+		p.subs = saveSubs
+	}
 	// Special: `So<n><name>C<...>Mc` — ObjC class conformance descriptor.
 	// Apple short form is `protocol conformance descriptor for <ObjCName>
 	// [.<Nested>...]`. Bypass path-det/nested-walk/terminal block.
