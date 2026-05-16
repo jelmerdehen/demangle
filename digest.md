@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 95.99% (61202/63757) — 2026-05-16T20:55:57Z
+**Parity**: 96.00% (61205/63757) — 2026-05-16T20:59:25Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 93 parse-errors + 2462 mismatches
+**Failures**: 93 parse-errors + 2459 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- 114ae82f swift-parity: CHB Foundation Data.InlineSlice.init(_:range:) 3 first-arg variants — parity 95.99%->95.99% (+3 production +0 roundtrip)
+- b1c5f7d8 chore: lock snapshot after CHA commit (parity 61199->61202 roundtrip 21309->21309)
+- 24f92af6 chore: update digest.md for CHA commit (parity 95.99%->95.99% +3)
 - ea655b79 swift-parity: CHA Swift RangeReplaceableCollection +infix(A, A1) 3 variants — parity 95.99%->95.99% (+3 production +0 roundtrip)
 - 119d7dce chore: lock snapshot after CGZ commit (parity 61196->61199 roundtrip 21309->21309)
 - 24aa1d62 chore: update digest.md for CGZ commit (parity 95.98%->95.98% +3)
@@ -36,9 +39,6 @@
 - 723d22c7 chore: lock snapshot after CGY commit (parity 61192->61196 roundtrip 21309->21309)
 - 9f532eab chore: update digest.md for CGY commit (parity 95.97%->95.98% +4)
 - e550f385 swift-parity: CGY Foundation AttributedString init<A>(markdown:including:options:baseURL:) String/Data×KeyPath/Type — parity 95.97%->95.98% (+4 production +0 roundtrip)
-- 5ab298d4 chore: lock snapshot after CGX commit (parity 61189->61192 roundtrip 21309->21309)
-- 60dd18de chore: update digest.md for CGX commit (parity 95.97%->95.97% +3)
-- 320b598c swift-parity: CGX Foundation NSDecimal init(_:format:lenient:) FormatStyle inner variants — parity 95.97%->95.97% (+3 production +0 roundtrip)
 
 ## Suggested Next 3 Items
 
