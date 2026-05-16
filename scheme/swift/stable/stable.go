@@ -8810,12 +8810,56 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 						nested = append(nested, nname)
 						probeI = nstart + nlen + 1
 					}
+					// Optional bound-gen `y<args>G` after chain, before AcdC.
+					boundGenSig := ""
+					if probeI < len(p.s)-6 && p.s[probeI] == 'y' {
+						k := probeI + 1
+						argCount := 0
+						for k < len(p.s)-6 && p.s[k] != 'G' {
+							if p.s[k] == 'x' {
+								argCount++
+								k++
+								continue
+							}
+							if p.s[k] == 'q' {
+								k++
+								for k < len(p.s) && p.s[k] >= '0' && p.s[k] <= '9' {
+									k++
+								}
+								if k >= len(p.s) || p.s[k] != '_' {
+									argCount = 0
+									break
+								}
+								k++
+								argCount++
+								continue
+							}
+							if p.s[k] == '_' {
+								k++
+								continue
+							}
+							argCount = 0
+							break
+						}
+						if argCount >= 1 && k < len(p.s)-6 && p.s[k] == 'G' {
+							gnames := make([]string, argCount)
+							for gi := range gnames {
+								gnames[gi] = string(rune('A' + gi))
+							}
+							boundGenSig = "<" + strings.Join(gnames, ", ") + ">"
+							probeI = k + 1
+						}
+					}
 					if probeI == len(p.s)-6 && len(nested) >= 1 {
 						prefix := "protocol conformance descriptor for "
 						if p.s[len(p.s)-2:] == "WP" {
 							prefix = "protocol witness table for "
 						}
-						hostFull := "(extension in " + modName + "):__C." + taName + "." + strings.Join(nested, ".")
+						hostNested := strings.Join(nested, ".")
+						if boundGenSig != "" {
+							hostNested += boundGenSig
+						}
+						hostFull := "(extension in " + modName + "):__C." + taName + "." + hostNested
 						protoName := modName + "." + nested[0]
 						p.i = len(p.s)
 						wrap := common.NewNode(common.KindTypeMangling)
