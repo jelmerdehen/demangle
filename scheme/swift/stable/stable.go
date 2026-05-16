@@ -14420,23 +14420,83 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 				hostStr += "." + strings.Join(nestedTypesSuffix, ".")
 			}
 			cb := constraintBytes
-			for len(cb) > 0 && cb[0] >= '1' && cb[0] <= '9' {
-				lenEnd := 0
-				for lenEnd < len(cb) && cb[lenEnd] >= '0' && cb[lenEnd] <= '9' {
-					lenEnd++
-				}
-				if lenEnd >= len(cb) {
+			for len(cb) > 0 {
+				var name string
+				kindPos := 0
+				if cb[0] >= '1' && cb[0] <= '9' {
+					lenEnd := 0
+					for lenEnd < len(cb) && cb[lenEnd] >= '0' && cb[lenEnd] <= '9' {
+						lenEnd++
+					}
+					if lenEnd >= len(cb) {
+						break
+					}
+					n := 0
+					for _, d := range cb[:lenEnd] {
+						n = n*10 + int(d-'0')
+					}
+					if n <= 0 || lenEnd+n >= len(cb) {
+						break
+					}
+					name = string(cb[lenEnd : lenEnd+n])
+					kindPos = lenEnd + n
+				} else if cb[0] == '0' {
+					// Word-sub form: `0<ref-letters>[<lit-chunk>]<V|C|O|P>`.
+					// Mirrors parseIdentifier word-sub decoding so nested types
+					// like `0A6LatestV` (CombineLatest) attach to host display.
+					j := 1
+					var buf strings.Builder
+					terminal := false
+					for j < len(cb) {
+						c := cb[j]
+						if c >= 'a' && c <= 'z' {
+							idx := int(c - 'a')
+							if idx >= len(p.words) {
+								break
+							}
+							buf.WriteString(p.words[idx])
+							j++
+							continue
+						}
+						if c >= 'A' && c <= 'Z' {
+							idx := int(c - 'A')
+							if idx >= len(p.words) {
+								break
+							}
+							buf.WriteString(p.words[idx])
+							j++
+							terminal = true
+							break
+						}
+						break
+					}
+					if !terminal && j < len(cb) && cb[j] == '0' {
+						j++
+						terminal = true
+					}
+					if j < len(cb) && cb[j] >= '1' && cb[j] <= '9' {
+						lenStart := j
+						for j < len(cb) && cb[j] >= '0' && cb[j] <= '9' {
+							j++
+						}
+						n := 0
+						for _, d := range cb[lenStart:j] {
+							n = n*10 + int(d-'0')
+						}
+						if j+n >= len(cb) {
+							break
+						}
+						buf.WriteString(string(cb[j : j+n]))
+						j += n
+					}
+					if !terminal || buf.Len() == 0 || j >= len(cb) {
+						break
+					}
+					name = buf.String()
+					kindPos = j
+				} else {
 					break
 				}
-				n := 0
-				for _, d := range cb[:lenEnd] {
-					n = n*10 + int(d-'0')
-				}
-				if n <= 0 || lenEnd+n >= len(cb) {
-					break
-				}
-				name := string(cb[lenEnd : lenEnd+n])
-				kindPos := lenEnd + n
 				if cb[kindPos] != 'V' && cb[kindPos] != 'C' &&
 					cb[kindPos] != 'O' && cb[kindPos] != 'P' {
 					break
