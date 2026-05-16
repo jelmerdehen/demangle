@@ -6,6 +6,18 @@ fast loop fires — avoids re-deriving path/cause each fire. Bounded
 
 ## Active targets
 
+### type-first-extension-entity-roundtrip-breach [5 syms, deferred-1]
+
+Adding chain-lookahead + module-name rewind to tryTypeFirstExtensionEntity label parser (stable.go:11403) gains +5 parity (UITraitCollection.coreResolvedEnvironment(base:), UISheetPresentationControllerDetent.resolvedValue(in:), etc.) but breaks +5 roundtrip — same syms fail mangle→demangle equality.
+
+The simplified-form output (label dropped) means the remangler can't reconstruct the original symbol from the now-simpler tree. Roundtrip invariant breach → must revert.
+
+Fire-plan:
+1. Audit remangler for this entity shape — needs to accept simplified form as-is OR re-emit the dropped module-qualifier ident.
+2. Once remangler patched, re-apply the label parser fix.
+
+Reason for deferral: requires coordinated parser + remangler change. Parity-only fix breaches roundtrip-monotone invariant.
+
 ### nsnotif-messageident-property-desc-uikit-declname [72 syms, deferred-1]
 
 Pattern: `_$sSo<NSClass>C<digit><ExtMod>E17MessageIdentifierP<digit><UIKit>AbCE<word-sub>V<bound-gen>R<constraint>E<word-sub-declname>AM<accessor>`
