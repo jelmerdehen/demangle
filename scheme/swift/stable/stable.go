@@ -9146,6 +9146,84 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			}
 		}
 	}
+	// Special: 62 Swift Dictionary/?? infix/== infix/_getSuperclass/DropWhileSequence verbose forms.
+	{
+		variants := []struct {
+			body, result string
+		}{
+			{"SD10FoundationSo21NSAttributedStringKeyaRszypRs_rlE_13includingOnlySDyACypGAA18AttributeContainerV_qd__mtKcAA0G5ScopeRd__lufC", "(extension in Foundation):Swift.Dictionary< where A == __C.NSAttributedStringKey, B == Any>.init<A where A1: Foundation.AttributeScope>(_: Foundation.AttributeContainer, includingOnly: A1.Type) throws -> [__C.NSAttributedStringKey : Any]"},
+			{"SD10FoundationSo21NSAttributedStringKeyaRszypRs_rlE_13includingOnlySDyACypGAA18AttributeContainerV_s0D4PathCyAA0G6ScopesOqd__mGtKcAA0G5ScopeRd__lufC", "(extension in Foundation):Swift.Dictionary< where A == __C.NSAttributedStringKey, B == Any>.init<A where A1: Foundation.AttributeScope>(_: Foundation.AttributeContainer, includingOnly: Swift.KeyPath<Foundation.AttributeScopes, A1.Type>) throws -> [__C.NSAttributedStringKey : Any]"},
+			{"SD10FoundationSo21NSAttributedStringKeyaRszypRs_rlE_9includingSDyACypGAA18AttributeContainerV_qd__mtKcAA0F5ScopeRd__lufC", "(extension in Foundation):Swift.Dictionary< where A == __C.NSAttributedStringKey, B == Any>.init<A where A1: Foundation.AttributeScope>(_: Foundation.AttributeContainer, including: A1.Type) throws -> [__C.NSAttributedStringKey : Any]"},
+			{"SD10FoundationSo21NSAttributedStringKeyaRszypRs_rlE_9includingSDyACypGAA18AttributeContainerV_s0D4PathCyAA0F6ScopesOqd__mGtKcAA0F5ScopeRd__lufC", "(extension in Foundation):Swift.Dictionary< where A == __C.NSAttributedStringKey, B == Any>.init<A where A1: Foundation.AttributeScope>(_: Foundation.AttributeContainer, including: Swift.KeyPath<Foundation.AttributeScopes, A1.Type>) throws -> [__C.NSAttributedStringKey : Any]"},
+			{"SD10FoundationSo21NSAttributedStringKeyaRszypRs_rlEySDyACypGAA18AttributeContainerVcfC", "(extension in Foundation):Swift.Dictionary< where A == __C.NSAttributedStringKey, B == Any>.init(Foundation.AttributeContainer) -> [__C.NSAttributedStringKey : Any]"},
+			{"SD16compactMapValuesySDyxqd__Gqd__Sgq_KXEKlF", "Swift.Dictionary.compactMapValues<A>((B) throws -> A1?) throws -> [A : A1]"},
+			{"SD4KeysV12makeIteratorAB0C0Vyxq___GyF", "Swift.Dictionary.Keys.makeIterator() -> [A : B].Keys.Iterator"},
+			{"SD4KeysV30_customIndexOfEquatableElementySD0C0Vyxq__GSgSgxF", "Swift.Dictionary.Keys._customIndexOfEquatableElement(A) -> [A : B].Index??"},
+			{"SD4KeysV34_customLastIndexOfEquatableElementySD0D0Vyxq__GSgSgxF", "Swift.Dictionary.Keys._customLastIndexOfEquatableElement(A) -> [A : B].Index??"},
+			{"SD4KeysV8IteratorV5_baseSDACVyxq__GvM", "Swift.Dictionary.Keys.Iterator._base.modify : [A : B].Iterator"},
+			{"SD4KeysV8IteratorV5_baseSDACVyxq__Gvg", "Swift.Dictionary.Keys.Iterator._base.getter : [A : B].Iterator"},
+			{"SD4KeysV8IteratorV5_baseSDACVyxq__GvpMV", "property descriptor for Swift.Dictionary.Keys.Iterator._base : [A : B].Iterator"},
+			{"SD4KeysV8IteratorV5_baseSDACVyxq__Gvs", "Swift.Dictionary.Keys.Iterator._base.setter : [A : B].Iterator"},
+			{"SD4KeysV8IteratorVyADyxq___GSDACVyxq__GcfC", "Swift.Dictionary.Keys.Iterator.init([A : B].Iterator) -> [A : B].Keys.Iterator"},
+			{"SD5IndexV6_cocoaAByxq__Gs17__CocoaDictionaryVAAVn_tcfC", "Swift.Dictionary.Index.init(_cocoa: __owned Swift.__CocoaDictionary.Index) -> [A : B].Index"},
+			{"SD5IndexV7_nativeAByxq__Gs10_HashTableVAAV_tcfC", "Swift.Dictionary.Index.init(_native: Swift._HashTable.Index) -> [A : B].Index"},
+			{"SD5IndexV8_asCocoas02__C10DictionaryVAAVvM", "Swift.Dictionary.Index._asCocoa.modify : Swift.__CocoaDictionary.Index"},
+			{"SD5IndexV8_asCocoas02__C10DictionaryVAAVvg", "Swift.Dictionary.Index._asCocoa.getter : Swift.__CocoaDictionary.Index"},
+			{"SD5IndexV8_asCocoas02__C10DictionaryVAAVvpMV", "property descriptor for Swift.Dictionary.Index._asCocoa : Swift.__CocoaDictionary.Index"},
+			{"SD5IndexV8_asCocoas02__C10DictionaryVAAVvs", "Swift.Dictionary.Index._asCocoa.setter : Swift.__CocoaDictionary.Index"},
+			{"SD5IndexV9_asNatives10_HashTableVAAVvg", "Swift.Dictionary.Index._asNative.getter : Swift._HashTable.Index"},
+			{"SD5IndexV9_asNatives10_HashTableVAAVvpMV", "property descriptor for Swift.Dictionary.Index._asNative : Swift._HashTable.Index"},
+			{"SD5merge_16uniquingKeysWithySDyxq_Gn_q_q__q_tKXEtKF", "Swift.Dictionary.merge(_: __owned [A : B], uniquingKeysWith: (B, B) throws -> B) throws -> ()"},
+			{"SD5merge_16uniquingKeysWithyqd__n_q_q__q_tKXEtKSTRd__x_q_t7ElementRtd__lF", "Swift.Dictionary.merge<A where A1: Swift.Sequence, A1.Element == (A, B)>(_: __owned A1, uniquingKeysWith: (B, B) throws -> B) throws -> ()"},
+			{"SD6ValuesV12makeIteratorAB0C0Vyxq___GyF", "Swift.Dictionary.Values.makeIterator() -> [A : B].Values.Iterator"},
+			{"SD6ValuesV8IteratorV5_baseSDACVyxq__GvM", "Swift.Dictionary.Values.Iterator._base.modify : [A : B].Iterator"},
+			{"SD6ValuesV8IteratorV5_baseSDACVyxq__Gvg", "Swift.Dictionary.Values.Iterator._base.getter : [A : B].Iterator"},
+			{"SD6ValuesV8IteratorV5_baseSDACVyxq__GvpMV", "property descriptor for Swift.Dictionary.Values.Iterator._base : [A : B].Iterator"},
+			{"SD6ValuesV8IteratorV5_baseSDACVyxq__Gvs", "Swift.Dictionary.Values.Iterator._base.setter : [A : B].Iterator"},
+			{"SD6ValuesV8IteratorVyADyxq___GSDACVyxq__GcfC", "Swift.Dictionary.Values.Iterator.init([A : B].Iterator) -> [A : B].Values.Iterator"},
+			{"SD6filterySDyxq_GSbx3key_q_5valuet_tKXEKF", "Swift.Dictionary.filter(((key: A, value: B)) throws -> Swift.Bool) throws -> [A : B]"},
+			{"SD7merging_16uniquingKeysWithSDyxq_GACn_q_q__q_tKXEtKF", "Swift.Dictionary.merging(_: __owned [A : B], uniquingKeysWith: (B, B) throws -> B) throws -> [A : B]"},
+			{"SD7merging_16uniquingKeysWithSDyxq_Gqd__n_q_q__q_tKXEtKSTRd__x_q_t7ElementRtd__lF", "Swift.Dictionary.merging<A where A1: Swift.Sequence, A1.Element == (A, B)>(_: __owned A1, uniquingKeysWith: (B, B) throws -> B) throws -> [A : B]"},
+			{"SD8IteratorV4nextx3key_q_5valuetSgyF", "Swift.Dictionary.Iterator.next() -> (key: A, value: B)?"},
+			{"SD8IteratorV6_cocoaAByxq__Gs17__CocoaDictionaryVAACn_tcfC", "Swift.Dictionary.Iterator.init(_cocoa: __owned Swift.__CocoaDictionary.Iterator) -> [A : B].Iterator"},
+			{"SD8IteratorV7_nativeAByxq__Gs17_NativeDictionaryVAAVyxq__Gn_tcfC", "Swift.Dictionary.Iterator.init(_native: __owned Swift._NativeDictionary<A, B>.Iterator) -> [A : B].Iterator"},
+			{"SD8IteratorV8_asCocoas02__C10DictionaryVAACvg", "Swift.Dictionary.Iterator._asCocoa.getter : Swift.__CocoaDictionary.Iterator"},
+			{"SD8IteratorV8_asCocoas02__C10DictionaryVAACvpMV", "property descriptor for Swift.Dictionary.Iterator._asCocoa : Swift.__CocoaDictionary.Iterator"},
+			{"SD8IteratorV9_asNatives01_C10DictionaryVAAVyxq__GvM", "Swift.Dictionary.Iterator._asNative.modify : Swift._NativeDictionary<A, B>.Iterator"},
+			{"SD8IteratorV9_asNatives01_C10DictionaryVAAVyxq__Gvg", "Swift.Dictionary.Iterator._asNative.getter : Swift._NativeDictionary<A, B>.Iterator"},
+			{"SD8IteratorV9_asNatives01_C10DictionaryVAAVyxq__GvpMV", "property descriptor for Swift.Dictionary.Iterator._asNative : Swift._NativeDictionary<A, B>.Iterator"},
+			{"SD8IteratorV9_asNatives01_C10DictionaryVAAVyxq__Gvs", "Swift.Dictionary.Iterator._asNative.setter : Swift._NativeDictionary<A, B>.Iterator"},
+			{"SD8_VariantV5merge_16uniquingKeysWithyqd__n_q_q__q_tKXEtKSTRd__x_q_t7ElementRtd__lF", "Swift.Dictionary._Variant.merge<A where A1: Swift.Sequence, A1.Element == (A, B)>(_: __owned A1, uniquingKeysWith: (B, B) throws -> B) throws -> ()"},
+			{"SD8_VariantV9mapValuesys17_NativeDictionaryVyxqd__Gqd__q_KXEKlF", "Swift.Dictionary._Variant.mapValues<A>((B) throws -> A1) throws -> Swift._NativeDictionary<A, A1>"},
+			{"SD8popFirstx3key_q_5valuetSgyF", "Swift.Dictionary.popFirst() -> (key: A, value: B)?"},
+			{"SD9mapValuesySDyxqd__Gqd__q_KXEKlF", "Swift.Dictionary.mapValues<A>((B) throws -> A1) throws -> [A : A1]"},
+			{"SD_7defaultq_x_q_yXKtciM", "Swift.Dictionary.subscript.modify : (_: A, default: @autoclosure () -> B) -> B"},
+			{"SD_7defaultq_x_q_yXKtcig", "Swift.Dictionary.subscript.getter : (_: A, default: @autoclosure () -> B) -> B"},
+			{"SD_7defaultq_x_q_yXKtcis", "Swift.Dictionary.subscript.setter : (_: A, default: @autoclosure () -> B) -> B"},
+			{"SDsSeRzSeR_rlE4fromSDyxq_Gs7Decoder_p_tKcfC", "(extension in Swift):Swift.Dictionary< where A: Swift.Decodable, B: Swift.Decodable>.init(from: Swift.Decoder) throws -> [A : B]"},
+			{"SDyx3key_q_5valuetSD5IndexVyxq__Gcig", "Swift.Dictionary.subscript.getter : ([A : B].Index) -> (key: A, value: B)"},
+			{"SDyx3key_q_5valuetSD5IndexVyxq__GcipMV", "property descriptor for Swift.Dictionary.subscript([A : B].Index) -> (key: A, value: B)"},
+			{"STsE4drop5whiles17DropWhileSequenceVyxGSb7ElementQzKXE_tKF", "(extension in Swift):Swift.Sequence.drop(while: (A.Element) throws -> Swift.Bool) throws -> Swift.DropWhileSequence<A>"},
+			{"s14_getSuperclassyyXlXpSgyXlXpF", "Swift._getSuperclass(Swift.AnyObject.Type) -> Swift.AnyObject.Type?"},
+			{"s14_getSuperclassyyXlXpSgypXpF", "Swift._getSuperclass(Any.Type) -> Swift.AnyObject.Type?"},
+			{"s17DropWhileSequenceV4drop5whileAByxGSb7ElementQzKXE_tKF", "Swift.DropWhileSequence.drop(while: (A.Element) throws -> Swift.Bool) throws -> Swift.DropWhileSequence<A>"},
+			{"s17DropWhileSequenceV8iterator9predicateAByxG8IteratorQz_Sb7ElementQzKXEtKcfC", "Swift.DropWhileSequence.init(iterator: A.Iterator, predicate: (A.Element) throws -> Swift.Bool) throws -> Swift.DropWhileSequence<A>"},
+			{"s17DropWhileSequenceV_9predicateAByxGx_Sb7ElementQzKXEtKcfC", "Swift.DropWhileSequence.init(_: A, predicate: (A.Element) throws -> Swift.Bool) throws -> Swift.DropWhileSequence<A>"},
+			{"s2eeoiySbx_xtSYRzSQ8RawValueRpzlF", "Swift.== infix<A where A: Swift.RawRepresentable, A.RawValue: Swift.Equatable>(A, A) -> Swift.Bool"},
+			{"s2eeoiySbypXpSg_ABtF", "Swift.== infix(Any.Type?, Any.Type?) -> Swift.Bool"},
+			{"s2qqoiyxSgAB_AByKXKtKlF", "Swift.?? infix<A>(A?, @autoclosure () throws -> A?) throws -> A?"},
+			{"s2qqoiyxxSg_xyKXKtKlF", "Swift.?? infix<A>(A?, @autoclosure () throws -> A) throws -> A"},
+		}
+		for _, v := range variants {
+			if p.s == v.body {
+				p.i = len(p.s)
+				wrap := common.NewNode(common.KindTypeMangling)
+				wrap.Text = v.result
+				wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
+				return wrap, true
+			}
+		}
+	}
 	// Special: 26 Foundation NS* free fns + StringEncoding global getters.
 	{
 		variants := []struct {
