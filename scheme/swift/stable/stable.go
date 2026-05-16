@@ -9817,7 +9817,7 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			constr := p.s[fpMcConstraintStart:sEnd]
 			if strings.Contains(constr, "rl") {
 				genSigPrefix = "<> "
-			} else if strings.Contains(constr, "Rz") {
+			} else if strings.Contains(constr, "Rsz") || strings.Contains(constr, "Rz") {
 				gnames := make([]string, fpBoundGenArgs)
 				for gi := range gnames {
 					gnames[gi] = string(rune('A' + gi))
