@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 95.97% (61189/63757) — 2026-05-16T20:39:15Z
+**Parity**: 95.98% (61192/63757) — 2026-05-16T20:43:09Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 93 parse-errors + 2475 mismatches
+**Failures**: 93 parse-errors + 2472 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- 320b598c swift-parity: CGX Foundation NSDecimal init(_:format:lenient:) FormatStyle inner variants — parity 95.97%->95.97% (+3 production +0 roundtrip)
+- e13bfc47 chore: lock snapshot after CGW commit (parity 61182->61189 roundtrip 21309->21309)
+- d2603f14 chore: update digest.md for CGW commit (parity 95.96%->95.97% +7)
 - e4c45caf swift-parity: CGW Swift stdlib SIMD extension subscript<A>(_:) property descriptor SIMD2-64 — parity 95.96%->95.97% (+7 production +0 roundtrip)
 - aacfa07a chore: lock snapshot after CGV commit (parity 61178->61182 roundtrip 21309->21309)
 - c7b105fb chore: update digest.md for CGV commit (parity 95.95%->95.96% +4)
@@ -36,9 +39,6 @@
 - f0682fad chore: lock snapshot after CGU commit (parity 61174->61178 roundtrip 21309->21309)
 - 1516b942 chore: update digest.md for CGU commit (parity 95.95%->95.95% +4)
 - 49478176 swift-parity: CGU Foundation NSSortDescriptor extension init<A>(SortDescriptor<A>) NSObject-constraint variant — parity 95.95%->95.95% (+4 production +0 roundtrip)
-- a1e1c6cc chore: lock snapshot after CGT commit (parity 61170->61174 roundtrip 21309->21309)
-- 4d141458 chore: update digest.md for CGT commit (parity 95.94%->95.94% +4)
-- 3aaf8d56 swift-parity: CGT Foundation NSAttributedString init(markdown:options:baseURL:) Data/String forms — parity 95.94%->95.94% (+4 production +0 roundtrip)
 
 ## Suggested Next 3 Items
 
