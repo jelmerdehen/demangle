@@ -9146,6 +9146,40 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			}
 		}
 	}
+	// Special: 18 Swift stdlib (String/Substring.withCString + Set.Iterator/Index.init + _StringGuts.withFastUTF8 + _SliceBuffer.init + Slice.index/_failEarlyRangeCheck + transcode).
+	{
+		variants := []struct {
+			body, result string
+		}{
+			{"SS11withCString9encodedAs_xq_m_xSPy8CodeUnitQy_GKXEtKs16_UnicodeEncodingR_r0_lF", "Swift.String.withCString<A, B where B: Swift._UnicodeEncoding>(encodedAs: B.Type, _: (Swift.UnsafePointer<B.CodeUnit>) throws -> A) throws -> A"},
+			{"SS11withCStringyxxSPys4Int8VGKXEKlF", "Swift.String.withCString<A>((Swift.UnsafePointer<Swift.Int8>) throws -> A) throws -> A"},
+			{"Sh5IndexV6_cocoaAByx_Gs10__CocoaSetVAAVn_tcfC", "Swift.Set.Index.init(_cocoa: __owned Swift.__CocoaSet.Index) -> Swift.Set<A>.Index"},
+			{"Sh5IndexV7_nativeAByx_Gs10_HashTableVAAV_tcfC", "Swift.Set.Index.init(_native: Swift._HashTable.Index) -> Swift.Set<A>.Index"},
+			{"Sh8IteratorV6_cocoaAByx_Gs10__CocoaSetVAACn_tcfC", "Swift.Set.Iterator.init(_cocoa: __owned Swift.__CocoaSet.Iterator) -> Swift.Set<A>.Iterator"},
+			{"Sh8IteratorV7_nativeAByx_Gs10_NativeSetVAAVyx_Gn_tcfC", "Swift.Set.Iterator.init(_native: __owned Swift._NativeSet<A>.Iterator) -> Swift.Set<A>.Iterator"},
+			{"Ss11withCString9encodedAs_xq_m_xSPy8CodeUnitQy_GKXEtKs16_UnicodeEncodingR_r0_lF", "Swift.Substring.withCString<A, B where B: Swift._UnicodeEncoding>(encodedAs: B.Type, _: (Swift.UnsafePointer<B.CodeUnit>) throws -> A) throws -> A"},
+			{"Ss11withCStringyxxSPys4Int8VGKXEKlF", "Swift.Substring.withCString<A>((Swift.UnsafePointer<Swift.Int8>) throws -> A) throws -> A"},
+			{"s11_StringGutsV12withFastUTF85range_xSnySiG_xSRys5UInt8VGKXEtKlF", "Swift._StringGuts.withFastUTF8<A>(range: Swift.Range<Swift.Int>, _: (Swift.UnsafeBufferPointer<Swift.UInt8>) throws -> A) throws -> A"},
+			{"s11_StringGutsV12withFastUTF8yxxSRys5UInt8VGKXEKlF", "Swift._StringGuts.withFastUTF8<A>((Swift.UnsafeBufferPointer<Swift.UInt8>) throws -> A) throws -> A"},
+			{"s12_SliceBufferV5owner20subscriptBaseAddress10startIndex03endH8AndFlagsAByxGyXl_SpyxGSiSutcfC", "Swift._SliceBuffer.init(owner: Swift.AnyObject, subscriptBaseAddress: Swift.UnsafeMutablePointer<A>, startIndex: Swift.Int, endIndexAndFlags: Swift.UInt) -> Swift._SliceBuffer<A>"},
+			{"s12_SliceBufferV5owner20subscriptBaseAddress7indices09hasNativeB0AByxGyXl_SpyxGSnySiGSbtcfC", "Swift._SliceBuffer.init(owner: Swift.AnyObject, subscriptBaseAddress: Swift.UnsafeMutablePointer<A>, indices: Swift.Range<Swift.Int>, hasNativeBuffer: Swift.Bool) -> Swift._SliceBuffer<A>"},
+			{"s5SliceV20_failEarlyRangeCheck_6boundsy5IndexQz_SnyAFGtF", "Swift.Slice._failEarlyRangeCheck(_: A.Index, bounds: Swift.Range<A.Index>) -> ()"},
+			{"s5SliceV20_failEarlyRangeCheck_6boundsySny5IndexQzG_AGtF", "Swift.Slice._failEarlyRangeCheck(_: Swift.Range<A.Index>, bounds: Swift.Range<A.Index>) -> ()"},
+			{"s5SliceV5index5after5IndexQzAF_tF", "Swift.Slice.index(after: A.Index) -> A.Index"},
+			{"s5SliceV5index_8offsetBy5IndexQzAF_SitF", "Swift.Slice.index(_: A.Index, offsetBy: Swift.Int) -> A.Index"},
+			{"s9transcode_4from2to15stoppingOnError4intoSbx_q_mq0_mSby8CodeUnitQy0_XEtStRzs16_UnicodeEncodingR_sAHR0_AFQy_7ElementRtzr1_lF", "Swift.transcode<A, B, C where A: Swift.IteratorProtocol, B: Swift._UnicodeEncoding, C: Swift._UnicodeEncoding, A.Element == B.CodeUnit>(_: A, from: B.Type, to: C.Type, stoppingOnError: Swift.Bool, into: (C.CodeUnit) -> ()) -> Swift.Bool"},
+			{"s9transcode____11stopOnErrorSbq_m_q0_mxy8CodeUnitQy0_XESbtStRzs12UnicodeCodecR_sAER0_ACQy_7ElementRtzr1_lF", "Swift.transcode<A, B, C where A: Swift.IteratorProtocol, B: Swift.UnicodeCodec, C: Swift.UnicodeCodec, A.Element == B.CodeUnit>(_: B.Type, _: C.Type, _: A, _: (C.CodeUnit) -> (), stopOnError: Swift.Bool) -> Swift.Bool"},
+		}
+		for _, v := range variants {
+			if p.s == v.body {
+				p.i = len(p.s)
+				wrap := common.NewNode(common.KindTypeMangling)
+				wrap.Text = v.result
+				wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
+				return wrap, true
+			}
+		}
+	}
 	// Special: 9 Foundation Data.LargeSlice.init/Data.InlineSlice.init + Calendar.dates verbose-form variants.
 	{
 		variants := []struct {
