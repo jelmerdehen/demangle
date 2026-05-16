@@ -1435,3 +1435,41 @@ property-descriptor fast-path branch is updated.
 
 Multi-fire — needs ≥4 primitives (inner-ext detector, second decl-walk,
 constraint-marker emit, word-sub decl decode in this path).
+
+## defer-ceu-objc-conformance-srcmod [2 syms, deferred-1] (2026-05-16)
+
+Pattern: ObjC class conforming to non-Foundation protocol where the
+conformance is implemented in Foundation.
+
+Probe syms:
+- `_$sSo16NSOperationQueueC7Combine9Scheduler10FoundationMc`
+- `_$sSo9NSRunLoopC7Combine9Scheduler10FoundationMc`
+
+Oracle: `protocol conformance descriptor for __C.NSOperationQueue : Combine.Scheduler in Foundation`
+Got:    `protocol conformance descriptor for NSOperationQueue`
+
+Mangling shape: `<objc-class><protoMod><protoName><srcMod>Mc` where
+srcMod differs from protoMod (Combine vs Foundation).
+
+`tryConformanceDescriptorMc` (stable.go:934) currently only parses
+`<protoMod><protoName>` then optional `A<letter>` then constraints
+then Mc — it never consumes the trailing srcMod identifier, so the
+function REJECTS the symbol entirely (returns false). Control then
+falls through to other parsers that produce the bare-host output
+seen in Got.
+
+First attempt: added srcMod parsing gated on `RootModuleOf(inner) ==
+"__C"`. Result: parity unchanged but roundtrip regressed by 4 because
+some __C-rooted Mc symbols don't have this shape and the new code
+swallowed the wrong byte. The regression set spans Foundation
+extensions on __C classes where the digit-led tail is something else.
+
+Multi-fire — needs:
+1. Tighter detection: require trailing `Mc`/`WP` immediately past the
+   srcMod ident AND that the protoMod-protoName-srcMod path itself
+   leaves no unconsumed body. (Tested narrower form; still regresses.)
+2. Or: route this shape through a dedicated objc-srcmod parser
+   adjacent to but separate from tryConformanceDescriptorMc.
+
+Reach: oracle available; need to enumerate the 4-roundtrip-regress
+set to understand the false-positive shape before re-attempting.
