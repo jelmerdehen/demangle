@@ -8708,6 +8708,54 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			}
 		}
 	}
+	// Special: `So<n><class>C<n><mod>E<n><inner>C<n><protoMod><wordsub-protoName>AC(Mc|WP)` —
+	// ObjC class extension nested class with word-sub-decoded external-module proto.
+	// Apple verbose form:
+	//   "(extension in <mod>):__C.<class>.<inner> : <protoMod>.<protoName> in <mod>"
+	// Example: So7NSTimerC10FoundationE14TimerPublisherC7Combine011ConnectableD0ACMc
+	//   → "(extension in Foundation):__C.NSTimer.TimerPublisher : Combine.ConnectablePublisher in Foundation"
+	if len(p.s) >= 22 && p.s[0] == 'S' && p.s[1] == 'o' &&
+		(p.s[len(p.s)-4:] == "ACMc" || p.s[len(p.s)-4:] == "ACWP") {
+		saveI := p.i
+		saveWords := append([]string(nil), p.words...)
+		saveSubs := p.subs
+		p.i = 2
+		if !p.eof() && p.s[p.i] >= '1' && p.s[p.i] <= '9' {
+			if className, cerr := p.parseIdentifier(); cerr == nil && !p.eof() && p.s[p.i] == 'C' {
+				p.i++
+				if !p.eof() && p.s[p.i] >= '1' && p.s[p.i] <= '9' {
+					if modName, merr := p.parseIdentifier(); merr == nil && !p.eof() && p.s[p.i] == 'E' {
+						p.i++
+						if !p.eof() && p.s[p.i] >= '1' && p.s[p.i] <= '9' {
+							if innerName, ierr := p.parseIdentifier(); ierr == nil && !p.eof() && p.s[p.i] == 'C' {
+								p.i++
+								if !p.eof() && p.s[p.i] >= '1' && p.s[p.i] <= '9' {
+									if protoMod, pmerr := p.parseIdentifier(); pmerr == nil && !p.eof() &&
+										p.s[p.i] == '0' {
+										if protoName, pnerr := p.parseIdentifier(); pnerr == nil && p.i+4 == len(p.s) &&
+											p.s[p.i] == 'A' && p.s[p.i+1] == 'C' {
+											prefix := "protocol conformance descriptor for "
+											if p.s[len(p.s)-2:] == "WP" {
+												prefix = "protocol witness table for "
+											}
+											p.i = len(p.s)
+											wrap := common.NewNode(common.KindTypeMangling)
+											wrap.Text = prefix + "(extension in " + modName + "):__C." + className + "." + innerName + " : " + protoMod + "." + protoName + " in " + modName
+											wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
+											return wrap, true
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+		p.i = saveI
+		p.words = saveWords
+		p.subs = saveSubs
+	}
 	// Special: `So<n><class>C<n><mod>E<n><outer>C<n><inner>Vy_xq__GS(c<L>|<L>)AC(Mc|WP)` —
 	// 2-deep nested type (outer Class + inner Struct) where bound-generic <A, B>
 	// is applied to the OUTER class, not the inner. Apple form:
