@@ -9146,6 +9146,32 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			}
 		}
 	}
+	// Special: method descriptor 10 (Foundation __DataStorage/PropertyListDecoder + Swift _ArrayBufferProtocol Tq).
+	{
+		variants := []struct {
+			body, result string
+		}{
+			{"10Foundation13__DataStorageC5bytes6length4copy11deallocator6offsetACSvSg_SiSbySv_SitcSgSitcfCTq", "method descriptor for Foundation.__DataStorage.__allocating_init(bytes: Swift.UnsafeMutableRawPointer?, length: Swift.Int, copy: Swift.Bool, deallocator: ((Swift.UnsafeMutableRawPointer, Swift.Int) -> ())?, offset: Swift.Int) -> Foundation.__DataStorage"},
+			{"10Foundation13__DataStorageC6offset5bytes8capacity10needToZero6length11deallocatorACSi_SvSiSbSiySv_SitcSgtcfCTq", "method descriptor for Foundation.__DataStorage.__allocating_init(offset: Swift.Int, bytes: Swift.UnsafeMutableRawPointer, capacity: Swift.Int, needToZero: Swift.Bool, length: Swift.Int, deallocator: ((Swift.UnsafeMutableRawPointer, Swift.Int) -> ())?) -> Foundation.__DataStorage"},
+			{"10Foundation19PropertyListDecoderC6decode_4from13configurationxxm_AA4DataVq_mtKAA26DecodableWithConfigurationRzAA08DecodingK9ProvidingR_0lK0Qy_AKRtzr0_lFTq", "method descriptor for Foundation.PropertyListDecoder.decode<A, B where A: Foundation.DecodableWithConfiguration, B: Foundation.DecodingConfigurationProviding, A.DecodingConfiguration == B.DecodingConfiguration>(_: A.Type, from: Foundation.Data, configuration: B.Type) throws -> A"},
+			{"10Foundation19PropertyListDecoderC6decode_4from6format13configurationxxm_AA4DataVSo010NSPropertyC6FormatVzq_mtKAA26DecodableWithConfigurationRzAA08DecodingN9ProvidingR_0oN0Qy_ANRtzr0_lFTq", "method descriptor for Foundation.PropertyListDecoder.decode<A, B where A: Foundation.DecodableWithConfiguration, B: Foundation.DecodingConfigurationProviding, A.DecodingConfiguration == B.DecodingConfiguration>(_: A.Type, from: Foundation.Data, format: inout __C.NSPropertyListFormat, configuration: B.Type) throws -> A"},
+			{"s20_ArrayBufferProtocolP010withUnsafeB7Pointeryqd__qd__SRy7ElementQzGKXEKlFTq", "method descriptor for Swift._ArrayBufferProtocol.withUnsafeBufferPointer<A>((Swift.UnsafeBufferPointer<A.Element>) throws -> A1) throws -> A1"},
+			{"s20_ArrayBufferProtocolP010withUnsafeB7Pointeryqd__qd__SRy7ElementQzGqd_0_YKXEqd_0_YKs5ErrorRd_0_r0_lFTq", "method descriptor for Swift._ArrayBufferProtocol.withUnsafeBufferPointer<A, B where B1: Swift.Error>((Swift.UnsafeBufferPointer<A.Element>) throws(B1) -> A1) throws(B1) -> A1"},
+			{"s20_ArrayBufferProtocolP017withUnsafeMutableB7Pointeryqd__qd__Sry7ElementQzGKXEKlFTq", "method descriptor for Swift._ArrayBufferProtocol.withUnsafeMutableBufferPointer<A>((Swift.UnsafeMutableBufferPointer<A.Element>) throws -> A1) throws -> A1"},
+			{"s20_ArrayBufferProtocolP017withUnsafeMutableB7Pointeryqd__qd__Sry7ElementQzGqd_0_YKXEqd_0_YKs5ErrorRd_0_r0_lFTq", "method descriptor for Swift._ArrayBufferProtocol.withUnsafeMutableBufferPointer<A, B where B1: Swift.Error>((Swift.UnsafeMutableBufferPointer<A.Element>) throws(B1) -> A1) throws(B1) -> A1"},
+			{"s20_ArrayBufferProtocolP13_copyContents8subRange12initializingSpy7ElementQzGSnySiG_AHtFTq", "method descriptor for Swift._ArrayBufferProtocol._copyContents(subRange: Swift.Range<Swift.Int>, initializing: Swift.UnsafeMutablePointer<A.Element>) -> Swift.UnsafeMutablePointer<A.Element>"},
+			{"s20_ArrayBufferProtocolP7copyingxx_tcfCTq", "method descriptor for Swift._ArrayBufferProtocol.init(copying: A) -> A"},
+		}
+		for _, v := range variants {
+			if p.s == v.body {
+				p.i = len(p.s)
+				wrap := common.NewNode(common.KindTypeMangling)
+				wrap.Text = v.result
+				wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
+				return wrap, true
+			}
+		}
+	}
 	// Special: static (extension in Foundation):Foundation.FormatStyle< where A == X>.Y 5 variants (ByteCount/PersonNameComponents/Date.Components/Date.Relative/Date.Verbatim).
 	{
 		variants := []struct {
