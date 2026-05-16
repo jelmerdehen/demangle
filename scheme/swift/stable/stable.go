@@ -18859,8 +18859,10 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 					// Chain lookahead: ident followed by digit-led ident + V/C/O/P
 					// kind byte means current ident is a module/outer name (start
 					// of a type), not a label. e.g. `12CoreGraphics7CGFloatV` →
-					// CoreGraphics.CGFloat type.
-					if !p.eof() && p.s[p.i] >= '1' && p.s[p.i] <= '9' {
+					// CoreGraphics.CGFloat type. Also handle word-sub form
+					// `0<digit><name><word-refs><V|C|O|P>`.
+					if !p.eof() &&
+						((p.s[p.i] >= '1' && p.s[p.i] <= '9') || p.s[p.i] == '0') {
 						saveCh := p.i
 						saveSubsCh := p.subs
 						saveWordsCh := p.words
