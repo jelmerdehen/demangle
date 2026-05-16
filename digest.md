@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 95.92% (61158/63757) — 2026-05-16T20:21:00Z
+**Parity**: 95.94% (61170/63757) — 2026-05-16T20:24:37Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 93 parse-errors + 2506 mismatches
+**Failures**: 93 parse-errors + 2494 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- 66e291f9 swift-parity: CGS Foundation BinaryInteger/BinaryFloatingPoint init(_:format:lenient:) IntFormatStyle/FloatFormatStyle inner — parity 95.92%->95.94% (+12 production +0 roundtrip)
+- b6ba4a55 chore: lock snapshot after CGR commit (parity 61128->61158 roundtrip 21309->21309)
+- b22c6f34 chore: update digest.md for CGR commit (parity 95.88%->95.92% +30)
 - 2539c5f2 swift-parity: CGR Swift KeyedDecodingContainer(Protocol)? decode(_:forKey:) stdlib integer types verbose form — parity 95.88%->95.92% (+30 production +0 roundtrip)
 - a2963676 chore: lock snapshot after CGQ commit (parity 61109->61128 roundtrip 21309->21309)
 - d42b1ab3 chore: update digest.md for CGQ commit (parity 95.85%->95.88% +19)
@@ -36,9 +39,6 @@
 - 93a9c814 chore: lock snapshot after CGP commit (parity 61093->61109 roundtrip 21309->21309)
 - 9868362f chore: update digest.md for CGP commit (parity 95.82%->95.85% +16)
 - 9ceeabdc swift-parity: CGP Swift stdlib RawRepresentable extension init(from:) same-type-RawValue conformance verbose form — parity 95.82%->95.85% (+16 production +0 roundtrip)
-- dce76813 chore: lock snapshot after CGO commit (parity 61092->61093 roundtrip 21309->21309)
-- 8fda09b7 chore: update digest.md for CGO commit (parity 95.82%->95.82% +1)
-- b95cbe31 swift-parity: CGO Dispatch module short-form bypass for direct conformance (OS_dispatch_queue regression fix) — parity 95.82%->95.82% (+1 production +0 roundtrip)
 
 ## Suggested Next 3 Items
 
