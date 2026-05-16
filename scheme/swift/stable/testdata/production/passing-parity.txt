@@ -1,4 +1,4 @@
-# snapshot-pass-set update 2026-05-16T17:44:28Z — union with previous (high-water)
+# snapshot-pass-set update 2026-05-16T17:47:35Z — union with previous (high-water)
 _$s10Foreground7SwiftUI18LabelGroupStyle_v0PTl
 _$s10Foundation10CocoaErrorV010formattingC0AC4CodeVvgZ
 _$s10Foundation10CocoaErrorV010formattingC0AC4CodeVvpZMV
@@ -41737,6 +41737,10 @@ _$sSRMn
 _$sSRySRyxGSryxGcfC
 _$sSRys5SliceVySRyxGGSnySiGcig
 _$sSRys5SliceVySRyxGGSnySiGcipMV
+_$sSRyxG10Foundation12DataProtocolABs5UInt8VRszlMc
+_$sSRyxG10Foundation12DataProtocolABs5UInt8VRszlWP
+_$sSRyxG10Foundation15ContiguousBytesABs5UInt8VRszlMc
+_$sSRyxG10Foundation15ContiguousBytesABs5UInt8VRszlWP
 _$sSRyxGSKsMc
 _$sSRyxGSTsMc
 _$sSRyxGSksMc
@@ -42813,6 +42817,12 @@ _$sSays10ArraySliceVyxGSnySiGciM
 _$sSays10ArraySliceVyxGSnySiGcig
 _$sSays10ArraySliceVyxGSnySiGcipMV
 _$sSays10ArraySliceVyxGSnySiGcis
+_$sSayxG10Foundation12DataProtocolABs5UInt8VRszlMc
+_$sSayxG10Foundation12DataProtocolABs5UInt8VRszlWP
+_$sSayxG10Foundation15ContiguousBytesABs5UInt8VRszlMc
+_$sSayxG10Foundation15ContiguousBytesABs5UInt8VRszlWP
+_$sSayxG10Foundation19MutableDataProtocolABs5UInt8VRszlMc
+_$sSayxG10Foundation19MutableDataProtocolABs5UInt8VRszlWP
 _$sSayxGSEsSERzlMc
 _$sSayxGSHsSHRzlMc
 _$sSayxGSKsMc
@@ -49711,6 +49721,8 @@ _$sSrys5SliceVySryxGGSnySiGciM
 _$sSrys5SliceVySryxGGSnySiGcig
 _$sSrys5SliceVySryxGGSnySiGcipMV
 _$sSrys5SliceVySryxGGSnySiGcis
+_$sSryxG10Foundation15ContiguousBytesABs5UInt8VRszlMc
+_$sSryxG10Foundation15ContiguousBytesABs5UInt8VRszlWP
 _$sSryxGSKsMc
 _$sSryxGSMsMc
 _$sSryxGSTsMc
