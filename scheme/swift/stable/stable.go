@@ -8733,6 +8733,44 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			}
 		}
 	}
+	// Special: `<n><mod>V<n><name>VSo6UIViewCAAE8MaterialAA(Mc|WP)` —
+	// UIKit struct ext conforming to UIView.Material proto. Apple short-form: `<name>`.
+	if len(p.s) >= 26 &&
+		(p.s[len(p.s)-26:] == "So6UIViewCAAE8MaterialAAMc" ||
+			p.s[len(p.s)-26:] == "So6UIViewCAAE8MaterialAAWP") &&
+		p.i < len(p.s) && p.s[p.i] >= '1' && p.s[p.i] <= '9' {
+		probeI := p.i
+		mLen := 0
+		mPos := probeI
+		for mPos < len(p.s) && p.s[mPos] >= '0' && p.s[mPos] <= '9' {
+			mLen = mLen*10 + int(p.s[mPos]-'0')
+			mPos++
+		}
+		if mLen > 0 && mPos+mLen < len(p.s) {
+			probeI = mPos + mLen
+			if probeI < len(p.s)-26 && p.s[probeI] >= '1' && p.s[probeI] <= '9' {
+				nlen := 0
+				nstart := probeI
+				for nstart < len(p.s) && p.s[nstart] >= '0' && p.s[nstart] <= '9' {
+					nlen = nlen*10 + int(p.s[nstart]-'0')
+					nstart++
+				}
+				if nlen > 0 && nstart+nlen < len(p.s) && p.s[nstart+nlen] == 'V' &&
+					nstart+nlen+1 == len(p.s)-26 {
+					hostName := p.s[nstart : nstart+nlen]
+					prefix := "protocol conformance descriptor for "
+					if p.s[len(p.s)-2:] == "WP" {
+						prefix = "protocol witness table for "
+					}
+					p.i = len(p.s)
+					wrap := common.NewNode(common.KindTypeMangling)
+					wrap.Text = prefix + hostName
+					wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
+					return wrap, true
+				}
+			}
+		}
+	}
 	// Special: `<n><mod>V<chain>VSo20NSNotificationCenterCAAE<word-sub>AA(Mc|WP)` —
 	// Foundation type extension conforming to NSNotificationCenter Message
 	// proto. Apple short-form: `<mod>.<chain> : (extension in <mod>):__C.
