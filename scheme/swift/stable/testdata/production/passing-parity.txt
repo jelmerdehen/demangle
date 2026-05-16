@@ -1,4 +1,4 @@
-# snapshot-pass-set update 2026-05-16T21:02:34Z — union with previous (high-water)
+# snapshot-pass-set update 2026-05-16T21:05:04Z — union with previous (high-water)
 _$s10Foreground7SwiftUI18LabelGroupStyle_v0PTl
 _$s10Foundation10CocoaErrorV010formattingC0AC4CodeVvgZ
 _$s10Foundation10CocoaErrorV010formattingC0AC4CodeVvpZMV
@@ -44663,6 +44663,8 @@ _$sSmxycfCTj
 _$sSmxycfCTq
 _$sSmyxqd__cSTRd__7ElementQyd__AARtzlufCTj
 _$sSmyxqd__cSTRd__7ElementQyd__AARtzlufCTq
+_$sSn10FoundationSiRszrlEySnySiGSgSo8_NSRangeVcfC
+_$sSn10FoundationSzRzrlEySnyxGSgSo8_NSRangeVcfC
 _$sSn10_contains_ySbSnyxGF
 _$sSn10lowerBoundxvg
 _$sSn10lowerBoundxvpMV
@@ -44700,6 +44702,8 @@ _$sSnsSxRzSZ6StrideRpzrlE7indicesSnyxGvpMV
 _$sSnsSxRzSZ6StrideRpzrlE8distance4from2toSix_xtF
 _$sSnsSxRzSZ6StrideRpzrlE8endIndexxvg
 _$sSnsSxRzSZ6StrideRpzrlE8endIndexxvpMV
+_$sSnsSxRzSZ6StrideRpzrlEySnyxGACcfC
+_$sSnsSxRzSZ6StrideRpzrlEySnyxGSNyxGcfC
 _$sSnyxGSEsSERzrlMc
 _$sSnyxGSHsSHRzrlMc
 _$sSnyxGSKsSxRzSZ6StrideRpzrlMc
