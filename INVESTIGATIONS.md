@@ -6,6 +6,22 @@ fast loop fires — avoids re-deriving path/cause each fire. Bounded
 
 ## Active targets
 
+### plateau-2026-05-16-cfj-to-cfj-plus-4-deferrals
+
+Fires 17-21 zero parity gain after CFJ (60882). Buckets attempted:
+- closure-arg-tuple-overcount (deferred): depth tracking in sepCount needs structural change
+- type-first-extension-entity-roundtrip-breach (deferred): +5 parity gained / -5 RT breached, reverted
+- label-list-arity-from-args-not-greedy (deferred): structural backtrack
+- swift-stdlib-iterator-next-full-form (deferred): full Swift form rendering
+- jindo-triple-vstack-position-bottom-mispicked-declname (deferred): 1-sym narrow bug, deep trace needed
+
+Remaining patterns are all either:
+1. Full Foundation/Swift form rendering (multi-primitive)
+2. Structural parser changes (label-arity, closure-depth) that touch multiple paths
+3. Coordinated parser+remangler changes (RT-safe label drops)
+
+Round-robin to deferred-1 tier next fire. Try compact-substitution-conformance-descriptor (42+ syms) since it has the largest payoff per multi-fire investment.
+
 ### jindo-triple-vstack-position-bottom-mispicked-declname [1 sym, deferred-1]
 
 `_$s7SwiftUI17JindoTripleVStackV8PositionV6bottom12leadingInset08trailingI0AE12CoreGraphics7CGFloatVSg_ALtFZ`
