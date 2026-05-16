@@ -6,6 +6,45 @@ fast loop fires — avoids re-deriving path/cause each fire. Bounded
 
 ## Active targets
 
+### compact-substitution-conformance-descriptor [42+ syms, deferred-1]
+
+Pattern: `<type>A<lowercase>*<uppercase>(Mc|WP)` — compact multi-sub
+form encoding (ProtoModule, ProtoIdentifier, ConfModule) for
+protocol-conformance / witness-table. Apple's substitution sequence
+parses `A<letters>` as N refs (each letter = one ref into subs
+table; lowercase intermediate, uppercase terminates).
+
+Examples (top buckets):
+- `AadAMc` / `AadAWP` 14 each — `_$s10Foundation4DateV11FormatStyleVAadAMc` → "Foundation.Date.FormatStyle : Foundation.FormatStyle in Foundation". Refs [0,3,0] = [FoundationMod, FormatStyleIdent, FoundationMod].
+- `AcdCMc` / `AcdCWP` 5 each — `_$sSo9NSDecimala10FoundationE11FormatStyleVAcdCMc` → "(extension in Foundation):__C.NSDecimal.FormatStyle : Foundation.FormatStyle in Foundation". Refs [2,3,2].
+- `AafAMc` / `AafAWP` 2 each — same family.
+
+Probe trace: our `tryConformanceDescriptorMc` (stable.go:934) only
+recognizes `AA-AZ` single-letter back-ref after digit-led identifier
+or `s`/`S<letter>` proto prefix. Multi-letter compact form unsupported.
+
+Fire-plan (multi-fire):
+1. Audit our `parser.subs` push order vs Apple's: confirm whether
+   we push standalone Identifier nodes alongside nominal Struct/
+   Class/Enum/Protocol nodes — Apple's ref index 3 in `AadA`
+   points at Identifier("FormatStyle") for `4DateV11FormatStyleV`,
+   meaning Identifier nodes ARE in Apple's subs table.
+2. If our table differs, choose: (a) backfill Identifier pushes
+   during nominal parse, or (b) add a parallel "Apple-shadow"
+   subs table just for compact-sub lookup.
+3. Add `parseCompactSubstitutionRefs(maxN)` helper that consumes
+   `A[a-z]*[A-Z]` and returns []*Node.
+4. Teach `tryConformanceDescriptorMc` to accept the form
+   `<inner-type><compact-refs>(Mc|WP)` where refs decode as
+   (ProtoModule, ProtoIdent, ConfModule). Construct
+   `(extension in <Mod>):<HostMod>.<HostName> : <ProtoMod>.<ProtoIdent> in <ConfMod>`
+   when the conforming inner-type carried an `E` extension marker.
+
+Reason for deferral: subs-table push-order audit and possible
+backfill is foundational (touches every nominal-parse site),
+40+ syms reward justifies multi-fire effort but exceeds
+≤3-primitive single-commit budget.
+
 ### qr-multilabel-fn-entity-opaque-return [~200 syms, deferred-1]
 
 Pattern: `<host=V><lbl1><lbl2>...<lblN>Qr<param-types>F[QOMQ]`.
