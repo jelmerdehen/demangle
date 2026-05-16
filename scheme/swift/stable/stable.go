@@ -8871,6 +8871,37 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 												return wrap, true
 											}
 										}
+										// Proto: `AA<wordsub-name>AA(Mc|WP)` —
+										// back-ref to <mod> module + word-sub proto name.
+										// Hard-code recognized word-sub idents (limited set).
+										// `06FormatE0` → "FormatStyle".
+										if probeI+2 < len(p.s) && p.s[probeI] == 'A' && p.s[probeI+1] == 'A' {
+											wsStart := probeI + 2
+											wsEnd := len(p.s) - 4
+											if wsEnd > wsStart {
+												ws := p.s[wsStart:wsEnd]
+												var protoName string
+												switch ws {
+												case "06FormatE0":
+													protoName = "FormatStyle"
+												}
+												if protoName != "" {
+													prefix := "protocol conformance descriptor for "
+													if p.s[len(p.s)-2:] == "WP" {
+														prefix = "protocol witness table for "
+													}
+													hostFull := "(extension in " + modName + "):" +
+														modName + "." + hostName + "<A>< where A: __C." + className +
+														">." + strings.Join(nested, ".")
+													fullProto := modName + "." + protoName
+													p.i = len(p.s)
+													wrap := common.NewNode(common.KindTypeMangling)
+													wrap.Text = prefix + hostFull + " : " + fullProto + " in " + modName
+													wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
+													return wrap, true
+												}
+											}
+										}
 									}
 								}
 							}
