@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 96.99% (61836/63757) — 2026-05-16T23:35:34Z
+**Parity**: 97.01% (61851/63757) — 2026-05-16T23:38:46Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 93 parse-errors + 1828 mismatches
+**Failures**: 93 parse-errors + 1813 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- a725686c swift-parity: CJB 15 Foundation URL/URLRequest/URLQueryItem/URLResourceValues/UUID/_TimeZoneGMT/TimeZone — parity 96.99%->97.01% (+15 production +0 roundtrip)
+- d36e7d81 chore: lock snapshot after CJA commit (parity 61809->61836 roundtrip 21309->21309)
+- 5fb1a3ea chore: update digest.md for CJA commit (parity 96.94%->96.99% +27)
 - 112303a4 swift-parity: CJA 27 Foundation Calendar.* methods + AttributeContainer.init + Data.InlineData.init/Data.init — parity 96.94%->96.99% (+27 production +0 roundtrip)
 - 18923998 chore: lock snapshot after CIZ commit (parity 61767->61809 roundtrip 21309->21309)
 - a928c56a chore: update digest.md for CIZ commit (parity 96.88%->96.94% +42)
@@ -36,9 +39,6 @@
 - dfb3503d chore: lock snapshot after CIY commit (parity 61734->61767 roundtrip 21309->21309)
 - 6c4ea4d0 chore: update digest.md for CIY commit (parity 96.83%->96.88% +33)
 - 3ada6b4f swift-parity: CIY 34 Swift free fns (sequence/print/Mirror/isKnownUniquelyReferenced/AnyRandomAccessCollection/AnyBidirectionalCollection/_stdlib_atomic) — parity 96.83%->96.88% (+33 production +0 roundtrip)
-- aedfb891 chore: lock snapshot after CIX commit (parity 61716->61734 roundtrip 21309->21309)
-- 87586792 chore: update digest.md for CIX commit (parity 96.80%->96.83% +18)
-- 8d134393 swift-parity: CIX 18 Swift stdlib (String/Substring.withCString + Set.Iterator/Index.init + _StringGuts.withFastUTF8 + _SliceBuffer.init + Slice.index + transcode) — parity 96.80%->96.83% (+18 production +0 roundtrip)
 
 ## Suggested Next 3 Items
 
