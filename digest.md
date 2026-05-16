@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 96.30% (61397/63757) — 2026-05-16T22:20:25Z
+**Parity**: 96.31% (61405/63757) — 2026-05-16T22:22:29Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 93 parse-errors + 2267 mismatches
+**Failures**: 93 parse-errors + 2259 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- 53c4e1fd swift-parity: CIB protocol conformance descriptor 8 variants (Foundation/Combine + Swift stdlib) — parity 96.30%->96.31% (+8 production +0 roundtrip)
+- 69a30fb1 chore: lock snapshot after CIA commit (parity 61391->61397 roundtrip 21309->21309)
+- 52bb95ef chore: update digest.md for CIA commit (parity 96.29%->96.30% +6)
 - 87a7014d swift-parity: CIA opaque type descriptor Calendar/NSNotificationCenter 6 variants — parity 96.29%->96.30% (+6 production +0 roundtrip)
 - ef3f8600 chore: lock snapshot after CHZ commit (parity 61379->61391 roundtrip 21309->21309)
 - 5dd6da29 chore: update digest.md for CHZ commit (parity 96.27%->96.29% +12)
@@ -36,9 +39,6 @@
 - e734a507 chore: lock snapshot after CHY commit (parity 61355->61379 roundtrip 21309->21309)
 - e2fed24a chore: update digest.md for CHY commit (parity 96.23%->96.27% +24)
 - edf91ca3 swift-parity: CHY Foundation AttributedString.init 25 variants (markdown/contentsOf/localized/NSAttributed) — parity 96.23%->96.27% (+24 production +0 roundtrip)
-- c09aedef chore: lock snapshot after CHX commit (parity 61345->61355 roundtrip 21309->21309)
-- 6590dea5 chore: update digest.md for CHX commit (parity 96.22%->96.23% +10)
-- f8dbc253 swift-parity: CHX Foundation AttributedString.transformingAttributes 10 variants — parity 96.22%->96.23% (+10 production +0 roundtrip)
 
 ## Suggested Next 3 Items
 
