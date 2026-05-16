@@ -20513,6 +20513,39 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 				sEnd := len(p.s)
 				isStatic := false
 				isFnFP := false
+				// Strip Tj/Tq/Tu suffixes (dispatch thunk / method descriptor /
+				// async function pointer), then detect F/FZ.
+				tjPrefix := ""
+				for {
+					stripped := false
+					if sEnd >= 3 && p.s[sEnd-2:sEnd] == "Tj" {
+						prev := p.s[sEnd-3]
+						if prev == 'F' || prev == 'Z' {
+							tjPrefix = "dispatch thunk of " + tjPrefix
+							sEnd -= 2
+							stripped = true
+						}
+					}
+					if !stripped && sEnd >= 3 && p.s[sEnd-2:sEnd] == "Tq" {
+						prev := p.s[sEnd-3]
+						if prev == 'F' || prev == 'Z' {
+							tjPrefix = "method descriptor for " + tjPrefix
+							sEnd -= 2
+							stripped = true
+						}
+					}
+					if !stripped && sEnd >= 3 && p.s[sEnd-2:sEnd] == "Tu" {
+						prev := p.s[sEnd-3]
+						if prev == 'F' || prev == 'Z' || prev == 'j' || prev == 'q' {
+							tjPrefix = "async function pointer to " + tjPrefix
+							sEnd -= 2
+							stripped = true
+						}
+					}
+					if !stripped {
+						break
+					}
+				}
 				if sEnd >= 2 && p.s[sEnd-1] == 'F' {
 					isFnFP = true
 				} else if sEnd >= 2 && p.s[sEnd-2] == 'F' && p.s[sEnd-1] == 'Z' {
@@ -20537,13 +20570,24 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 						if c == '0' {
 							savePI := p.i
 							saveSubs := p.subs
+							saveWords := p.words
 							p.i = peekI
+							lblStart := peekI
 							lbl, err := p.parseIdentifier()
 							peekI = p.i
 							p.i = savePI
 							p.subs = saveSubs
 							if err != nil || lbl == "" {
+								p.words = saveWords
 								fpLabels = nil
+								break
+							}
+							// Uppercase-leading ident + 'Q' next = type name in
+							// DependentMemberType slot, not a label. Rewind.
+							if peekI < len(p.s) && p.s[peekI] == 'Q' &&
+								len(lbl) > 0 && lbl[0] >= 'A' && lbl[0] <= 'Z' {
+								peekI = lblStart
+								p.words = saveWords
 								break
 							}
 							fpLabels = append(fpLabels, lbl)
@@ -20679,7 +20723,7 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 								}
 							}
 							wrap := common.NewNode(common.KindTypeMangling)
-							wrap.Text = staticPfx + hostStr + "." + declName + localGenPart + "(" + strings.Join(labelParts, "") + ")"
+							wrap.Text = tjPrefix + staticPfx + hostStr + "." + declName + localGenPart + "(" + strings.Join(labelParts, "") + ")"
 							wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
 							p.i = len(p.s)
 							return wrap, true, nil
