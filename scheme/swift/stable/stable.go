@@ -8771,6 +8771,40 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			}
 		}
 	}
+	// Special: Swift.Range extension init(_:) 4 variants (Foundation × Swift extensions).
+	{
+		type rangeInitVariant struct {
+			body   string
+			result string
+		}
+		variants := []rangeInitVariant{
+			{
+				"Sn10FoundationSiRszrlEySnySiGSgSo8_NSRangeVcfC",
+				"(extension in Foundation):Swift.Range< where A == Swift.Int>.init(__C._NSRange) -> Swift.Range<Swift.Int>?",
+			},
+			{
+				"Sn10FoundationSzRzrlEySnyxGSgSo8_NSRangeVcfC",
+				"(extension in Foundation):Swift.Range< where A: Swift.BinaryInteger>.init(__C._NSRange) -> Swift.Range<A>?",
+			},
+			{
+				"SnsSxRzSZ6StrideRpzrlEySnyxGACcfC",
+				"(extension in Swift):Swift.Range< where A: Swift.Strideable, A.Stride: Swift.SignedInteger>.init(Swift.Range<A>) -> Swift.Range<A>",
+			},
+			{
+				"SnsSxRzSZ6StrideRpzrlEySnyxGSNyxGcfC",
+				"(extension in Swift):Swift.Range< where A: Swift.Strideable, A.Stride: Swift.SignedInteger>.init(Swift.ClosedRange<A>) -> Swift.Range<A>",
+			},
+		}
+		for _, v := range variants {
+			if p.s == v.body {
+				p.i = len(p.s)
+				wrap := common.NewNode(common.KindTypeMangling)
+				wrap.Text = v.result
+				wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
+				return wrap, true
+			}
+		}
+	}
 	// Special: Swift stdlib static SIMD.random<A>(in:using:) 4 variants.
 	// 2 constraint shapes × 2 range types.
 	{
