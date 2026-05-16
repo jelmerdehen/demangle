@@ -8771,6 +8771,36 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			}
 		}
 	}
+	// Special: Foundation AttributedString.transform<A>(updating:body:) 4 variants.
+	{
+		pfx := "10Foundation16AttributedStringV9transform8updating4body"
+		commonSuf := "xYKs5ErrorRzlF"
+		if len(p.s) > len(pfx)+len(commonSuf) && p.s[:len(pfx)] == pfx && strings.HasSuffix(p.s, commonSuf) {
+			middle := p.s[len(pfx) : len(p.s)-len(commonSuf)]
+			var updatingType, returnType string
+			switch middle {
+			case "SaySnyAC5IndexVGGSgAJ_yACzxYKXEt":
+				updatingType = "[Swift.Range<Foundation.AttributedString.Index>]"
+				returnType = "[Swift.Range<Foundation.AttributedString.Index>]?"
+			case "SnyAC5IndexVGSgAI_yACzxYKXEt":
+				updatingType = "Swift.Range<Foundation.AttributedString.Index>"
+				returnType = "Swift.Range<Foundation.AttributedString.Index>?"
+			case "ySaySnyAC5IndexVGGz_yACzxYKXEt":
+				updatingType = "inout [Swift.Range<Foundation.AttributedString.Index>]"
+				returnType = "()"
+			case "ySnyAC5IndexVGz_yACzxYKXEt":
+				updatingType = "inout Swift.Range<Foundation.AttributedString.Index>"
+				returnType = "()"
+			}
+			if updatingType != "" {
+				p.i = len(p.s)
+				wrap := common.NewNode(common.KindTypeMangling)
+				wrap.Text = "Foundation.AttributedString.transform<A where A: Swift.Error>(updating: " + updatingType + ", body: (inout Foundation.AttributedString) throws(A) -> ()) throws(A) -> " + returnType
+				wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
+				return wrap, true
+			}
+		}
+	}
 	// Special: Swift.Range extension init(_:) 4 variants (Foundation × Swift extensions).
 	{
 		type rangeInitVariant struct {
