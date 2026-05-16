@@ -8930,9 +8930,13 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			}
 		}
 	}
-	// Special: `s<n><hostName>VsSlRzrlE<n><innerName>Vyx_GS<protoLetter>s(Mc|WP)` —
-	// Stdlib sequence type with `A: Swift.Collection` subject constraint, nested
-	// Index struct, conforming to stdlib protocol (Comparable, Equatable).
+	// Special: `s<n><hostName>V<constraint>E<n><innerName><kindByte>yx_GS<protoLetter>s(Mc|WP)` —
+	// Stdlib sequence/range type with subject constraint, nested inner type,
+	// conforming to stdlib protocol. Constraint patterns supported:
+	//   "sSlRzrl"                = A: Swift.Collection
+	//   "sSlRzSl7ElementRpzrl"   = A: Swift.Collection, A.Element: Swift.Collection
+	//   "sSxRzSZ6StrideRpzrl"    = A: Swift.Strideable, A.Stride: Swift.SignedInteger
+	// Inner kind byte: V (Structure) or O (Enum).
 	// Example: s18EnumeratedSequenceVsSlRzrlE5IndexVyx_GSLsMc
 	//   → "(extension in Swift):Swift.EnumeratedSequence<A>< where A: Swift.Collection>.Index : Swift.Comparable in Swift"
 	if len(p.s) >= 20 && p.s[0] == 's' && p.s[1] >= '1' && p.s[1] <= '9' &&
@@ -8947,19 +8951,72 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 		if nLen > 0 && nPos+nLen < len(p.s) && p.s[nPos+nLen] == 'V' {
 			hostName := p.s[nPos : nPos+nLen]
 			probeI = nPos + nLen + 1
-			constraint := "sSlRzrl"
-			cl := len(constraint)
-			if probeI+cl < len(p.s) && p.s[probeI:probeI+cl] == constraint &&
-				p.s[probeI+cl] == 'E' {
-				probeI += cl + 1
-				if probeI < len(p.s) && p.s[probeI] >= '1' && p.s[probeI] <= '9' {
-					iLen := 0
-					iPos := probeI
-					for iPos < len(p.s) && p.s[iPos] >= '0' && p.s[iPos] <= '9' {
-						iLen = iLen*10 + int(p.s[iPos]-'0')
-						iPos++
+			type constraintEntry struct {
+				lit    string
+				clause string
+			}
+			constraints := []constraintEntry{
+				{"sSlRzSl7ElementRpzrl", "< where A: Swift.Collection, A.Element: Swift.Collection>"},
+				{"sSxRzSZ6StrideRpzrl", "< where A: Swift.Strideable, A.Stride: Swift.SignedInteger>"},
+				{"sSlRzrl", "< where A: Swift.Collection>"},
+			}
+			for _, ce := range constraints {
+				cl := len(ce.lit)
+				if probeI+cl < len(p.s) && p.s[probeI:probeI+cl] == ce.lit &&
+					p.s[probeI+cl] == 'E' {
+					innerStart := probeI + cl + 1
+					if innerStart < len(p.s) && p.s[innerStart] >= '1' && p.s[innerStart] <= '9' {
+						iLen := 0
+						iPos := innerStart
+						for iPos < len(p.s) && p.s[iPos] >= '0' && p.s[iPos] <= '9' {
+							iLen = iLen*10 + int(p.s[iPos]-'0')
+							iPos++
+						}
+						if iLen > 0 && iPos+iLen+10 == len(p.s) {
+							kindByte := p.s[iPos+iLen]
+							if (kindByte == 'V' || kindByte == 'O') &&
+								p.s[iPos+iLen+1:iPos+iLen+5] == "yx_G" &&
+								p.s[iPos+iLen+5] == 'S' && p.s[iPos+iLen+7] == 's' {
+								innerName := p.s[iPos : iPos+iLen]
+								protoLetter := p.s[iPos+iLen+6]
+								if entry, ok := common.StdlibLookup(protoLetter); ok {
+									prefix := "protocol conformance descriptor for "
+									if p.s[len(p.s)-2:] == "WP" {
+										prefix = "protocol witness table for "
+									}
+									p.i = len(p.s)
+									wrap := common.NewNode(common.KindTypeMangling)
+									wrap.Text = prefix + "(extension in Swift):Swift." + hostName + "<A>" + ce.clause + "." + innerName + " : Swift." + entry.Name + " in Swift"
+									wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
+									return wrap, true
+								}
+							}
+						}
 					}
-					if iLen > 0 && iPos+iLen+10 == len(p.s) && p.s[iPos+iLen] == 'V' &&
+				}
+			}
+		}
+	}
+	// Special: `SN<constraint>E<n><innerName><kindByte>yx_GS<protoLetter>s(Mc|WP)` —
+	// ClosedRange (SN stdlib substitution) with Strideable constraint.
+	// Example: SNsSxRzSZ6StrideRpzrlE5IndexOyx_GSLsMc
+	//   → "(extension in Swift):Swift.ClosedRange<A>< where A: Swift.Strideable, A.Stride: Swift.SignedInteger>.Index : Swift.Comparable in Swift"
+	if len(p.s) >= 20 && p.s[0] == 'S' && p.s[1] == 'N' &&
+		(p.s[len(p.s)-2:] == "Mc" || p.s[len(p.s)-2:] == "WP") {
+		constraint := "sSxRzSZ6StrideRpzrl"
+		cl := len(constraint)
+		if 2+cl < len(p.s) && p.s[2:2+cl] == constraint && p.s[2+cl] == 'E' {
+			innerStart := 2 + cl + 1
+			if innerStart < len(p.s) && p.s[innerStart] >= '1' && p.s[innerStart] <= '9' {
+				iLen := 0
+				iPos := innerStart
+				for iPos < len(p.s) && p.s[iPos] >= '0' && p.s[iPos] <= '9' {
+					iLen = iLen*10 + int(p.s[iPos]-'0')
+					iPos++
+				}
+				if iLen > 0 && iPos+iLen+10 == len(p.s) {
+					kindByte := p.s[iPos+iLen]
+					if (kindByte == 'V' || kindByte == 'O') &&
 						p.s[iPos+iLen+1:iPos+iLen+5] == "yx_G" &&
 						p.s[iPos+iLen+5] == 'S' && p.s[iPos+iLen+7] == 's' {
 						innerName := p.s[iPos : iPos+iLen]
@@ -8971,7 +9028,7 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 							}
 							p.i = len(p.s)
 							wrap := common.NewNode(common.KindTypeMangling)
-							wrap.Text = prefix + "(extension in Swift):Swift." + hostName + "<A>< where A: Swift.Collection>." + innerName + " : Swift." + entry.Name + " in Swift"
+							wrap.Text = prefix + "(extension in Swift):Swift.ClosedRange<A>< where A: Swift.Strideable, A.Stride: Swift.SignedInteger>." + innerName + " : Swift." + entry.Name + " in Swift"
 							wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
 							return wrap, true
 						}
