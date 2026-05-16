@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 96.16% (61307/63757) — 2026-05-16T21:42:08Z
+**Parity**: 96.16% (61310/63757) — 2026-05-16T21:45:10Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 93 parse-errors + 2357 mismatches
+**Failures**: 93 parse-errors + 2354 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- 09f9d303 swift-parity: CHQ Foundation AttributedString.Runs.Run.subscript 3 sig variants — parity 96.16%->96.16% (+3 production +0 roundtrip)
+- 74efc59f chore: lock snapshot after CHP commit (parity 61295->61307 roundtrip 21309->21309)
+- b3f09c0f chore: update digest.md for CHP commit (parity 96.14%->96.16% +12)
 - da3d92d5 swift-parity: CHP Swift MutableCollection/Collection extension subscript 3+3 sig variants — parity 96.14%->96.16% (+12 production +0 roundtrip)
 - 535b4ef3 chore: lock snapshot after CHO commit (parity 61292->61295 roundtrip 21309->21309)
 - 22ec645d chore: update digest.md for CHO commit (parity 96.14%->96.14% +3)
@@ -36,9 +39,6 @@
 - 7f2f874e chore: lock snapshot after CHN commit (parity 61289->61292 roundtrip 21309->21309)
 - 45155de5 chore: update digest.md for CHN commit (parity 96.13%->96.14% +3)
 - 0172e7c5 swift-parity: CHN Foundation AttributeContainer.subscript property descriptor — parity 96.13%->96.14% (+3 production +0 roundtrip)
-- 062aa7a0 chore: lock snapshot after CHM commit (parity 61287->61289 roundtrip 21309->21309)
-- f54a80b0 chore: update digest.md for CHM commit (parity 96.13%->96.13% +2)
-- 767d1058 swift-parity: CHM Foundation AttributedString.init<A>(localized:defaultValue:options:...) — parity 96.13%->96.13% (+2 production +0 roundtrip)
 
 ## Suggested Next 3 Items
 
