@@ -6,6 +6,20 @@ fast loop fires — avoids re-deriving path/cause each fire. Bounded
 
 ## Active targets
 
+### label-list-arity-from-args-not-greedy [~10 syms, deferred-1]
+
+Our label parser walks digit-led idents greedily until non-label byte. Apple parses args first (knows arity) then takes N labels. For label-then-existential-arg syms, the existential's module qualifier looks like a label and is mis-consumed.
+
+Sample: `_$sSo17OS_dispatch_queueC8DispatchE8schedule5after8interval9tolerance7options_7Combine11Cancellable_pAbCE17SchedulerTimeTypeV_AL6StrideVAnbCE0L7OptionsVSgyyctF`
+- got `OS_dispatch_queue.schedule(after:interval:tolerance:options:_:Combine:Cancellable:_:)`
+- want `OS_dispatch_queue.schedule(after:interval:tolerance:options:_:)`
+
+After 4 labels + `_` (unnamed), our parser continues to "Combine" + "Cancellable" + "_" but Apple stops at 5 because args = 5.
+
+Fire-plan: count args first (peek past label list, parse function-type body, count top-level args), then take exactly that many labels. Or: re-attempt label parse with shorter count if args parse fails.
+
+Reason for deferral: backtrack-based parsing for label arity is structural change; touches multiple label-list call sites.
+
 ### type-first-extension-entity-roundtrip-breach [5 syms, deferred-1]
 
 Adding chain-lookahead + module-name rewind to tryTypeFirstExtensionEntity label parser (stable.go:11403) gains +5 parity (UITraitCollection.coreResolvedEnvironment(base:), UISheetPresentationControllerDetent.resolvedValue(in:), etc.) but breaks +5 roundtrip — same syms fail mangle→demangle equality.
