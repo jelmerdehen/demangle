@@ -8902,6 +8902,63 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 		p.words = saveWords
 		p.subs = saveSubs
 	}
+	// Special: `So<n><class>a<n><mod>E[<n><inner>V]+ <n><protoMod><n><protoName> AC (Mc|WP)` —
+	// ObjC TypeAlias-kind nominal with 1+ nested struct chain (no bound-generic)
+	// conforming to external-module protocol. Apple short-form:
+	//   "(extension in <mod>):__C.<class>.<inner1>[.<innerN>] : <protoMod>.<protoName> in <mod>"
+	// Example: So9NSDecimala10FoundationE11FormatStyleV7PercentV17_StringProcessing14RegexComponentACMc
+	//   → "(extension in Foundation):__C.NSDecimal.FormatStyle.Percent : _StringProcessing.RegexComponent in Foundation"
+	if len(p.s) >= 20 && p.s[0] == 'S' && p.s[1] == 'o' &&
+		(p.s[len(p.s)-2:] == "Mc" || p.s[len(p.s)-2:] == "WP") {
+		saveI := p.i
+		saveWords := append([]string(nil), p.words...)
+		saveSubs := p.subs
+		p.i = 2 // skip "So"
+		if !p.eof() && p.s[p.i] >= '1' && p.s[p.i] <= '9' {
+			if className, cerr := p.parseIdentifier(); cerr == nil && !p.eof() && p.s[p.i] == 'a' {
+				p.i++ // 'a' (TypeAlias kind for ObjC-imported types)
+				if !p.eof() && p.s[p.i] >= '1' && p.s[p.i] <= '9' {
+					if modName, merr := p.parseIdentifier(); merr == nil && !p.eof() && p.s[p.i] == 'E' {
+						p.i++ // 'E'
+						// Walk inner V-chain: <n><name>V repeated.
+						var inners []string
+						for !p.eof() && p.s[p.i] >= '1' && p.s[p.i] <= '9' {
+							innerStart := p.i
+							innerWords := append([]string(nil), p.words...)
+							inner, ierr := p.parseIdentifier()
+							if ierr != nil || p.eof() || p.s[p.i] != 'V' {
+								p.i = innerStart
+								p.words = innerWords
+								break
+							}
+							p.i++ // 'V'
+							inners = append(inners, inner)
+						}
+						if len(inners) >= 1 && !p.eof() && p.s[p.i] >= '1' && p.s[p.i] <= '9' {
+							if protoMod, pmerr := p.parseIdentifier(); pmerr == nil && !p.eof() &&
+								p.s[p.i] >= '1' && p.s[p.i] <= '9' {
+								if protoName, pnerr := p.parseIdentifier(); pnerr == nil && p.i+4 == len(p.s) &&
+									p.s[p.i] == 'A' && p.s[p.i+1] == 'C' {
+									prefix := "protocol conformance descriptor for "
+									if p.s[len(p.s)-2:] == "WP" {
+										prefix = "protocol witness table for "
+									}
+									p.i = len(p.s)
+									wrap := common.NewNode(common.KindTypeMangling)
+									wrap.Text = prefix + "(extension in " + modName + "):__C." + className + "." + strings.Join(inners, ".") + " : " + protoMod + "." + protoName + " in " + modName
+									wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
+									return wrap, true
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+		p.i = saveI
+		p.words = saveWords
+		p.subs = saveSubs
+	}
 	// Special: `SC<ident>L<char>V<mod>E<wordsub-prop>SS(vgZ|vpZMV)` —
 	// __C_Synthesized type with RelatedEntityDeclName + extension property.
 	// Example: SC37UIApplicationCategoryDefaultErrorCodeLeV5UIKitE018retryAvailableDateD3KeySSvgZ
