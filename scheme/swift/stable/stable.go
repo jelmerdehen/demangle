@@ -8763,6 +8763,123 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			}
 		}
 	}
+	// Special: `<n><mod>V AASo<n><class>CRbzrlE <chain-V>+ y<args>G S<protoLetter> AA(Mc|WP)` —
+	// Foundation-bound-generic with NSDimension-like constraint + stdlib proto.
+	// Apple's short-form: `(extension in <Mod>):<Mod>.<HostName><A><
+	// where A: __C.<class>>.<chain> : Swift.<protoName> in <Mod>`.
+	if p.s[len(p.s)-4:] == "AAMc" || p.s[len(p.s)-4:] == "AAWP" {
+		probeI := p.i
+		if probeI < len(p.s) && p.s[probeI] >= '1' && p.s[probeI] <= '9' {
+			modLen := 0
+			mPos := probeI
+			for mPos < len(p.s) && p.s[mPos] >= '0' && p.s[mPos] <= '9' {
+				modLen = modLen*10 + int(p.s[mPos]-'0')
+				mPos++
+			}
+			if modLen > 0 && mPos+modLen < len(p.s) {
+				modName := p.s[mPos : mPos+modLen]
+				probeI = mPos + modLen
+				// Host <n><name>V
+				if probeI < len(p.s)-4 && p.s[probeI] >= '1' && p.s[probeI] <= '9' {
+					hLen := 0
+					hPos := probeI
+					for hPos < len(p.s) && p.s[hPos] >= '0' && p.s[hPos] <= '9' {
+						hLen = hLen*10 + int(p.s[hPos]-'0')
+						hPos++
+					}
+					if hLen > 0 && hPos+hLen < len(p.s) && p.s[hPos+hLen] == 'V' {
+						hostName := p.s[hPos : hPos+hLen]
+						probeI = hPos + hLen + 1
+						// Constraint: `AASo<n><class>CRbzrlE`
+						if probeI+5 < len(p.s) && p.s[probeI] == 'A' && p.s[probeI+1] == 'A' &&
+							p.s[probeI+2] == 'S' && p.s[probeI+3] == 'o' {
+							probeI += 4
+							cLen := 0
+							cPos := probeI
+							for cPos < len(p.s) && p.s[cPos] >= '0' && p.s[cPos] <= '9' {
+								cLen = cLen*10 + int(p.s[cPos]-'0')
+								cPos++
+							}
+							if cLen > 0 && cPos+cLen+5 < len(p.s) && p.s[cPos+cLen] == 'C' &&
+								p.s[cPos+cLen+1] == 'R' && p.s[cPos+cLen+2] == 'b' &&
+								p.s[cPos+cLen+3] == 'z' && p.s[cPos+cLen+4] == 'r' &&
+								p.s[cPos+cLen+5] == 'l' && cPos+cLen+6 < len(p.s) &&
+								p.s[cPos+cLen+6] == 'E' {
+								className := p.s[cPos : cPos+cLen]
+								probeI = cPos + cLen + 7
+								// Walk nested chain.
+								nested := []string{}
+								for probeI < len(p.s)-4 && p.s[probeI] >= '1' && p.s[probeI] <= '9' {
+									nlen := 0
+									nstart := probeI
+									for nstart < len(p.s) && p.s[nstart] >= '0' && p.s[nstart] <= '9' {
+										nlen = nlen*10 + int(p.s[nstart]-'0')
+										nstart++
+									}
+									if nlen <= 0 || nstart+nlen >= len(p.s) {
+										break
+									}
+									nname := p.s[nstart : nstart+nlen]
+									nk := p.s[nstart+nlen]
+									if nk != 'V' && nk != 'C' && nk != 'O' && nk != 'P' {
+										break
+									}
+									nested = append(nested, nname)
+									probeI = nstart + nlen + 1
+								}
+								// Bound-gen `y<args>G`.
+								if probeI < len(p.s)-4 && p.s[probeI] == 'y' &&
+									len(nested) >= 1 {
+									k := probeI + 1
+									for k < len(p.s)-4 && p.s[k] != 'G' {
+										if p.s[k] == 'x' || p.s[k] == '_' {
+											k++
+											continue
+										}
+										if p.s[k] == 'q' {
+											k++
+											for k < len(p.s) && p.s[k] >= '0' && p.s[k] <= '9' {
+												k++
+											}
+											if k >= len(p.s) || p.s[k] != '_' {
+												break
+											}
+											k++
+											continue
+										}
+										break
+									}
+									if k < len(p.s)-4 && p.s[k] == 'G' {
+										probeI = k + 1
+										// Proto: S<letter>
+										if probeI+1 < len(p.s) && p.s[probeI] == 'S' &&
+											probeI == len(p.s)-6 {
+											protoLetter := p.s[probeI+1]
+											if pEntry, ok := common.StdlibLookup(protoLetter); ok {
+												prefix := "protocol conformance descriptor for "
+												if p.s[len(p.s)-2:] == "WP" {
+													prefix = "protocol witness table for "
+												}
+												hostFull := "(extension in " + modName + "):" +
+													modName + "." + hostName + "<A>< where A: __C." + className +
+													">." + strings.Join(nested, ".")
+												protoName := pEntry.Module + "." + pEntry.Name
+												p.i = len(p.s)
+												wrap := common.NewNode(common.KindTypeMangling)
+												wrap.Text = prefix + hostFull + " : " + protoName + " in " + modName
+												wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
+												return wrap, true
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
 	// Special: `So<n><name>a<n><mod>E<chain-V>+AcdC(Mc|WP)` —
 	// ObjC-typealias compact-substitution conformance descriptor where
 	// the protocol = first segment of nested chain.
