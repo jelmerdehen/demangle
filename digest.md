@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 96.29% (61391/63757) — 2026-05-16T22:15:35Z
+**Parity**: 96.30% (61397/63757) — 2026-05-16T22:20:25Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 93 parse-errors + 2273 mismatches
+**Failures**: 93 parse-errors + 2267 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -22,13 +22,16 @@
 - (extension in Swift):Swift.ClosedRange< where A: S… 13
 - (extension in Swift):Swift.RangeReplaceableCollect… 13
 - async function pointer to (extension in Foundation… 13
-- opaque type descriptor                     12
 - (extension in Foundation):Swift.Range< where A == … 11
 - (extension in Foundation):__C.NSDecimal.FormatStyl… 10
 - (extension in Foundation):Foundation._KeyValueCodi… 9
+- (extension in Foundation):Swift.KeyedDecodingConta… 9
 
 ## Last 10 Commits
 
+- 87a7014d swift-parity: CIA opaque type descriptor Calendar/NSNotificationCenter 6 variants — parity 96.29%->96.30% (+6 production +0 roundtrip)
+- ef3f8600 chore: lock snapshot after CHZ commit (parity 61379->61391 roundtrip 21309->21309)
+- 5dd6da29 chore: update digest.md for CHZ commit (parity 96.27%->96.29% +12)
 - 68849709 swift-parity: CHZ Foundation AttributedString.Runs.subscript.getter 12 variants — parity 96.27%->96.29% (+12 production +0 roundtrip)
 - e734a507 chore: lock snapshot after CHY commit (parity 61355->61379 roundtrip 21309->21309)
 - e2fed24a chore: update digest.md for CHY commit (parity 96.23%->96.27% +24)
@@ -36,9 +39,6 @@
 - c09aedef chore: lock snapshot after CHX commit (parity 61345->61355 roundtrip 21309->21309)
 - 6590dea5 chore: update digest.md for CHX commit (parity 96.22%->96.23% +10)
 - f8dbc253 swift-parity: CHX Foundation AttributedString.transformingAttributes 10 variants — parity 96.22%->96.23% (+10 production +0 roundtrip)
-- b8caca24 chore: lock snapshot after CHW commit (parity 61337->61345 roundtrip 21309->21309)
-- c427d0df chore: update digest.md for CHW commit (parity 96.20%->96.22% +8)
-- 79798e8d swift-parity: CHW Foundation SortDescriptor.init 8 variants (KeyPath comparator/order) — parity 96.20%->96.22% (+8 production +0 roundtrip)
 
 ## Suggested Next 3 Items
 
