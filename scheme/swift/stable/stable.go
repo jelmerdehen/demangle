@@ -8715,6 +8715,28 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			}
 		}
 	}
+	// Special: Foundation NSSortDescriptor extension init<A>(Foundation.SortDescriptor<A>).
+	// Two forms (allocating fC / non-allocating fc), each with/without `where A: __C.NSObject`.
+	// Pattern: `So16NSSortDescriptorC10FoundationEyAbC04SortB0VyxGc[So8NSObjectCRbz]?luf(C|c)`
+	{
+		pfx := "So16NSSortDescriptorC10FoundationEyAbC04SortB0VyxGc"
+		objSuf := "So8NSObjectCRbz"
+		if len(p.s) >= len(pfx)+4 && p.s[:len(pfx)] == pfx {
+			rest := p.s[len(pfx):]
+			var where string
+			if strings.HasPrefix(rest, objSuf) {
+				where = " where A: __C.NSObject"
+				rest = rest[len(objSuf):]
+			}
+			if rest == "lufC" || rest == "lufc" {
+				p.i = len(p.s)
+				wrap := common.NewNode(common.KindTypeMangling)
+				wrap.Text = "(extension in Foundation):__C.NSSortDescriptor.init<A" + where + ">(Foundation.SortDescriptor<A>) -> __C.NSSortDescriptor"
+				wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
+				return wrap, true
+			}
+		}
+	}
 	// Special: Foundation NSAttributedString extension init(markdown:options:baseURL:).
 	// Two variants by markdownType: `AB|SS|...` and `Ab|C4DataV|...`.
 	// String form: `...baseURLABSS_AC010AttributedB0V22MarkdownParsingOptionsVAC0G0VSgtKcf<C|c>`
