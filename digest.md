@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 95.73% (61037/63757) — 2026-05-16T18:00:31Z
+**Parity**: 95.74% (61040/63757) — 2026-05-16T18:51:01Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 113 parse-errors + 2607 mismatches
+**Failures**: 110 parse-errors + 2607 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,16 +29,16 @@
 
 ## Last 10 Commits
 
+- be6c7f58 swift-parity: CFZ Foundation NSNotificationCenter assoc-type-descriptor So<class>C<extMod>E<member>PTl — parity 95.74%->95.74% (+3 production +0 roundtrip)
+- 55aa229e chore: defer swiftui-protocol-conformance-witness-thunk-TW to multi-fire (deferred-1)
+- 62b11745 chore: lock snapshot after CFY commit (parity 61033->61037 roundtrip 21288->21292)
+- e11b2c26 chore: update digest.md for CFY commit (parity 95.73%->95.74% +4)
 - d82cb826 swift-parity: CFY UIKit UITextEffectView Pausable AAMc/WP short form — parity 95.73%->95.74% (+4 production +4 roundtrip)
 - bcd07c5d chore: lock snapshot after CFX commit (parity 61029->61033)
 - 1046529a chore: update digest.md for CFX commit (parity 95.72%->95.73% +4)
 - c2b8a57b swift-parity: CFX Slice A2dERzrl Foundation-proto subject-constraint conformance — parity 95.72%->95.73% (+4 production +0 roundtrip)
 - 2a70e10b chore: lock snapshot after CFW commit (parity 61021->61029)
 - e3d390e3 chore: update digest.md for CFW commit (parity 95.71%->95.72% +8)
-- ba0e1de8 swift-parity: CFW Array/Optional A2bCRzl Foundation-proto subject-constraint — parity 95.71%->95.72% (+8 production +0 roundtrip)
-- 333c9edb chore: lock snapshot after CFV commit (parity 61005->61021)
-- 04a8514d chore: update digest.md for CFV commit (parity 95.68%->95.71% +16)
-- f68fea7f swift-parity: CFV Swift stdlib s-prefix Type UInt8-same-type Foundation proto — parity 95.68%->95.71% (+16 production +0 roundtrip)
 
 ## Suggested Next 3 Items
 
