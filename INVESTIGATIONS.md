@@ -6,6 +6,28 @@ fast loop fires — avoids re-deriving path/cause each fire. Bounded
 
 ## Active targets
 
+### label-vs-type-ident-uppercase-q-rewind-verbose-path [~1+ syms, deferred-1]
+
+Fast-path label parser at stable.go:9565 correctly rewinds when
+ident starts with uppercase letter and next byte is `Q` (type
+DependentMember marker, not label). But verbose entity parser
+hits same pattern and DOES include the uppercase ident as a
+label.
+
+Example: `_$s7SwiftUI27IndexedIdentifierCollectionV5index5after5IndexQzAG_tF`
+got `IndexedIdentifierCollection.index(after:Index:)` want
+`IndexedIdentifierCollection.index(after:)`. Verified fast-path
+rewind branch NOT hit (debug printf showed no fire).
+
+Fire-plan:
+1. Locate verbose entity parser label-list iteration.
+2. Add same uppercase-Q rewind guard.
+3. Verify against `_$s7SwiftUI27IndexedIdentifierCollection...` sym.
+
+Reason for deferral: code path location unknown without trace —
+need to find which parser entry point handles `<host>V<ident>F`
+that produces this output.
+
 ### bound-gen-depth-tracking-zero-impact [infra, deferred-1]
 
 Fast-path bound-gen placement at line 9784 always attaches `<A>`
