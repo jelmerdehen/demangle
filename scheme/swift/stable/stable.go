@@ -8930,6 +8930,56 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			}
 		}
 	}
+	// Special: `s<n><hostName>VsSlRzrlE<n><innerName>Vyx_GS<protoLetter>s(Mc|WP)` —
+	// Stdlib sequence type with `A: Swift.Collection` subject constraint, nested
+	// Index struct, conforming to stdlib protocol (Comparable, Equatable).
+	// Example: s18EnumeratedSequenceVsSlRzrlE5IndexVyx_GSLsMc
+	//   → "(extension in Swift):Swift.EnumeratedSequence<A>< where A: Swift.Collection>.Index : Swift.Comparable in Swift"
+	if len(p.s) >= 20 && p.s[0] == 's' && p.s[1] >= '1' && p.s[1] <= '9' &&
+		(p.s[len(p.s)-2:] == "Mc" || p.s[len(p.s)-2:] == "WP") {
+		probeI := 1
+		nLen := 0
+		nPos := probeI
+		for nPos < len(p.s) && p.s[nPos] >= '0' && p.s[nPos] <= '9' {
+			nLen = nLen*10 + int(p.s[nPos]-'0')
+			nPos++
+		}
+		if nLen > 0 && nPos+nLen < len(p.s) && p.s[nPos+nLen] == 'V' {
+			hostName := p.s[nPos : nPos+nLen]
+			probeI = nPos + nLen + 1
+			constraint := "sSlRzrl"
+			cl := len(constraint)
+			if probeI+cl < len(p.s) && p.s[probeI:probeI+cl] == constraint &&
+				p.s[probeI+cl] == 'E' {
+				probeI += cl + 1
+				if probeI < len(p.s) && p.s[probeI] >= '1' && p.s[probeI] <= '9' {
+					iLen := 0
+					iPos := probeI
+					for iPos < len(p.s) && p.s[iPos] >= '0' && p.s[iPos] <= '9' {
+						iLen = iLen*10 + int(p.s[iPos]-'0')
+						iPos++
+					}
+					if iLen > 0 && iPos+iLen+10 == len(p.s) && p.s[iPos+iLen] == 'V' &&
+						p.s[iPos+iLen+1:iPos+iLen+5] == "yx_G" &&
+						p.s[iPos+iLen+5] == 'S' && p.s[iPos+iLen+7] == 's' {
+						innerName := p.s[iPos : iPos+iLen]
+						protoLetter := p.s[iPos+iLen+6]
+						if entry, ok := common.StdlibLookup(protoLetter); ok {
+							prefix := "protocol conformance descriptor for "
+							if p.s[len(p.s)-2:] == "WP" {
+								prefix = "protocol witness table for "
+							}
+							p.i = len(p.s)
+							wrap := common.NewNode(common.KindTypeMangling)
+							wrap.Text = prefix + "(extension in Swift):Swift." + hostName + "<A>< where A: Swift.Collection>." + innerName + " : Swift." + entry.Name + " in Swift"
+							wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
+							return wrap, true
+						}
+					}
+				}
+			}
+		}
+	}
 	// Special: `s<n><name>VyxG<n>Foundation<wordsub-protoName>ADs5UInt8VRszl(Mc|WP)` —
 	// Stdlib host with UInt8 same-type constraint, word-sub-decoded Foundation
 	// proto name. Apple verbose form is same as the digit-led variant above;
