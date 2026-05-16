@@ -9146,6 +9146,31 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			}
 		}
 	}
+	// Special: Foundation PredicateExpressions.build_contains 5 + build_subscript 4 variants.
+	{
+		variants := []struct {
+			body, result string
+		}{
+			{"10Foundation20PredicateExpressionsO14build_contains_5whereAC21SequenceContainsWhereVy_xq_Gx_q_AC8VariableVy_6Output_7ElementQZGXEtAA0B10ExpressionRzAaOR_STAKRpzSbAKRt_r0_lFZ", "static Foundation.PredicateExpressions.build_contains<A, B where A: Foundation.PredicateExpression, B: Foundation.PredicateExpression, A.Output: Swift.Sequence, B.Output == Swift.Bool>(_: A, where: (Foundation.PredicateExpressions.Variable<A.Output.Element>) -> B) -> Foundation.PredicateExpressions.SequenceContainsWhere<A, B>"},
+			{"10Foundation20PredicateExpressionsO14build_containsyAC018CollectionContainsF0Vy_xq_Gx_q_tAA0B10ExpressionRzAaHR_Sl6OutputRpzSlAIRp_SQAI_7ElementRPzAI_ALQY_AMRSr0_lFZ", "static Foundation.PredicateExpressions.build_contains<A, B where A: Foundation.PredicateExpression, B: Foundation.PredicateExpression, A.Output: Swift.Collection, B.Output: Swift.Collection, A.Output.Element: Swift.Equatable, A.Output.Element == B.Output.Element>(A, B) -> Foundation.PredicateExpressions.CollectionContainsCollection<A, B>"},
+			{"10Foundation20PredicateExpressionsO14build_containsyAC16SequenceContainsVy_xq_Gx_q_tAA0B10ExpressionRzAaHR_ST6OutputRpzSQAIRp_AI_7ElementQZAKRSr0_lFZ", "static Foundation.PredicateExpressions.build_contains<A, B where A: Foundation.PredicateExpression, B: Foundation.PredicateExpression, A.Output: Swift.Sequence, B.Output: Swift.Equatable, B.Output == A.Output.Element>(A, B) -> Foundation.PredicateExpressions.SequenceContains<A, B>"},
+			{"10Foundation20PredicateExpressionsO14build_containsyAC19StringContainsRegexVy_xq_Gx_q_tAA0B10ExpressionRzAaHR_SK6OutputRpz01_F10Processing0H9ComponentAIRp_SsAI_11SubSequenceRTzr0_lFZ", "static Foundation.PredicateExpressions.build_contains<A, B where A: Foundation.PredicateExpression, B: Foundation.PredicateExpression, A.Output: Swift.BidirectionalCollection, B.Output: _StringProcessing.RegexComponent, A.Output.SubSequence == Swift.Substring>(A, B) -> Foundation.PredicateExpressions.StringContainsRegex<A, B>"},
+			{"10Foundation20PredicateExpressionsO14build_containsyAC23RangeExpressionContainsVy_xq_Gx_q_tAA0bG0RzAaHR_SX6OutputRpzAI_5BoundQZAIRt_r0_lFZ", "static Foundation.PredicateExpressions.build_contains<A, B where A: Foundation.PredicateExpression, B: Foundation.PredicateExpression, A.Output: Swift.RangeExpression, B.Output == A.Output.Bound>(A, B) -> Foundation.PredicateExpressions.RangeExpressionContains<A, B>"},
+			{"10Foundation20PredicateExpressionsO15build_subscript__7defaultAC34DictionaryKeyDefaultValueSubscriptVy_xq_q0_Gx_q_q0_tAA0B10ExpressionRzAaIR_AaIR0_SDy6OutputQy_AJQy0_GAJRtzSHAKRQr1_lFZ", "static Foundation.PredicateExpressions.build_subscript<A, B, C where A: Foundation.PredicateExpression, B: Foundation.PredicateExpression, C: Foundation.PredicateExpression, A.Output == [B.Output : C.Output], B.Output: Swift.Hashable>(_: A, _: B, default: C) -> Foundation.PredicateExpressions.DictionaryKeyDefaultValueSubscript<A, B, C>"},
+			{"10Foundation20PredicateExpressionsO15build_subscriptyAC22DictionaryKeySubscriptVy_xq_q0_Gx_q_tAA0B10ExpressionRzAaHR_SDy6OutputQy_q0_GAIRtzSHAJRQr1_lFZ", "static Foundation.PredicateExpressions.build_subscript<A, B, C where A: Foundation.PredicateExpression, B: Foundation.PredicateExpression, A.Output == [B.Output : C], B.Output: Swift.Hashable>(A, B) -> Foundation.PredicateExpressions.DictionaryKeySubscript<A, B, C>"},
+			{"10Foundation20PredicateExpressionsO15build_subscriptyAC24CollectionIndexSubscriptVy_xq_Gx_q_tAA0B10ExpressionRzAaHR_Sl6OutputRpzAI_0G0QZAIRt_r0_lFZ", "static Foundation.PredicateExpressions.build_subscript<A, B where A: Foundation.PredicateExpression, B: Foundation.PredicateExpression, A.Output: Swift.Collection, B.Output == A.Output.Index>(A, B) -> Foundation.PredicateExpressions.CollectionIndexSubscript<A, B>"},
+			{"10Foundation20PredicateExpressionsO15build_subscriptyAC24CollectionRangeSubscriptVy_xq_Gx_q_tAA0B10ExpressionRzAaHR_Sl6OutputRpzSnyAI_5IndexQZGAIRt_r0_lFZ", "static Foundation.PredicateExpressions.build_subscript<A, B where A: Foundation.PredicateExpression, B: Foundation.PredicateExpression, A.Output: Swift.Collection, B.Output == Swift.Range<A.Output.Index>>(A, B) -> Foundation.PredicateExpressions.CollectionRangeSubscript<A, B>"},
+		}
+		for _, v := range variants {
+			if p.s == v.body {
+				p.i = len(p.s)
+				wrap := common.NewNode(common.KindTypeMangling)
+				wrap.Text = v.result
+				wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
+				return wrap, true
+			}
+		}
+	}
 	// Special: async function pointer to (extension in Foundation):__C.NS* + SwiftUI 19 variants.
 	{
 		variants := []struct {
