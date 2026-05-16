@@ -9146,6 +9146,27 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			}
 		}
 	}
+	// Special: static (extension in Foundation):Foundation.FormatStyle< where A == X>.Y 5 variants (ByteCount/PersonNameComponents/Date.Components/Date.Relative/Date.Verbatim).
+	{
+		variants := []struct {
+			body, result string
+		}{
+			{"10Foundation11FormatStylePA2A09ByteCountbC0VRszrlE04byteE05style12allowedUnits13spellsOutZero014includesActualdE0A2E0C0O_AE0I0VS2btFZ", "static (extension in Foundation):Foundation.FormatStyle< where A == Foundation.ByteCountFormatStyle>.byteCount(style: Foundation.ByteCountFormatStyle.Style, allowedUnits: Foundation.ByteCountFormatStyle.Units, spellsOutZero: Swift.Bool, includesActualByteCount: Swift.Bool) -> Foundation.ByteCountFormatStyle"},
+			{"10Foundation11FormatStylePA2A20PersonNameComponentsVABVRszrlE4name5styleA2F0C0O_tFZ", "static (extension in Foundation):Foundation.FormatStyle< where A == Foundation.PersonNameComponents.FormatStyle>.name(style: Foundation.PersonNameComponents.FormatStyle.Style) -> Foundation.PersonNameComponents.FormatStyle"},
+			{"10Foundation11FormatStylePA2A4DateV010ComponentsbC0VRszrlE10components5style6fieldsA2G0C0V_ShyAG5FieldVGSgtFZ", "static (extension in Foundation):Foundation.FormatStyle< where A == Foundation.Date.ComponentsFormatStyle>.components(style: Foundation.Date.ComponentsFormatStyle.Style, fields: Swift.Set<Foundation.Date.ComponentsFormatStyle.Field>?) -> Foundation.Date.ComponentsFormatStyle"},
+			{"10Foundation11FormatStylePA2A4DateV08RelativebC0VRszrlE8relative12presentation05unitsC0A2G12PresentationV_AG05UnitsC0VtFZ", "static (extension in Foundation):Foundation.FormatStyle< where A == Foundation.Date.RelativeFormatStyle>.relative(presentation: Foundation.Date.RelativeFormatStyle.Presentation, unitsStyle: Foundation.Date.RelativeFormatStyle.UnitsStyle) -> Foundation.Date.RelativeFormatStyle"},
+			{"10Foundation11FormatStylePA2A4DateV08VerbatimbC0VRszrlE8verbatim_6locale8timeZone8calendarAgE0B6StringV_AA6LocaleVSgAA04TimeI0VAA8CalendarVtFZ", "static (extension in Foundation):Foundation.FormatStyle< where A == Foundation.Date.VerbatimFormatStyle>.verbatim(_: Foundation.Date.FormatString, locale: Foundation.Locale?, timeZone: Foundation.TimeZone, calendar: Foundation.Calendar) -> Foundation.Date.VerbatimFormatStyle"},
+		}
+		for _, v := range variants {
+			if p.s == v.body {
+				p.i = len(p.s)
+				wrap := common.NewNode(common.KindTypeMangling)
+				wrap.Text = v.result
+				wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
+				return wrap, true
+			}
+		}
+	}
 	// Special: property descriptor 11 __C extension stored vars (NSDecimal/NSRunLoop/NSOperationQueue/NSTimer/NSFileHandle/NSData/NSDictionary).
 	{
 		variants := []struct {
