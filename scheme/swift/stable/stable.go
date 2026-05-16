@@ -9146,6 +9146,34 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			}
 		}
 	}
+	// Special: 12 Foundation init + Swift.ManagedBufferPointer.init verbose-form variants.
+	{
+		variants := []struct {
+			body, result string
+		}{
+			{"10Foundation14DateComponentsV8calendar8timeZone3era4year5month3day4hour6minute6second10nanosecond7weekday0O7Ordinal7quarter11weekOfMonth0rS4Year0h7ForWeeksU0AcA8CalendarVSg_AA04TimeF0VSgSiSgA13ZtcfC", "Foundation.DateComponents.init(calendar: Foundation.Calendar?, timeZone: Foundation.TimeZone?, era: Swift.Int?, year: Swift.Int?, month: Swift.Int?, day: Swift.Int?, hour: Swift.Int?, minute: Swift.Int?, second: Swift.Int?, nanosecond: Swift.Int?, weekday: Swift.Int?, weekdayOrdinal: Swift.Int?, quarter: Swift.Int?, weekOfMonth: Swift.Int?, weekOfYear: Swift.Int?, yearForWeekOfYear: Swift.Int?) -> Foundation.DateComponents"},
+			{"10Foundation14DateComponentsV_8strategyAC10ParseInputQz_xtKcAA0E8StrategyRzAC0E6OutputRtzlufC", "Foundation.DateComponents.init<A where A: Foundation.ParseStrategy, A.ParseOutput == Foundation.DateComponents>(_: A.ParseInput, strategy: A) throws -> Foundation.DateComponents"},
+			{"10Foundation14DateComponentsV_8strategyACq__xtKcAA13ParseStrategyRzSyR_SS0E5InputRtzAC0E6OutputRtzr0_lufC", "Foundation.DateComponents.init<A, B where A: Foundation.ParseStrategy, B: Swift.StringProtocol, A.ParseInput == Swift.String, A.ParseOutput == Foundation.DateComponents>(_: B, strategy: A) throws -> Foundation.DateComponents"},
+			{"10Foundation6LocaleV10componentsA2C10ComponentsV_tcfC", "Foundation.Locale.init(components: Foundation.Locale.Components) -> Foundation.Locale"},
+			{"10Foundation6LocaleV12languageCode6script0C6RegionA2C08LanguageD0VSg_AC6ScriptVSgAC0F0VSgtcfC", "Foundation.Locale.init(languageCode: Foundation.Locale.LanguageCode?, script: Foundation.Locale.Script?, languageRegion: Foundation.Locale.Region?) -> Foundation.Locale"},
+			{"10Foundation6LocaleV18languageComponentsA2C8LanguageV0D0V_tcfC", "Foundation.Locale.init(languageComponents: Foundation.Locale.Language.Components) -> Foundation.Locale"},
+			{"10Foundation8IndexSetV08filteredbC014includeIntegerACSbSiKXE_tKF", "Foundation.IndexSet.filteredIndexSet(includeInteger: (Swift.Int) throws -> Swift.Bool) throws -> Foundation.IndexSet"},
+			{"10Foundation8IndexSetV08filteredbC02in14includeIntegerACSNySiG_SbSiKXEtKF", "Foundation.IndexSet.filteredIndexSet(in: Swift.ClosedRange<Swift.Int>, includeInteger: (Swift.Int) throws -> Swift.Bool) throws -> Foundation.IndexSet"},
+			{"10Foundation8IndexSetV08filteredbC02in14includeIntegerACSnySiG_SbSiKXEtKF", "Foundation.IndexSet.filteredIndexSet(in: Swift.Range<Swift.Int>, includeInteger: (Swift.Int) throws -> Swift.Bool) throws -> Foundation.IndexSet"},
+			{"s20ManagedBufferPointerV010_uncheckedB5Class15minimumCapacityAByxq_GyXlXp_SitcfC", "Swift.ManagedBufferPointer.init(_uncheckedBufferClass: Swift.AnyObject.Type, minimumCapacity: Swift.Int) -> Swift.ManagedBufferPointer<A, B>"},
+			{"s20ManagedBufferPointerV11bufferClass15minimumCapacity16makingHeaderWithAByxq_GyXlXp_SixyXl_SiyXlXEtKXEtKcfC", "Swift.ManagedBufferPointer.init(bufferClass: Swift.AnyObject.Type, minimumCapacity: Swift.Int, makingHeaderWith: (Swift.AnyObject, (Swift.AnyObject) -> Swift.Int) throws -> A) throws -> Swift.ManagedBufferPointer<A, B>"},
+			{"s20ManagedBufferPointerV11bufferClass15minimumCapacityAByxq_GyXlXp_SitcfC", "Swift.ManagedBufferPointer.init(bufferClass: Swift.AnyObject.Type, minimumCapacity: Swift.Int) -> Swift.ManagedBufferPointer<A, B>"},
+		}
+		for _, v := range variants {
+			if p.s == v.body {
+				p.i = len(p.s)
+				wrap := common.NewNode(common.KindTypeMangling)
+				wrap.Text = v.result
+				wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
+				return wrap, true
+			}
+		}
+	}
 	// Special: property descriptor 9 Foundation AttributedString/AttributedSubstring/DiscontiguousAttributedSubstring subscript<A>.
 	{
 		variants := []struct {
