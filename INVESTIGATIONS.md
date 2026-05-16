@@ -6,6 +6,18 @@ fast loop fires — avoids re-deriving path/cause each fire. Bounded
 
 ## Active targets
 
+### jindo-triple-vstack-position-bottom-mispicked-declname [1 sym, deferred-1]
+
+`_$s7SwiftUI17JindoTripleVStackV8PositionV6bottom12leadingInset08trailingI0AE12CoreGraphics7CGFloatVSg_ALtFZ`
+- got `static JindoTripleVStack.Position.CoreGraphics(CGFloat:)`
+- want `static JindoTripleVStack.Position.bottom(leadingInset:trailingInset:)`
+
+Parser took `12CoreGraphics` as decl-name AFTER walking past actual `6bottom` and labels `12leadingInset08trailingI0`. Word-sub `08trailingI0` (=trailingInset) likely caused parser to mis-anchor and re-scan from the type chain.
+
+Fire-plan: trace which parser is engaged; audit word-sub label handling for state corruption.
+
+Reason for deferral: 1-sym narrow bug, needs deep trace.
+
 ### swift-stdlib-iterator-next-full-form [~10 syms, deferred-1]
 
 Pattern: Swift stdlib Sequence/Collection Iterator.next() methods with chained dependent-member return type:
