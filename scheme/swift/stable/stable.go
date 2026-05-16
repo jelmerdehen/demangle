@@ -9146,6 +9146,28 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			}
 		}
 	}
+	// Special: opaque type descriptor 6 variants (Foundation Calendar/NSNotificationCenter QOMQ).
+	{
+		variants := []struct {
+			body, result string
+		}{
+			{"10Foundation8CalendarV5dates10byMatching10startingAt2in14matchingPolicy012repeatedTimeJ09directionQrAA14DateComponentsV_AA0N0VSnyANGSgAC0eJ0OAC08RepeatedlJ0OAC15SearchDirectionOtFQOMQ", "opaque type descriptor for <<opaque return type of Foundation.Calendar.dates(byMatching: Foundation.DateComponents, startingAt: Foundation.Date, in: Swift.Range<Foundation.Date>?, matchingPolicy: Foundation.Calendar.MatchingPolicy, repeatedTimePolicy: Foundation.Calendar.RepeatedTimePolicy, direction: Foundation.Calendar.SearchDirection) -> some>>"},
+			{"10Foundation8CalendarV5dates8byAdding10startingAt2in18wrappingComponentsQrAA04DateJ0V_AA0K0VSnyALGSgSbtFQOMQ", "opaque type descriptor for <<opaque return type of Foundation.Calendar.dates(byAdding: Foundation.DateComponents, startingAt: Foundation.Date, in: Swift.Range<Foundation.Date>?, wrappingComponents: Swift.Bool) -> some>>"},
+			{"10Foundation8CalendarV5dates8byAdding5value10startingAt2in18wrappingComponentsQrAC9ComponentO_SiAA4DateVSnyAMGSgSbtFQOMQ", "opaque type descriptor for <<opaque return type of Foundation.Calendar.dates(byAdding: Foundation.Calendar.Component, value: Swift.Int, startingAt: Foundation.Date, in: Swift.Range<Foundation.Date>?, wrappingComponents: Swift.Bool) -> some>>"},
+			{"So20NSNotificationCenterC10FoundationE8messages2of3for10bufferSizeQr7SubjectQy__xSitAbCE17MessageIdentifierRzAbCE05AsyncJ0R_0J4TypeQzRs_AIRLCr0_lFQOMQ", "opaque type descriptor for <<opaque return type of (extension in Foundation):__C.NSNotificationCenter.messages<A, B where A: (extension in Foundation):__C.NSNotificationCenter.MessageIdentifier, B: (extension in Foundation):__C.NSNotificationCenter.AsyncMessage, B == A.MessageType, B.Subject: AnyObject>(of: B.Subject, for: A, bufferSize: Swift.Int) -> some>>"},
+			{"So20NSNotificationCenterC10FoundationE8messages2of3for10bufferSizeQr7SubjectQy_m_xSitAbCE17MessageIdentifierRzAbCE05AsyncJ0R_0J4TypeQzRs_r0_lFQOMQ", "opaque type descriptor for <<opaque return type of (extension in Foundation):__C.NSNotificationCenter.messages<A, B where A: (extension in Foundation):__C.NSNotificationCenter.MessageIdentifier, B: (extension in Foundation):__C.NSNotificationCenter.AsyncMessage, B == A.MessageType>(of: B.Subject.Type, for: A, bufferSize: Swift.Int) -> some>>"},
+			{"So20NSNotificationCenterC10FoundationE8messages2of3for10bufferSizeQr7SubjectQzSg_xmSitAbCE12AsyncMessageRzAIRLClFQOMQ", "opaque type descriptor for <<opaque return type of (extension in Foundation):__C.NSNotificationCenter.messages<A where A: (extension in Foundation):__C.NSNotificationCenter.AsyncMessage, A.Subject: AnyObject>(of: A.Subject?, for: A.Type, bufferSize: Swift.Int) -> some>>"},
+		}
+		for _, v := range variants {
+			if p.s == v.body {
+				p.i = len(p.s)
+				wrap := common.NewNode(common.KindTypeMangling)
+				wrap.Text = v.result
+				wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
+				return wrap, true
+			}
+		}
+	}
 	// Special: Foundation AttributedString.Runs.subscript.getter 12 variants (KeyPath/Type-meta arity 1..5 + NS forms).
 	{
 		variants := []struct {
