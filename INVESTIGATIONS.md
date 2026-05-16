@@ -6,6 +6,34 @@ fast loop fires — avoids re-deriving path/cause each fire. Bounded
 
 ## Active targets
 
+### stdlib-protocol-init-dispatch-thunk-full-form [~6 syms, deferred-1]
+
+Pattern: `s<n><proto-name>P<n><label>xx_tcfCTj` (and `Tq`) —
+dispatch thunk / method descriptor of stdlib protocol init with
+single-label arg returning Self.
+
+Examples:
+- `_$ss17FixedWidthIntegerP9bigEndianxx_tcfCTj` →
+  want `dispatch thunk of Swift.FixedWidthInteger.init(bigEndian: A) -> A`
+  got `dispatch thunk of FixedWidthInteger.init(bigEndian:)`
+- `_$ss17FixedWidthIntegerP12littleEndianxx_tcfCTj` → same shape
+- `_$ss20_ArrayBufferProtocolP7copyingxx_tcfCTj` → same shape
+- 3 `Tq` (method descriptor) variants of the same syms
+
+Fire-plan (multi-fire):
+1. Find the dispatch-thunk/method-descriptor emit path that strips
+   to simplified form; teach it to emit Foundation/Swift full-form
+   when host module is Swift stdlib protocol.
+2. Compose: `Swift.<ProtoName>.init(<label>: A) -> A` for the
+   self-returning single-label-arg case.
+3. Audit for similar full-form needs across other Swift-stdlib
+   protocol entities.
+
+Reason for deferral: full-form rendering of arg types + return
+type from already-discarded fast-path raw-body bytes; touches
+both Tj/Tq accessor wrappers and entity composition; not <3
+primitives.
+
 ### compact-substitution-conformance-descriptor [42+ syms, deferred-1]
 
 Pattern: `<type>A<lowercase>*<uppercase>(Mc|WP)` — compact multi-sub
