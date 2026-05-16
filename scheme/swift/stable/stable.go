@@ -8827,6 +8827,59 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			}
 		}
 	}
+	// Special: `SC<ident>L<char>V<mod>E<wordsub-prop>SS(vgZ|vpZMV)` —
+	// __C_Synthesized type with RelatedEntityDeclName + extension property.
+	// Example: SC37UIApplicationCategoryDefaultErrorCodeLeV5UIKitE018retryAvailableDateD3KeySSvgZ
+	//   → "static related decl 'e' for UIApplicationCategoryDefaultErrorCode.retryAvailableDateErrorKey.getter"
+	// vp variant → "property descriptor for static related decl '<char>' for <ident>.<prop>"
+	if len(p.s) >= 10 && p.s[0] == 'S' && p.s[1] == 'C' {
+		var trailer, accessorTail string
+		switch {
+		case strings.HasSuffix(p.s, "vpZMV"):
+			trailer = "vpZMV"
+			accessorTail = ""
+		case strings.HasSuffix(p.s, "vgZ"):
+			trailer = "vgZ"
+			accessorTail = ".getter"
+		}
+		if trailer != "" {
+			saveI := p.i
+			saveWords := append([]string(nil), p.words...)
+			saveSubs := p.subs
+			p.i = 2 // skip "SC"
+			if !p.eof() && p.s[p.i] >= '1' && p.s[p.i] <= '9' {
+				if target, terr := p.parseIdentifier(); terr == nil && p.i+2 < len(p.s) && p.s[p.i] == 'L' {
+					relChar := p.s[p.i+1]
+					p.i += 2 // consume 'L' + char
+					if !p.eof() && p.s[p.i] == 'V' {
+						p.i++
+						if !p.eof() && p.s[p.i] >= '1' && p.s[p.i] <= '9' {
+							if _, merr := p.parseIdentifier(); merr == nil && !p.eof() && p.s[p.i] == 'E' {
+								p.i++
+								if !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+									if propName, perr := p.parseIdentifier(); perr == nil && p.i+2 <= len(p.s) &&
+										p.s[p.i] == 'S' && p.s[p.i+1] == 'S' && p.s[p.i+2:] == trailer {
+										prefix := "static related decl '" + string(relChar) + "' for "
+										if trailer == "vpZMV" {
+											prefix = "property descriptor for static related decl '" + string(relChar) + "' for "
+										}
+										p.i = len(p.s)
+										wrap := common.NewNode(common.KindTypeMangling)
+										wrap.Text = prefix + target + "." + propName + accessorTail
+										wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
+										return wrap, true
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+			p.i = saveI
+			p.words = saveWords
+			p.subs = saveSubs
+		}
+	}
 	// Special: `<n><mod><n><enum>O<n><class>CAC<word-sub>C<n><member>AA(Mc|WP)` —
 	// Module-Enum-Class conforming to back-refed inner-class-of-enum protocol.
 	// Apple short-form: `<enum>.<class>`. Example:
