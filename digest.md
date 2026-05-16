@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 95.95% (61174/63757) — 2026-05-16T20:29:49Z
+**Parity**: 95.95% (61178/63757) — 2026-05-16T20:33:25Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 93 parse-errors + 2490 mismatches
+**Failures**: 93 parse-errors + 2486 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- 49478176 swift-parity: CGU Foundation NSSortDescriptor extension init<A>(SortDescriptor<A>) NSObject-constraint variant — parity 95.95%->95.95% (+4 production +0 roundtrip)
+- a1e1c6cc chore: lock snapshot after CGT commit (parity 61170->61174 roundtrip 21309->21309)
+- 4d141458 chore: update digest.md for CGT commit (parity 95.94%->95.94% +4)
 - 3aaf8d56 swift-parity: CGT Foundation NSAttributedString init(markdown:options:baseURL:) Data/String forms — parity 95.94%->95.94% (+4 production +0 roundtrip)
 - e7999c4b chore: lock snapshot after CGS commit (parity 61158->61170 roundtrip 21309->21309)
 - db049e32 chore: update digest.md for CGS commit (parity 95.92%->95.94% +12)
@@ -36,9 +39,6 @@
 - b6ba4a55 chore: lock snapshot after CGR commit (parity 61128->61158 roundtrip 21309->21309)
 - b22c6f34 chore: update digest.md for CGR commit (parity 95.88%->95.92% +30)
 - 2539c5f2 swift-parity: CGR Swift KeyedDecodingContainer(Protocol)? decode(_:forKey:) stdlib integer types verbose form — parity 95.88%->95.92% (+30 production +0 roundtrip)
-- a2963676 chore: lock snapshot after CGQ commit (parity 61109->61128 roundtrip 21309->21309)
-- d42b1ab3 chore: update digest.md for CGQ commit (parity 95.85%->95.88% +19)
-- 9c8168b9 swift-parity: CGQ Swift UnkeyedEncodingContainer encode(contentsOf:) Sequence-A.Element-constraint verbose form — parity 95.85%->95.88% (+19 production +0 roundtrip)
 
 ## Suggested Next 3 Items
 
