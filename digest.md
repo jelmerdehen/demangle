@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 96.78% (61707/63757) — 2026-05-16T23:20:44Z
+**Parity**: 96.80% (61716/63757) — 2026-05-16T23:23:34Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 93 parse-errors + 1957 mismatches
+**Failures**: 93 parse-errors + 1948 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- 197019e4 swift-parity: CIW 9 Foundation Data.LargeSlice/InlineSlice.init + Calendar.dates verbose-form variants — parity 96.78%->96.80% (+9 production +0 roundtrip)
+- 85516002 chore: lock snapshot after CIV commit (parity 61682->61707 roundtrip 21309->21309)
+- a94a238d chore: update digest.md for CIV commit (parity 96.75%->96.78% +25)
 - 0d8e255d swift-parity: CIV static Foundation.PredicateExpressions.build_* 25 variants — parity 96.75%->96.78% (+25 production +0 roundtrip)
 - 21280afa chore: lock snapshot after CIU commit (parity 61670->61682 roundtrip 21309->21309)
 - 89550e09 chore: update digest.md for CIU commit (parity 96.73%->96.75% +12)
@@ -36,9 +39,6 @@
 - 2be73a03 chore: lock snapshot after CIT commit (parity 61661->61670 roundtrip 21309->21309)
 - 8bbe2e0d chore: update digest.md for CIT commit (parity 96.71%->96.73% +9)
 - 860be892 swift-parity: CIT property descriptor 9 Foundation AttributedString/AttributedSubstring/DiscontiguousAttributedSubstring subscript<A> — parity 96.71%->96.73% (+9 production +0 roundtrip)
-- db0dce17 chore: lock snapshot after CIS commit (parity 61625->61661 roundtrip 21309->21309)
-- 560b9d4e chore: update digest.md for CIS commit (parity 96.66%->96.71% +36)
-- 81c5ae46 swift-parity: CIS enum case 36 Foundation (JSONDecoder/JSONEncoder/InflectionRule/AttributeScopes/PresentationIntent) — parity 96.66%->96.71% (+36 production +0 roundtrip)
 
 ## Suggested Next 3 Items
 
