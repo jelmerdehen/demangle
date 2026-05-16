@@ -1570,3 +1570,52 @@ applied at the matching path.
 Reach: oracle available; symbol class is small (1 known sym, may be
 more if SE-style assoc-type-conformance is common in libswiftcore
 extensions).
+
+## plateau-2026-05-16T15:35Z [SOS] perpetual-99 plateau at 95.43%
+
+**Status:** 5 consecutive zero-gain fires since CEV (60844). Productive
+gains this session:
+- CES +3 (word-sub nested-host in fast-path constraint loop)
+- CEU +42 (depth-N bound-gen `y _* (x|q<n>_)+ G` detector)
+- CEV +2 (default-argument `fA_` off-by-one)
+
+Cumulative +47 since session start (60797 -> 60844 = 95.36% -> 95.43%).
+Distance to ≥99.0% target: 2913 syms.
+
+**Plateau cause:** every remaining tractable single-fire bucket has
+been deferred to multi-fire:
+
+| Defer | Bucket | Syms |
+|-------|--------|------|
+| defer-cer | Word-capture acronym-end alignment | 4 |
+| defer-cep | QOMQ fast-path fn-arg overcount | ~10 |
+| defer-ceq | Main-parser Qr opaque-return arg overcount | ~12 |
+| defer-ceo | Foundation/Swift verbose-type renderer | ~1500 |
+| defer-cen | Nested-walk inner-ext-mod word-capture | 72 |
+| defer-cem | Property-descriptor Foundation full-form | 305 |
+| defer-cet | UIKit inner-extension decl-name loss | 72 |
+| defer-ceu | ObjC conformance srcMod parsing | 2 |
+| defer-cev | Stdlib bound-gen conformance suffix | ~30 |
+| defer-cex | Bound-gen suffix at deepest nested (tier-2) | ~10 |
+| defer-cey | Publisher.encode SE-vs-E-marker confusion | 1 |
+
+**Pattern across deferred buckets:** all require either:
+1. New verbose-type-renderer scaffold (defer-ceo: ~1500 syms), OR
+2. Coordinated multi-path parser changes (Mc/WP rendering enhancement
+   that doesn't regress any of the 60844 currently-passing symbols).
+
+Both classes resist single-fire surgery. Naive attempts regress (CEU
+gen-placement change lost -8; CEV-prep srcMod parse lost -4 roundtrip).
+
+**Round-robin pick from deferred-1:** smallest workable surface is
+**defer-cer word-capture-acronym-end (4 syms)** with oracle now
+available for `--tree-only` ground-truth verification of Apple's
+word-array algorithm. Next fire will probe with oracle and attempt.
+
+**Recommended escalation (operator/human):**
+- Apple's swift-demangle source (Demangler.cpp + word_subs.cpp +
+  NodePrinter.cpp) needs to be referenced for:
+  - Exact word-capture algorithm (defer-cer)
+  - Mc/WP rendering algorithm including srcMod ordering (defer-ceu/cew)
+  - Verbose-type-renderer print rules (defer-ceo)
+- Without source access, single-fire ratchet is bottlenecked.
