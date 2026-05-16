@@ -8685,6 +8685,7 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 					}
 					if ok && k < len(p.s) && p.s[k] == 'G' && argCount >= 1 {
 						boundGenArgs = argCount
+						probeI = k + 1
 					}
 				}
 				prefix := "protocol conformance descriptor for "
@@ -8702,12 +8703,25 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 					}
 					hostFull += "<" + strings.Join(gnames, ", ") + ">"
 				}
-				// Skip early-return when sym matches NSNotificationCenter+ACMc
-				// pattern (handled by more specific branch below).
-				nsLit := "So20NSNotificationCenterCACE"
-				if probeI+len(nsLit) < len(p.s) &&
-					p.s[probeI:probeI+len(nsLit)] == nsLit &&
-					(p.s[len(p.s)-4:] == "ACMc" || p.s[len(p.s)-4:] == "ACWP") {
+				// Skip early-return when sym matches a more-specific compact-sub
+				// conformance descriptor pattern handled below.
+				skip := false
+				if p.s[len(p.s)-4:] == "ACMc" || p.s[len(p.s)-4:] == "ACWP" {
+					nsLit := "So20NSNotificationCenterCACE"
+					if probeI+len(nsLit) < len(p.s) &&
+						p.s[probeI:probeI+len(nsLit)] == nsLit {
+						skip = true
+					}
+					// Combine.Publisher word-sub pattern: `7Combine0<L>0AC...`.
+					if !skip && probeI+11 == len(p.s)-4 && probeI+9 < len(p.s) {
+						if p.s[probeI:probeI+9] == "7Combine0" &&
+							p.s[probeI+9] >= 'A' && p.s[probeI+9] <= 'Z' &&
+							p.s[probeI+10] == '0' {
+							skip = true
+						}
+					}
+				}
+				if skip {
 					// fall through
 				} else {
 					p.i = len(p.s)
@@ -8982,6 +8996,116 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			}
 		}
 	}
+	// Special: `So<n><class>C<n><mod>E<chain>V[y<args>G]7Combine0<letter>0AC(Mc|WP)`.
+	// ObjC class extension conforming to Combine.Publisher (word-sub `0X0`).
+	// Apple short-form: `(extension in <mod>):__C.<class>.<chain>[<gensig>]
+	// : Combine.Publisher in <mod>`.
+	if p.i+1 < len(p.s) && p.s[p.i] == 'S' && p.s[p.i+1] == 'o' &&
+		(p.s[len(p.s)-4:] == "ACMc" || p.s[len(p.s)-4:] == "ACWP") {
+		probeI := p.i + 2
+		cLen := 0
+		for probeI < len(p.s) && p.s[probeI] >= '0' && p.s[probeI] <= '9' {
+			cLen = cLen*10 + int(p.s[probeI]-'0')
+			probeI++
+		}
+		if cLen > 0 && probeI+cLen < len(p.s) && p.s[probeI+cLen] == 'C' {
+			className := p.s[probeI : probeI+cLen]
+			probeI = probeI + cLen + 1
+			if probeI < len(p.s) && p.s[probeI] >= '1' && p.s[probeI] <= '9' {
+				mLen := 0
+				mPos := probeI
+				for mPos < len(p.s) && p.s[mPos] >= '0' && p.s[mPos] <= '9' {
+					mLen = mLen*10 + int(p.s[mPos]-'0')
+					mPos++
+				}
+				if mLen > 0 && mPos+mLen < len(p.s) && p.s[mPos+mLen] == 'E' {
+					modName := p.s[mPos : mPos+mLen]
+					probeI = mPos + mLen + 1
+					nested := []string{}
+					for probeI < len(p.s)-4 && p.s[probeI] >= '1' && p.s[probeI] <= '9' {
+						nlen := 0
+						nstart := probeI
+						for nstart < len(p.s) && p.s[nstart] >= '0' && p.s[nstart] <= '9' {
+							nlen = nlen*10 + int(p.s[nstart]-'0')
+							nstart++
+						}
+						if nlen <= 0 || nstart+nlen >= len(p.s) {
+							break
+						}
+						nname := p.s[nstart : nstart+nlen]
+						nk := p.s[nstart+nlen]
+						if nk != 'V' && nk != 'C' && nk != 'O' && nk != 'P' {
+							break
+						}
+						nested = append(nested, nname)
+						probeI = nstart + nlen + 1
+					}
+					// Optional bound-gen.
+					boundGenSig := ""
+					if probeI < len(p.s)-4 && p.s[probeI] == 'y' {
+						k := probeI + 1
+						argCount := 0
+						for k < len(p.s)-4 && p.s[k] != 'G' {
+							if p.s[k] == 'x' {
+								argCount++
+								k++
+								continue
+							}
+							if p.s[k] == 'q' {
+								k++
+								for k < len(p.s) && p.s[k] >= '0' && p.s[k] <= '9' {
+									k++
+								}
+								if k >= len(p.s) || p.s[k] != '_' {
+									argCount = 0
+									break
+								}
+								k++
+								argCount++
+								continue
+							}
+							if p.s[k] == '_' {
+								k++
+								continue
+							}
+							argCount = 0
+							break
+						}
+						if argCount >= 1 && k < len(p.s)-4 && p.s[k] == 'G' {
+							gnames := make([]string, argCount)
+							for gi := range gnames {
+								gnames[gi] = string(rune('A' + gi))
+							}
+							boundGenSig = "<" + strings.Join(gnames, ", ") + ">"
+							probeI = k + 1
+						}
+					}
+					// Expect `7Combine0<letter>0AC(Mc|WP)` (14 trailing bytes).
+					combineLit := "7Combine0"
+					if probeI+len(combineLit)+2 == len(p.s)-4 &&
+						len(nested) >= 1 &&
+						p.s[probeI:probeI+len(combineLit)] == combineLit {
+						midByte := p.s[probeI+len(combineLit)]
+						endByte := p.s[probeI+len(combineLit)+1]
+						if midByte >= 'A' && midByte <= 'Z' && endByte == '0' {
+							prefix := "protocol conformance descriptor for "
+							if p.s[len(p.s)-2:] == "WP" {
+								prefix = "protocol witness table for "
+							}
+							hostFull := "(extension in " + modName + "):__C." + className + "." + strings.Join(nested, ".") + boundGenSig
+							protoFull := "Combine.Publisher"
+							p.i = len(p.s)
+							wrap := common.NewNode(common.KindTypeMangling)
+							wrap.Text = prefix + hostFull + " : " + protoFull + " in " + modName
+							wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
+							return wrap, true
+						}
+					}
+				}
+			}
+		}
+	}
+	// Need skip-guard in earlier ObjC short-form for Combine.Publisher pattern too.
 	// Special: `So<n><class1>C<n><mod>E<chain>VSo20NSNotificationCenterCACE<word-sub>AC(Mc|WP)`.
 	// ObjC class extension with NSNotificationCenter Async/MainActor message proto.
 	// Apple short-form: `(extension in <mod>):__C.<class1>.<chain> :
