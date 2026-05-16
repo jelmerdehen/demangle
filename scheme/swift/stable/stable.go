@@ -8576,6 +8576,36 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 	// Reset to start of body so we can parse from scratch.
 	p.i = 0
 
+	// Truncated invalid mangling: body matches `<n><mod><n><name>(V|C|O|P)<digit>$`
+	// (open identifier-length with no characters following). Apple's
+	// swift-demangle echoes such symbols unchanged. Mirror that behaviour.
+	if len(p.s) >= 5 {
+		last := p.s[len(p.s)-1]
+		penult := p.s[len(p.s)-2]
+		if last >= '0' && last <= '9' &&
+			(penult == 'V' || penult == 'C' || penult == 'O' || penult == 'P') {
+			saveI := p.i
+			saveWords := append([]string(nil), p.words...)
+			saveSubs := p.subs
+			p.i = 0
+			if !p.eof() && p.s[p.i] >= '1' && p.s[p.i] <= '9' {
+				if _, merr := p.parseIdentifier(); merr == nil && !p.eof() && p.s[p.i] >= '1' && p.s[p.i] <= '9' {
+					if _, ierr := p.parseIdentifier(); ierr == nil && p.i+2 == len(p.s) &&
+						p.s[p.i] == penult {
+						p.i = len(p.s)
+						wrap := common.NewNode(common.KindTypeMangling)
+						wrap.Text = "_$s" + p.s
+						wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
+						return wrap, true
+					}
+				}
+			}
+			p.i = saveI
+			p.words = saveWords
+			p.subs = saveSubs
+		}
+	}
+
 	var hostStr string
 	var fpTopLevelDecl string
 	fpHostIsObjC := false
