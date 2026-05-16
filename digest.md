@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 95.82% (61093/63757) — 2026-05-16T20:08:22Z
+**Parity**: 95.85% (61109/63757) — 2026-05-16T20:11:51Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 93 parse-errors + 2571 mismatches
+**Failures**: 93 parse-errors + 2555 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -15,7 +15,6 @@
 - Foundation.AttributedString.init<A where A: Founda… 26
 - (extension in Foundation):Swift.Duration.UnitsForm… 22
 - (extension in Foundation):__C.NSNotificationCenter… 22
-- (extension in Swift):Swift.RawRepresentable< where… 18
 - (extension in Swift):Swift.UnkeyedEncodingContaine… 18
 - (extension in Swift):Swift.FlattenSequence< where … 17
 - (extension in Foundation):Swift.String.Localizatio… 16
@@ -26,9 +25,13 @@
 - (extension in Swift):Swift.ClosedRange< where A: S… 13
 - (extension in Swift):Swift.RangeReplaceableCollect… 13
 - async function pointer to (extension in Foundation… 13
+- (extension in Foundation):Swift.Range< where A == … 12
 
 ## Last 10 Commits
 
+- 9ceeabdc swift-parity: CGP Swift stdlib RawRepresentable extension init(from:) same-type-RawValue conformance verbose form — parity 95.82%->95.85% (+16 production +0 roundtrip)
+- dce76813 chore: lock snapshot after CGO commit (parity 61092->61093 roundtrip 21309->21309)
+- 8fda09b7 chore: update digest.md for CGO commit (parity 95.82%->95.82% +1)
 - b95cbe31 swift-parity: CGO Dispatch module short-form bypass for direct conformance (OS_dispatch_queue regression fix) — parity 95.82%->95.82% (+1 production +0 roundtrip)
 - e37dbdda chore: lock snapshot after CGN commit (parity 61091->61092 roundtrip 21309->21309)
 - f81f80ef chore: update digest.md for CGN commit (parity 95.82%->95.82% +1)
@@ -36,9 +39,6 @@
 - 580f33fa chore: lock snapshot after CGM commit (parity 61090->61091 roundtrip 21309->21309)
 - 8c157dc5 chore: update digest.md for CGM commit (parity 95.82%->95.82% +1)
 - f677b4a0 swift-parity: CGM Foundation NSObject 2-deep nested outer-applied gen Iterator AsyncIteratorProtocol — parity 95.82%->95.82% (+1 production +0 roundtrip)
-- 7a2db922 chore: lock snapshot after CGL commit (parity 61088->61090 roundtrip 21309->21309)
-- 09623f96 chore: update digest.md for CGL commit (parity 95.81%->95.81% +2)
-- 5194a830 swift-parity: CGL Foundation NSObject 2-gen-param nested class/struct stdlib-proto conformance verbose form — parity 95.81%->95.81% (+2 production +0 roundtrip)
 
 ## Suggested Next 3 Items
 
