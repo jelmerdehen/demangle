@@ -8771,6 +8771,60 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			}
 		}
 	}
+	// Special: Foundation AttributedString.init<A>(localized:options:table:bundle:localization:locale:comment:including:).
+	// 4 variants: 2 options × 2 includingType.
+	{
+		pfx := "10Foundation16AttributedStringV9localized7options5table6bundle12localization6locale7comment9includingACSSAAE17LocalizationValueV_"
+		if len(p.s) > len(pfx)+50 && p.s[:len(pfx)] == pfx && strings.HasSuffix(p.s, "lufC") {
+			rest := p.s[len(pfx):]
+			var optArg string
+			var afterOpt int
+			if strings.HasPrefix(rest, "AC0L7OptionsV") {
+				optArg = "Foundation.AttributedString.LocalizationOptions"
+				afterOpt = 13
+			} else if strings.HasPrefix(rest, "AC17FormattingOptionsV") {
+				optArg = "Foundation.AttributedString.FormattingOptions"
+				afterOpt = 22
+			}
+			if optArg != "" {
+				rest = rest[afterOpt:]
+				const commonMid = "SSSgSo8NSBundleCSgApA6LocaleVSgs06StaticC0VSg"
+				if strings.HasPrefix(rest, commonMid) {
+					rest = rest[len(commonMid):]
+					var incArg string
+					var afterInc int
+					if strings.HasPrefix(rest, "s7KeyPathCyAA15AttributeScopesOxmG") {
+						incArg = "Swift.KeyPath<Foundation.AttributeScopes, A.Type>"
+						afterInc = 34
+					} else if strings.HasPrefix(rest, "xm") {
+						incArg = "A.Type"
+						afterInc = 2
+					}
+					if incArg != "" {
+						rest = rest[afterInc:]
+						if strings.HasPrefix(rest, "tcAA") && strings.HasSuffix(rest, "5ScopeRzlufC") {
+							between := rest[4 : len(rest)-len("5ScopeRzlufC")]
+							match := false
+							if len(between) == 2 && between[0] == '0' &&
+								between[1] >= 'A' && between[1] <= 'Z' {
+								match = true
+							}
+							if !match && between == "14AttributeScope" {
+								match = true
+							}
+							if match {
+								p.i = len(p.s)
+								wrap := common.NewNode(common.KindTypeMangling)
+								wrap.Text = "Foundation.AttributedString.init<A where A: Foundation.AttributeScope>(localized: (extension in Foundation):Swift.String.LocalizationValue, options: " + optArg + ", table: Swift.String?, bundle: __C.NSBundle?, localization: Swift.String?, locale: Foundation.Locale?, comment: Swift.StaticString?, including: " + incArg + ") -> Foundation.AttributedString"
+								wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
+								return wrap, true
+							}
+						}
+					}
+				}
+			}
+		}
+	}
 	// Special: Foundation AttributedString.init<A>(localized:options:table:bundle:locale:comment:including:).
 	// 6 variants: 3 axes (localizedArg × optionsArg × includingType).
 	{
