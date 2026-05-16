@@ -8771,6 +8771,35 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			}
 		}
 	}
+	// Special: Swift stdlib RangeReplaceableCollection.+infix(A, A1) -> A operator.
+	// 3 variants based on arg order and constraint protocol.
+	{
+		pfx := "SmsE1poiy"
+		commonSuf := "7ElementQyd__ABRtzlFZ"
+		if len(p.s) >= len(pfx)+13 && p.s[:len(pfx)] == pfx && strings.HasSuffix(p.s, commonSuf) {
+			middle := p.s[len(pfx) : len(p.s)-len(commonSuf)]
+			// middle = `<args>t<constraintProto>Rd__`
+			var argOrder, constraint string
+			switch {
+			case strings.HasPrefix(middle, "xqd___xtSTRd__") && len(middle) == 14:
+				argOrder = "(A1, A)"
+				constraint = "Swift.Sequence"
+			case strings.HasPrefix(middle, "xx_qd__tSTRd__") && len(middle) == 14:
+				argOrder = "(A, A1)"
+				constraint = "Swift.Sequence"
+			case strings.HasPrefix(middle, "xx_qd__tSmRd__") && len(middle) == 14:
+				argOrder = "(A, A1)"
+				constraint = "Swift.RangeReplaceableCollection"
+			}
+			if argOrder != "" {
+				p.i = len(p.s)
+				wrap := common.NewNode(common.KindTypeMangling)
+				wrap.Text = "static (extension in Swift):Swift.RangeReplaceableCollection.+ infix<A where A1: " + constraint + ", A.Element == A1.Element>" + argOrder + " -> A"
+				wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
+				return wrap, true
+			}
+		}
+	}
 	// Special: Foundation String.LocalizationValue.StringInterpolation.appendInterpolation<A>(_:).
 	// 3 constraint variants: CustomLocalizedStringResourceConvertible, _FormatSpecifiable, __C.NSObject.
 	{
