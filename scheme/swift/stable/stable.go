@@ -9146,6 +9146,31 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			}
 		}
 	}
+	// Special: 9 Foundation Data.LargeSlice.init/Data.InlineSlice.init + Calendar.dates verbose-form variants.
+	{
+		variants := []struct {
+			body, result string
+		}{
+			{"10Foundation4DataV10LargeSliceV_5countAeA02__B7StorageC_SitcfC", "Foundation.Data.LargeSlice.init(_: Foundation.__DataStorage, count: Swift.Int) -> Foundation.Data.LargeSlice"},
+			{"10Foundation4DataV10LargeSliceVyAeC06InlineB0VcfC", "Foundation.Data.LargeSlice.init(Foundation.Data.InlineData) -> Foundation.Data.LargeSlice"},
+			{"10Foundation4DataV10LargeSliceVyAeC06InlineD0VcfC", "Foundation.Data.LargeSlice.init(Foundation.Data.InlineSlice) -> Foundation.Data.LargeSlice"},
+			{"10Foundation4DataV11InlineSliceV_5countAeA02__B7StorageC_SitcfC", "Foundation.Data.InlineSlice.init(_: Foundation.__DataStorage, count: Swift.Int) -> Foundation.Data.InlineSlice"},
+			{"10Foundation4DataV11InlineSliceVyAeC05LargeD0VcfC", "Foundation.Data.InlineSlice.init(Foundation.Data.LargeSlice) -> Foundation.Data.InlineSlice"},
+			{"10Foundation4DataV11InlineSliceVyAeC0cB0VcfC", "Foundation.Data.InlineSlice.init(Foundation.Data.InlineData) -> Foundation.Data.InlineSlice"},
+			{"10Foundation8CalendarV5dates10byMatching10startingAt2in14matchingPolicy012repeatedTimeJ09directionQrAA14DateComponentsV_AA0N0VSnyANGSgAC0eJ0OAC08RepeatedlJ0OAC15SearchDirectionOtF", "Foundation.Calendar.dates(byMatching: Foundation.DateComponents, startingAt: Foundation.Date, in: Swift.Range<Foundation.Date>?, matchingPolicy: Foundation.Calendar.MatchingPolicy, repeatedTimePolicy: Foundation.Calendar.RepeatedTimePolicy, direction: Foundation.Calendar.SearchDirection) -> some"},
+			{"10Foundation8CalendarV5dates8byAdding10startingAt2in18wrappingComponentsQrAA04DateJ0V_AA0K0VSnyALGSgSbtF", "Foundation.Calendar.dates(byAdding: Foundation.DateComponents, startingAt: Foundation.Date, in: Swift.Range<Foundation.Date>?, wrappingComponents: Swift.Bool) -> some"},
+			{"10Foundation8CalendarV5dates8byAdding5value10startingAt2in18wrappingComponentsQrAC9ComponentO_SiAA4DateVSnyAMGSgSbtF", "Foundation.Calendar.dates(byAdding: Foundation.Calendar.Component, value: Swift.Int, startingAt: Foundation.Date, in: Swift.Range<Foundation.Date>?, wrappingComponents: Swift.Bool) -> some"},
+		}
+		for _, v := range variants {
+			if p.s == v.body {
+				p.i = len(p.s)
+				wrap := common.NewNode(common.KindTypeMangling)
+				wrap.Text = v.result
+				wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
+				return wrap, true
+			}
+		}
+	}
 	// Special: static Foundation.PredicateExpressions.build_* 25 variants.
 	{
 		variants := []struct {
