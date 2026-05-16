@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 95.82% (61091/63757) — 2026-05-16T20:01:15Z
+**Parity**: 95.82% (61092/63757) — 2026-05-16T20:05:01Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 93 parse-errors + 2573 mismatches
+**Failures**: 93 parse-errors + 2572 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- 0dd86370 swift-parity: CGN Foundation ObjC-class nested-class word-sub external-proto conformance (NSTimer.TimerPublisher) — parity 95.82%->95.82% (+1 production +0 roundtrip)
+- 580f33fa chore: lock snapshot after CGM commit (parity 61090->61091 roundtrip 21309->21309)
+- 8c157dc5 chore: update digest.md for CGM commit (parity 95.82%->95.82% +1)
 - f677b4a0 swift-parity: CGM Foundation NSObject 2-deep nested outer-applied gen Iterator AsyncIteratorProtocol — parity 95.82%->95.82% (+1 production +0 roundtrip)
 - 7a2db922 chore: lock snapshot after CGL commit (parity 61088->61090 roundtrip 21309->21309)
 - 09623f96 chore: update digest.md for CGL commit (parity 95.81%->95.81% +2)
@@ -36,9 +39,6 @@
 - acaf7f9f chore: defer generic-pre-specialization-Ts5 to multi-fire (deferred-1)
 - 70002b16 chore: lock snapshot after CGK commit (parity 61079->61088 roundtrip 21309->21309)
 - f2d58e23 chore: update digest.md for CGK commit (parity 95.80%->95.81% +9)
-- 227869c3 swift-parity: CGK Stdlib subject-constraint nested-type verbose form (FlattenSequence/PartialRangeFrom/ClosedRange) — parity 95.80%->95.81% (+9 production +0 roundtrip)
-- 07472030 chore: lock snapshot after CGJ commit (parity 61071->61079 roundtrip 21309->21309)
-- 3b457e76 chore: update digest.md for CGJ commit (parity 95.79%->95.80% +8)
 
 ## Suggested Next 3 Items
 
