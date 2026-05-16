@@ -8771,6 +8771,29 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			}
 		}
 	}
+	// Special: Foundation Data.InlineSlice.init(_:range:) 3 first-arg variants.
+	{
+		pfx := "10Foundation4DataV11InlineSliceV_5range"
+		if len(p.s) >= len(pfx)+10 && p.s[:len(pfx)] == pfx {
+			rest := p.s[len(pfx):]
+			var firstType string
+			switch rest {
+			case "AeA02__B7StorageC_SnySiGtcfC":
+				firstType = "Foundation.__DataStorage"
+			case "AeC05LargeD0V_SnySiGtcfC":
+				firstType = "Foundation.Data.LargeSlice"
+			case "AeC0cB0V_SnySiGtcfC":
+				firstType = "Foundation.Data.InlineData"
+			}
+			if firstType != "" {
+				p.i = len(p.s)
+				wrap := common.NewNode(common.KindTypeMangling)
+				wrap.Text = "Foundation.Data.InlineSlice.init(_: " + firstType + ", range: Swift.Range<Swift.Int>) -> Foundation.Data.InlineSlice"
+				wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
+				return wrap, true
+			}
+		}
+	}
 	// Special: Swift stdlib RangeReplaceableCollection.+infix(A, A1) -> A operator.
 	// 3 variants based on arg order and constraint protocol.
 	{
