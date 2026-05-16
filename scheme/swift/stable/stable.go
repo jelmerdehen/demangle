@@ -8715,6 +8715,62 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			}
 		}
 	}
+	// Special: Foundation AttributedString init<A>(markdown:including:options:baseURL:).
+	// 2 axes: markdown (SS Swift.String / AcA4DataV Foundation.Data) × including (KeyPath / A.Type).
+	{
+		pfx := "10Foundation16AttributedStringV8markdown9including7options7baseURL"
+		const sufSuffix = "5ScopeRzlufC"
+		if len(p.s) >= len(pfx)+10 && p.s[:len(pfx)] == pfx {
+			rest := p.s[len(pfx):]
+			var markdownType string
+			var afterMd int
+			if strings.HasPrefix(rest, "ACSS_") {
+				markdownType = "Swift.String"
+				afterMd = 5
+			} else if strings.HasPrefix(rest, "AcA4DataV_") {
+				markdownType = "Foundation.Data"
+				afterMd = 10
+			}
+			if markdownType != "" {
+				incRest := rest[afterMd:]
+				var includingType string
+				var afterInc int
+				if strings.HasPrefix(incRest, "s7KeyPathCyAA15AttributeScopesOxmG") {
+					includingType = "Swift.KeyPath<Foundation.AttributeScopes, A.Type>"
+					afterInc = 34
+				} else if strings.HasPrefix(incRest, "xm") {
+					includingType = "A.Type"
+					afterInc = 2
+				}
+				if includingType != "" {
+					tail := incRest[afterInc:]
+					sufMid := "AC22MarkdownParsingOptionsVAA0H0VSgtKcAA"
+					match := false
+					// Word-sub form: sufMid + `0<letter>5ScopeRzlufC` (length sufMid+14)
+					if len(tail) == len(sufMid)+14 &&
+						tail[:len(sufMid)] == sufMid &&
+						tail[len(sufMid)] == '0' &&
+						tail[len(sufMid)+1] >= 'A' && tail[len(sufMid)+1] <= 'Z' &&
+						tail[len(sufMid)+2:] == sufSuffix {
+						match = true
+					}
+					// Literal form: sufMid + `14AttributeScopeRzlufC` (length sufMid+22)
+					if !match && len(tail) == len(sufMid)+22 &&
+						tail[:len(sufMid)] == sufMid &&
+						tail[len(sufMid):] == "14AttributeScopeRzlufC" {
+						match = true
+					}
+					if match {
+						p.i = len(p.s)
+						wrap := common.NewNode(common.KindTypeMangling)
+						wrap.Text = "Foundation.AttributedString.init<A where A: Foundation.AttributeScope>(markdown: " + markdownType + ", including: " + includingType + ", options: Foundation.AttributedString.MarkdownParsingOptions, baseURL: Foundation.URL?) throws -> Foundation.AttributedString"
+						wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
+						return wrap, true
+					}
+				}
+			}
+		}
+	}
 	// Special: Foundation NSDecimal init(_:format:lenient:) with FormatStyle inner.
 	// Pattern: `So9NSDecimala10FoundationE_6format7lenientABSS_AbCE11FormatStyleV[<n><Inner>V]?SbtKcfC`
 	{
