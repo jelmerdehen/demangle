@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 96.07% (61249/63757) — 2026-05-16T21:17:05Z
+**Parity**: 96.09% (61263/63757) — 2026-05-16T21:20:14Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 93 parse-errors + 2415 mismatches
+**Failures**: 93 parse-errors + 2401 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- 9fc6a3e7 swift-parity: CHI Foundation AttributeContainer + AttributeDynamicLookup subscript variants — parity 96.06%->96.09% (+14 production +0 roundtrip)
+- 7c1170b7 chore: lock snapshot after CHH commit (parity 61239->61249 roundtrip 21309->21309)
+- 3bc2d613 chore: update digest.md for CHH commit (parity 96.05%->96.06% +10)
 - 148e7580 swift-parity: CHH Foundation AttributedSubstring.subscript.{getter,setter,modify} 4 sig variants — parity 96.05%->96.06% (+10 production +0 roundtrip)
 - f8767523 chore: lock snapshot after CHG commit (parity 61229->61239 roundtrip 21309->21309)
 - 3a82ca7b chore: update digest.md for CHG commit (parity 96.04%->96.05% +10)
@@ -36,9 +39,6 @@
 - 7d0d8623 chore: lock snapshot after CHF commit (parity 61217->61229 roundtrip 21309->21309)
 - 7c47e120 chore: update digest.md for CHF commit (parity 96.02%->96.04% +12)
 - 2b535398 swift-parity: CHF Foundation AttributedString.subscript.{getter,setter,modify} 12 variants — parity 96.02%->96.04% (+12 production +0 roundtrip)
-- f2bc3ebf chore: lock snapshot after CHE commit (parity 61213->61217 roundtrip 21309->21309)
-- 909e0d7d chore: update digest.md for CHE commit (parity 96.01%->96.01% +4)
-- b7db94d8 swift-parity: CHE Foundation AttributedString.transform<A>(updating:body:) 4 variants — parity 96.01%->96.01% (+4 production +0 roundtrip)
 
 ## Suggested Next 3 Items
 
