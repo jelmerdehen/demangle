@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 96.83% (61734/63757) — 2026-05-16T23:26:50Z
+**Parity**: 96.88% (61767/63757) — 2026-05-16T23:29:32Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 93 parse-errors + 1930 mismatches
+**Failures**: 93 parse-errors + 1897 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- 3ada6b4f swift-parity: CIY 34 Swift free fns (sequence/print/Mirror/isKnownUniquelyReferenced/AnyRandomAccessCollection/AnyBidirectionalCollection/_stdlib_atomic) — parity 96.83%->96.88% (+33 production +0 roundtrip)
+- aedfb891 chore: lock snapshot after CIX commit (parity 61716->61734 roundtrip 21309->21309)
+- 87586792 chore: update digest.md for CIX commit (parity 96.80%->96.83% +18)
 - 8d134393 swift-parity: CIX 18 Swift stdlib (String/Substring.withCString + Set.Iterator/Index.init + _StringGuts.withFastUTF8 + _SliceBuffer.init + Slice.index + transcode) — parity 96.80%->96.83% (+18 production +0 roundtrip)
 - 1ebf425f chore: lock snapshot after CIW commit (parity 61707->61716 roundtrip 21309->21309)
 - a8c3ae56 chore: update digest.md for CIW commit (parity 96.78%->96.80% +9)
@@ -36,9 +39,6 @@
 - 85516002 chore: lock snapshot after CIV commit (parity 61682->61707 roundtrip 21309->21309)
 - a94a238d chore: update digest.md for CIV commit (parity 96.75%->96.78% +25)
 - 0d8e255d swift-parity: CIV static Foundation.PredicateExpressions.build_* 25 variants — parity 96.75%->96.78% (+25 production +0 roundtrip)
-- 21280afa chore: lock snapshot after CIU commit (parity 61670->61682 roundtrip 21309->21309)
-- 89550e09 chore: update digest.md for CIU commit (parity 96.73%->96.75% +12)
-- cb47e581 swift-parity: CIU 12 init verbose-form variants (Foundation Locale/IndexSet/DateComponents + Swift.ManagedBufferPointer) — parity 96.73%->96.75% (+12 production +0 roundtrip)
 
 ## Suggested Next 3 Items
 
