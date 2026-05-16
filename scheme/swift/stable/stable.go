@@ -8643,6 +8643,71 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			}
 		}
 	}
+	// Special: `So<n><class>C<n><protoMod><n><protoName><n><confMod>(Mc|WP)` —
+	// ObjC class with direct conformance to external-module protocol (no
+	// extension marker). Apple verbose form:
+	//   "__C.<class> : <protoMod>.<protoName> in <confMod>"
+	// Example: So9NSRunLoopC7Combine9Scheduler10FoundationMc
+	//   → "protocol conformance descriptor for __C.NSRunLoop : Combine.Scheduler in Foundation"
+	if len(p.s) >= 12 && p.s[0] == 'S' && p.s[1] == 'o' &&
+		(p.s[len(p.s)-2:] == "Mc" || p.s[len(p.s)-2:] == "WP") {
+		probeI := 2
+		cLen := 0
+		for probeI < len(p.s) && p.s[probeI] >= '0' && p.s[probeI] <= '9' {
+			cLen = cLen*10 + int(p.s[probeI]-'0')
+			probeI++
+		}
+		if cLen > 0 && probeI+cLen < len(p.s) && p.s[probeI+cLen] == 'C' {
+			className := p.s[probeI : probeI+cLen]
+			probeI = probeI + cLen + 1
+			// Next must be digit (protoMod start), NOT E (otherwise it's extension shape).
+			if probeI < len(p.s) && p.s[probeI] >= '1' && p.s[probeI] <= '9' {
+				pmLen := 0
+				pmPos := probeI
+				for pmPos < len(p.s) && p.s[pmPos] >= '0' && p.s[pmPos] <= '9' {
+					pmLen = pmLen*10 + int(p.s[pmPos]-'0')
+					pmPos++
+				}
+				if pmLen > 0 && pmPos+pmLen < len(p.s) {
+					protoMod := p.s[pmPos : pmPos+pmLen]
+					afterProtoMod := pmPos + pmLen
+					// Must be followed by digit-led protoName (not 'E' which would be ext marker).
+					if p.s[afterProtoMod] >= '1' && p.s[afterProtoMod] <= '9' {
+						pnLen := 0
+						pnPos := afterProtoMod
+						for pnPos < len(p.s) && p.s[pnPos] >= '0' && p.s[pnPos] <= '9' {
+							pnLen = pnLen*10 + int(p.s[pnPos]-'0')
+							pnPos++
+						}
+						if pnLen > 0 && pnPos+pnLen < len(p.s) {
+							protoName := p.s[pnPos : pnPos+pnLen]
+							afterProtoName := pnPos + pnLen
+							if p.s[afterProtoName] >= '1' && p.s[afterProtoName] <= '9' {
+								cmLen := 0
+								cmPos := afterProtoName
+								for cmPos < len(p.s) && p.s[cmPos] >= '0' && p.s[cmPos] <= '9' {
+									cmLen = cmLen*10 + int(p.s[cmPos]-'0')
+									cmPos++
+								}
+								if cmLen > 0 && cmPos+cmLen+2 == len(p.s) {
+									confMod := p.s[cmPos : cmPos+cmLen]
+									prefix := "protocol conformance descriptor for "
+									if p.s[len(p.s)-2:] == "WP" {
+										prefix = "protocol witness table for "
+									}
+									p.i = len(p.s)
+									wrap := common.NewNode(common.KindTypeMangling)
+									wrap.Text = prefix + "__C." + className + " : " + protoMod + "." + protoName + " in " + confMod
+									wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
+									return wrap, true
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
 	// Special: `So<n><name>C<...>Mc` — ObjC class conformance descriptor.
 	// Apple short form is `protocol conformance descriptor for <ObjCName>
 	// [.<Nested>...]`. Bypass path-det/nested-walk/terminal block.
