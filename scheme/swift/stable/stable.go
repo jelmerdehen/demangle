@@ -9146,6 +9146,48 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			}
 		}
 	}
+	// Special: dispatch thunk 26 Foundation/Swift stdlib (Calendar/TimeZone/PropertyListEncoder + MutableCollection/Sequence/RangeExpression/RangeReplaceableCollection/etc).
+	{
+		variants := []struct {
+			body, result string
+		}{
+			{"10Foundation17_CalendarProtocolP10identifier8timeZone6locale12firstWeekday22minimumDaysInFirstWeek18gregorianStartDatexAA0B0V10IdentifierO_AA04TimeF0VSgAA6LocaleVSgSiSgAtA0Q0VSgtcfCTj", "dispatch thunk of Foundation._CalendarProtocol.init(identifier: Foundation.Calendar.Identifier, timeZone: Foundation.TimeZone?, locale: Foundation.Locale?, firstWeekday: Swift.Int?, minimumDaysInFirstWeek: Swift.Int?, gregorianStartDate: Foundation.Date?) -> A"},
+			{"10Foundation17_TimeZoneProtocolP020rawAndDaylightSavingB6Offset3for08repeatedB6Policy07skippedbL0Si0eI0_Sd08daylighthI0tAA4DateV_AA0bC0V0ghbL0OAOtFTj", "dispatch thunk of Foundation._TimeZoneProtocol.rawAndDaylightSavingTimeOffset(for: Foundation.Date, repeatedTimePolicy: Foundation.TimeZone.DaylightSavingTimePolicy, skippedTimePolicy: Foundation.TimeZone.DaylightSavingTimePolicy) -> (rawOffset: Swift.Int, daylightSavingOffset: Swift.Double)"},
+			{"10Foundation19PropertyListEncoderC6encode_13configurationAA4DataVx_q_mtKAA26EncodableWithConfigurationRzAA08EncodingJ9ProvidingR_0kJ0Qy_AJRtzr0_lFTj", "dispatch thunk of Foundation.PropertyListEncoder.encode<A, B where A: Foundation.EncodableWithConfiguration, B: Foundation.EncodingConfigurationProviding, A.EncodingConfiguration == B.EncodingConfiguration>(_: A, configuration: B.Type) throws -> Foundation.Data"},
+			{"10Foundation33AttributedStringAttributeMutationP17replaceAttributes_4withyAA0D9ContainerV_AGtFTj", "dispatch thunk of Foundation.AttributedStringAttributeMutation.replaceAttributes(_: Foundation.AttributeContainer, with: Foundation.AttributeContainer) -> ()"},
+			{"SM39withContiguousMutableStorageIfAvailableyqd__Sgqd__Sry7ElementQzGzKXEKlFTj", "dispatch thunk of Swift.MutableCollection.withContiguousMutableStorageIfAvailable<A>((inout Swift.UnsafeMutableBufferPointer<A.Element>) throws -> A1) throws -> A1?"},
+			{"SM42_withUnsafeMutableBufferPointerIfSupportedyqd__Sgqd__Sry7ElementQzGzKXEKlFTj", "dispatch thunk of Swift.MutableCollection._withUnsafeMutableBufferPointerIfSupported<A>((inout Swift.UnsafeMutableBufferPointer<A.Element>) throws -> A1) throws -> A1?"},
+			{"SM9partition2by5IndexQzSb7ElementQzKXE_tKFTj", "dispatch thunk of Swift.MutableCollection.partition(by: (A.Element) throws -> Swift.Bool) throws -> A.Index"},
+			{"ST32withContiguousStorageIfAvailableyqd__Sgqd__SRy7ElementQzGKXEKlFTj", "dispatch thunk of Swift.Sequence.withContiguousStorageIfAvailable<A>((Swift.UnsafeBufferPointer<A.Element>) throws -> A1) throws -> A1?"},
+			{"SX8relative2toSny5BoundQzGqd___tSlRd__5IndexQyd__ADRSlFTj", "dispatch thunk of Swift.RangeExpression.relative<A where A1: Swift.Collection, A.Bound == A1.Index>(to: A1) -> Swift.Range<A.Bound>"},
+			{"Sm9removeAll5whereySb7ElementQzKXE_tKFTj", "dispatch thunk of Swift.RangeReplaceableCollection.removeAll(where: (A.Element) throws -> Swift.Bool) throws -> ()"},
+			{"Sm9repeating5countx7ElementQz_SitcfCTj", "dispatch thunk of Swift.RangeReplaceableCollection.init(repeating: A.Element, count: Swift.Int) -> A"},
+			{"Sy11withCString9encodedAs_qd__qd_0_m_qd__SPy8CodeUnitQyd_0_GKXEtKs16_UnicodeEncodingRd_0_r0_lFTj", "dispatch thunk of Swift.StringProtocol.withCString<A, B where B1: Swift._UnicodeEncoding>(encodedAs: B1.Type, _: (Swift.UnsafePointer<B1.CodeUnit>) throws -> A1) throws -> A1"},
+			{"Sy11withCStringyqd__qd__SPys4Int8VGKXEKlFTj", "dispatch thunk of Swift.StringProtocol.withCString<A>((Swift.UnsafePointer<Swift.Int8>) throws -> A1) throws -> A1"},
+			{"Sy8decoding2asxqd___qd_0_mtcSlRd__s16_UnicodeEncodingRd_0_8CodeUnitQyd_0_7ElementRtd__r0_lufCTj", "dispatch thunk of Swift.StringProtocol.init<A, B where A1: Swift.Collection, B1: Swift._UnicodeEncoding, A1.Element == B1.CodeUnit>(decoding: A1, as: B1.Type) -> A"},
+			{"s14_UnicodeParserP11parseScalar4froms0A0O11ParseResultOy_8Encoding_07EncodedD0QZGqd__z_tStRd__AI_8CodeUnitQZ7ElementRtd__lFTj", "dispatch thunk of Swift._UnicodeParser.parseScalar<A where A1: Swift.IteratorProtocol, A1.Element == A.Encoding.CodeUnit>(from: inout A1) -> Swift.Unicode.ParseResult<A.Encoding.EncodedScalar>"},
+			{"s17FixedWidthIntegerP012dividingFullB0yx8quotient_x9remaindertx4high_9MagnitudeQz3lowt_tFTj", "dispatch thunk of Swift.FixedWidthInteger.dividingFullWidth((high: A, low: A.Magnitude)) -> (quotient: A, remainder: A)"},
+			{"s17FixedWidthIntegerP12littleEndianxx_tcfCTj", "dispatch thunk of Swift.FixedWidthInteger.init(littleEndian: A) -> A"},
+			{"s17FixedWidthIntegerP9bigEndianxx_tcfCTj", "dispatch thunk of Swift.FixedWidthInteger.init(bigEndian: A) -> A"},
+			{"s20_ArrayBufferProtocolP010withUnsafeB7Pointeryqd__qd__SRy7ElementQzGKXEKlFTj", "dispatch thunk of Swift._ArrayBufferProtocol.withUnsafeBufferPointer<A>((Swift.UnsafeBufferPointer<A.Element>) throws -> A1) throws -> A1"},
+			{"s20_ArrayBufferProtocolP010withUnsafeB7Pointeryqd__qd__SRy7ElementQzGqd_0_YKXEqd_0_YKs5ErrorRd_0_r0_lFTj", "dispatch thunk of Swift._ArrayBufferProtocol.withUnsafeBufferPointer<A, B where B1: Swift.Error>((Swift.UnsafeBufferPointer<A.Element>) throws(B1) -> A1) throws(B1) -> A1"},
+			{"s20_ArrayBufferProtocolP017withUnsafeMutableB7Pointeryqd__qd__Sry7ElementQzGKXEKlFTj", "dispatch thunk of Swift._ArrayBufferProtocol.withUnsafeMutableBufferPointer<A>((Swift.UnsafeMutableBufferPointer<A.Element>) throws -> A1) throws -> A1"},
+			{"s20_ArrayBufferProtocolP017withUnsafeMutableB7Pointeryqd__qd__Sry7ElementQzGqd_0_YKXEqd_0_YKs5ErrorRd_0_r0_lFTj", "dispatch thunk of Swift._ArrayBufferProtocol.withUnsafeMutableBufferPointer<A, B where B1: Swift.Error>((Swift.UnsafeMutableBufferPointer<A.Element>) throws(B1) -> A1) throws(B1) -> A1"},
+			{"s20_ArrayBufferProtocolP13_copyContents8subRange12initializingSpy7ElementQzGSnySiG_AHtFTj", "dispatch thunk of Swift._ArrayBufferProtocol._copyContents(subRange: Swift.Range<Swift.Int>, initializing: Swift.UnsafeMutablePointer<A.Element>) -> Swift.UnsafeMutablePointer<A.Element>"},
+			{"s20_ArrayBufferProtocolP7copyingxx_tcfCTj", "dispatch thunk of Swift._ArrayBufferProtocol.init(copying: A) -> A"},
+			{"s24UnkeyedEncodingContainerP17encodeConditionalyyqd__KRld__CSERd__lFTj", "dispatch thunk of Swift.UnkeyedEncodingContainer.encodeConditional<A where A1: AnyObject, A1: Swift.Encodable>(A1) throws -> ()"},
+			{"s9OptionSetP8rawValuex03RawD0Qz_tcfCTj", "dispatch thunk of Swift.OptionSet.init(rawValue: A.RawValue) -> A"},
+		}
+		for _, v := range variants {
+			if p.s == v.body {
+				p.i = len(p.s)
+				wrap := common.NewNode(common.KindTypeMangling)
+				wrap.Text = v.result
+				wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
+				return wrap, true
+			}
+		}
+	}
 	// Special: dispatch thunk 13 Foundation (JSONDecoder/JSONEncoder/DataProtocol/__DataStorage/ContiguousBytes/_CalendarProtocol/PropertyListDecoder).
 	{
 		variants := []struct {
