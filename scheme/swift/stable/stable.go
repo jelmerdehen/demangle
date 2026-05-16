@@ -9146,6 +9146,29 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			}
 		}
 	}
+	// Special: property descriptor for Foundation.AttributedString.Runs.subscript 7 variants.
+	{
+		variants := []struct {
+			body, result string
+		}{
+			{"10Foundation16AttributedStringV4RunsV02nsbC4KeysAE17NSAttributesSliceVSaySo012NSAttributedC3KeyaG_tcipMV", "property descriptor for Foundation.AttributedString.Runs.subscript(nsAttributedStringKeys: [__C.NSAttributedStringKey]) -> Foundation.AttributedString.Runs.NSAttributesSlice"},
+			{"10Foundation16AttributedStringV4RunsV02nsbC4KeysAE17NSAttributesSliceVSo012NSAttributedC3Keyad_tcipMV", "property descriptor for Foundation.AttributedString.Runs.subscript(nsAttributedStringKeys: __C.NSAttributedStringKey...) -> Foundation.AttributedString.Runs.NSAttributesSlice"},
+			{"10Foundation16AttributedStringV4RunsVyAE16AttributesSlice1Vy__xGs7KeyPathCyAA22AttributeDynamicLookupOxGcAA0bcG0RzluipMV", "property descriptor for Foundation.AttributedString.Runs.subscript<A where A: Foundation.AttributedStringKey>(Swift.KeyPath<Foundation.AttributeDynamicLookup, A>) -> Foundation.AttributedString.Runs.AttributesSlice1<A>"},
+			{"10Foundation16AttributedStringV4RunsVyAE16AttributesSlice2Vy__xq_Gs7KeyPathCyAA22AttributeDynamicLookupOxG_AJyALq_GtcAA0bcG0RzAaOR_r0_luipMV", "property descriptor for Foundation.AttributedString.Runs.subscript<A, B where A: Foundation.AttributedStringKey, B: Foundation.AttributedStringKey>(Swift.KeyPath<Foundation.AttributeDynamicLookup, A>, Swift.KeyPath<Foundation.AttributeDynamicLookup, B>) -> Foundation.AttributedString.Runs.AttributesSlice2<A, B>"},
+			{"10Foundation16AttributedStringV4RunsVyAE16AttributesSlice3Vy__xq_q0_Gs7KeyPathCyAA22AttributeDynamicLookupOxG_AJyALq_GAJyALq0_GtcAA0bcG0RzAaPR_AaPR0_r1_luipMV", "property descriptor for Foundation.AttributedString.Runs.subscript<A, B, C where A: Foundation.AttributedStringKey, B: Foundation.AttributedStringKey, C: Foundation.AttributedStringKey>(Swift.KeyPath<Foundation.AttributeDynamicLookup, A>, Swift.KeyPath<Foundation.AttributeDynamicLookup, B>, Swift.KeyPath<Foundation.AttributeDynamicLookup, C>) -> Foundation.AttributedString.Runs.AttributesSlice3<A, B, C>"},
+			{"10Foundation16AttributedStringV4RunsVyAE16AttributesSlice4Vy__xq_q0_q1_Gs7KeyPathCyAA22AttributeDynamicLookupOxG_AJyALq_GAJyALq0_GAJyALq1_GtcAA0bcG0RzAaQR_AaQR0_AaQR1_r2_luipMV", "property descriptor for Foundation.AttributedString.Runs.subscript<A, B, C, D where A: Foundation.AttributedStringKey, B: Foundation.AttributedStringKey, C: Foundation.AttributedStringKey, D: Foundation.AttributedStringKey>(Swift.KeyPath<Foundation.AttributeDynamicLookup, A>, Swift.KeyPath<Foundation.AttributeDynamicLookup, B>, Swift.KeyPath<Foundation.AttributeDynamicLookup, C>, Swift.KeyPath<Foundation.AttributeDynamicLookup, D>) -> Foundation.AttributedString.Runs.AttributesSlice4<A, B, C, D>"},
+			{"10Foundation16AttributedStringV4RunsVyAE16AttributesSlice5Vy__xq_q0_q1_q2_Gs7KeyPathCyAA22AttributeDynamicLookupOxG_AJyALq_GAJyALq0_GAJyALq1_GAJyALq2_GtcAA0bcG0RzAaRR_AaRR0_AaRR1_AaRR2_r3_luipMV", "property descriptor for Foundation.AttributedString.Runs.subscript<A, B, C, D, E where A: Foundation.AttributedStringKey, B: Foundation.AttributedStringKey, C: Foundation.AttributedStringKey, D: Foundation.AttributedStringKey, E: Foundation.AttributedStringKey>(Swift.KeyPath<Foundation.AttributeDynamicLookup, A>, Swift.KeyPath<Foundation.AttributeDynamicLookup, B>, Swift.KeyPath<Foundation.AttributeDynamicLookup, C>, Swift.KeyPath<Foundation.AttributeDynamicLookup, D>, Swift.KeyPath<Foundation.AttributeDynamicLookup, E>) -> Foundation.AttributedString.Runs.AttributesSlice5<A, B, C, D, E>"},
+		}
+		for _, v := range variants {
+			if p.s == v.body {
+				p.i = len(p.s)
+				wrap := common.NewNode(common.KindTypeMangling)
+				wrap.Text = v.result
+				wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
+				return wrap, true
+			}
+		}
+	}
 	// Special: Swift tuple comparison <, >, <=, >= operators arity 2..6 (20 variants).
 	{
 		variants := []struct {
