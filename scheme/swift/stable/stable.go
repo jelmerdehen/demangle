@@ -8930,6 +8930,56 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			}
 		}
 	}
+	// Special: `s<n><name>VyxG<n>Foundation<wordsub-protoName>ADs5UInt8VRszl(Mc|WP)` —
+	// Stdlib host with UInt8 same-type constraint, word-sub-decoded Foundation
+	// proto name. Apple verbose form is same as the digit-led variant above;
+	// the only difference is `0<wordsub>` instead of `<n><literal>` for proto.
+	// Example: s15ContiguousArrayVyxG10Foundation0A5BytesADs5UInt8VRszlWP
+	//   → "<A where A == Swift.UInt8> Swift.ContiguousArray<A> : Foundation.ContiguousBytes in Foundation"
+	if len(p.s) >= 25 && p.s[0] == 's' && p.s[1] >= '1' && p.s[1] <= '9' {
+		suf := "ADs5UInt8VRszl"
+		sufLen := len(suf)
+		if len(p.s) >= sufLen+2 &&
+			p.s[len(p.s)-2-sufLen:len(p.s)-2] == suf &&
+			(p.s[len(p.s)-2:] == "Mc" || p.s[len(p.s)-2:] == "WP") {
+			probeI := 1
+			nLen := 0
+			nPos := probeI
+			for nPos < len(p.s) && p.s[nPos] >= '0' && p.s[nPos] <= '9' {
+				nLen = nLen*10 + int(p.s[nPos]-'0')
+				nPos++
+			}
+			if nLen > 0 && nPos+nLen+4 < len(p.s) && p.s[nPos+nLen] == 'V' &&
+				p.s[nPos+nLen+1] == 'y' && p.s[nPos+nLen+2] == 'x' &&
+				p.s[nPos+nLen+3] == 'G' {
+				hostName := p.s[nPos : nPos+nLen]
+				probeI = nPos + nLen + 4
+				end := len(p.s) - 2 - sufLen
+				if probeI+12 < end && p.s[probeI:probeI+12] == "10Foundation" &&
+					p.s[probeI+12] == '0' {
+					savedI := p.i
+					savedWords := append([]string(nil), p.words...)
+					p.captureWords(hostName)
+					p.captureWords("Foundation")
+					p.i = probeI + 12
+					if protoName, perr := p.parseIdentifier(); perr == nil && p.i == end {
+						prefix := "protocol conformance descriptor for "
+						if p.s[len(p.s)-2:] == "WP" {
+							prefix = "protocol witness table for "
+						}
+						p.i = len(p.s)
+						wrap := common.NewNode(common.KindTypeMangling)
+						wrap.Text = prefix + "<A where A == Swift.UInt8> Swift." + hostName + "<A>" +
+							" : Foundation." + protoName + " in Foundation"
+						wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
+						return wrap, true
+					}
+					p.i = savedI
+					p.words = savedWords
+				}
+			}
+		}
+	}
 	// Special: `5UIKit<n><name>CAA06UITextdE0C0dE8PausableAA(Mc|WP)` —
 	// UIKit class conforming to word-sub UITextEffectView.Pausable proto.
 	// Apple short-form: `<name>`.
