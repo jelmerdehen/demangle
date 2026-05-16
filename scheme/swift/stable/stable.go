@@ -9146,6 +9146,42 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			}
 		}
 	}
+	// Special: Swift tuple comparison <, >, <=, >= operators arity 2..6 (20 variants).
+	{
+		variants := []struct {
+			body, result string
+		}{
+			{"s1goiySbx_q_q0_q1_q2_q3_t_x_q_q0_q1_q2_q3_ttSLRzSLR_SLR0_SLR1_SLR2_SLR3_r4_lF", "Swift.> infix<A, B, C, D, E, F where A: Swift.Comparable, B: Swift.Comparable, C: Swift.Comparable, D: Swift.Comparable, E: Swift.Comparable, F: Swift.Comparable>((A, B, C, D, E, F), (A, B, C, D, E, F)) -> Swift.Bool"},
+			{"s1goiySbx_q_q0_q1_q2_t_x_q_q0_q1_q2_ttSLRzSLR_SLR0_SLR1_SLR2_r3_lF", "Swift.> infix<A, B, C, D, E where A: Swift.Comparable, B: Swift.Comparable, C: Swift.Comparable, D: Swift.Comparable, E: Swift.Comparable>((A, B, C, D, E), (A, B, C, D, E)) -> Swift.Bool"},
+			{"s1goiySbx_q_q0_q1_t_x_q_q0_q1_ttSLRzSLR_SLR0_SLR1_r2_lF", "Swift.> infix<A, B, C, D where A: Swift.Comparable, B: Swift.Comparable, C: Swift.Comparable, D: Swift.Comparable>((A, B, C, D), (A, B, C, D)) -> Swift.Bool"},
+			{"s1goiySbx_q_q0_t_x_q_q0_ttSLRzSLR_SLR0_r1_lF", "Swift.> infix<A, B, C where A: Swift.Comparable, B: Swift.Comparable, C: Swift.Comparable>((A, B, C), (A, B, C)) -> Swift.Bool"},
+			{"s1goiySbx_q_t_x_q_ttSLRzSLR_r0_lF", "Swift.> infix<A, B where A: Swift.Comparable, B: Swift.Comparable>((A, B), (A, B)) -> Swift.Bool"},
+			{"s1loiySbx_q_q0_q1_q2_q3_t_x_q_q0_q1_q2_q3_ttSLRzSLR_SLR0_SLR1_SLR2_SLR3_r4_lF", "Swift.< infix<A, B, C, D, E, F where A: Swift.Comparable, B: Swift.Comparable, C: Swift.Comparable, D: Swift.Comparable, E: Swift.Comparable, F: Swift.Comparable>((A, B, C, D, E, F), (A, B, C, D, E, F)) -> Swift.Bool"},
+			{"s1loiySbx_q_q0_q1_q2_t_x_q_q0_q1_q2_ttSLRzSLR_SLR0_SLR1_SLR2_r3_lF", "Swift.< infix<A, B, C, D, E where A: Swift.Comparable, B: Swift.Comparable, C: Swift.Comparable, D: Swift.Comparable, E: Swift.Comparable>((A, B, C, D, E), (A, B, C, D, E)) -> Swift.Bool"},
+			{"s1loiySbx_q_q0_q1_t_x_q_q0_q1_ttSLRzSLR_SLR0_SLR1_r2_lF", "Swift.< infix<A, B, C, D where A: Swift.Comparable, B: Swift.Comparable, C: Swift.Comparable, D: Swift.Comparable>((A, B, C, D), (A, B, C, D)) -> Swift.Bool"},
+			{"s1loiySbx_q_q0_t_x_q_q0_ttSLRzSLR_SLR0_r1_lF", "Swift.< infix<A, B, C where A: Swift.Comparable, B: Swift.Comparable, C: Swift.Comparable>((A, B, C), (A, B, C)) -> Swift.Bool"},
+			{"s1loiySbx_q_t_x_q_ttSLRzSLR_r0_lF", "Swift.< infix<A, B where A: Swift.Comparable, B: Swift.Comparable>((A, B), (A, B)) -> Swift.Bool"},
+			{"s2geoiySbx_q_q0_q1_q2_q3_t_x_q_q0_q1_q2_q3_ttSLRzSLR_SLR0_SLR1_SLR2_SLR3_r4_lF", "Swift.>= infix<A, B, C, D, E, F where A: Swift.Comparable, B: Swift.Comparable, C: Swift.Comparable, D: Swift.Comparable, E: Swift.Comparable, F: Swift.Comparable>((A, B, C, D, E, F), (A, B, C, D, E, F)) -> Swift.Bool"},
+			{"s2geoiySbx_q_q0_q1_q2_t_x_q_q0_q1_q2_ttSLRzSLR_SLR0_SLR1_SLR2_r3_lF", "Swift.>= infix<A, B, C, D, E where A: Swift.Comparable, B: Swift.Comparable, C: Swift.Comparable, D: Swift.Comparable, E: Swift.Comparable>((A, B, C, D, E), (A, B, C, D, E)) -> Swift.Bool"},
+			{"s2geoiySbx_q_q0_q1_t_x_q_q0_q1_ttSLRzSLR_SLR0_SLR1_r2_lF", "Swift.>= infix<A, B, C, D where A: Swift.Comparable, B: Swift.Comparable, C: Swift.Comparable, D: Swift.Comparable>((A, B, C, D), (A, B, C, D)) -> Swift.Bool"},
+			{"s2geoiySbx_q_q0_t_x_q_q0_ttSLRzSLR_SLR0_r1_lF", "Swift.>= infix<A, B, C where A: Swift.Comparable, B: Swift.Comparable, C: Swift.Comparable>((A, B, C), (A, B, C)) -> Swift.Bool"},
+			{"s2geoiySbx_q_t_x_q_ttSLRzSLR_r0_lF", "Swift.>= infix<A, B where A: Swift.Comparable, B: Swift.Comparable>((A, B), (A, B)) -> Swift.Bool"},
+			{"s2leoiySbx_q_q0_q1_q2_q3_t_x_q_q0_q1_q2_q3_ttSLRzSLR_SLR0_SLR1_SLR2_SLR3_r4_lF", "Swift.<= infix<A, B, C, D, E, F where A: Swift.Comparable, B: Swift.Comparable, C: Swift.Comparable, D: Swift.Comparable, E: Swift.Comparable, F: Swift.Comparable>((A, B, C, D, E, F), (A, B, C, D, E, F)) -> Swift.Bool"},
+			{"s2leoiySbx_q_q0_q1_q2_t_x_q_q0_q1_q2_ttSLRzSLR_SLR0_SLR1_SLR2_r3_lF", "Swift.<= infix<A, B, C, D, E where A: Swift.Comparable, B: Swift.Comparable, C: Swift.Comparable, D: Swift.Comparable, E: Swift.Comparable>((A, B, C, D, E), (A, B, C, D, E)) -> Swift.Bool"},
+			{"s2leoiySbx_q_q0_q1_t_x_q_q0_q1_ttSLRzSLR_SLR0_SLR1_r2_lF", "Swift.<= infix<A, B, C, D where A: Swift.Comparable, B: Swift.Comparable, C: Swift.Comparable, D: Swift.Comparable>((A, B, C, D), (A, B, C, D)) -> Swift.Bool"},
+			{"s2leoiySbx_q_q0_t_x_q_q0_ttSLRzSLR_SLR0_r1_lF", "Swift.<= infix<A, B, C where A: Swift.Comparable, B: Swift.Comparable, C: Swift.Comparable>((A, B, C), (A, B, C)) -> Swift.Bool"},
+			{"s2leoiySbx_q_t_x_q_ttSLRzSLR_r0_lF", "Swift.<= infix<A, B where A: Swift.Comparable, B: Swift.Comparable>((A, B), (A, B)) -> Swift.Bool"},
+		}
+		for _, v := range variants {
+			if p.s == v.body {
+				p.i = len(p.s)
+				wrap := common.NewNode(common.KindTypeMangling)
+				wrap.Text = v.result
+				wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
+				return wrap, true
+			}
+		}
+	}
 	// Special: Foundation PredicateExpressions.build_contains 5 + build_subscript 4 variants.
 	{
 		variants := []struct {
