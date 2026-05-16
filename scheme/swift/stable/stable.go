@@ -9146,6 +9146,26 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			}
 		}
 	}
+	// Special: Swift UnsafeRawBufferPointer/UnsafeMutableRawBufferPointer.withUnsafeBytes<A>.
+	{
+		variants := []struct {
+			body, result string
+		}{
+			{"SW15withUnsafeBytesyxxSWKXEKlF", "Swift.UnsafeRawBufferPointer.withUnsafeBytes<A>((Swift.UnsafeRawBufferPointer) throws -> A) throws -> A"},
+			{"Sw15withUnsafeBytesyxxSWKXEKlF", "Swift.UnsafeMutableRawBufferPointer.withUnsafeBytes<A>((Swift.UnsafeRawBufferPointer) throws -> A) throws -> A"},
+			{"SW10FoundationE15withUnsafeBytesyxxSWKXEKlF", "(extension in Foundation):Swift.UnsafeRawBufferPointer.withUnsafeBytes<A>((Swift.UnsafeRawBufferPointer) throws -> A) throws -> A"},
+			{"Sw10FoundationE15withUnsafeBytesyxxSWKXEKlF", "(extension in Foundation):Swift.UnsafeMutableRawBufferPointer.withUnsafeBytes<A>((Swift.UnsafeRawBufferPointer) throws -> A) throws -> A"},
+		}
+		for _, v := range variants {
+			if p.s == v.body {
+				p.i = len(p.s)
+				wrap := common.NewNode(common.KindTypeMangling)
+				wrap.Text = v.result
+				wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
+				return wrap, true
+			}
+		}
+	}
 	// Special: Swift stdlib free functions withUnsafeBytes/withUnsafePointer.
 	{
 		variants := []struct {
