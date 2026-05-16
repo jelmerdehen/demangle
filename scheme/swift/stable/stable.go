@@ -8827,6 +8827,63 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 									nested = append(nested, nname)
 									probeI = nstart + nlen + 1
 								}
+								// Optional second constraint section: `AASo<n><class2>C(Rbz|Rsz)rlE<chain2>V+`.
+								// Apple emits nested `(extension in <mod>):` prefix.
+								extraExt := ""
+								secondConstraint := ""
+								var nested2 []string
+								if probeI+5 < len(p.s) && p.s[probeI] == 'A' && p.s[probeI+1] == 'A' &&
+									p.s[probeI+2] == 'S' && p.s[probeI+3] == 'o' {
+									saveProbe := probeI
+									probeI += 4
+									c2Len := 0
+									c2Pos := probeI
+									for c2Pos < len(p.s) && p.s[c2Pos] >= '0' && p.s[c2Pos] <= '9' {
+										c2Len = c2Len*10 + int(p.s[c2Pos]-'0')
+										c2Pos++
+									}
+									if c2Len > 0 && c2Pos+c2Len+5 < len(p.s) && p.s[c2Pos+c2Len] == 'C' {
+										constraintKind := p.s[c2Pos+c2Len+1 : c2Pos+c2Len+4]
+										if (constraintKind == "Rbz" || constraintKind == "Rsz") &&
+											p.s[c2Pos+c2Len+4] == 'r' && p.s[c2Pos+c2Len+5] == 'l' &&
+											c2Pos+c2Len+6 < len(p.s) && p.s[c2Pos+c2Len+6] == 'E' {
+											class2Name := p.s[c2Pos : c2Pos+c2Len]
+											probeI = c2Pos + c2Len + 7
+											for probeI < len(p.s)-4 && p.s[probeI] >= '1' && p.s[probeI] <= '9' {
+												nlen := 0
+												nstart := probeI
+												for nstart < len(p.s) && p.s[nstart] >= '0' && p.s[nstart] <= '9' {
+													nlen = nlen*10 + int(p.s[nstart]-'0')
+													nstart++
+												}
+												if nlen <= 0 || nstart+nlen >= len(p.s) {
+													break
+												}
+												nname := p.s[nstart : nstart+nlen]
+												nk := p.s[nstart+nlen]
+												if nk != 'V' && nk != 'C' && nk != 'O' && nk != 'P' {
+													break
+												}
+												nested2 = append(nested2, nname)
+												probeI = nstart + nlen + 1
+											}
+											if len(nested2) >= 1 {
+												extraExt = "(extension in " + modName + "):"
+												if constraintKind == "Rbz" {
+													secondConstraint = "< where A: __C." + class2Name + ">"
+												} else {
+													secondConstraint = "< where A == __C." + class2Name + ">"
+												}
+											} else {
+												probeI = saveProbe
+											}
+										} else {
+											probeI = saveProbe
+										}
+									} else {
+										probeI = saveProbe
+									}
+								}
 								// Bound-gen `y<args>G`.
 								if probeI < len(p.s)-4 && p.s[probeI] == 'y' &&
 									len(nested) >= 1 {
@@ -8851,6 +8908,11 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 									}
 									if k < len(p.s)-4 && p.s[k] == 'G' {
 										probeI = k + 1
+										// Build chain string: chain1<constraint> if second exists, then chain2.
+										chainStr := strings.Join(nested, ".")
+										if secondConstraint != "" {
+											chainStr += secondConstraint + "." + strings.Join(nested2, ".")
+										}
 										// Proto: S<letter>
 										if probeI+1 < len(p.s) && p.s[probeI] == 'S' &&
 											probeI == len(p.s)-6 {
@@ -8860,9 +8922,9 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 												if p.s[len(p.s)-2:] == "WP" {
 													prefix = "protocol witness table for "
 												}
-												hostFull := "(extension in " + modName + "):" +
+												hostFull := extraExt + "(extension in " + modName + "):" +
 													modName + "." + hostName + "<A>< where A: __C." + className +
-													">." + strings.Join(nested, ".")
+													">." + chainStr
 												protoName := pEntry.Module + "." + pEntry.Name
 												p.i = len(p.s)
 												wrap := common.NewNode(common.KindTypeMangling)
@@ -8890,9 +8952,9 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 													if p.s[len(p.s)-2:] == "WP" {
 														prefix = "protocol witness table for "
 													}
-													hostFull := "(extension in " + modName + "):" +
+													hostFull := extraExt + "(extension in " + modName + "):" +
 														modName + "." + hostName + "<A>< where A: __C." + className +
-														">." + strings.Join(nested, ".")
+														">." + chainStr
 													fullProto := modName + "." + protoName
 													p.i = len(p.s)
 													wrap := common.NewNode(common.KindTypeMangling)
