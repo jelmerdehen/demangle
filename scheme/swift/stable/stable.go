@@ -8654,6 +8654,9 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			nameLen = nameLen*10 + int(p.s[probeI]-'0')
 			probeI++
 		}
+		// Chain walker may use parseIdentifier (for word-sub idents);
+		// preserve p.words across the recognizer block.
+		blockWordsSave := append([]string(nil), p.words...)
 		if nameLen > 0 && probeI+nameLen < len(p.s) {
 			objcName := p.s[probeI : probeI+nameLen]
 			kindByte := p.s[probeI+nameLen]
@@ -8670,28 +8673,62 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 						emodPos++
 					}
 					if emodLen > 0 && emodPos+emodLen < len(p.s) && p.s[emodPos+emodLen] == 'E' {
+						extModName := p.s[emodPos : emodPos+emodLen]
 						probeI = emodPos + emodLen + 1
-						// Walk nested chain: <digit><name><kind>...
-						for probeI < len(p.s) && p.s[probeI] >= '1' && p.s[probeI] <= '9' {
-							nlen := 0
-							nstart := probeI
-							for nstart < len(p.s) && p.s[nstart] >= '0' && p.s[nstart] <= '9' {
-								nlen = nlen*10 + int(p.s[nstart]-'0')
-								nstart++
-							}
-							if nlen <= 0 || nstart+nlen >= len(p.s) {
+						// Populate words from class and ext-mod so the chain
+						// walker's parseIdentifier path can decode word-sub idents
+						// (e.g. `07CurrentbC16DidChangeMessage` for
+						// CurrentInputModeDidChangeMessage on UITextInputMode).
+						p.captureWords(objcName)
+						p.captureWords(extModName)
+						// Walk nested chain: digit-led or word-sub-led idents
+						// followed by V/C/O/P kind byte.
+						for probeI < len(p.s) {
+							c := p.s[probeI]
+							if !(c >= '1' && c <= '9') && c != '0' {
 								break
 							}
-							nname := p.s[nstart : nstart+nlen]
-							nk := p.s[nstart+nlen]
+							var nname string
+							var advance int
+							if c == '0' {
+								// Word-sub form — defer to parseIdentifier.
+								wsI := p.i
+								wsWords := append([]string(nil), p.words...)
+								p.i = probeI
+								n, ierr := p.parseIdentifier()
+								if ierr != nil || p.eof() {
+									p.i = wsI
+									p.words = wsWords
+									break
+								}
+								advance = p.i - probeI
+								nname = n
+								p.i = wsI
+							} else {
+								nlen := 0
+								nstart := probeI
+								for nstart < len(p.s) && p.s[nstart] >= '0' && p.s[nstart] <= '9' {
+									nlen = nlen*10 + int(p.s[nstart]-'0')
+									nstart++
+								}
+								if nlen <= 0 || nstart+nlen >= len(p.s) {
+									break
+								}
+								nname = p.s[nstart : nstart+nlen]
+								advance = (nstart - probeI) + nlen
+								p.captureWords(nname)
+							}
+							nk := p.s[probeI+advance]
 							if nk != 'V' && nk != 'C' && nk != 'O' && nk != 'P' {
 								break
 							}
 							nested = append(nested, nname)
-							probeI = nstart + nlen + 1
+							probeI = probeI + advance + 1
 						}
 					}
 				}
+				// Restore words: downstream recognizers must not inherit captures.
+				_ = blockWordsSave
 				// Bound-generic on last nested segment: `y _* (x|q<digits>?_)+ _* G`.
 				boundGenArgs := 0
 				if probeI < len(p.s) && p.s[probeI] == 'y' {
@@ -8773,6 +8810,10 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 				}
 			}
 		}
+		// Restore p.words: chain walker may have mutated via parseIdentifier
+		// (word-sub decode) or captureWords. Downstream recognizers must see
+		// the original word-capture state.
+		p.words = blockWordsSave
 	}
 	// Special: `s<n><name>VyxG<n>Foundation<n><ProtoName>ADs5UInt8VRszl(Mc|WP)` —
 	// Swift-module stdlib type (s<n><name>V) with UInt8 same-type
