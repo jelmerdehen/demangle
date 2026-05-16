@@ -1,13 +1,13 @@
 # Swift Production Digest
 
-**Parity**: 95.99% (61199/63757) — 2026-05-16T20:52:39Z
+**Parity**: 95.99% (61202/63757) — 2026-05-16T20:55:57Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 93 parse-errors + 2465 mismatches
+**Failures**: 93 parse-errors + 2462 mismatches
 
 ## Top-20 Mismatch Categories
 
 - property descriptor                        298
-- static (extension                          134
+- static (extension                          131
 - (extension in Foundation):Foundation.PredicateExpr… 85
 - dispatch thunk                             77
 - method descriptor                          77
@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- ea655b79 swift-parity: CHA Swift RangeReplaceableCollection +infix(A, A1) 3 variants — parity 95.99%->95.99% (+3 production +0 roundtrip)
+- 119d7dce chore: lock snapshot after CGZ commit (parity 61196->61199 roundtrip 21309->21309)
+- 24aa1d62 chore: update digest.md for CGZ commit (parity 95.98%->95.98% +3)
 - 2922e92c swift-parity: CGZ Foundation String.LocalizationValue.StringInterpolation.appendInterpolation 3-constraint verbose form — parity 95.98%->95.98% (+3 production +0 roundtrip)
 - 723d22c7 chore: lock snapshot after CGY commit (parity 61192->61196 roundtrip 21309->21309)
 - 9f532eab chore: update digest.md for CGY commit (parity 95.97%->95.98% +4)
@@ -36,12 +39,9 @@
 - 5ab298d4 chore: lock snapshot after CGX commit (parity 61189->61192 roundtrip 21309->21309)
 - 60dd18de chore: update digest.md for CGX commit (parity 95.97%->95.97% +3)
 - 320b598c swift-parity: CGX Foundation NSDecimal init(_:format:lenient:) FormatStyle inner variants — parity 95.97%->95.97% (+3 production +0 roundtrip)
-- e13bfc47 chore: lock snapshot after CGW commit (parity 61182->61189 roundtrip 21309->21309)
-- d2603f14 chore: update digest.md for CGW commit (parity 95.96%->95.97% +7)
-- e4c45caf swift-parity: CGW Swift stdlib SIMD extension subscript<A>(_:) property descriptor SIMD2-64 — parity 95.96%->95.97% (+7 production +0 roundtrip)
 
 ## Suggested Next 3 Items
 
 1. P1: property descriptor fix — 298 mismatches
-2. investigate: static (extension — 134 mismatches
+2. investigate: static (extension — 131 mismatches
 3. investigate: (extension in Foundation):Foundation.PredicateExpr… — 85 mismatches
