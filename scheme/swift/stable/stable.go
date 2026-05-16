@@ -14261,6 +14261,7 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 		} else if c >= '0' && c <= '9' {
 			lblSave := p.i
 			lblSubs := p.subs
+			lblWords := p.words
 			lbl, lerr := p.parseIdentifier()
 			if lerr != nil {
 				p.i = lblSave
@@ -14273,6 +14274,41 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 				(p.s[p.i+1] == 'z' || p.s[p.i+1] == 'y' || p.s[p.i+1] == 'Y') {
 				p.i = lblSave
 				p.subs = lblSubs
+				p.words = lblWords
+				break
+			}
+			// Chain lookahead: ident + (digit-led-ident or word-sub) + V/C/O/P
+			// = type chain (e.g. `12CoreGraphics7CGFloatV`); rewind.
+			if !p.eof() &&
+				((p.s[p.i] >= '1' && p.s[p.i] <= '9') || p.s[p.i] == '0') {
+				saveCh := p.i
+				saveSubsCh := p.subs
+				saveWordsCh := p.words
+				_, chErr := p.parseIdentifier()
+				isType := chErr == nil && !p.eof() &&
+					(p.s[p.i] == 'V' || p.s[p.i] == 'C' ||
+						p.s[p.i] == 'O' || p.s[p.i] == 'P')
+				p.i = saveCh
+				p.subs = saveSubsCh
+				p.words = saveWordsCh
+				if isType {
+					p.i = lblSave
+					p.subs = lblSubs
+					p.words = lblWords
+					break
+				}
+			}
+			// Known module-qualifier name in label position = return-type
+			// module prefix. Rewind when lbl matches and next is digit-led.
+			if !p.eof() &&
+				(p.s[p.i] >= '0' && p.s[p.i] <= '9') &&
+				(lbl == "Foundation" || lbl == "SwiftUI" ||
+					lbl == "UIKit" || lbl == "Combine" ||
+					lbl == "CoreGraphics" || lbl == "CoreData" ||
+					lbl == "CoreText" || lbl == "Dispatch") {
+				p.i = lblSave
+				p.subs = lblSubs
+				p.words = lblWords
 				break
 			}
 			labels = append(labels, lbl)
@@ -18903,6 +18939,21 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 							p.subs = saveSubsL
 							break
 						}
+					}
+					// Known module-qualifier names appearing as candidate
+					// labels are actually start of return-type module prefix
+					// (e.g. `7SwiftUI0F6ValuesV` = SwiftUI.EnvironmentValues).
+					// Swift labels conventionally start lowercase; rewind when
+					// lbl matches common module name AND peek is digit-led.
+					if !p.eof() &&
+						(p.s[p.i] >= '0' && p.s[p.i] <= '9') &&
+						(lbl == "Foundation" || lbl == "SwiftUI" ||
+							lbl == "UIKit" || lbl == "Combine" ||
+							lbl == "CoreGraphics" || lbl == "CoreData" ||
+							lbl == "CoreText" || lbl == "Dispatch") {
+						p.i = savePosL
+						p.subs = saveSubsL
+						break
 					}
 					labels = append(labels, lbl)
 				}
