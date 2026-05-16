@@ -8651,6 +8651,42 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 						}
 					}
 				}
+				// Bound-generic on last nested segment: `y _* (x|q<digits>?_)+ _* G`.
+				boundGenArgs := 0
+				if probeI < len(p.s) && p.s[probeI] == 'y' {
+					k := probeI + 1
+					argCount := 0
+					ok := true
+					for k < len(p.s) && p.s[k] != 'G' {
+						if p.s[k] == 'x' {
+							argCount++
+							k++
+							continue
+						}
+						if p.s[k] == 'q' {
+							k++
+							for k < len(p.s) && p.s[k] >= '0' && p.s[k] <= '9' {
+								k++
+							}
+							if k >= len(p.s) || p.s[k] != '_' {
+								ok = false
+								break
+							}
+							k++
+							argCount++
+							continue
+						}
+						if p.s[k] == '_' {
+							k++
+							continue
+						}
+						ok = false
+						break
+					}
+					if ok && k < len(p.s) && p.s[k] == 'G' && argCount >= 1 {
+						boundGenArgs = argCount
+					}
+				}
 				prefix := "protocol conformance descriptor for "
 				if p.s[len(p.s)-2:] == "WP" {
 					prefix = "protocol witness table for "
@@ -8658,6 +8694,13 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 				hostFull := objcName
 				if len(nested) > 0 {
 					hostFull += "." + strings.Join(nested, ".")
+				}
+				if boundGenArgs > 0 {
+					gnames := make([]string, boundGenArgs)
+					for gi := range gnames {
+						gnames[gi] = string(rune('A' + gi))
+					}
+					hostFull += "<" + strings.Join(gnames, ", ") + ">"
 				}
 				p.i = len(p.s)
 				wrap := common.NewNode(common.KindTypeMangling)
