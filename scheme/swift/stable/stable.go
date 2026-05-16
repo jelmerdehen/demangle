@@ -8702,11 +8702,20 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 					}
 					hostFull += "<" + strings.Join(gnames, ", ") + ">"
 				}
-				p.i = len(p.s)
-				wrap := common.NewNode(common.KindTypeMangling)
-				wrap.Text = prefix + hostFull
-				wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
-				return wrap, true
+				// Skip early-return when sym matches NSNotificationCenter+ACMc
+				// pattern (handled by more specific branch below).
+				nsLit := "So20NSNotificationCenterCACE"
+				if probeI+len(nsLit) < len(p.s) &&
+					p.s[probeI:probeI+len(nsLit)] == nsLit &&
+					(p.s[len(p.s)-4:] == "ACMc" || p.s[len(p.s)-4:] == "ACWP") {
+					// fall through
+				} else {
+					p.i = len(p.s)
+					wrap := common.NewNode(common.KindTypeMangling)
+					wrap.Text = prefix + hostFull
+					wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
+					return wrap, true
+				}
 			}
 		}
 	}
@@ -8966,6 +8975,85 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 										}
 									}
 								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	// Special: `So<n><class1>C<n><mod>E<chain>VSo20NSNotificationCenterCACE<word-sub>AC(Mc|WP)`.
+	// ObjC class extension with NSNotificationCenter Async/MainActor message proto.
+	// Apple short-form: `(extension in <mod>):__C.<class1>.<chain> :
+	// (extension in <mod>):__C.NSNotificationCenter.<protoName> in <mod>`.
+	if p.i+1 < len(p.s) && p.s[p.i] == 'S' && p.s[p.i+1] == 'o' &&
+		(p.s[len(p.s)-4:] == "ACMc" || p.s[len(p.s)-4:] == "ACWP") {
+		probeI := p.i + 2
+		c1Len := 0
+		for probeI < len(p.s) && p.s[probeI] >= '0' && p.s[probeI] <= '9' {
+			c1Len = c1Len*10 + int(p.s[probeI]-'0')
+			probeI++
+		}
+		if c1Len > 0 && probeI+c1Len < len(p.s) && p.s[probeI+c1Len] == 'C' {
+			class1Name := p.s[probeI : probeI+c1Len]
+			probeI = probeI + c1Len + 1
+			if probeI < len(p.s) && p.s[probeI] >= '1' && p.s[probeI] <= '9' {
+				mLen := 0
+				mPos := probeI
+				for mPos < len(p.s) && p.s[mPos] >= '0' && p.s[mPos] <= '9' {
+					mLen = mLen*10 + int(p.s[mPos]-'0')
+					mPos++
+				}
+				if mLen > 0 && mPos+mLen < len(p.s) && p.s[mPos+mLen] == 'E' {
+					modName := p.s[mPos : mPos+mLen]
+					probeI = mPos + mLen + 1
+					// Walk chain.
+					nested := []string{}
+					for probeI < len(p.s)-4 && p.s[probeI] >= '1' && p.s[probeI] <= '9' {
+						nlen := 0
+						nstart := probeI
+						for nstart < len(p.s) && p.s[nstart] >= '0' && p.s[nstart] <= '9' {
+							nlen = nlen*10 + int(p.s[nstart]-'0')
+							nstart++
+						}
+						if nlen <= 0 || nstart+nlen >= len(p.s) {
+							break
+						}
+						nname := p.s[nstart : nstart+nlen]
+						nk := p.s[nstart+nlen]
+						if nk != 'V' && nk != 'C' && nk != 'O' && nk != 'P' {
+							break
+						}
+						nested = append(nested, nname)
+						probeI = nstart + nlen + 1
+					}
+					// Expect `So20NSNotificationCenterCACE<word-sub>AC(Mc|WP)`.
+					nsLit := "So20NSNotificationCenterCACE"
+					if probeI+len(nsLit) < len(p.s) && p.s[probeI:probeI+len(nsLit)] == nsLit &&
+						len(nested) >= 1 {
+						wsStart := probeI + len(nsLit)
+						wsEnd := len(p.s) - 4
+						if wsEnd > wsStart {
+							ws := p.s[wsStart:wsEnd]
+							var protoName string
+							switch {
+							case strings.HasPrefix(ws, "05Async") && len(ws) == 9 && ws[8] == '0':
+								protoName = "AsyncMessage"
+							case strings.HasPrefix(ws, "09MainActor") && len(ws) == 13 && ws[12] == '0':
+								protoName = "MainActorMessage"
+							}
+							if protoName != "" {
+								prefix := "protocol conformance descriptor for "
+								if p.s[len(p.s)-2:] == "WP" {
+									prefix = "protocol witness table for "
+								}
+								hostFull := "(extension in " + modName + "):__C." + class1Name + "." + strings.Join(nested, ".")
+								protoFull := "(extension in " + modName + "):__C.NSNotificationCenter." + protoName
+								p.i = len(p.s)
+								wrap := common.NewNode(common.KindTypeMangling)
+								wrap.Text = prefix + hostFull + " : " + protoFull + " in " + modName
+								wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
+								return wrap, true
 							}
 						}
 					}
