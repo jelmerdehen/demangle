@@ -1,4 +1,4 @@
-# snapshot-pass-set update 2026-05-16T13:43:35Z — union with previous (high-water)
+# snapshot-pass-set update 2026-05-16T13:49:44Z — union with previous (high-water)
 _$s10Foreground7SwiftUI18LabelGroupStyle_v0PTl
 _$s10Foundation10CocoaErrorV010formattingC0AC4CodeVvgZ
 _$s10Foundation10CocoaErrorV010formattingC0AC4CodeVvpZMV
@@ -43021,6 +43021,7 @@ _$sScS12ContinuationV15BufferingPolicyOMn
 _$sScS12ContinuationV2eeoiySbAByx_G_ADtFZ
 _$sScS12ContinuationV4hash4intoys6HasherVz_tF
 _$sScS12ContinuationV5yield4withAB11YieldResultOyx__Gs0E0Oyxs5NeverOG_tF
+_$sScS12ContinuationV5yieldAB11YieldResultOyyt__GyytRszlF
 _$sScS12ContinuationV5yieldyAB11YieldResultOyx__GxnF
 _$sScS12ContinuationV6finishyyF
 _$sScS12ContinuationV9hashValueSivg
@@ -43247,6 +43248,7 @@ _$sScs12ContinuationV15BufferingPolicyOMn
 _$sScs12ContinuationV2eeoiySbAByxq__G_ADtFZ
 _$sScs12ContinuationV4hash4intoys6HasherVz_tF
 _$sScs12ContinuationV5yield4withAB11YieldResultOyxs5Error_p__Gs0E0OyxsAG_pG_tsAG_pRs_rlF
+_$sScs12ContinuationV5yieldAB11YieldResultOyytq___GyytRszrlF
 _$sScs12ContinuationV5yieldyAB11YieldResultOyxq___GxnF
 _$sScs12ContinuationV6finish8throwingyq_Sgn_tF
 _$sScs12ContinuationV9hashValueSivg
