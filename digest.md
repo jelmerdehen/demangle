@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 95.82% (61090/63757) — 2026-05-16T19:57:43Z
+**Parity**: 95.82% (61091/63757) — 2026-05-16T20:01:15Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 93 parse-errors + 2574 mismatches
+**Failures**: 93 parse-errors + 2573 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- f677b4a0 swift-parity: CGM Foundation NSObject 2-deep nested outer-applied gen Iterator AsyncIteratorProtocol — parity 95.82%->95.82% (+1 production +0 roundtrip)
+- 7a2db922 chore: lock snapshot after CGL commit (parity 61088->61090 roundtrip 21309->21309)
+- 09623f96 chore: update digest.md for CGL commit (parity 95.81%->95.81% +2)
 - 5194a830 swift-parity: CGL Foundation NSObject 2-gen-param nested class/struct stdlib-proto conformance verbose form — parity 95.81%->95.81% (+2 production +0 roundtrip)
 - acaf7f9f chore: defer generic-pre-specialization-Ts5 to multi-fire (deferred-1)
 - 70002b16 chore: lock snapshot after CGK commit (parity 61079->61088 roundtrip 21309->21309)
@@ -36,9 +39,6 @@
 - 227869c3 swift-parity: CGK Stdlib subject-constraint nested-type verbose form (FlattenSequence/PartialRangeFrom/ClosedRange) — parity 95.80%->95.81% (+9 production +0 roundtrip)
 - 07472030 chore: lock snapshot after CGJ commit (parity 61071->61079 roundtrip 21309->21309)
 - 3b457e76 chore: update digest.md for CGJ commit (parity 95.79%->95.80% +8)
-- 660e06b8 swift-parity: CGJ Stdlib sequence A:Collection subject Index Comparable/Equatable conformance verbose — parity 95.79%->95.79% (+8 production +0 roundtrip)
-- c94e6737 chore: lock snapshot after CGI commit (parity 61069->61071 roundtrip 21309->21311)
-- 8a7ba02a chore: update digest.md for CGI commit (parity 95.78%->95.78% +2)
 
 ## Suggested Next 3 Items
 
