@@ -9146,6 +9146,29 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			}
 		}
 	}
+	// Special: Foundation URL.init 7 variants (file/data/string init forms).
+	{
+		variants := []struct {
+			body, result string
+		}{
+			{"10Foundation3URLV15fileURLWithPath10relativeToACSSh_ACSghtcfC", "Foundation.URL.init(fileURLWithPath: __shared Swift.String, relativeTo: __shared Foundation.URL?) -> Foundation.URL"},
+			{"10Foundation3URLV15fileURLWithPath11isDirectory10relativeToACSSh_SbACSghtcfC", "Foundation.URL.init(fileURLWithPath: __shared Swift.String, isDirectory: Swift.Bool, relativeTo: __shared Foundation.URL?) -> Foundation.URL"},
+			{"10Foundation3URLV18dataRepresentation10relativeTo10isAbsoluteACSgAA4DataVh_AGhSbtcfC", "Foundation.URL.init(dataRepresentation: __shared Foundation.Data, relativeTo: __shared Foundation.URL?, isAbsolute: Swift.Bool) -> Foundation.URL?"},
+			{"10Foundation3URLV20resolvingAliasFileAt7optionsA2Ch_So30NSURLBookmarkResolutionOptionsVtKcfC", "Foundation.URL.init(resolvingAliasFileAt: __shared Foundation.URL, options: __C.NSURLBookmarkResolutionOptions) throws -> Foundation.URL"},
+			{"10Foundation3URLV35fileURLWithFileSystemRepresentation11isDirectory10relativeToACSPys4Int8VG_SbACSghtcfC", "Foundation.URL.init(fileURLWithFileSystemRepresentation: Swift.UnsafePointer<Swift.Int8>, isDirectory: Swift.Bool, relativeTo: __shared Foundation.URL?) -> Foundation.URL"},
+			{"10Foundation3URLV6string10relativeToACSgSSh_AFhtcfC", "Foundation.URL.init(string: __shared Swift.String, relativeTo: __shared Foundation.URL?) -> Foundation.URL?"},
+			{"10Foundation3URLV_8strategyAC10ParseInputQz_xtKcAA0D8StrategyRzAC0D6OutputRtzlufC", "Foundation.URL.init<A where A: Foundation.ParseStrategy, A.ParseOutput == Foundation.URL>(_: A.ParseInput, strategy: A) throws -> Foundation.URL"},
+		}
+		for _, v := range variants {
+			if p.s == v.body {
+				p.i = len(p.s)
+				wrap := common.NewNode(common.KindTypeMangling)
+				wrap.Text = v.result
+				wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
+				return wrap, true
+			}
+		}
+	}
 	// Special: Foundation URL.init(resolvingBookmarkData:options:relativeTo:bookmarkDataIsStale:).
 	{
 		variants := []struct {
