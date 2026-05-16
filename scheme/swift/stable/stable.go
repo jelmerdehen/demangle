@@ -9019,43 +9019,44 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 	// Foundation type extension conforming to NSNotificationCenter Message
 	// proto. Apple short-form: `<mod>.<chain> : (extension in <mod>):__C.
 	// NSNotificationCenter.<protoName> in <mod>`.
+	// Chain idents may be digit-led length-prefixed (e.g. `4Date`) or
+	// word-substituted (e.g. `07CurrentB16DidChangeMessage` for Locale's
+	// CurrentLocaleDidChangeMessage). parseIdentifier handles both; we
+	// save/restore parser state on the failure path.
 	if (p.s[len(p.s)-4:] == "AAMc" || p.s[len(p.s)-4:] == "AAWP") &&
 		p.i < len(p.s) && p.s[p.i] >= '1' && p.s[p.i] <= '9' {
-		probeI := p.i
-		mLen := 0
-		mPos := probeI
-		for mPos < len(p.s) && p.s[mPos] >= '0' && p.s[mPos] <= '9' {
-			mLen = mLen*10 + int(p.s[mPos]-'0')
-			mPos++
-		}
-		if mLen > 0 && mPos+mLen < len(p.s) {
-			modName := p.s[mPos : mPos+mLen]
-			probeI = mPos + mLen
-			// Walk chain.
+		blockSaveI := p.i
+		blockSaveWords := append([]string(nil), p.words...)
+		blockSaveSubs := p.subs
+		if modName, merr := p.parseIdentifier(); merr == nil && !p.eof() {
 			nested := []string{}
-			for probeI < len(p.s)-4 && p.s[probeI] >= '1' && p.s[probeI] <= '9' {
-				nlen := 0
-				nstart := probeI
-				for nstart < len(p.s) && p.s[nstart] >= '0' && p.s[nstart] <= '9' {
-					nlen = nlen*10 + int(p.s[nstart]-'0')
-					nstart++
-				}
-				if nlen <= 0 || nstart+nlen >= len(p.s) {
+			for !p.eof() {
+				c := p.s[p.i]
+				if !((c >= '1' && c <= '9') || c == '0') {
 					break
 				}
-				nname := p.s[nstart : nstart+nlen]
-				nk := p.s[nstart+nlen]
+				innerI := p.i
+				innerWords := append([]string(nil), p.words...)
+				nname, ierr := p.parseIdentifier()
+				if ierr != nil || p.eof() {
+					p.i = innerI
+					p.words = innerWords
+					break
+				}
+				nk := p.s[p.i]
 				if nk != 'V' && nk != 'C' && nk != 'O' && nk != 'P' {
+					p.i = innerI
+					p.words = innerWords
 					break
 				}
+				p.i++ // consume kind byte
 				nested = append(nested, nname)
-				probeI = nstart + nlen + 1
 			}
 			// Expect `So20NSNotificationCenterCAAE<word-sub>AA(Mc|WP)`.
 			nsLit := "So20NSNotificationCenterCAAE"
-			if probeI+len(nsLit) < len(p.s) && p.s[probeI:probeI+len(nsLit)] == nsLit &&
+			if p.i+len(nsLit) < len(p.s) && p.s[p.i:p.i+len(nsLit)] == nsLit &&
 				len(nested) >= 1 {
-				wsStart := probeI + len(nsLit)
+				wsStart := p.i + len(nsLit)
 				wsEnd := len(p.s) - 4
 				if wsEnd > wsStart {
 					ws := p.s[wsStart:wsEnd]
@@ -9082,6 +9083,9 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 				}
 			}
 		}
+		p.i = blockSaveI
+		p.words = blockSaveWords
+		p.subs = blockSaveSubs
 	}
 	// Special: `<mod>V<n><name>V[<n><name>V]*AadA(Mc|WP)` —
 	// Foundation-internal compact-substitution conformance descriptor
