@@ -8715,6 +8715,95 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			}
 		}
 	}
+	// Special: `s24UnkeyedEncodingContainer(P|PsE)6encode10contentsOfyqd___tKSTRd__<type>7ElementR(p|t)d__lF(|Tj|Tq)` —
+	// UnkeyedEncodingContainer protocol/extension encode(contentsOf:) with element
+	// conformance (Rp) or same-type (Rt) constraint.
+	// Apple verbose form:
+	//   PsE  → "(extension in Swift):Swift.UnkeyedEncodingContainer.encode<A where A1: Swift.Sequence, A1.Element <op> Swift.<TypeName>>(contentsOf: A1) throws -> ()"
+	//   P+Tj → "dispatch thunk of Swift.UnkeyedEncodingContainer.encode<...>(contentsOf: A1) throws -> ()"
+	//   P+Tq → "method descriptor for Swift.UnkeyedEncodingContainer.encode<...>(contentsOf: A1) throws -> ()"
+	{
+		commonPfx := "s24UnkeyedEncodingContainer"
+		if len(p.s) >= len(commonPfx)+10 && p.s[:len(commonPfx)] == commonPfx {
+			rest := p.s[len(commonPfx):]
+			var isExt bool
+			var afterMarker string
+			switch {
+			case len(rest) >= 28 && rest[:28] == "PsE6encode10contentsOfyqd___":
+				isExt = true
+				afterMarker = rest[28:]
+			case len(rest) >= 27 && rest[:27] == "P6encode10contentsOfyqd___t":
+				isExt = false
+				afterMarker = rest[26:] // start at `_t` boundary same as Ext (27 - 1 = 26)
+			}
+			if afterMarker != "" && len(afterMarker) >= 12 && afterMarker[:11] == "_tKSTRd__" || afterMarker == "" {
+				// Skip — branch logic below regroups.
+			}
+			// Re-parse with full marker.
+			var fullMarker string
+			if isExt {
+				fullMarker = "PsE6encode10contentsOfyqd___tKSTRd__"
+			} else {
+				fullMarker = "P6encode10contentsOfyqd___tKSTRd__"
+			}
+			if len(rest) > len(fullMarker) && rest[:len(fullMarker)] == fullMarker {
+				typeStart := len(fullMarker)
+				typePos := typeStart
+				var typeName string
+				var typeEnd int
+				if typePos+1 < len(rest) && rest[typePos] == 'S' && rest[typePos+1] != 'c' {
+					if entry, ok := common.StdlibLookup(rest[typePos+1]); ok {
+						typeName = entry.Name
+						typeEnd = typePos + 2
+					}
+				} else if typePos+1 < len(rest) && rest[typePos] == 's' &&
+					rest[typePos+1] >= '1' && rest[typePos+1] <= '9' {
+					nLen := 0
+					nPos := typePos + 1
+					for nPos < len(rest) && rest[nPos] >= '0' && rest[nPos] <= '9' {
+						nLen = nLen*10 + int(rest[nPos]-'0')
+						nPos++
+					}
+					if nLen > 0 && nPos+nLen+1 < len(rest) && rest[nPos+nLen] == 'V' {
+						typeName = rest[nPos : nPos+nLen]
+						typeEnd = nPos + nLen + 1
+					}
+				}
+				if typeName != "" && typeEnd+13 <= len(rest) &&
+					rest[typeEnd:typeEnd+8] == "7Element" {
+					ck := rest[typeEnd+8]
+					if ck == 'R' && typeEnd+13 <= len(rest) {
+						relOp := rest[typeEnd+9] // 'p' or 't'
+						if (relOp == 'p' || relOp == 't') && rest[typeEnd+10:typeEnd+13] == "d__" {
+							endStart := typeEnd + 13
+							if endStart < len(rest) && rest[endStart] == 'l' && endStart+1 < len(rest) && rest[endStart+1] == 'F' {
+								tail := rest[endStart+2:]
+								var prefix string
+								if isExt && tail == "" {
+									prefix = "(extension in Swift):Swift.UnkeyedEncodingContainer"
+								} else if !isExt && tail == "Tj" {
+									prefix = "dispatch thunk of Swift.UnkeyedEncodingContainer"
+								} else if !isExt && tail == "Tq" {
+									prefix = "method descriptor for Swift.UnkeyedEncodingContainer"
+								}
+								if prefix != "" {
+									relStr := ": "
+									if relOp == 't' {
+										relStr = " == "
+									}
+									p.i = len(p.s)
+									wrap := common.NewNode(common.KindTypeMangling)
+									wrap.Text = prefix + ".encode<A where A1: Swift.Sequence, A1.Element" + relStr + "Swift." + typeName + ">(contentsOf: A1) throws -> ()"
+									wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
+									return wrap, true
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
 	// Special: `SYsSeRz<type>8RawValueSYRtzrlE4fromxs7Decoder_p_tKcfC` —
 	// RawRepresentable extension init(from:) where A.RawValue == <concrete-type>.
 	// Variants: `<type>` is `S<L>` stdlib-sub or `s<n><name>V` digit-led Swift type.
