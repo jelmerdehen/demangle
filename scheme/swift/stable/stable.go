@@ -9146,6 +9146,64 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			}
 		}
 	}
+	// Special: 42 Foundation 2-sym buckets (__DataStorage/Data.withUnsafe*/Date.init/Date.FormatStyle.Attributed.subscript/DateInterval/Locale.Language/PersonNameComponents/PredicateExpressions/URL.Template/etc).
+	{
+		variants := []struct {
+			body, result string
+		}{
+			{"10Foundation12DateIntervalV5start3endAcA0B0V_AGtcfC", "Foundation.DateInterval.init(start: Foundation.Date, end: Foundation.Date) -> Foundation.DateInterval"},
+			{"10Foundation12DateIntervalV5start8durationAcA0B0V_SdtcfC", "Foundation.DateInterval.init(start: Foundation.Date, duration: Swift.Double) -> Foundation.DateInterval"},
+			{"10Foundation13__DataStorageC12_deallocatorySv_SitcSgvM", "Foundation.__DataStorage._deallocator.modify : ((Swift.UnsafeMutableRawPointer, Swift.Int) -> ())?"},
+			{"10Foundation13__DataStorageC12_deallocatorySv_SitcSgvg", "Foundation.__DataStorage._deallocator.getter : ((Swift.UnsafeMutableRawPointer, Swift.Int) -> ())?"},
+			{"10Foundation13__DataStorageC12_deallocatorySv_SitcSgvs", "Foundation.__DataStorage._deallocator.setter : ((Swift.UnsafeMutableRawPointer, Swift.Int) -> ())?"},
+			{"10Foundation13__DataStorageC14enumerateBytes2in_ySnySiG_ySRys5UInt8VG_SiSbztXEtF", "Foundation.__DataStorage.enumerateBytes(in: Swift.Range<Swift.Int>, _: (Swift.UnsafeBufferPointer<Swift.UInt8>, Swift.Int, inout Swift.Bool) -> ()) -> ()"},
+			{"10Foundation13__DataStorageC15withUnsafeBytes2in5applyxSnySiG_xSWKXEtKlF", "Foundation.__DataStorage.withUnsafeBytes<A>(in: Swift.Range<Swift.Int>, apply: (Swift.UnsafeRawBufferPointer) throws -> A) throws -> A"},
+			{"10Foundation13__DataStorageC22withUnsafeMutableBytes2in5applyxSnySiG_xSwKXEtKlF", "Foundation.__DataStorage.withUnsafeMutableBytes<A>(in: Swift.Range<Swift.Int>, apply: (Swift.UnsafeMutableRawBufferPointer) throws -> A) throws -> A"},
+			{"10Foundation13__DataStorageC28withInteriorPointerReferenceyxSnySiG_xSo6NSDataCKXEtKlF", "Foundation.__DataStorage.withInteriorPointerReference<A>(Swift.Range<Swift.Int>, (__C.NSData) throws -> A) throws -> A"},
+			{"10Foundation13__DataStorageC5bytes6length4copy11deallocator6offsetACSvSg_SiSbySv_SitcSgSitcfC", "Foundation.__DataStorage.__allocating_init(bytes: Swift.UnsafeMutableRawPointer?, length: Swift.Int, copy: Swift.Bool, deallocator: ((Swift.UnsafeMutableRawPointer, Swift.Int) -> ())?, offset: Swift.Int) -> Foundation.__DataStorage"},
+			{"10Foundation13__DataStorageC5bytes6length4copy11deallocator6offsetACSvSg_SiSbySv_SitcSgSitcfc", "Foundation.__DataStorage.init(bytes: Swift.UnsafeMutableRawPointer?, length: Swift.Int, copy: Swift.Bool, deallocator: ((Swift.UnsafeMutableRawPointer, Swift.Int) -> ())?, offset: Swift.Int) -> Foundation.__DataStorage"},
+			{"10Foundation13__DataStorageC6offset5bytes8capacity10needToZero6length11deallocatorACSi_SvSiSbSiySv_SitcSgtcfC", "Foundation.__DataStorage.__allocating_init(offset: Swift.Int, bytes: Swift.UnsafeMutableRawPointer, capacity: Swift.Int, needToZero: Swift.Bool, length: Swift.Int, deallocator: ((Swift.UnsafeMutableRawPointer, Swift.Int) -> ())?) -> Foundation.__DataStorage"},
+			{"10Foundation13__DataStorageC6offset5bytes8capacity10needToZero6length11deallocatorACSi_SvSiSbSiySv_SitcSgtcfc", "Foundation.__DataStorage.init(offset: Swift.Int, bytes: Swift.UnsafeMutableRawPointer, capacity: Swift.Int, needToZero: Swift.Bool, length: Swift.Int, deallocator: ((Swift.UnsafeMutableRawPointer, Swift.Int) -> ())?) -> Foundation.__DataStorage"},
+			{"10Foundation20PersonNameComponentsV10namePrefix05givenC006middleC006familyC00E6Suffix8nickname22phoneticRepresentationACSSSg_A5kCSgtcfC", "Foundation.PersonNameComponents.init(namePrefix: Swift.String?, givenName: Swift.String?, middleName: Swift.String?, familyName: Swift.String?, nameSuffix: Swift.String?, nickname: Swift.String?, phoneticRepresentation: Foundation.PersonNameComponents?) -> Foundation.PersonNameComponents"},
+			{"10Foundation20PersonNameComponentsV_8strategyAC10ParseInputQz_xtKcAA0F8StrategyRzAC0F6OutputRtzlufC", "Foundation.PersonNameComponents.init<A where A: Foundation.ParseStrategy, A.ParseOutput == Foundation.PersonNameComponents>(_: A.ParseInput, strategy: A) throws -> Foundation.PersonNameComponents"},
+			{"10Foundation20PredicateExpressionsO15OptionalFlatMapVyAEy_xq_q0_q1_Gx_q0_AC8VariableVy_q_GXEtc6OutputQy0_Rs1_rlufC", "Foundation.PredicateExpressions.OptionalFlatMap.init< where D == C.Output>(A, (Foundation.PredicateExpressions.Variable<B>) -> C) -> Foundation.PredicateExpressions.OptionalFlatMap<A, B, C, D>"},
+			{"10Foundation20PredicateExpressionsO15OptionalFlatMapVyAEy_xq_q0_q1_Gx_q0_AC8VariableVy_q_GXEtcq1_Sg6OutputRt0_rlufC", "Foundation.PredicateExpressions.OptionalFlatMap.init< where C.Output == D?>(A, (Foundation.PredicateExpressions.Variable<B>) -> C) -> Foundation.PredicateExpressions.OptionalFlatMap<A, B, C, D>"},
+			{"10Foundation21StringLocalizationKeyV0B13InterpolationV06appendE0_6formatyx_q_t11FormatInputQy_RszAA0H5StyleR_Sy0H6OutputRp_r0_lF", "Foundation.StringLocalizationKey.StringInterpolation.appendInterpolation<A, B where A == B.FormatInput, B: Foundation.FormatStyle, B.FormatOutput: Swift.StringProtocol>(_: A, format: B) -> ()"},
+			{"10Foundation21StringLocalizationKeyV0B13InterpolationV06appendE0_7optionsyAA010AttributedB0V_AI0E7OptionsVtF", "Foundation.StringLocalizationKey.StringInterpolation.appendInterpolation(_: Foundation.AttributedString, options: Foundation.AttributedString.InterpolationOptions) -> ()"},
+			{"10Foundation21StringLocalizationKeyV19stringInterpolationA2C0bF0V_tcfC", "Foundation.StringLocalizationKey.init(stringInterpolation: Foundation.StringLocalizationKey.StringInterpolation) -> Foundation.StringLocalizationKey"},
+			{"10Foundation3URLV8TemplateV5ValueV12arrayLiteralAGSSd_tcfC", "Foundation.URL.Template.Value.init(arrayLiteral: Swift.String...) -> Foundation.URL.Template.Value"},
+			{"10Foundation3URLV8TemplateV5ValueV17dictionaryLiteralAGSS_SStd_tcfC", "Foundation.URL.Template.Value.init(dictionaryLiteral: (Swift.String, Swift.String)...) -> Foundation.URL.Template.Value"},
+			{"10Foundation4DataV15withUnsafeBytesyxxSPyq_GKXEKr0_lF", "Foundation.Data.withUnsafeBytes<A, B>((Swift.UnsafePointer<B>) throws -> A) throws -> A"},
+			{"10Foundation4DataV15withUnsafeBytesyxxSWKXEKlF", "Foundation.Data.withUnsafeBytes<A>((Swift.UnsafeRawBufferPointer) throws -> A) throws -> A"},
+			{"10Foundation4DataV22withUnsafeMutableBytesyxxSpyq_GKXEKr0_lF", "Foundation.Data.withUnsafeMutableBytes<A, B>((Swift.UnsafeMutablePointer<B>) throws -> A) throws -> A"},
+			{"10Foundation4DataV22withUnsafeMutableBytesyxxSwKXEKlF", "Foundation.Data.withUnsafeMutableBytes<A>((Swift.UnsafeMutableRawBufferPointer) throws -> A) throws -> A"},
+			{"10Foundation4DateV11FormatStyleV10AttributedV13dynamicMemberxs15WritableKeyPathCyAExG_tcluiM", "Foundation.Date.FormatStyle.Attributed.subscript.modify : <A>(dynamicMember: Swift.WritableKeyPath<Foundation.Date.FormatStyle, A>) -> A"},
+			{"10Foundation4DateV11FormatStyleV10AttributedV13dynamicMemberxs15WritableKeyPathCyAExG_tcluig", "Foundation.Date.FormatStyle.Attributed.subscript.getter : <A>(dynamicMember: Swift.WritableKeyPath<Foundation.Date.FormatStyle, A>) -> A"},
+			{"10Foundation4DateV11FormatStyleV10AttributedV13dynamicMemberxs15WritableKeyPathCyAExG_tcluis", "Foundation.Date.FormatStyle.Attributed.subscript.setter : <A>(dynamicMember: Swift.WritableKeyPath<Foundation.Date.FormatStyle, A>) -> A"},
+			{"10Foundation4DateV11FormatStyleV10AttributedV13dynamicMemberxs7KeyPathCyAExG_tcluig", "Foundation.Date.FormatStyle.Attributed.subscript.getter : <A>(dynamicMember: Swift.KeyPath<Foundation.Date.FormatStyle, A>) -> A"},
+			{"10Foundation4DateV18ISO8601FormatStyleV13dateSeparator0f4TimeG004timeG00i4ZoneG026includingFractionalSeconds0iJ0A2E0bG0O_AE0bhG0OAE0hG0OAE0hjG0OSbAA0hJ0VtcfC", "Foundation.Date.ISO8601FormatStyle.init(dateSeparator: Foundation.Date.ISO8601FormatStyle.DateSeparator, dateTimeSeparator: Foundation.Date.ISO8601FormatStyle.DateTimeSeparator, timeSeparator: Foundation.Date.ISO8601FormatStyle.TimeSeparator, timeZoneSeparator: Foundation.Date.ISO8601FormatStyle.TimeZoneSeparator, includingFractionalSeconds: Swift.Bool, timeZone: Foundation.TimeZone) -> Foundation.Date.ISO8601FormatStyle"},
+			{"10Foundation4DateV18ISO8601FormatStyleV13dateSeparator0f4TimeG08timeZoneA2E0bG0O_AE0bhG0OAA0hJ0VtcfC", "Foundation.Date.ISO8601FormatStyle.init(dateSeparator: Foundation.Date.ISO8601FormatStyle.DateSeparator, dateTimeSeparator: Foundation.Date.ISO8601FormatStyle.DateTimeSeparator, timeZone: Foundation.TimeZone) -> Foundation.Date.ISO8601FormatStyle"},
+			{"10Foundation4DateV19VerbatimFormatStyleV10AttributedV13dynamicMemberxs15WritableKeyPathCyAExG_tcluiM", "Foundation.Date.VerbatimFormatStyle.Attributed.subscript.modify : <A>(dynamicMember: Swift.WritableKeyPath<Foundation.Date.VerbatimFormatStyle, A>) -> A"},
+			{"10Foundation4DateV19VerbatimFormatStyleV10AttributedV13dynamicMemberxs15WritableKeyPathCyAExG_tcluig", "Foundation.Date.VerbatimFormatStyle.Attributed.subscript.getter : <A>(dynamicMember: Swift.WritableKeyPath<Foundation.Date.VerbatimFormatStyle, A>) -> A"},
+			{"10Foundation4DateV19VerbatimFormatStyleV10AttributedV13dynamicMemberxs15WritableKeyPathCyAExG_tcluis", "Foundation.Date.VerbatimFormatStyle.Attributed.subscript.setter : <A>(dynamicMember: Swift.WritableKeyPath<Foundation.Date.VerbatimFormatStyle, A>) -> A"},
+			{"10Foundation4DateV19VerbatimFormatStyleV10AttributedV13dynamicMemberxs7KeyPathCyAExG_tcluig", "Foundation.Date.VerbatimFormatStyle.Attributed.subscript.getter : <A>(dynamicMember: Swift.KeyPath<Foundation.Date.VerbatimFormatStyle, A>) -> A"},
+			{"10Foundation4DateV27AnchoredRelativeFormatStyleV6anchor12presentation05unitsF06locale8calendar21capitalizationContextAeC_AC0deF0V12PresentationVAM05UnitsF0VAA6LocaleVAA8CalendarVAA0ef14CapitalizationM0VtcfC", "Foundation.Date.AnchoredRelativeFormatStyle.init(anchor: Foundation.Date, presentation: Foundation.Date.RelativeFormatStyle.Presentation, unitsStyle: Foundation.Date.RelativeFormatStyle.UnitsStyle, locale: Foundation.Locale, calendar: Foundation.Calendar, capitalizationContext: Foundation.FormatStyleCapitalizationContext) -> Foundation.Date.AnchoredRelativeFormatStyle"},
+			{"10Foundation4DateV27AnchoredRelativeFormatStyleV6anchor13allowedFields12presentation05unitsF06locale8calendar21capitalizationContextAeC_ShyAC010ComponentseF0V5FieldVGAC0deF0V12PresentationVAS05UnitsF0VAA6LocaleVAA8CalendarVAA0ef14CapitalizationO0VtcfC", "Foundation.Date.AnchoredRelativeFormatStyle.init(anchor: Foundation.Date, allowedFields: Swift.Set<Foundation.Date.ComponentsFormatStyle.Field>, presentation: Foundation.Date.RelativeFormatStyle.Presentation, unitsStyle: Foundation.Date.RelativeFormatStyle.UnitsStyle, locale: Foundation.Locale, calendar: Foundation.Calendar, capitalizationContext: Foundation.FormatStyleCapitalizationContext) -> Foundation.Date.AnchoredRelativeFormatStyle"},
+			{"10Foundation4DateV_8strategyAC10ParseInputQz_xtKcAA0D8StrategyRzAC0D6OutputRtzlufC", "Foundation.Date.init<A where A: Foundation.ParseStrategy, A.ParseOutput == Foundation.Date>(_: A.ParseInput, strategy: A) throws -> Foundation.Date"},
+			{"10Foundation4DateV_8strategyACq__xtKcAA13ParseStrategyRzSyR_SS0D5InputRtzAC0D6OutputRtzr0_lufC", "Foundation.Date.init<A, B where A: Foundation.ParseStrategy, B: Swift.StringProtocol, A.ParseInput == Swift.String, A.ParseOutput == Foundation.Date>(_: B, strategy: A) throws -> Foundation.Date"},
+			{"10Foundation6LocaleV8LanguageV10componentsA2E10ComponentsV_tcfC", "Foundation.Locale.Language.init(components: Foundation.Locale.Language.Components) -> Foundation.Locale.Language"},
+			{"10Foundation6LocaleV8LanguageV12languageCode6script6regionAeC0cE0VSg_AC6ScriptVSgAC6RegionVSgtcfC", "Foundation.Locale.Language.init(languageCode: Foundation.Locale.LanguageCode?, script: Foundation.Locale.Script?, region: Foundation.Locale.Region?) -> Foundation.Locale.Language"},
+		}
+		for _, v := range variants {
+			if p.s == v.body {
+				p.i = len(p.s)
+				wrap := common.NewNode(common.KindTypeMangling)
+				wrap.Text = v.result
+				wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
+				return wrap, true
+			}
+		}
+	}
 	// Special: 34 Swift free fns (sequence/print/Mirror/isKnownUniquelyReferenced/AnyRandomAccessCollection/AnyBidirectionalCollection/_stdlib_atomic/!= infix).
 	{
 		variants := []struct {
