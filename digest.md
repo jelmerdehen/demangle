@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 95.66% (60993/63757) — 2026-05-16T17:44:19Z
+**Parity**: 95.68% (61005/63757) — 2026-05-16T17:47:27Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 117 parse-errors + 2647 mismatches
+**Failures**: 117 parse-errors + 2635 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -11,10 +11,10 @@
 - dispatch thunk                             88
 - method descriptor                          88
 - (extension in Foundation):Foundation.PredicateExpr… 85
-- protocol conformance descriptor            55
+- protocol conformance descriptor            49
 - enum case                                  36
-- protocol witness table                     31
 - Foundation.AttributedString.init<A where A: Founda… 26
+- protocol witness table                     25
 - (extension in Foundation):Swift.Duration.UnitsForm… 22
 - (extension in Foundation):__C.NSNotificationCenter… 22
 - (extension in Swift):Swift.RawRepresentable< where… 18
@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- 762f810c swift-parity: CFU stdlib Sa/SR/Sr UInt8-same-type Foundation proto conformance — parity 95.67%->95.68% (+12 production +0 roundtrip)
+- 7e1d0590 chore: lock snapshot after CFT commit (parity 60989->60993 roundtrip 21284->21288)
+- 9f8d0a33 chore: update digest.md for CFT commit (parity 95.66%->95.67% +4)
 - 1d40d4d1 swift-parity: CFT UIKit _Glass/_GlassGroup UIView Material AAMc short form — parity 95.66%->95.67% (+4 production +4 roundtrip)
 - 078842c3 chore: lock snapshot after CFS commit (parity 60987->60989 roundtrip 21282->21284)
 - aa314bd1 chore: update digest.md for CFS commit (parity 95.66%->95.66% +2)
@@ -36,9 +39,6 @@
 - b2e9c6bd chore: lock snapshot after CFR commit (parity 60984->60987)
 - 85308902 chore: update digest.md for CFR commit (parity 95.65%->95.66% +3)
 - 2b2d3d43 swift-parity: CFR Combine.Publisher ACMc word-sub proto for ObjC ext — parity 95.65%->95.66% (+3 production +0 roundtrip)
-- 12f92f43 chore: lock snapshot after CFQ commit (parity 60930->60984)
-- adf42db8 chore: update digest.md for CFQ commit (parity 95.57%->95.65% +54)
-- f2bda292 swift-parity: CFQ NSNotificationCenter Async/MainActor Message proto ACMc/ACWP — parity 95.57%->95.65% (+54 production +0 roundtrip)
 
 ## Suggested Next 3 Items
 
