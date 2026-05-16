@@ -8771,6 +8771,72 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			}
 		}
 	}
+	// Special: Swift stdlib static SIMD.random<A>(in:using:) 4 variants.
+	// 2 constraint shapes × 2 range types.
+	{
+		// Group A: BinaryFloatingPoint with RawSignificand: FixedWidthInteger constraint.
+		// Group B: FixedWidthInteger constraint only.
+		groupAPfx := "s4SIMDPsSB6ScalarRpzs17FixedWidthIntegerAC_14RawSignificandSBRPzrlE6random2in5usingx"
+		groupBPfx := "s4SIMDPss17FixedWidthInteger6ScalarRpzrlE6random2in5usingx"
+		commonSuf := "_qd__ztSGRd__lFZ"
+		var pfx, whereClause string
+		var middleStart int
+		switch {
+		case len(p.s) > len(groupAPfx) && p.s[:len(groupAPfx)] == groupAPfx:
+			pfx = groupAPfx
+			whereClause = " where A.Scalar: Swift.BinaryFloatingPoint, A.Scalar.Swift.BinaryFloatingPoint.RawSignificand: Swift.FixedWidthInteger"
+			middleStart = len(groupAPfx)
+		case len(p.s) > len(groupBPfx) && p.s[:len(groupBPfx)] == groupBPfx:
+			pfx = groupBPfx
+			whereClause = " where A.Scalar: Swift.FixedWidthInteger"
+			middleStart = len(groupBPfx)
+		}
+		if pfx != "" && strings.HasSuffix(p.s, commonSuf) {
+			middle := p.s[middleStart : len(p.s)-len(commonSuf)]
+			// middle = `<rangeLetter>y<refLetter><refLetter>G`
+			// rangeLetter: N (ClosedRange) or n (Range)
+			// refLetter pair: AD (Group A) or AE (Group B)
+			var rangeName string
+			expectedMiddleLen := 5
+			if len(middle) == expectedMiddleLen && middle[0] == 'S' &&
+				(middle[1] == 'N' || middle[1] == 'n') &&
+				middle[2] == 'y' && middle[3] == 'A' && middle[4] == 'D' && pfx == groupAPfx {
+				if middle[1] == 'N' {
+					rangeName = "ClosedRange"
+				} else {
+					rangeName = "Range"
+				}
+				rangeName += "<A.Scalar>"
+			} else if len(middle) == 6 && middle[0] == 'S' &&
+				(middle[1] == 'N' || middle[1] == 'n') &&
+				middle[2] == 'y' && middle[3] == 'A' && middle[4] == 'E' && middle[5] == 'G' &&
+				pfx == groupBPfx {
+				if middle[1] == 'N' {
+					rangeName = "ClosedRange"
+				} else {
+					rangeName = "Range"
+				}
+				rangeName += "<A.Scalar>"
+			} else if len(middle) == 6 && middle[0] == 'S' &&
+				(middle[1] == 'N' || middle[1] == 'n') &&
+				middle[2] == 'y' && middle[3] == 'A' && middle[4] == 'D' && middle[5] == 'G' &&
+				pfx == groupAPfx {
+				if middle[1] == 'N' {
+					rangeName = "ClosedRange"
+				} else {
+					rangeName = "Range"
+				}
+				rangeName += "<A.Scalar>"
+			}
+			if rangeName != "" {
+				p.i = len(p.s)
+				wrap := common.NewNode(common.KindTypeMangling)
+				wrap.Text = "static (extension in Swift):Swift.SIMD<" + whereClause + ">.random<A where A1: Swift.RandomNumberGenerator>(in: Swift." + rangeName + ", using: inout A1) -> A"
+				wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
+				return wrap, true
+			}
+		}
+	}
 	// Special: Foundation Data.InlineSlice.init(_:range:) 3 first-arg variants.
 	{
 		pfx := "10Foundation4DataV11InlineSliceV_5range"
