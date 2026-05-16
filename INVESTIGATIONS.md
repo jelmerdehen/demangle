@@ -1889,3 +1889,56 @@ word-array algorithm. Next fire will probe with oracle and attempt.
   - Mc/WP rendering algorithm including srcMod ordering (defer-ceu/cew)
   - Verbose-type-renderer print rules (defer-ceo)
 - Without source access, single-fire ratchet is bottlenecked.
+
+### swiftui-protocol-conformance-witness-thunk-TW [~20+ syms, deferred-1]
+
+Pattern: after a bound-generic conforming type, parser hits
+`AA<n>0A2a<m>P<member>...vgTW` (or `cfTW` for init / `fTW` for func)
+and errors with "expected end of input (grammar feature not yet
+supported), got -".
+
+Sample (7 syms in body4Body shape):
+- `_$s7SwiftUI11_ShadowViewVyxGAA0D0A2aEP4body4BodyQzvgTW`
+- got: error at offset 28 near "AA0D0A2aEP4body4Body"
+- Apple want: `protocol witness for SwiftUI.View.body.getter : A.Body in conformance SwiftUI._ShadowView<A> : SwiftUI.View in SwiftUI`
+
+Apple tree:
+```
+Global
+  ProtocolWitness
+    ProtocolConformance
+      Type(BoundGenericStructure(SwiftUI._ShadowView, [A]))
+      Type(Protocol(SwiftUI.View))
+      Module(SwiftUI)
+    Getter(Variable(Protocol(SwiftUI.View), "body", Type(DependentMember(A, Body))))
+```
+
+Other variants in the SwiftUI family (same root issue):
+- `AA0deF0A2aEP05tableE` (2 syms) — different word-sub member
+- `AA0D0A2aEP14_viewLis` (2 syms) — `_viewListCount` style
+- `AA0D0A2aEP05_makeD4L` (2 syms) — `_makeViewList` style
+- `AA12ViewModifierA2aD` (2 syms) — direct `12ViewModifier` proto ident
+- `AA4ViewA2aEP4body4Bo` (2 syms) — direct `4View` proto ident
+- `AA0deF0A2aDP4body4Bo` (2 syms) — `aD` extension variant
+
+Multi-primitive: requires
+1. After-type protocol-witness dispatcher recognising the `<type>
+   <compact-proto-conformance-ref> P <member-ident> <result-type>
+   <accessor-byte> TW` shape.
+2. Compact protocol-conformance-ref parser: `AA<n>0A<m>a<k>E` form
+   resolves back-refs to (subs[n], subs[m]) — module + protocol ident.
+3. Build `ProtocolWitness` node containing `ProtocolConformance`
+   (conforming-type, protocol, defining-module) and the witness entity
+   (Getter/Setter/Init wrapping Variable + Type).
+4. Emit string: `protocol witness for <proto-qualname>.<member>.<acc>
+   : <ret-type> in conformance <conforming-type> : <proto-qualname>
+   in <conformance-module>`.
+
+Reason for deferral: ≥4 primitives, novel dispatch path, new compact-
+ref parser variant. Single-fire surgery would either miss the shape
+entirely or partially-parse and emit incorrect short form.
+
+Fire-plan: gate behind a precise `tryProtocolWitnessAfterType` helper
+called from parseType postfix chain. Implement steps 1+2 first
+(parsing only, no emit) and verify Apple-tree match via tree-only
+trace. Then layer emit.
