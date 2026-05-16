@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 95.78% (61067/63757) — 2026-05-16T19:24:21Z
+**Parity**: 95.78% (61068/63757) — 2026-05-16T19:31:25Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 93 parse-errors + 2597 mismatches
+**Failures**: 93 parse-errors + 2596 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -13,7 +13,7 @@
 - (extension in Foundation):Foundation.PredicateExpr… 85
 - enum case                                  36
 - Foundation.AttributedString.init<A where A: Founda… 26
-- protocol conformance descriptor            25
+- protocol conformance descriptor            24
 - (extension in Foundation):Swift.Duration.UnitsForm… 22
 - (extension in Foundation):__C.NSNotificationCenter… 22
 - (extension in Swift):Swift.RawRepresentable< where… 18
@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- 594423ab swift-parity: CGG ObjC class short-form chain walker accepts word-sub idents (UITextInputMode) — parity 95.78%->95.78% (+1 production +0 roundtrip)
+- a01a8270 chore: lock snapshot after CGF commit (parity 61061->61067 roundtrip 21309->21309)
+- 1e5a06e5 chore: update digest.md for CGF commit (parity 95.77%->95.78% +6)
 - 3bb07c4a swift-parity: CGF Foundation NSDecimal ObjC-typealias nested-extension external-proto conformance fast-path — parity 95.77%->95.78% (+6 production +0 roundtrip)
 - 56543a06 chore: lock snapshot after CGE commit (parity 61056->61061 roundtrip 21304->21309)
 - 9386c1d7 chore: update digest.md for CGE commit (parity 95.76%->95.77% +5)
@@ -36,9 +39,6 @@
 - 82b6cce2 chore: lock snapshot after CGD commit (parity 61052->61056 roundtrip 21304->21304)
 - 70a6a8e7 chore: update digest.md for CGD commit (parity 95.76%->95.76% +4)
 - 666bd4df swift-parity: CGD Foundation NSDecimal ObjC-typealias extension ParseStrategy<A> stdlib-proto Mc/WP fast-path — parity 95.76%->95.76% (+4 production +0 roundtrip)
-- 03a9771d chore: lock snapshot after CGC commit (parity 61048->61052 roundtrip 21300->21304)
-- eaae1fbe chore: update digest.md for CGC commit (parity 95.75%->95.76% +4)
-- b48b237a swift-parity: CGC UIKit SC __C_Synthesized RelatedEntityDeclName UIApplicationCategoryDefaultErrorCode property fast-path — parity 95.75%->95.75% (+4 production +4 roundtrip)
 
 ## Suggested Next 3 Items
 
