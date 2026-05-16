@@ -8771,6 +8771,68 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			}
 		}
 	}
+	// Special: Foundation AttributeContainer.subscript.{getter,setter,modify}.
+	{
+		pfx := "10Foundation18AttributeContainerV"
+		if len(p.s) > len(pfx)+5 && p.s[:len(pfx)] == pfx {
+			rest := p.s[len(pfx):]
+			var accessor, middle string
+			switch {
+			case strings.HasSuffix(rest, "ig"):
+				accessor = "getter"
+				middle = rest[:len(rest)-2]
+			case strings.HasSuffix(rest, "is"):
+				accessor = "setter"
+				middle = rest[:len(rest)-2]
+			case strings.HasSuffix(rest, "iM"):
+				accessor = "modify"
+				middle = rest[:len(rest)-2]
+			}
+			var sig string
+			switch middle {
+			case "13dynamicMember5ValueQzSgs7KeyPathCyAA0B13DynamicLookupOxG_tcAA016AttributedStringG0Rzlu":
+				sig = "<A where A: Foundation.AttributedStringKey>(dynamicMember: Swift.KeyPath<Foundation.AttributeDynamicLookup, A>) -> A.Value?"
+			case "13dynamicMemberAA06ScopedbC0VyxGs7KeyPathCyAA0B6ScopesOxmG_tcAA0B5ScopeRzlu":
+				sig = "<A where A: Foundation.AttributeScope>(dynamicMember: Swift.KeyPath<Foundation.AttributeScopes, A.Type>) -> Foundation.ScopedAttributeContainer<A>"
+			case "13dynamicMemberAC7BuilderVy_xGs7KeyPathCyAA0B13DynamicLookupOxG_tcAA016AttributedStringG0Rzlu":
+				sig = "<A where A: Foundation.AttributedStringKey>(dynamicMember: Swift.KeyPath<Foundation.AttributeDynamicLookup, A>) -> Foundation.AttributeContainer.Builder<A>"
+			case "y5ValueQzSgxmcAA19AttributedStringKeyRzlu":
+				sig = "<A where A: Foundation.AttributedStringKey>(A.Type) -> A.Value?"
+			}
+			if accessor != "" && sig != "" {
+				p.i = len(p.s)
+				wrap := common.NewNode(common.KindTypeMangling)
+				wrap.Text = "Foundation.AttributeContainer.subscript." + accessor + " : " + sig
+				wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
+				return wrap, true
+			}
+		}
+	}
+	// Special: Foundation AttributeDynamicLookup.subscript.getter (Enum kind O).
+	{
+		pfx := "10Foundation22AttributeDynamicLookupO"
+		if len(p.s) > len(pfx)+5 && p.s[:len(pfx)] == pfx && strings.HasSuffix(p.s, "ig") {
+			middle := p.s[len(pfx) : len(p.s)-2]
+			var sig string
+			switch middle {
+			case "13dynamicMemberxs7KeyPathCyAA0B6ScopesO0A10AttributesV012NumberFormatJ0VxG_tcAA016AttributedStringG0Rzlu":
+				sig = "<A where A: Foundation.AttributedStringKey>(dynamicMember: Swift.KeyPath<Foundation.AttributeScopes.FoundationAttributes.NumberFormatAttributes, A>) -> A"
+			case "13dynamicMemberxs7KeyPathCyAA0B6ScopesO0A10AttributesV023LocalizedStringArgumentJ0VxG_tcAA010AttributedlG0Rzlu":
+				sig = "<A where A: Foundation.AttributedStringKey>(dynamicMember: Swift.KeyPath<Foundation.AttributeScopes.FoundationAttributes.LocalizedStringArgumentAttributes, A>) -> A"
+			case "13dynamicMemberxs7KeyPathCyAA0B6ScopesO0A10AttributesVxG_tcAA016AttributedStringG0Rzlu":
+				sig = "<A where A: Foundation.AttributedStringKey>(dynamicMember: Swift.KeyPath<Foundation.AttributeScopes.FoundationAttributes, A>) -> A"
+			case "yxxmcAA19AttributedStringKeyRzlu":
+				sig = "<A where A: Foundation.AttributedStringKey>(A.Type) -> A"
+			}
+			if sig != "" {
+				p.i = len(p.s)
+				wrap := common.NewNode(common.KindTypeMangling)
+				wrap.Text = "Foundation.AttributeDynamicLookup.subscript.getter : " + sig
+				wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
+				return wrap, true
+			}
+		}
+	}
 	// Special: Foundation AttributedSubstring.subscript.{getter,setter,modify}.
 	{
 		pfx := "10Foundation19AttributedSubstringV"
