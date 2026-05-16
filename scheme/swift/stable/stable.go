@@ -9002,6 +9002,13 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			p.i++
 			continue
 		}
+		// Inner extension marker: `<digit><module>E<rest>`. The identifier
+		// is the module of an inner extension context, not a decl-name.
+		// Skip past E and continue nested-walk.
+		if !p.eof() && p.s[p.i] == 'E' {
+			p.i++
+			continue
+		}
 		declName = ident
 		break
 	}
