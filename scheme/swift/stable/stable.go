@@ -8794,6 +8794,39 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			}
 		}
 	}
+	// Special: `5UIKit<n><name>CAA06UITextdE0C0dE8PausableAA(Mc|WP)` —
+	// UIKit class conforming to word-sub UITextEffectView.Pausable proto.
+	// Apple short-form: `<name>`.
+	{
+		suf := "AA06UITextdE0C0dE8PausableAA"
+		sufLen := len(suf)
+		if len(p.s) >= sufLen+2 &&
+			p.s[len(p.s)-2-sufLen:len(p.s)-2] == suf &&
+			(p.s[len(p.s)-2:] == "Mc" || p.s[len(p.s)-2:] == "WP") &&
+			len(p.s) > 7 && p.s[0:6] == "5UIKit" {
+			probeI := 6
+			if probeI < len(p.s)-sufLen-2 && p.s[probeI] >= '1' && p.s[probeI] <= '9' {
+				nlen := 0
+				nstart := probeI
+				for nstart < len(p.s) && p.s[nstart] >= '0' && p.s[nstart] <= '9' {
+					nlen = nlen*10 + int(p.s[nstart]-'0')
+					nstart++
+				}
+				if nlen > 0 && nstart+nlen+1 == len(p.s)-sufLen-2 && p.s[nstart+nlen] == 'C' {
+					hostName := p.s[nstart : nstart+nlen]
+					prefix := "protocol conformance descriptor for "
+					if p.s[len(p.s)-2:] == "WP" {
+						prefix = "protocol witness table for "
+					}
+					p.i = len(p.s)
+					wrap := common.NewNode(common.KindTypeMangling)
+					wrap.Text = prefix + hostName
+					wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
+					return wrap, true
+				}
+			}
+		}
+	}
 	// Special: `s<n><name>VyxG<n>Foundation<n><ProtoName>A2dERzrl(Mc|WP)` —
 	// Swift-module type (Slice etc) with subject-A: Foundation.<ProtoName>
 	// constraint. Apple short-form: `< where A: Foundation.<ProtoName>>
