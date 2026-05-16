@@ -1377,3 +1377,61 @@ Options for multi-fire:
 
 Tier-2 — bound-generic-subs-indexing adjacent (see goal pointer). Skip
 this fire; pivot.
+
+## defer-cet-uikit-inner-ext-decl-name-loss [72 syms, deferred-1] (2026-05-16)
+
+Pattern: property-descriptor on a triple-level extension chain where
+the OUTER ObjC class is wrapped by a Foundation extension introducing
+a Protocol, then a UIKit extension on that protocol introduces a
+nested Struct (BaseMessageIdentifier<T>) with a static var.
+
+Probe sym:
+  `_$sSo20NSNotificationCenterC10FoundationE17MessageIdentifierP5UIKitAbCE04BasedE0Vy_So10UIDocumentCAFE012StateChangedD0VGRszrlE05stateJ0AMvpZMV`
+
+Oracle:  `property descriptor for static NSNotificationCenter.MessageIdentifier<>.stateChanged`
+Got:     `property descriptor for static NSNotificationCenter.MessageIdentifier.UIKit`
+
+Apple's tree (via `--tree-only`):
+```
+PropertyDescriptor
+  Static
+    Variable
+      Extension { Module=UIKit, Protocol { Extension { Module=Foundation, Class=__C.NSNotificationCenter }, Identifier=MessageIdentifier }, DependentGenericSignature {...} }
+      Identifier=stateChanged
+```
+
+So the outer Extension is "in UIKit" extending the
+`Foundation.NSNotificationCenter.MessageIdentifier` protocol, with a
+same-type constraint mapping A == BaseMessageIdentifier<...>. The
+simplified rendering by Apple: `<topmost>.<inner-ext-target><>.<decl>`
+collapses across the two extension layers, dropping module prefixes.
+
+Our parser path lumps `5UIKit` as a literal nested-ident on the host
+path, drops the decl-name "stateChanged" (encoded as word-sub
+`05stateJ0` past the second `E` marker), and emits the wrong tail.
+
+Fix sketch (multi-fire):
+1. Detect the double-extension pattern in
+   `_$s<objc-class>C<mod1>E<ident-or-proto-kind><mod2>A<backref>E<inner>...`
+   where the second `<mod>...E` is an INNER extension, not a nested
+   nominal-type level. Add an inner-extension consumer that resets
+   the host-path to the first-extension target and sets a flag so the
+   decl-name walk skips the inner-extension module bytes.
+2. After consuming the inner extension's constraint section
+   (`Rsz rl`), enter the decl-name parse for the simplified form
+   (no module, no type annotation, append `<>` constraint marker on
+   the proto-host).
+3. Test corpus: the 72 syms split into `MessageIdentifier.UIKit`
+   variants — verify all produce `MessageIdentifier<>.<word-sub-decl>`.
+
+Likely intersects with the BaseMessageIdentifier 31-sym verbose-form
+bucket (defer-ceo Phase B for `(extension in Foundation):(extension in Foundation):...`
+double-prefix). Address the simplified case first; the verbose-form
+double-prefix is a separate emit decision.
+
+Reach: oracle available (kodo restored 2026-05-16). Single-fire
+implementable once the inner-ext detector is wired and the
+property-descriptor fast-path branch is updated.
+
+Multi-fire — needs ≥4 primitives (inner-ext detector, second decl-walk,
+constraint-marker emit, word-sub decl decode in this path).
