@@ -9613,6 +9613,37 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			}
 			// Trailing `y` after F/Z strip = empty params marker.
 			emptyParams := len(body) >= 1 && body[len(body)-1] == 'y'
+			// `<typekind>yyt` ending (post-sig-strip) signals empty-tuple args
+			// after a result-type — function takes no args (e.g. `yield<A>()`).
+			emptyTupleArgs := false
+			{
+				probe := body
+				// Strip trailing sig + constraint markers iteratively.
+				for {
+					stripped := false
+					if len(probe) >= 1 && probe[len(probe)-1] == 'l' {
+						probe = probe[:len(probe)-1]
+						stripped = true
+					}
+					for _, suf := range []string{"Rsz", "Rs", "Rz", "Rb", "rl", "r"} {
+						if strings.HasSuffix(probe, suf) {
+							probe = probe[:len(probe)-len(suf)]
+							stripped = true
+							break
+						}
+					}
+					if !stripped {
+						break
+					}
+				}
+				if strings.HasSuffix(probe, "yyt") && len(probe) >= 4 {
+					tk := probe[len(probe)-4]
+					if tk == 'V' || tk == 'C' || tk == 'O' ||
+						tk == 'P' || tk == 'G' {
+						emptyTupleArgs = true
+					}
+				}
+			}
 			if singleClosureArg {
 				fpLabels = []string{"_"}
 			} else if sepCount > 0 {
@@ -9620,7 +9651,7 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 				for i := range fpLabels {
 					fpLabels[i] = "_"
 				}
-			} else if emptyParams || emptyParamsAtClosure {
+			} else if emptyParams || emptyParamsAtClosure || emptyTupleArgs {
 				// 0 params — leave fpLabels empty.
 			} else if strings.HasSuffix(declName, " infix") {
 				// Binary operators always take 2 unlabeled params (lhs, rhs).
