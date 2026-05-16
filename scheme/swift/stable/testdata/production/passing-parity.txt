@@ -1,4 +1,4 @@
-# snapshot-pass-set update 2026-05-16T21:39:08Z — union with previous (high-water)
+# snapshot-pass-set update 2026-05-16T21:42:10Z — union with previous (high-water)
 _$s10Foreground7SwiftUI18LabelGroupStyle_v0PTl
 _$s10Foundation10CocoaErrorV010formattingC0AC4CodeVvgZ
 _$s10Foundation10CocoaErrorV010formattingC0AC4CodeVvpZMV
@@ -41682,6 +41682,15 @@ _$sSMSlTb
 _$sSMTL
 _$sSMsE13moveSubranges_2toSny5IndexQzGs8RangeSetVyADG_ADtF
 _$sSMsE6swapAtyy5IndexQz_ACtF
+_$sSMsEy11SubSequenceQzqd__cSXRd__5BoundQyd__5IndexRtzluiM
+_$sSMsEy11SubSequenceQzqd__cSXRd__5BoundQyd__5IndexRtzluig
+_$sSMsEy11SubSequenceQzqd__cSXRd__5BoundQyd__5IndexRtzluis
+_$sSMsEy11SubSequenceQzys15UnboundedRange_OXEciM
+_$sSMsEy11SubSequenceQzys15UnboundedRange_OXEcig
+_$sSMsEy11SubSequenceQzys15UnboundedRange_OXEcis
+_$sSMsEys5SliceVyxGSny5IndexQzGciM
+_$sSMsEys5SliceVyxGSny5IndexQzGcig
+_$sSMsEys5SliceVyxGSny5IndexQzGcis
 _$sSMsSKRzrlE7reverseyyF
 _$sSMsSKRzrlE8_reverse6withinySny5IndexSlQzG_tF
 _$sSMsSkRzSL7ElementSTRpzrlE4sortyyF
@@ -44679,6 +44688,9 @@ _$sSlsE9dropFirsty11SubSequenceQzSiF
 _$sSlsE9formIndex5aftery0B0Qzz_tF
 _$sSlsE9formIndex_8offsetBy07limitedD0Sb0B0Qzz_SiAEtF
 _$sSlsE9formIndex_8offsetByy0B0Qzz_SitF
+_$sSlsEy11SubSequenceQzqd__cSXRd__5BoundQyd__5IndexRtzluig
+_$sSlsEy11SubSequenceQzys15UnboundedRange_OXEcig
+_$sSlsEys18DiscontiguousSliceVyxGs8RangeSetVy5IndexQzGcig
 _$sSlsSIyxG7IndicesRtzrlE7indicesAAvg
 _$sSlsSIyxG7IndicesRtzrlE7indicesAAvpMV
 _$sSlsSQ7ElementRpzrlE10firstIndex2of0C0QzSgAB_tF
