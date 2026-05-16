@@ -1473,3 +1473,33 @@ Multi-fire — needs:
 
 Reach: oracle available; need to enumerate the 4-roundtrip-regress
 set to understand the false-positive shape before re-attempting.
+
+## defer-cew-stdlib-boundgen-conformance-suffix [~30 syms, deferred-1] (2026-05-16)
+
+Pattern: stdlib bound-generic type (Array<A>, Repeated<A>,
+UnsafeBufferPointer<A>, etc.) conforming to a Foundation protocol via
+same-type constraint (A == UInt8 typically).
+
+Probe sym: `_$ss8RepeatedVyxG10Foundation12DataProtocolADs5UInt8VRszlMc`
+
+Oracle: `protocol conformance descriptor for <A where A == Swift.UInt8> Swift.Repeated<A> : Foundation.DataProtocol in Foundation`
+Got:    `protocol conformance descriptor for Repeated<A>`
+
+Components missing in fast-path Mc/WP emit (stable.go:9756):
+1. Generic-sig prefix `<A where A == Swift.UInt8>` — needs to parse the
+   `Rsz` constraint with concrete-type RHS from constraint bytes.
+2. `Swift.` module prefix on conforming type — we strip it for bare
+   bound-gen types but Apple keeps it for verbose conformance.
+3. Trailing ` : <protoMod>.<protoName> in <srcMod>` — the constraint
+   bytes encode `<protoMod><protoName><back-ref><concrete-type><Rsz>`
+   but we don't parse them.
+
+Multi-fire — adjacent to defer-ceu objc conformance. Both buckets
+need a new sub-parser for `<conforming>...<protoMod><protoName>[<srcMod>]<reqs>Mc/WP`
+that handles bound-gen stdlib hosts with concrete same-type sig.
+
+Affects ~16 known + ~14 variants across Array/Repeated/UnsafeBufferPointer/
+ContiguousArray/Set/Dictionary types conforming to DataProtocol/ContiguousBytes/
+MutableDataProtocol/Sequence etc.
+
+Reach: oracle available; parse plan known.
