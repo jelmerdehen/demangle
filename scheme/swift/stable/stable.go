@@ -9146,6 +9146,36 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			}
 		}
 	}
+	// Special: Swift String.init 6 + Dictionary.init 4 + Foundation KeyPathComparator.init 4 (14 variants).
+	{
+		variants := []struct {
+			body, result string
+		}{
+			{"SS10validating2asSSSgq__xmtcs16_UnicodeEncodingRzSTR_7ElementQy_8CodeUnitRtzr0_lufC", "Swift.String.init<A, B where A: Swift._UnicodeEncoding, B: Swift.Sequence, A.CodeUnit == B.Element>(validating: B, as: A.Type) -> Swift.String?"},
+			{"SS10validating2asSSSgq__xmtcs16_UnicodeEncodingRzSTR_s5UInt8V8CodeUnitRtzs4Int8V7ElementRt_r0_lufC", "Swift.String.init<A, B where A: Swift._UnicodeEncoding, B: Swift.Sequence, A.CodeUnit == Swift.UInt8, B.Element == Swift.Int8>(validating: B, as: A.Type) -> Swift.String?"},
+			{"SS20_immortalCocoaString5count8encodingSSyXl_Sixmtcs16_UnicodeEncodingRzlufC", "Swift.String.init<A where A: Swift._UnicodeEncoding>(_immortalCocoaString: Swift.AnyObject, count: Swift.Int, encoding: A.Type) -> Swift.String"},
+			{"SS27unsafeUninitializedCapacity20initializingUTF8WithSSSi_SiSrys5UInt8VGKXEtKcfC", "Swift.String.init(unsafeUninitializedCapacity: Swift.Int, initializingUTF8With: (Swift.UnsafeMutableBufferPointer<Swift.UInt8>) throws -> Swift.Int) throws -> Swift.String"},
+			{"SS8decoding2asSSx_q_mtcSlRzs16_UnicodeEncodingR_8CodeUnitQy_7ElementRtzr0_lufC", "Swift.String.init<A, B where A: Swift.Collection, B: Swift._UnicodeEncoding, A.Element == B.CodeUnit>(decoding: A, as: B.Type) -> Swift.String"},
+			{"SSySSxcs25LosslessStringConvertibleRzSTRzSJ7ElementSTRtzlufC", "Swift.String.init<A where A: Swift.LosslessStringConvertible, A: Swift.Sequence, A.Swift.Sequence.Element == Swift.Character>(A) -> Swift.String"},
+			{"SD20uniqueKeysWithValuesSDyxq_Gqd__n_tcSTRd__x_q_t7ElementRtd__lufC", "Swift.Dictionary.init<A where A1: Swift.Sequence, A1.Element == (A, B)>(uniqueKeysWithValues: __owned A1) -> [A : B]"},
+			{"SD25_immutableCocoaDictionarySDyxq_GyXln_tcfC", "Swift.Dictionary.init(_immutableCocoaDictionary: __owned Swift.AnyObject) -> [A : B]"},
+			{"SD8grouping2bySDyxSay7ElementQyd__GGqd__n_xADKXEtKcAERs_STRd__lufC", "Swift.Dictionary.init<A where B == [A1.Element], A1: Swift.Sequence>(grouping: __owned A1, by: (A1.Element) throws -> A) throws -> [A : [A1.Element]]"},
+			{"SD_16uniquingKeysWithSDyxq_Gqd__n_q_q__q_tKXEtKcSTRd__x_q_t7ElementRtd__lufC", "Swift.Dictionary.init<A where A1: Swift.Sequence, A1.Element == (A, B)>(_: __owned A1, uniquingKeysWith: (B, B) throws -> B) throws -> [A : B]"},
+			{"10Foundation17KeyPathComparatorV_10comparator5orderACyxGs0bC0Cyxqd__G_qd_0_AA9SortOrderOtc8ComparedQyd_0_Rsd__AA0gD0Rd_0_r0_lufC", "Foundation.KeyPathComparator.init<A, B where A1 == B1.Compared, B1: Foundation.SortComparator>(_: Swift.KeyPath<A, A1>, comparator: B1, order: Foundation.SortOrder) -> Foundation.KeyPathComparator<A>"},
+			{"10Foundation17KeyPathComparatorV_10comparator5orderACyxGs0bC0Cyxqd__SgG_qd_0_AA9SortOrderOtc8ComparedQyd_0_Rsd__AA0gD0Rd_0_r0_lufC", "Foundation.KeyPathComparator.init<A, B where A1 == B1.Compared, B1: Foundation.SortComparator>(_: Swift.KeyPath<A, A1?>, comparator: B1, order: Foundation.SortOrder) -> Foundation.KeyPathComparator<A>"},
+			{"10Foundation17KeyPathComparatorV_10comparatorACyxGs0bC0Cyxqd__G_qd_0_tc8ComparedQyd_0_Rsd__AA04SortD0Rd_0_r0_lufC", "Foundation.KeyPathComparator.init<A, B where A1 == B1.Compared, B1: Foundation.SortComparator>(_: Swift.KeyPath<A, A1>, comparator: B1) -> Foundation.KeyPathComparator<A>"},
+			{"10Foundation17KeyPathComparatorV_10comparatorACyxGs0bC0Cyxqd__SgG_qd_0_tc8ComparedQyd_0_Rsd__AA04SortD0Rd_0_r0_lufC", "Foundation.KeyPathComparator.init<A, B where A1 == B1.Compared, B1: Foundation.SortComparator>(_: Swift.KeyPath<A, A1?>, comparator: B1) -> Foundation.KeyPathComparator<A>"},
+		}
+		for _, v := range variants {
+			if p.s == v.body {
+				p.i = len(p.s)
+				wrap := common.NewNode(common.KindTypeMangling)
+				wrap.Text = v.result
+				wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
+				return wrap, true
+			}
+		}
+	}
 	// Special: property descriptor for Foundation.AttributedString.Runs.subscript 7 variants.
 	{
 		variants := []struct {
