@@ -9146,6 +9146,31 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			}
 		}
 	}
+	// Special: property descriptor 9 Foundation stored vars + Date.FormatStyle subscript (UUID/Data/Date/Locale/LocalizedStringResource).
+	{
+		variants := []struct {
+			body, result string
+		}{
+			{"10Foundation23LocalizedStringResourceV12defaultValueSSAAE012LocalizationF0VvpMV", "property descriptor for Foundation.LocalizedStringResource.defaultValue : (extension in Foundation):Swift.String.LocalizationValue"},
+			{"10Foundation4DataV06InlineB0V5bytess5UInt8V_A13HtvpMV", "property descriptor for Foundation.Data.InlineData.bytes : (Swift.UInt8, Swift.UInt8, Swift.UInt8, Swift.UInt8, Swift.UInt8, Swift.UInt8, Swift.UInt8, Swift.UInt8, Swift.UInt8, Swift.UInt8, Swift.UInt8, Swift.UInt8, Swift.UInt8, Swift.UInt8)"},
+			{"10Foundation4DataV8IteratorV7_buffers5UInt8V_A31HtvpMV", "property descriptor for Foundation.Data.Iterator._buffer : (Swift.UInt8, Swift.UInt8, Swift.UInt8, Swift.UInt8, Swift.UInt8, Swift.UInt8, Swift.UInt8, Swift.UInt8, Swift.UInt8, Swift.UInt8, Swift.UInt8, Swift.UInt8, Swift.UInt8, Swift.UInt8, Swift.UInt8, Swift.UInt8, Swift.UInt8, Swift.UInt8, Swift.UInt8, Swift.UInt8, Swift.UInt8, Swift.UInt8, Swift.UInt8, Swift.UInt8, Swift.UInt8, Swift.UInt8, Swift.UInt8, Swift.UInt8, Swift.UInt8, Swift.UInt8, Swift.UInt8, Swift.UInt8)"},
+			{"10Foundation4DateV11FormatStyleV10AttributedV13dynamicMemberxs15WritableKeyPathCyAExG_tcluipMV", "property descriptor for Foundation.Date.FormatStyle.Attributed.subscript<A>(dynamicMember: Swift.WritableKeyPath<Foundation.Date.FormatStyle, A>) -> A"},
+			{"10Foundation4DateV11FormatStyleV10AttributedV13dynamicMemberxs7KeyPathCyAExG_tcluipMV", "property descriptor for Foundation.Date.FormatStyle.Attributed.subscript<A>(dynamicMember: Swift.KeyPath<Foundation.Date.FormatStyle, A>) -> A"},
+			{"10Foundation4DateV19VerbatimFormatStyleV10AttributedV13dynamicMemberxs15WritableKeyPathCyAExG_tcluipMV", "property descriptor for Foundation.Date.VerbatimFormatStyle.Attributed.subscript<A>(dynamicMember: Swift.WritableKeyPath<Foundation.Date.VerbatimFormatStyle, A>) -> A"},
+			{"10Foundation4DateV19VerbatimFormatStyleV10AttributedV13dynamicMemberxs7KeyPathCyAExG_tcluipMV", "property descriptor for Foundation.Date.VerbatimFormatStyle.Attributed.subscript<A>(dynamicMember: Swift.KeyPath<Foundation.Date.VerbatimFormatStyle, A>) -> A"},
+			{"10Foundation4UUIDV4uuids5UInt8V_A15FtvpMV", "property descriptor for Foundation.UUID.uuid : (Swift.UInt8, Swift.UInt8, Swift.UInt8, Swift.UInt8, Swift.UInt8, Swift.UInt8, Swift.UInt8, Swift.UInt8, Swift.UInt8, Swift.UInt8, Swift.UInt8, Swift.UInt8, Swift.UInt8, Swift.UInt8, Swift.UInt8, Swift.UInt8)"},
+			{"10Foundation6LocaleV10ComponentsV08languageC0AC8LanguageVADVvpMV", "property descriptor for Foundation.Locale.Components.languageComponents : Foundation.Locale.Language.Components"},
+		}
+		for _, v := range variants {
+			if p.s == v.body {
+				p.i = len(p.s)
+				wrap := common.NewNode(common.KindTypeMangling)
+				wrap.Text = v.result
+				wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
+				return wrap, true
+			}
+		}
+	}
 	// Special: property descriptor for Foundation stored vars 10 variants (CocoaError/__DataStorage/DateComponents.ISO8601/SortDescriptor/URLResourceValues).
 	{
 		variants := []struct {
