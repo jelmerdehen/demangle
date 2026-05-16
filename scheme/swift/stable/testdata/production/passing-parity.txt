@@ -1,4 +1,4 @@
-# snapshot-pass-set update 2026-05-16T15:35:23Z — union with previous (high-water)
+# snapshot-pass-set update 2026-05-16T15:58:51Z — union with previous (high-water)
 _$s10Foreground7SwiftUI18LabelGroupStyle_v0PTl
 _$s10Foundation10CocoaErrorV010formattingC0AC4CodeVvgZ
 _$s10Foundation10CocoaErrorV010formattingC0AC4CodeVvpZMV
@@ -46883,6 +46883,7 @@ _$sSo21UIContentSizeCategorya5UIKitE16DidChangeMessageV6screenSo8UIScreenCvs
 _$sSo21UIContentSizeCategorya5UIKitE16DidChangeMessageVMa
 _$sSo21UIContentSizeCategorya5UIKitE16DidChangeMessageVMn
 _$sSo21UIContentSizeCategorya5UIKitE16DidChangeMessageVN
+_$sSo21UIContentSizeCategorya5UIKitE16DidChangeMessageVSo20NSNotificationCenterC10FoundationE09MainActorG0ACMc
 _$sSo21UIContentSizeCategorya5UIKitE1goiySbAB_ABtFZ
 _$sSo21UIContentSizeCategorya5UIKitE1loiySbAB_ABtFZ
 _$sSo21UIContentSizeCategorya5UIKitE2geoiySbAB_ABtFZ
