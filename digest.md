@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 95.48% (60872/63757) — 2026-05-16T16:17:50Z
+**Parity**: 95.48% (60875/63757) — 2026-05-16T16:22:29Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 147 parse-errors + 2738 mismatches
+**Failures**: 147 parse-errors + 2735 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- c487b598 swift-parity: CFG known-module-qualifier rewind in inline fast-path labels — parity 95.47%->95.48% (+3 production +0 roundtrip)
+- 66ebfa3f chore: lock snapshot after CFF commit (parity 60871->60872)
+- dae3cde1 chore: update digest.md for CFF commit (parity 95.47%->95.47% +1)
 - 58f49f38 swift-parity: CFF uppercase-Q rewind in inline deeply-generic fast-path labels — parity 95.47%->95.47% (+1 production +0 roundtrip)
 - 344500c5 chore: defer type-ident-leaks-into-label-list-verbose-path to multi-fire (deferred-1)
 - bbc4c14f chore: defer label-vs-type-ident-uppercase-q-rewind-verbose-path to multi-fire (deferred-1)
@@ -36,9 +39,6 @@
 - 983f73da chore: update digest.md for CFE commit (parity 95.47%->95.47% +1)
 - 7a39b433 swift-parity: CFE skip inner extension marker in fast-path nested-walk — parity 95.47%->95.47% (+1 production +0 roundtrip)
 - 6ea77dc1 chore: lock snapshot after CFD commit (parity 60869->60870)
-- 45f4243d chore: update digest.md for CFD commit (parity 95.47%->95.47% +1)
-- 7abbd4b6 swift-parity: CFD skip fast-path nested-ext recovery for Mc/WP tail — parity 95.47%->95.47% (+1 production +0 roundtrip)
-- d213a64f chore: defer bound-gen-depth-tracking-zero-impact to multi-fire (deferred-1)
 
 ## Suggested Next 3 Items
 
