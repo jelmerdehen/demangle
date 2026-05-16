@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 95.98% (61196/63757) — 2026-05-16T20:48:51Z
+**Parity**: 95.99% (61199/63757) — 2026-05-16T20:52:39Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 93 parse-errors + 2468 mismatches
+**Failures**: 93 parse-errors + 2465 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -16,10 +16,10 @@
 - (extension in Foundation):__C.NSNotificationCenter… 22
 - Foundation.AttributedString.init<A where A: Founda… 22
 - (extension in Swift):Swift.FlattenSequence< where … 17
-- (extension in Foundation):Swift.String.Localizatio… 16
 - (extension in Foundation):(extension in Foundation… 15
 - (extension in Foundation):Foundation.Measurement< … 14
 - (extension in Foundation):Foundation.AttributedStr… 13
+- (extension in Foundation):Swift.String.Localizatio… 13
 - (extension in Swift):Swift.ClosedRange< where A: S… 13
 - (extension in Swift):Swift.RangeReplaceableCollect… 13
 - async function pointer to (extension in Foundation… 13
@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- 2922e92c swift-parity: CGZ Foundation String.LocalizationValue.StringInterpolation.appendInterpolation 3-constraint verbose form — parity 95.98%->95.98% (+3 production +0 roundtrip)
+- 723d22c7 chore: lock snapshot after CGY commit (parity 61192->61196 roundtrip 21309->21309)
+- 9f532eab chore: update digest.md for CGY commit (parity 95.97%->95.98% +4)
 - e550f385 swift-parity: CGY Foundation AttributedString init<A>(markdown:including:options:baseURL:) String/Data×KeyPath/Type — parity 95.97%->95.98% (+4 production +0 roundtrip)
 - 5ab298d4 chore: lock snapshot after CGX commit (parity 61189->61192 roundtrip 21309->21309)
 - 60dd18de chore: update digest.md for CGX commit (parity 95.97%->95.97% +3)
@@ -36,9 +39,6 @@
 - e13bfc47 chore: lock snapshot after CGW commit (parity 61182->61189 roundtrip 21309->21309)
 - d2603f14 chore: update digest.md for CGW commit (parity 95.96%->95.97% +7)
 - e4c45caf swift-parity: CGW Swift stdlib SIMD extension subscript<A>(_:) property descriptor SIMD2-64 — parity 95.96%->95.97% (+7 production +0 roundtrip)
-- aacfa07a chore: lock snapshot after CGV commit (parity 61178->61182 roundtrip 21309->21309)
-- c7b105fb chore: update digest.md for CGV commit (parity 95.95%->95.96% +4)
-- e6ac279c swift-parity: CGV Foundation NSAttributedString init<A>(_:including:) AttributeScope-constraint Key/Type variants — parity 95.95%->95.96% (+4 production +0 roundtrip)
 
 ## Suggested Next 3 Items
 
