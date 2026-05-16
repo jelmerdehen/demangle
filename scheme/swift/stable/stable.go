@@ -8715,6 +8715,38 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			}
 		}
 	}
+	// Special: Foundation NSDecimal init(_:format:lenient:) with FormatStyle inner.
+	// Pattern: `So9NSDecimala10FoundationE_6format7lenientABSS_AbCE11FormatStyleV[<n><Inner>V]?SbtKcfC`
+	{
+		pfx := "So9NSDecimala10FoundationE_6format7lenientABSS_AbCE11FormatStyleV"
+		if len(p.s) >= len(pfx)+7 && p.s[:len(pfx)] == pfx && strings.HasSuffix(p.s, "SbtKcfC") {
+			rest := p.s[len(pfx):]
+			suffixLen := len("SbtKcfC")
+			middle := rest[:len(rest)-suffixLen]
+			var innerSuffix string
+			if middle == "" {
+				innerSuffix = ""
+			} else if len(middle) > 1 && middle[0] >= '1' && middle[0] <= '9' {
+				// digit-led inner ident
+				iLen := 0
+				iPos := 0
+				for iPos < len(middle) && middle[iPos] >= '0' && middle[iPos] <= '9' {
+					iLen = iLen*10 + int(middle[iPos]-'0')
+					iPos++
+				}
+				if iLen > 0 && iPos+iLen+1 == len(middle) && middle[iPos+iLen] == 'V' {
+					innerSuffix = "." + middle[iPos:iPos+iLen]
+				}
+			}
+			if innerSuffix != "" || middle == "" {
+				p.i = len(p.s)
+				wrap := common.NewNode(common.KindTypeMangling)
+				wrap.Text = "(extension in Foundation):__C.NSDecimal.init(_: Swift.String, format: (extension in Foundation):__C.NSDecimal.FormatStyle" + innerSuffix + ", lenient: Swift.Bool) throws -> __C.NSDecimal"
+				wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
+				return wrap, true
+			}
+		}
+	}
 	// Special: SIMD extension subscript<A>(_:) property descriptor for SIMD2/3/4/8/16/32/64.
 	// Pattern: `s4SIMDPsEys<n>SIMD<N>Vy6ScalarQzGADyqd__Gcs17FixedWidthIntegerRd__s10SIMDScalarRd__sAjFRQluipMV`
 	{
