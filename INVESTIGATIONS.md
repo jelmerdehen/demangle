@@ -6,6 +6,31 @@ fast loop fires — avoids re-deriving path/cause each fire. Bounded
 
 ## Active targets
 
+### type-ident-leaks-into-label-list-verbose-path [~20+ syms, deferred-1]
+
+Same family as [[label-vs-type-ident-uppercase-q-rewind-verbose-path]]
+but for module-qualified type names (not Q-dependent-member).
+
+Examples:
+- `UICorePlatformViewHost.makeEnvironmentWrapper(_:viewPhase:SwiftUI:ViewGraphHostEnvironmentWrapper:)` should drop `SwiftUI:ViewGraphHostEnvironmentWrapper:` — those are module+type name of return value `_$s..._t7SwiftUI33ViewGraphHostEnvironmentWrapperV`.
+- `UICollectionViewDiffableDataSource.indexPath(for:Foundation:IndexPath:)` should drop `Foundation:IndexPath:`.
+- `UITraitCollection.coreResolvedBaseEnvironment(base:SwiftUI:EnvironmentValues:)` should drop `SwiftUI:EnvironmentValues:`.
+
+Pattern: verbose-path label parser keeps reading length-prefixed
+identifiers past the function's real arg-label count, consuming
+the return type's module-qualified Name into the label list.
+
+Fire-plan:
+1. Locate the verbose-path label iteration (multiple candidates
+   in stable.go — `tryFunction*`/`parseEntity*` family).
+2. Add type-start guards similar to fast-path line 9565: stop
+   label parse when next ident is followed by `V`/`C`/`O`/`P`
+   (type kind) or `Q` (depmember).
+3. Verify against bucket samples.
+
+Reason for deferral: code path location requires multi-step
+trace; many similar `try*` methods to audit.
+
 ### label-vs-type-ident-uppercase-q-rewind-verbose-path [~1+ syms, deferred-1]
 
 Fast-path label parser at stable.go:9565 correctly rewinds when
