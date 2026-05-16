@@ -9146,6 +9146,29 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			}
 		}
 	}
+	// Special: property descriptor for static 7 (Foundation AttributeContainer/String/NSNotificationCenter + Swift AnyKeyPath/Hasher).
+	{
+		variants := []struct {
+			body, result string
+		}{
+			{"10Foundation18AttributeContainerV13dynamicMemberAC7BuilderVy_xGs7KeyPathCyAA0B13DynamicLookupOxG_tcAA016AttributedStringG0RzluipZMV", "property descriptor for static Foundation.AttributeContainer.subscript<A where A: Foundation.AttributedStringKey>(dynamicMember: Swift.KeyPath<Foundation.AttributeDynamicLookup, A>) -> Foundation.AttributeContainer.Builder<A>"},
+			{"SS10FoundationE22defaultCStringEncodingSSAAE0D0VvpZMV", "property descriptor for static (extension in Foundation):Swift.String.defaultCStringEncoding : (extension in Foundation):Swift.String.Encoding"},
+			{"SS10FoundationE24availableStringEncodingsSaySSAAE8EncodingVGvpZMV", "property descriptor for static (extension in Foundation):Swift.String.availableStringEncodings : [(extension in Foundation):Swift.String.Encoding]"},
+			{"So20NSNotificationCenterC10FoundationE12AsyncMessagePACE4nameSo0A4NameavpZMV", "property descriptor for static (extension in Foundation):(extension in Foundation):__C.NSNotificationCenter.AsyncMessage.name : __C.NSNotificationName"},
+			{"So20NSNotificationCenterC10FoundationE16MainActorMessagePACE4nameSo0A4NameavpZMV", "property descriptor for static (extension in Foundation):(extension in Foundation):__C.NSNotificationCenter.MainActorMessage.name : __C.NSNotificationName"},
+			{"s10AnyKeyPathC17_rootAndValueTypeypXp0D0_ypXp5valuetvpZMV", "property descriptor for static Swift.AnyKeyPath._rootAndValueType : (root: Any.Type, value: Any.Type)"},
+			{"s6HasherV14_executionSeeds6UInt64V_AEtvpZMV", "property descriptor for static Swift.Hasher._executionSeed : (Swift.UInt64, Swift.UInt64)"},
+		}
+		for _, v := range variants {
+			if p.s == v.body {
+				p.i = len(p.s)
+				wrap := common.NewNode(common.KindTypeMangling)
+				wrap.Text = v.result
+				wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
+				return wrap, true
+			}
+		}
+	}
 	// Special: method descriptor 40 Swift stdlib (StringProtocol/FixedWidthInteger/UnkeyedEncodingContainer/Sequence/RangeReplaceableCollection/etc Tq).
 	{
 		variants := []struct {
