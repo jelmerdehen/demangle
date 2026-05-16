@@ -1,13 +1,13 @@
 # Swift Production Digest
 
-**Parity**: 96.48% (61511/63757) — 2026-05-16T22:47:32Z
+**Parity**: 96.49% (61516/63757) — 2026-05-16T22:50:39Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 93 parse-errors + 2153 mismatches
+**Failures**: 93 parse-errors + 2148 mismatches
 
 ## Top-20 Mismatch Categories
 
 - property descriptor                        244
-- static (extension                          127
+- static (extension                          122
 - (extension in Foundation):Foundation.PredicateExpr… 85
 - dispatch thunk                             67
 - method descriptor                          67
@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- 0989faf9 swift-parity: CIL static Foundation.FormatStyle< where A == X>.Y 5 variants (ByteCount/PersonNameComponents/Date) — parity 96.48%->96.49% (+5 production +0 roundtrip)
+- 79cf8ced chore: lock snapshot after CIK commit (parity 61500->61511 roundtrip 21309->21309)
+- 9e7a33f8 chore: update digest.md for CIK commit (parity 96.46%->96.48% +11)
 - 9ee6be6f swift-parity: CIK property descriptor 11 __C extension stored vars (NSDecimal/NSRunLoop/NSOperationQueue/NSTimer/NSFileHandle/NSData/NSDictionary) — parity 96.46%->96.48% (+11 production +0 roundtrip)
 - 41a575e7 chore: lock snapshot after CIJ commit (parity 61489->61500 roundtrip 21309->21309)
 - 34d1f106 chore: update digest.md for CIJ commit (parity 96.44%->96.46% +11)
@@ -36,12 +39,9 @@
 - ce43f794 chore: lock snapshot after CII commit (parity 61480->61489 roundtrip 21309->21309)
 - 71089660 chore: update digest.md for CII commit (parity 96.43%->96.44% +9)
 - fb66dd62 swift-parity: CII property descriptor 9 Foundation stored vars (UUID/Data/Date.FormatStyle.Attributed/Locale/LocalizedStringResource) — parity 96.43%->96.44% (+9 production +0 roundtrip)
-- 79fecd5e chore: lock snapshot after CIH commit (parity 61470->61480 roundtrip 21309->21309)
-- 63c807ea chore: update digest.md for CIH commit (parity 96.41%->96.43% +10)
-- 8bdb54db swift-parity: CIH property descriptor 10 Foundation stored vars (CocoaError/__DataStorage/DateComponents.ISO8601/SortDescriptor/URLResourceValues) — parity 96.41%->96.43% (+10 production +0 roundtrip)
 
 ## Suggested Next 3 Items
 
 1. P1: property descriptor fix — 244 mismatches
-2. investigate: static (extension — 127 mismatches
+2. investigate: static (extension — 122 mismatches
 3. investigate: (extension in Foundation):Foundation.PredicateExpr… — 85 mismatches
