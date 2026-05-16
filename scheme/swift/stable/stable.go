@@ -8715,6 +8715,35 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			}
 		}
 	}
+	// Special: Foundation NSAttributedString extension init(markdown:options:baseURL:).
+	// Two variants by markdownType: `AB|SS|...` and `Ab|C4DataV|...`.
+	// String form: `...baseURLABSS_AC010AttributedB0V22MarkdownParsingOptionsVAC0G0VSgtKcf<C|c>`
+	// Data form:   `...baseURLAbC4DataV_AC010AttributedB0V22MarkdownParsingOptionsVAC0G0VSgtKcf<C|c>`
+	{
+		pfx := "So18NSAttributedStringC10FoundationE8markdown7options7baseURL"
+		midSuf := "_AC010AttributedB0V22MarkdownParsingOptionsVAC0G0VSgtKcf"
+		if len(p.s) >= len(pfx)+2 && p.s[:len(pfx)] == pfx &&
+			(strings.HasSuffix(p.s, "fC") || strings.HasSuffix(p.s, "fc")) {
+			typeStart := len(pfx)
+			var markdownType string
+			var typeEnd int
+			if typeStart+4 <= len(p.s) && p.s[typeStart:typeStart+4] == "ABSS" {
+				markdownType = "Swift.String"
+				typeEnd = typeStart + 4
+			} else if typeStart+9 <= len(p.s) && p.s[typeStart:typeStart+9] == "AbC4DataV" {
+				markdownType = "Foundation.Data"
+				typeEnd = typeStart + 9
+			}
+			if markdownType != "" && typeEnd+len(midSuf)+1 == len(p.s) &&
+				p.s[typeEnd:typeEnd+len(midSuf)] == midSuf {
+				p.i = len(p.s)
+				wrap := common.NewNode(common.KindTypeMangling)
+				wrap.Text = "(extension in Foundation):__C.NSAttributedString.init(markdown: " + markdownType + ", options: Foundation.AttributedString.MarkdownParsingOptions, baseURL: Foundation.URL?) throws -> __C.NSAttributedString"
+				wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
+				return wrap, true
+			}
+		}
+	}
 	// Special: BinaryInteger/BinaryFloatingPoint extension init(_:format:lenient:) for
 	// Foundation IntFormatStyle/FloatFormatStyle (with optional .Percent/.Currency inner).
 	// Pattern: `S<z|B>10FoundationE_6format7lenientxSS_AA<n><FmtStyle>V[<n><Inner>V]?yx_?GSbtKcfC`
