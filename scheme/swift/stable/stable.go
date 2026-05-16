@@ -8733,6 +8733,74 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			}
 		}
 	}
+	// Special: `<n><mod>V<chain>VSo20NSNotificationCenterCAAE<word-sub>AA(Mc|WP)` —
+	// Foundation type extension conforming to NSNotificationCenter Message
+	// proto. Apple short-form: `<mod>.<chain> : (extension in <mod>):__C.
+	// NSNotificationCenter.<protoName> in <mod>`.
+	if (p.s[len(p.s)-4:] == "AAMc" || p.s[len(p.s)-4:] == "AAWP") &&
+		p.i < len(p.s) && p.s[p.i] >= '1' && p.s[p.i] <= '9' {
+		probeI := p.i
+		mLen := 0
+		mPos := probeI
+		for mPos < len(p.s) && p.s[mPos] >= '0' && p.s[mPos] <= '9' {
+			mLen = mLen*10 + int(p.s[mPos]-'0')
+			mPos++
+		}
+		if mLen > 0 && mPos+mLen < len(p.s) {
+			modName := p.s[mPos : mPos+mLen]
+			probeI = mPos + mLen
+			// Walk chain.
+			nested := []string{}
+			for probeI < len(p.s)-4 && p.s[probeI] >= '1' && p.s[probeI] <= '9' {
+				nlen := 0
+				nstart := probeI
+				for nstart < len(p.s) && p.s[nstart] >= '0' && p.s[nstart] <= '9' {
+					nlen = nlen*10 + int(p.s[nstart]-'0')
+					nstart++
+				}
+				if nlen <= 0 || nstart+nlen >= len(p.s) {
+					break
+				}
+				nname := p.s[nstart : nstart+nlen]
+				nk := p.s[nstart+nlen]
+				if nk != 'V' && nk != 'C' && nk != 'O' && nk != 'P' {
+					break
+				}
+				nested = append(nested, nname)
+				probeI = nstart + nlen + 1
+			}
+			// Expect `So20NSNotificationCenterCAAE<word-sub>AA(Mc|WP)`.
+			nsLit := "So20NSNotificationCenterCAAE"
+			if probeI+len(nsLit) < len(p.s) && p.s[probeI:probeI+len(nsLit)] == nsLit &&
+				len(nested) >= 1 {
+				wsStart := probeI + len(nsLit)
+				wsEnd := len(p.s) - 4
+				if wsEnd > wsStart {
+					ws := p.s[wsStart:wsEnd]
+					var protoName string
+					switch {
+					case strings.HasPrefix(ws, "05Async") && len(ws) == 9 && ws[8] == '0':
+						protoName = "AsyncMessage"
+					case strings.HasPrefix(ws, "09MainActor") && len(ws) == 13 && ws[12] == '0':
+						protoName = "MainActorMessage"
+					}
+					if protoName != "" {
+						prefix := "protocol conformance descriptor for "
+						if p.s[len(p.s)-2:] == "WP" {
+							prefix = "protocol witness table for "
+						}
+						hostFull := modName + "." + strings.Join(nested, ".")
+						protoFull := "(extension in " + modName + "):__C.NSNotificationCenter." + protoName
+						p.i = len(p.s)
+						wrap := common.NewNode(common.KindTypeMangling)
+						wrap.Text = prefix + hostFull + " : " + protoFull + " in " + modName
+						wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
+						return wrap, true
+					}
+				}
+			}
+		}
+	}
 	// Special: `<mod>V<n><name>V[<n><name>V]*AadA(Mc|WP)` —
 	// Foundation-internal compact-substitution conformance descriptor
 	// where the protocol = second segment after the module.
