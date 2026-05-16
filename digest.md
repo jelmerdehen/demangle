@@ -1,14 +1,14 @@
 # Swift Production Digest
 
-**Parity**: 95.46% (60863/63757) — 2026-05-16T13:45:25Z
+**Parity**: 95.47% (60867/63757) — 2026-05-16T15:22:04Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 147 parse-errors + 2747 mismatches
+**Failures**: 147 parse-errors + 2743 mismatches
 
 ## Top-20 Mismatch Categories
 
 - property descriptor                        305
 - static (extension                          134
-- protocol conformance descriptor            107
+- protocol conformance descriptor            105
 - dispatch thunk                             91
 - method descriptor                          91
 - (extension in Foundation):Foundation.PredicateExpr… 85
@@ -29,19 +29,19 @@
 
 ## Last 10 Commits
 
+- fc00fa48 swift-parity: CFB Rsz same-type constraint in fast-path Mc/WP genSigPrefix — parity 95.46%->95.46% (+2 production +0 roundtrip)
+- 7c39a939 chore: defer compact-substitution-conformance-descriptor to multi-fire (deferred-1)
+- cb9d4c22 chore: lock snapshot after CFA commit (parity 60863->60865)
+- 1368faba chore: update digest.md for CFA commit (parity 95.46%->95.46% +2)
 - 17847177 swift-parity: CFA empty-tuple-args yt detection in fast-path sepCount — parity 95.46%->95.46% (+2 production +0 roundtrip)
 - 34bc9cfb chore: lock snapshot after CEZ commit (parity 60844->60863)
 - df7a0fdf chore: update digest.md for CEZ commit (parity 95.43%->95.46% +19)
 - 96a01427 swift-parity: CEZ word-sub labels in tryGlobalLastResortFastPath fnFP peek — parity 95.43%->95.46% (+19 production +0 roundtrip)
 - 81c1254f chore: plateau SOS at 95.43% — 5 consecutive zero-gain fires
 - 6e9d5f43 chore: defer publisher-encode-output-confusion to multi-fire (deferred-1)
-- 97ea3b16 chore: defer boundgen-suffix-at-deepest-nested to tier-2 multi-fire
-- 725df58a chore: defer stdlib-boundgen-conformance-suffix to multi-fire (deferred-1)
-- 0579b3b8 chore: defer objc-conformance-srcmod to multi-fire (deferred-1)
-- 8c40abad chore: lock snapshot after CEV commit (parity 60842->60844)
 
 ## Suggested Next 3 Items
 
 1. P1: property descriptor fix — 305 mismatches
 2. investigate: static (extension — 134 mismatches
-3. P2: protocol conformance descriptor — 107 mismatches
+3. P2: protocol conformance descriptor — 105 mismatches
