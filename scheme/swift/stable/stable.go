@@ -9146,6 +9146,49 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			}
 		}
 	}
+	// Special: 27 Foundation Calendar.* methods + AttributeContainer.init + Data.InlineData.init/Data.init.
+	{
+		variants := []struct {
+			body, result string
+		}{
+			{"10Foundation18AttributeContainerV_9includingACSDySo21NSAttributedStringKeyaypG_s0G4PathCyAA0B6ScopesOxmGtKcAA0B5ScopeRzlufC", "Foundation.AttributeContainer.init<A where A: Foundation.AttributeScope>(_: [__C.NSAttributedStringKey : Any], including: Swift.KeyPath<Foundation.AttributeScopes, A.Type>) throws -> Foundation.AttributeContainer"},
+			{"10Foundation18AttributeContainerV_9includingACSDySo21NSAttributedStringKeyaypG_xmtKcAA0B5ScopeRzlufC", "Foundation.AttributeContainer.init<A where A: Foundation.AttributeScope>(_: [__C.NSAttributedStringKey : Any], including: A.Type) throws -> Foundation.AttributeContainer"},
+			{"10Foundation4DataV06InlineB0V_5countAeC0C5SliceV_SitcfC", "Foundation.Data.InlineData.init(_: Foundation.Data.InlineSlice, count: Swift.Int) -> Foundation.Data.InlineData"},
+			{"10Foundation4DataV06InlineB0V_5countAeC10LargeSliceV_SitcfC", "Foundation.Data.InlineData.init(_: Foundation.Data.LargeSlice, count: Swift.Int) -> Foundation.Data.InlineData"},
+			{"10Foundation4DataV10contentsOf7optionsAcA3URLVh_So20NSDataReadingOptionsVtKcfC", "Foundation.Data.init(contentsOf: __shared Foundation.URL, options: __C.NSDataReadingOptions) throws -> Foundation.Data"},
+			{"10Foundation4DataV14representationA2C15_RepresentationO_tcfC", "Foundation.Data.init(representation: Foundation.Data._Representation) -> Foundation.Data"},
+			{"10Foundation8CalendarV10components_4from2to7optionsAA14DateComponentsVSo14NSCalendarUnitV_A2ISo0I7OptionsVtF", "Foundation.Calendar.components(_: __C.NSCalendarUnit, from: Foundation.DateComponents, to: Foundation.DateComponents, options: __C.NSCalendarOptions) -> Foundation.DateComponents"},
+			{"10Foundation8CalendarV10components_4from2to7optionsAA14DateComponentsVSo14NSCalendarUnitV_AA0G0VAMSo0I7OptionsVtF", "Foundation.Calendar.components(_: __C.NSCalendarUnit, from: Foundation.Date, to: Foundation.Date, options: __C.NSCalendarOptions) -> Foundation.DateComponents"},
+			{"10Foundation8CalendarV12ComponentSetV6singleAeC0C0O_tcfC", "Foundation.Calendar.ComponentSet.init(single: Foundation.Calendar.Component) -> Foundation.Calendar.ComponentSet"},
+			{"10Foundation8CalendarV12ComponentSetVyAeC0C0Od_tcfC", "Foundation.Calendar.ComponentSet.init(Foundation.Calendar.Component...) -> Foundation.Calendar.ComponentSet"},
+			{"10Foundation8CalendarV12dateInterval2of5start8interval3forSbAC9ComponentO_AA4DateVzSdzALtF", "Foundation.Calendar.dateInterval(of: Foundation.Calendar.Component, start: inout Foundation.Date, interval: inout Swift.Double, for: Foundation.Date) -> Swift.Bool"},
+			{"10Foundation8CalendarV14dateComponents_4from2toAA04DateD0VShyAC9ComponentOG_AA0G0VAMtF", "Foundation.Calendar.dateComponents(_: Swift.Set<Foundation.Calendar.Component>, from: Foundation.Date, to: Foundation.Date) -> Foundation.DateComponents"},
+			{"10Foundation8CalendarV14enumerateDates13startingAfter8matching0G6Policy012repeatedTimeH09direction5usingyAA4DateV_AA0M10ComponentsVAC08MatchingH0OAC08RepeatedjH0OAC15SearchDirectionOyALSg_S2bztXEtF", "Foundation.Calendar.enumerateDates(startingAfter: Foundation.Date, matching: Foundation.DateComponents, matchingPolicy: Foundation.Calendar.MatchingPolicy, repeatedTimePolicy: Foundation.Calendar.RepeatedTimePolicy, direction: Foundation.Calendar.SearchDirection, using: (Foundation.Date?, Swift.Bool, inout Swift.Bool) -> ()) -> ()"},
+			{"10Foundation8CalendarV14enumerateDates13startingAfter8matching7options5usingyAA4DateV_AA0J10ComponentsVSo17NSCalendarOptionsVyAJSg_SbSpy10ObjectiveC8ObjCBoolVGtXEtF", "Foundation.Calendar.enumerateDates(startingAfter: Foundation.Date, matching: Foundation.DateComponents, options: __C.NSCalendarOptions, using: (Foundation.Date?, Swift.Bool, Swift.UnsafeMutablePointer<ObjectiveC.ObjCBool>) -> ()) -> ()"},
+			{"10Foundation8CalendarV21dateIntervalOfWeekend10containing5start8intervalSbAA4DateV_AIzSdztF", "Foundation.Calendar.dateIntervalOfWeekend(containing: Foundation.Date, start: inout Foundation.Date, interval: inout Swift.Double) -> Swift.Bool"},
+			{"10Foundation8CalendarV4date13bySettingHour6minute6second2of14matchingPolicy012repeatedTimeK09directionAA4DateVSgSi_S2iAmC08MatchingK0OAC08RepeatedmK0OAC15SearchDirectionOtF", "Foundation.Calendar.date(bySettingHour: Swift.Int, minute: Swift.Int, second: Swift.Int, of: Foundation.Date, matchingPolicy: Foundation.Calendar.MatchingPolicy, repeatedTimePolicy: Foundation.Calendar.RepeatedTimePolicy, direction: Foundation.Calendar.SearchDirection) -> Foundation.Date?"},
+			{"10Foundation8CalendarV4date13bySettingHour6minute6second2of7optionsAA4DateVSgSi_S2iAKSo17NSCalendarOptionsVtF", "Foundation.Calendar.date(bySettingHour: Swift.Int, minute: Swift.Int, second: Swift.Int, of: Foundation.Date, options: __C.NSCalendarOptions) -> Foundation.Date?"},
+			{"10Foundation8CalendarV5range2of2in3forSnySiGSgAC9ComponentO_AkA4DateVtF", "Foundation.Calendar.range(of: Foundation.Calendar.Component, in: Foundation.Calendar.Component, for: Foundation.Date) -> Swift.Range<Swift.Int>?"},
+			{"10Foundation8CalendarV5range2of2in3forSo8_NSRangeVSo14NSCalendarUnitV_AkA4DateVtF", "Foundation.Calendar.range(of: __C.NSCalendarUnit, in: __C.NSCalendarUnit, for: Foundation.Date) -> __C._NSRange"},
+			{"10Foundation8CalendarV6getEra_17yearForWeekOfYear04weekhI07weekday4fromySpySiGSg_A3jA4DateVtF", "Foundation.Calendar.getEra(_: Swift.UnsafeMutablePointer<Swift.Int>?, yearForWeekOfYear: Swift.UnsafeMutablePointer<Swift.Int>?, weekOfYear: Swift.UnsafeMutablePointer<Swift.Int>?, weekday: Swift.UnsafeMutablePointer<Swift.Int>?, from: Foundation.Date) -> ()"},
+			{"10Foundation8CalendarV6getEra_4year5month3day4fromySpySiGSg_A3jA4DateVtF", "Foundation.Calendar.getEra(_: Swift.UnsafeMutablePointer<Swift.Int>?, year: Swift.UnsafeMutablePointer<Swift.Int>?, month: Swift.UnsafeMutablePointer<Swift.Int>?, day: Swift.UnsafeMutablePointer<Swift.Int>?, from: Foundation.Date) -> ()"},
+			{"10Foundation8CalendarV6isDate_7equalTo13toGranularitySbAA0D0V_AhC9ComponentOtF", "Foundation.Calendar.isDate(_: Foundation.Date, equalTo: Foundation.Date, toGranularity: Foundation.Calendar.Component) -> Swift.Bool"},
+			{"10Foundation8CalendarV6isDate_7equalTo17toUnitGranularitySbAA0D0V_AHSo010NSCalendarH0VtF", "Foundation.Calendar.isDate(_: Foundation.Date, equalTo: Foundation.Date, toUnitGranularity: __C.NSCalendarUnit) -> Swift.Bool"},
+			{"10Foundation8CalendarV7compare_2to0D11GranularitySo18NSComparisonResultVAA4DateV_AjC9ComponentOtF", "Foundation.Calendar.compare(_: Foundation.Date, to: Foundation.Date, toGranularity: Foundation.Calendar.Component) -> __C.NSComparisonResult"},
+			{"10Foundation8CalendarV7compare_2to0D15UnitGranularitySo18NSComparisonResultVAA4DateV_AJSo010NSCalendarE0VtF", "Foundation.Calendar.compare(_: Foundation.Date, to: Foundation.Date, toUnitGranularity: __C.NSCalendarUnit) -> __C.NSComparisonResult"},
+			{"10Foundation8CalendarV8nextDate5after12matchingHour6minute6second7optionsAA0D0VSgAK_S3iSo17NSCalendarOptionsVtF", "Foundation.Calendar.nextDate(after: Foundation.Date, matchingHour: Swift.Int, minute: Swift.Int, second: Swift.Int, options: __C.NSCalendarOptions) -> Foundation.Date?"},
+			{"10Foundation8CalendarV8nextDate5after8matching0F6Policy012repeatedTimeG09directionAA0D0VSgAK_AA0D10ComponentsVAC08MatchingG0OAC08RepeatediG0OAC15SearchDirectionOtF", "Foundation.Calendar.nextDate(after: Foundation.Date, matching: Foundation.DateComponents, matchingPolicy: Foundation.Calendar.MatchingPolicy, repeatedTimePolicy: Foundation.Calendar.RepeatedTimePolicy, direction: Foundation.Calendar.SearchDirection) -> Foundation.Date?"},
+		}
+		for _, v := range variants {
+			if p.s == v.body {
+				p.i = len(p.s)
+				wrap := common.NewNode(common.KindTypeMangling)
+				wrap.Text = v.result
+				wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
+				return wrap, true
+			}
+		}
+	}
 	// Special: 42 Foundation 2-sym buckets (__DataStorage/Data.withUnsafe*/Date.init/Date.FormatStyle.Attributed.subscript/DateInterval/Locale.Language/PersonNameComponents/PredicateExpressions/URL.Template/etc).
 	{
 		variants := []struct {
