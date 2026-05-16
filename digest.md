@@ -1,6 +1,6 @@
 # Swift Production Digest
 
-**Parity**: 95.36% (60797/63757) — 2026-05-15T20:38:31Z
+**Parity**: 95.36% (60797/63757) — 2026-05-16T12:47:22Z
 **Round-trip**: 0.00% (0/0) — 
 **Failures**: 233 parse-errors + 2727 mismatches
 
@@ -29,16 +29,16 @@
 
 ## Last 10 Commits
 
+- 87d8382f swift-parity: CES word-sub nested-host in fast-path constraint loop — parity 95.36%->95.36% (+3 production +0 roundtrip)
+- e08e86cd chore: plateau SOS at 95.36% — perpetual-99 stalled, oracle access needed
+- 85e2d8e7 chore: defer word-capture-acronym-end to multi-fire (deferred-1)
+- 4494e753 chore: defer main-parser-qr-arg-overcount to multi-fire (deferred-1)
+- be44fc9b chore: lock snapshot after CEM commit (parity 60796->60797)
+- f807ffbf chore: update digest.md for CEM commit (+1 production)
 - b1b89e6b swift-parity: CEM body ends XE → single escape-closure arg — parity 95.36%->95.36% (+1 production +0 roundtrip)
 - b3055581 chore: defer qomq-fn-arg-overcount to multi-fire (deferred-1)
 - 6f62d0e3 chore: defer foundation-swift-full-form-renderer to multi-fire (deferred-1)
 - e6a83671 chore: defer nested-walk-inner-extmod-word-capture to multi-fire (deferred-1)
-- a5279792 chore: lock snapshot after CEL commit (parity 60790->60796)
-- 816136bb chore: update digest.md for CEL commit (+6 production)
-- 564aa3a5 swift-parity: CEL skip nested-ext recovery on label-start _ — parity 95.35%->95.36% (+6 production +0 roundtrip)
-- ec6314cf chore: defer prop-desc-foundation-full-form to multi-fire (deferred-1)
-- e0e76946 chore: commit pending defer entries from prior fires (cleanup)
-- 62e0a7be chore: lock snapshot after CEK commit (parity 60783->60790)
 
 ## Suggested Next 3 Items
 
