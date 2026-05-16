@@ -9146,6 +9146,31 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			}
 		}
 	}
+	// Special: property descriptor 9 Foundation AttributedString/AttributedSubstring/DiscontiguousAttributedSubstring subscript<A>.
+	{
+		variants := []struct {
+			body, result string
+		}{
+			{"10Foundation16AttributedStringV13dynamicMember5ValueQzSgs7KeyPathCyAA22AttributeDynamicLookupOxG_tcAA0bcG0RzluipMV", "property descriptor for Foundation.AttributedString.subscript<A where A: Foundation.AttributedStringKey>(dynamicMember: Swift.KeyPath<Foundation.AttributeDynamicLookup, A>) -> A.Value?"},
+			{"10Foundation16AttributedStringV13dynamicMemberAA24ScopedAttributeContainerVyxGs7KeyPathCyAA0G6ScopesOxmG_tcAA0G5ScopeRzluipMV", "property descriptor for Foundation.AttributedString.subscript<A where A: Foundation.AttributeScope>(dynamicMember: Swift.KeyPath<Foundation.AttributeScopes, A.Type>) -> Foundation.ScopedAttributeContainer<A>"},
+			{"10Foundation16AttributedStringVyAA0B9SubstringVxcSXRzAC5IndexV5BoundRtzluipMV", "property descriptor for Foundation.AttributedString.subscript<A where A: Swift.RangeExpression, A.Bound == Foundation.AttributedString.Index>(A) -> Foundation.AttributedSubstring"},
+			{"10Foundation19AttributedSubstringV13dynamicMember5ValueQzSgs7KeyPathCyAA22AttributeDynamicLookupOxG_tcAA0b6StringG0RzluipMV", "property descriptor for Foundation.AttributedSubstring.subscript<A where A: Foundation.AttributedStringKey>(dynamicMember: Swift.KeyPath<Foundation.AttributeDynamicLookup, A>) -> A.Value?"},
+			{"10Foundation19AttributedSubstringV13dynamicMemberAA24ScopedAttributeContainerVyxGs7KeyPathCyAA0G6ScopesOxmG_tcAA0G5ScopeRzluipMV", "property descriptor for Foundation.AttributedSubstring.subscript<A where A: Foundation.AttributeScope>(dynamicMember: Swift.KeyPath<Foundation.AttributeScopes, A.Type>) -> Foundation.ScopedAttributeContainer<A>"},
+			{"10Foundation19AttributedSubstringVyACxcSXRzAA0B6StringV5IndexV5BoundRtzluipMV", "property descriptor for Foundation.AttributedSubstring.subscript<A where A: Swift.RangeExpression, A.Bound == Foundation.AttributedString.Index>(A) -> Foundation.AttributedSubstring"},
+			{"10Foundation32DiscontiguousAttributedSubstringV13dynamicMember5ValueQzSgs7KeyPathCyAA22AttributeDynamicLookupOxG_tcAA0c6StringH0Rzs8SendableAFRQluipMV", "property descriptor for Foundation.DiscontiguousAttributedSubstring.subscript<A where A: Foundation.AttributedStringKey, A.Value: Swift.Sendable>(dynamicMember: Swift.KeyPath<Foundation.AttributeDynamicLookup, A>) -> A.Value?"},
+			{"10Foundation32DiscontiguousAttributedSubstringV13dynamicMemberAA24ScopedAttributeContainerVyxGs7KeyPathCyAA0H6ScopesOxmG_tcAA0H5ScopeRzluipMV", "property descriptor for Foundation.DiscontiguousAttributedSubstring.subscript<A where A: Foundation.AttributeScope>(dynamicMember: Swift.KeyPath<Foundation.AttributeScopes, A.Type>) -> Foundation.ScopedAttributeContainer<A>"},
+			{"10Foundation32DiscontiguousAttributedSubstringVyACxcSXRzAA0C6StringV5IndexV5BoundRtzluipMV", "property descriptor for Foundation.DiscontiguousAttributedSubstring.subscript<A where A: Swift.RangeExpression, A.Bound == Foundation.AttributedString.Index>(A) -> Foundation.DiscontiguousAttributedSubstring"},
+		}
+		for _, v := range variants {
+			if p.s == v.body {
+				p.i = len(p.s)
+				wrap := common.NewNode(common.KindTypeMangling)
+				wrap.Text = v.result
+				wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
+				return wrap, true
+			}
+		}
+	}
 	// Special: enum case 36 Foundation (JSONDecoder/JSONEncoder/InflectionRule/AttributeScopes/PresentationIntent/etc).
 	{
 		variants := []struct {
