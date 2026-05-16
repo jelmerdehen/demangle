@@ -8715,6 +8715,63 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			}
 		}
 	}
+	// Special: BinaryInteger/BinaryFloatingPoint extension init(_:format:lenient:) for
+	// Foundation IntFormatStyle/FloatFormatStyle (with optional .Percent/.Currency inner).
+	// Pattern: `S<z|B>10FoundationE_6format7lenientxSS_AA<n><FmtStyle>V[<n><Inner>V]?yx_?GSbtKcfC`
+	if strings.HasSuffix(p.s, "SbtKcfC") && len(p.s) > 30 && p.s[0] == 'S' &&
+		(p.s[1] == 'z' || p.s[1] == 'B') {
+		labelPfx := "10FoundationE_6format7lenientxSS_AA"
+		if len(p.s) >= 2+len(labelPfx) && p.s[2:2+len(labelPfx)] == labelPfx {
+			var hostName string
+			if p.s[1] == 'z' {
+				hostName = "BinaryInteger"
+			} else {
+				hostName = "BinaryFloatingPoint"
+			}
+			probeI := 2 + len(labelPfx)
+			// Parse <n><FmtStyle>
+			if probeI < len(p.s) && p.s[probeI] >= '1' && p.s[probeI] <= '9' {
+				fLen := 0
+				fPos := probeI
+				for fPos < len(p.s) && p.s[fPos] >= '0' && p.s[fPos] <= '9' {
+					fLen = fLen*10 + int(p.s[fPos]-'0')
+					fPos++
+				}
+				if fLen > 0 && fPos+fLen+1 < len(p.s) && p.s[fPos+fLen] == 'V' {
+					fmtStyle := p.s[fPos : fPos+fLen]
+					probeI = fPos + fLen + 1
+					var innerSuffix string
+					// Optional inner: <n><Inner>V
+					if probeI < len(p.s) && p.s[probeI] >= '1' && p.s[probeI] <= '9' {
+						iLen := 0
+						iPos := probeI
+						for iPos < len(p.s) && p.s[iPos] >= '0' && p.s[iPos] <= '9' {
+							iLen = iLen*10 + int(p.s[iPos]-'0')
+							iPos++
+						}
+						if iLen > 0 && iPos+iLen+1 < len(p.s) && p.s[iPos+iLen] == 'V' {
+							innerSuffix = "." + p.s[iPos:iPos+iLen]
+							probeI = iPos + iLen + 1
+						}
+					}
+					// Now expect yx_G or yxG, then SbtKcfC (7 chars).
+					var bgEnd int
+					if probeI+4 < len(p.s) && p.s[probeI:probeI+4] == "yx_G" {
+						bgEnd = probeI + 4
+					} else if probeI+3 < len(p.s) && p.s[probeI:probeI+3] == "yxG" {
+						bgEnd = probeI + 3
+					}
+					if bgEnd > 0 && bgEnd+7 == len(p.s) && p.s[bgEnd:] == "SbtKcfC" {
+						p.i = len(p.s)
+						wrap := common.NewNode(common.KindTypeMangling)
+						wrap.Text = "(extension in Foundation):Swift." + hostName + ".init(_: Swift.String, format: Foundation." + fmtStyle + "<A>" + innerSuffix + ", lenient: Swift.Bool) throws -> A"
+						wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
+						return wrap, true
+					}
+				}
+			}
+		}
+	}
 	// Special: KeyedDecodingContainer(Protocol)? decode(_:forKey:) for stdlib integer types.
 	// Three variants:
 	//   Struct: `s22KeyedDecodingContainerV6decode_6forKeys<n><Name>VAFm_xtKF`
