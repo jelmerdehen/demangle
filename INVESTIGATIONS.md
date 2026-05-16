@@ -1503,3 +1503,33 @@ ContiguousArray/Set/Dictionary types conforming to DataProtocol/ContiguousBytes/
 MutableDataProtocol/Sequence etc.
 
 Reach: oracle available; parse plan known.
+
+## defer-cex-boundgen-suffix-at-deepest-nested [~10 syms, deferred-2] (2026-05-16)
+
+Tier-2 — naive placement swap regresses parity.
+
+Pattern: bound-generic typelist (Mc/WP `y _* args G`) should attach
+to the deepest nested nominal type, not the outer host.
+
+Probe sym: `_$sSo6UIViewC5UIKitE13InvalidationsO5TupleVy__xq_GAC0A12InvalidatingACMc`
+- Want: `UIView.Invalidations.Tuple<A, B>` (gen on Tuple)
+- Got:  `UIView.Invalidations.Tuple`
+
+Attempted (stable.go:9710): moved bound-gen suffix from outer host
+to last nested element when `nestedNames` is non-empty.
+Result: parity 60844 -> 60836 (regression of 8). The naive "always
+attach to last nested" rule is wrong — some hosts have nested+gen
+where Apple emits the gen on the outer host instead.
+
+Need to distinguish via SKIP-LEVEL count from CEU's bound-gen
+detector: track the leading `_` count in `y _* args G`. The skip
+level = depth at which gen applies (0=outer host, 1=first nested,
+2=second nested, etc.). Apple's tau lives at that depth.
+
+Multi-fire — needs:
+1. Extend `tryGlobalLastResortFastPath` bound-gen detection (CEU)
+   to record `skipLevels`.
+2. Apply gen suffix to `[host, nested0, nested1, ...][skipLevels]`.
+3. Audit regression set to ensure depth-0 cases still attach to host.
+
+Tier-2 because attempt regressed parity; needs careful analysis.
