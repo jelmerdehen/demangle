@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 96.03% (61229/63757) — 2026-05-16T21:11:30Z
+**Parity**: 96.05% (61239/63757) — 2026-05-16T21:14:17Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 93 parse-errors + 2435 mismatches
+**Failures**: 93 parse-errors + 2425 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- e7cb78b4 swift-parity: CHG Foundation DiscontiguousAttributedSubstring.subscript.{getter,setter,modify} 4 sig variants — parity 96.04%->96.05% (+10 production +0 roundtrip)
+- 7d0d8623 chore: lock snapshot after CHF commit (parity 61217->61229 roundtrip 21309->21309)
+- 7c47e120 chore: update digest.md for CHF commit (parity 96.02%->96.04% +12)
 - 2b535398 swift-parity: CHF Foundation AttributedString.subscript.{getter,setter,modify} 12 variants — parity 96.02%->96.04% (+12 production +0 roundtrip)
 - f2bc3ebf chore: lock snapshot after CHE commit (parity 61213->61217 roundtrip 21309->21309)
 - 909e0d7d chore: update digest.md for CHE commit (parity 96.01%->96.01% +4)
@@ -36,9 +39,6 @@
 - 36e690be chore: lock snapshot after CHD commit (parity 61209->61213 roundtrip 21309->21309)
 - 476c7568 chore: update digest.md for CHD commit (parity 96.00%->96.01% +4)
 - cabd6b4d swift-parity: CHD Swift.Range extension init(_:) 4 NSRange/Range/ClosedRange variants — parity 96.00%->96.01% (+4 production +0 roundtrip)
-- 37bfca38 chore: lock snapshot after CHC commit (parity 61205->61209 roundtrip 21309->21309)
-- 19d27a60 chore: update digest.md for CHC commit (parity 96.00%->96.00% +4)
-- 6907851e swift-parity: CHC Swift SIMD static random<A>(in:using:) 4 variants — parity 96.00%->96.00% (+4 production +0 roundtrip)
 
 ## Suggested Next 3 Items
 
