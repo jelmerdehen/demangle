@@ -20593,6 +20593,22 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 							peekI = lblStart
 							break
 						}
+						// Known module-qualifier names appearing as candidate
+						// labels are actually start of a return-type module
+						// prefix (e.g. `10Foundation05IndexH0V` = Foundation.IndexPath).
+						// Swift labels are conventionally camelCase starting
+						// lowercase; module names start uppercase. Rewind when
+						// lbl matches common module names AND peek is digit-led
+						// (next ident follows = type chain).
+						if peekI < len(p.s) &&
+							(p.s[peekI] >= '0' && p.s[peekI] <= '9') &&
+							(lbl == "Foundation" || lbl == "SwiftUI" ||
+								lbl == "UIKit" || lbl == "Combine" ||
+								lbl == "CoreGraphics" || lbl == "CoreData" ||
+								lbl == "CoreText" || lbl == "Dispatch") {
+							peekI = lblStart
+							break
+						}
 						// Capture label as word so subsequent word-sub labels can
 						// resolve their back-refs against this ident's sub-words.
 						p.captureWords(lbl)
