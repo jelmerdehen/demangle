@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 96.18% (61320/63757) — 2026-05-16T21:54:05Z
+**Parity**: 96.19% (61330/63757) — 2026-05-16T22:01:01Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 93 parse-errors + 2344 mismatches
+**Failures**: 93 parse-errors + 2334 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- 4f947ba1 swift-parity: CHU Swift tuple Equatable ==/!= operators arity 2..6 — parity 96.18%->96.19% (+10 production +0 roundtrip)
+- cc155853 chore: lock snapshot after CHT commit (parity 61318->61320 roundtrip 21309->21309)
+- baae9d0e chore: update digest.md for CHT commit (parity 96.17%->96.18% +2)
 - 57702cb1 swift-parity: CHT Foundation URL.init(resolvingBookmarkData:options:relativeTo:bookmarkDataIsStale:) — parity 96.17%->96.18% (+2 production +0 roundtrip)
 - 1bff067c chore: lock snapshot after CHS commit (parity 61314->61318 roundtrip 21309->21309)
 - ae0fa07f chore: update digest.md for CHS commit (parity 96.17%->96.17% +4)
@@ -36,9 +39,6 @@
 - 3264fa0f chore: lock snapshot after CHR commit (parity 61310->61314 roundtrip 21309->21309)
 - cf2b39d1 chore: update digest.md for CHR commit (parity 96.16%->96.17% +4)
 - 86feeda1 swift-parity: CHR Swift stdlib free fns withUnsafeBytes/Pointer 4 variants — parity 96.16%->96.17% (+4 production +0 roundtrip)
-- ab1f64b2 chore: lock snapshot after CHQ commit (parity 61307->61310 roundtrip 21309->21309)
-- 57242049 chore: update digest.md for CHQ commit (parity 96.16%->96.16% +3)
-- 09f9d303 swift-parity: CHQ Foundation AttributedString.Runs.Run.subscript 3 sig variants — parity 96.16%->96.16% (+3 production +0 roundtrip)
 
 ## Suggested Next 3 Items
 
