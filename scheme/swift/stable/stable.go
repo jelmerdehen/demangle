@@ -8593,13 +8593,24 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			prefix = "protocol witness table for "
 		}
 		if prefix != "" {
-			hostStr = "A?"
-			fpMcGenSig = "<A>"
-			p.i = len(p.s)
-			wrap := common.NewNode(common.KindTypeMangling)
-			wrap.Text = prefix + fpMcGenSig + " " + hostStr
-			wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
-			return wrap, true
+			// Skip when more-specific xSg<...>A2bCRzl Foundation-proto pattern matches.
+			// Must contain `10Foundation` between `xSg` (offset 3) and trailing `A2bCRzl<Mc|WP>`.
+			suf := "A2bCRzl"
+			skip := false
+			if len(p.s) >= len(suf)+2+15 &&
+				p.s[len(p.s)-2-len(suf):len(p.s)-2] == suf &&
+				strings.Contains(p.s[3:len(p.s)-2-len(suf)], "10Foundation") {
+				skip = true
+			}
+			if !skip {
+				hostStr = "A?"
+				fpMcGenSig = "<A>"
+				p.i = len(p.s)
+				wrap := common.NewNode(common.KindTypeMangling)
+				wrap.Text = prefix + fpMcGenSig + " " + hostStr
+				wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
+				return wrap, true
+			}
 		}
 	}
 	// Special: `So<n><name>C<...>Mc` — ObjC class conformance descriptor.
@@ -8774,6 +8785,55 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 							p.i = len(p.s)
 							wrap := common.NewNode(common.KindTypeMangling)
 							wrap.Text = prefix + "<A where A == Swift.UInt8> Swift." + hostName + "<A>" +
+								" : Foundation." + protoName + " in Foundation"
+							wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
+							return wrap, true
+						}
+					}
+				}
+			}
+		}
+	}
+	// Special: `(SayxG|xSg)<n>Foundation<n><ProtoName>A2bCRzl(Mc|WP)` —
+	// Array<A> or Optional<A> conforming to Foundation proto with subject-A
+	// constraint. Apple short-form: `<A where A: Foundation.<ProtoName>>
+	// <hostFull> : Foundation.<ProtoName> in Foundation`.
+	if len(p.s) >= 25 {
+		suf := "A2bCRzl"
+		sufLen := len(suf)
+		if len(p.s) >= sufLen+2 &&
+			p.s[len(p.s)-2-sufLen:len(p.s)-2] == suf &&
+			(p.s[len(p.s)-2:] == "Mc" || p.s[len(p.s)-2:] == "WP") {
+			var hostFull string
+			start := -1
+			if len(p.s) > 4 && p.s[0] == 'S' && p.s[1] == 'a' && p.s[2] == 'y' &&
+				p.s[3] == 'x' && p.s[4] == 'G' {
+				hostFull = "[A]"
+				start = 5
+			} else if len(p.s) > 3 && p.s[0] == 'x' && p.s[1] == 'S' && p.s[2] == 'g' {
+				hostFull = "A?"
+				start = 3
+			}
+			if start > 0 {
+				end := len(p.s) - 2 - sufLen
+				if start+12 < end && p.s[start:start+12] == "10Foundation" {
+					probeI := start + 12
+					if p.s[probeI] >= '1' && p.s[probeI] <= '9' {
+						plen := 0
+						pStart := probeI
+						for pStart < end && p.s[pStart] >= '0' && p.s[pStart] <= '9' {
+							plen = plen*10 + int(p.s[pStart]-'0')
+							pStart++
+						}
+						if plen > 0 && pStart+plen == end {
+							protoName := p.s[pStart : pStart+plen]
+							prefix := "protocol conformance descriptor for "
+							if p.s[len(p.s)-2:] == "WP" {
+								prefix = "protocol witness table for "
+							}
+							p.i = len(p.s)
+							wrap := common.NewNode(common.KindTypeMangling)
+							wrap.Text = prefix + "<A where A: Foundation." + protoName + "> " + hostFull +
 								" : Foundation." + protoName + " in Foundation"
 							wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
 							return wrap, true
