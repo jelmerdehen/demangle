@@ -33,10 +33,22 @@ compositional type renderer from `verbose-form-nested-host`
       `fpVerboseFormRetTypeBytes`. Trace-verified: `localizedName` →
       span `2ofS2SAAE8EncodingV_t`; `enumerateLines` → span
       `8invokingyySS_Sbztc_t`. Emit branch is P2. Smoke green, +0.
-- [ ] **P2 — simple-param rendering**: render parameters whose types
-      are plain stdlib substitutions (`Si`, `Sb`, `SS`, `Sd`...) —
-      `(label: Type, ...)`. Land functions whose params + result are
-      all simple. First parity wins.
+- [ ] **P2 — function-type rendering**: decoded from the Apple
+      `--expand` tree (fire-9). The captured span is
+      `<labels><result-type><arg-tuple>`:
+      - labels: leading `<n><name>` run (e.g. `2to`); ends at the first
+        non-digit.
+      - result type: exactly one type (`Function` tree has `ReturnType`
+        *first* in the mangling — `Sb` for `canBeConverted`).
+      - arg-tuple: the remainder — tuple elements, `_`-separated,
+        `t`-terminated (`SSAAE8EncodingV_t` = one element
+        `SSAAE8EncodingV`).
+      Render: `[static ]<hostStr>.<decl>(<label>: <argType>, ...) -> <resultType>`.
+      Reuse the compositional type renderer for each arg/result type
+      (simple stdlib `S<x>`, single-level extension-nested
+      `SS…AAE…V`, nested host). Land the tractable cluster first:
+      `canBeConverted`, `lengthOfBytes` (single extension-nested arg,
+      simple result). Bail (no emit) on closures / generics / variadic.
 - [ ] **P3 — extension-nested param/result types**: route
       extension-nested param/result types through the compositional
       renderer. Lands the `localizedName`-style cross-module funcs.
