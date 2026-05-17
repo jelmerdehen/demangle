@@ -53,9 +53,23 @@ compositional type renderer from `verbose-form-nested-host`
       `fpVerboseRenderTypeAt`, scoped to single-labelled-param,
       bare-stdlib (`S<x>`) result. Multi-arg / no-label / longer result
       types still fall through — widening is the next step.
-- [ ] **P3 — extension-nested param/result types**: route
-      extension-nested param/result types through the compositional
-      renderer. Lands the `localizedName`-style cross-module funcs.
+- [ ] **P3 — multi-arg / no-label / compact forms**: decoded from the
+      Apple `--expand` tree (fire-11). Three encoding facts beyond P2:
+      - **`y` prefix** = empty LabelList (no parameter labels). When
+        labels are present there is no `y`. A `_` label byte =
+        `FirstElementMarker` (an unlabelled first param, printed `_:`).
+      - **compact `S<N><letter>`** = N consecutive `S<letter>` types,
+        e.g. `S2S` = `SS SS` (String, String). The function type's
+        leading types (result first, then args) share one compact run:
+        `S2S…` = result String + arg-0 String/String-prefixed. Expand
+        compact runs before splitting result vs args.
+      - **multi-element arg tuple** = `<elem0>_<elem1>…t`, elements
+        `_`-separated. Single unlabelled arg is NOT tuple-wrapped
+        (ArgumentTuple is the type directly); 1+ labelled or 2+ args
+        are `Tuple`-wrapped.
+      Implementation: make `fpVerboseRenderTypeAt` return the consumed
+      end offset; loop the arg tuple element-by-element matching the
+      label list. Bail on closures / generics / variadic.
 - [ ] **P4 — closure params + throws/inout/async**: render
       closure-typed params `((X) throws -> Y)`, `inout`, `throws`,
       `async` markers.
@@ -73,6 +87,8 @@ compositional type renderer from `verbose-form-nested-host`
   --expand tree; wrote the P2 spec.
 - 2026-05-17 fire-10: P2 shipped (CKL, +2) — single-labelled-param
   function verbose form via fpVerboseFunctionText / fpVerboseRenderTypeAt.
+- 2026-05-17 fire-11: decoded multi-arg / no-label / compact-form
+  encoding from the Apple --expand tree; wrote the P3 spec.
 
 ## Failed attempts
 
