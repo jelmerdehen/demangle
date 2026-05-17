@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- e4ed7cd6 chore: lock snapshot after CJV-real commit (parity 61973->61974 roundtrip 21314->21314)
+- 458c7944 chore: update digest.md for CJV-real commit (parity 97.20%->97.20% +1)
+- f27cc29c swift-parity: CJV-real Tn assoc-conformance handles mod+name constraint without kind byte (parity 97.20%->97.20% +1 production +0 roundtrip)
 - aa005e6d chore: lock snapshot after CJU-real commit (parity 61973->61973 roundtrip 21313->21314)
 - 797c545f chore: update digest.md for CJU-real commit (parity 97.20%->97.20% +0 roundtrip +1)
 - 392d20ef swift-parity: CJU-real Swift-module fast-path accepts x/q after E (parity 97.20%->97.20% +0 production +1 roundtrip)
@@ -36,9 +39,6 @@
 - f3c201f9 chore: update digest.md for CJT-real commit (parity 97.20%->97.20% +0 roundtrip +1)
 - 4d8e30ef swift-parity: CJT-real Swift-module fast-path accepts A after E (parity 97.20%->97.20% +0 production +1 roundtrip)
 - 23dff1c3 chore: lock snapshot after CJS-real commit (parity 61972->61973 roundtrip 21311->21312)
-- a7d80102 chore: update digest.md for CJS-real commit (parity 97.20%->97.20% +1)
-- 664c9e3c swift-parity: CJS-real Tb base-conformance-descriptor accepts word-sub protocol name (parity 97.20%->97.20% +1 production +1 roundtrip)
-- c08df774 chore: lock snapshot after CJR-real commit (parity 61971->61972 roundtrip 21309->21311)
 
 ## Suggested Next 3 Items
 
