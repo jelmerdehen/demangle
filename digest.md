@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 97.34% (62058/63757) — 2026-05-17T19:34:03Z
-**Round-trip**: 33.43% (21316/63757) — 2026-05-17T19:33:05.220831Z
-**Failures**: 89 parse-errors + 1610 mismatches
+**Parity**: 97.34% (62060/63757) — 2026-05-17T19:50:59Z
+**Round-trip**: 33.43% (21316/63757) — 2026-05-17T19:50:21.945983Z
+**Failures**: 89 parse-errors + 1608 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,16 +29,16 @@
 
 ## Last 10 Commits
 
+- 5adb8a6c swift-parity: CKL function-verbose-form P2 — single-param function verbose form — parity 97.33%->97.33% +2 production +0 roundtrip
+- 5cd4990d chore: plan-function-verbose-form decode function-type encoding from oracle tree — P2 spec (parity +0)
+- 6c95a3be chore: plan-function-verbose-form-P1 isFn detection + FZ terminal (parity +0)
+- 556d60cd plan: fork function-verbose-form from verbose-form-nested-host P4 (function/init signature rendering, ~+150P)
+- 523a6b44 chore: plan-verbose-form-nested-host — drop P3 (+0, no qualifying syms), refine P4 functions scope (parity +0)
+- 5637784f chore: lock snapshot after CKK commit (parity 62054->62058 roundtrip 21316->21316)
+- 4f1d6806 chore: update digest.md for CKK commit (parity 97.33%->97.33% +4)
 - 95a03cc6 swift-parity: CKK verbose-form-nested-host P2 — compositional nested-host renderer — parity 97.33%->97.33% +4 production +0 roundtrip
 - 5d33593f chore: plan-verbose-form-nested-host P2 blocked on parseType extension-nested gap — re-scoped + failed-attempt logged (parity +0)
 - 210e1051 chore: plan-verbose-form-nested-host-P1 nested-host detection (parity +0)
-- aa6f092b plan: fork verbose-form-nested-host (verbose-form phase 2 — nested host, Optional retType, functions)
-- 91a31a36 chore: lock snapshot after CKJ commit (parity 62050->62054 roundtrip 21316->21316)
-- 71e01092 chore: update digest.md for CKJ commit (parity 97.32%->97.33% +4)
-- 63f339a1 swift-parity: CKJ verbose-form-printer P5 — cross-module retType extension-nested nominal renderer — parity 97.32%->97.33% +4 production +0 roundtrip
-- 981434ce chore: rebuild snapshot on kodo (drop 8 phantom passes from lux snapshot)
-- 0d33151c chore: retarget harness paths for kodo (--repo flag + repo-relative probe)
-- 4aaac151 chore: drop /loop wrapper from goal invoke instructions (/goal runs standalone)
 
 ## Suggested Next 3 Items
 
