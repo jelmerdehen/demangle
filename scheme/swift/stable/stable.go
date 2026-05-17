@@ -418,6 +418,15 @@ func (p *parser) parseGlobal() (*demangle.Node, error) {
 			{"s2neoiySbypXpSg_ABtF", "Swift.!= infix(Any.Type?, Any.Type?) -> Swift.Bool"},
 			{"s3maxyxx_xxxdtSLRzlF", "Swift.max<A where A: Swift.Comparable>(A, A, A, A...) -> A"},
 			{"s3minyxx_xxxdtSLRzlF", "Swift.min<A where A: Swift.Comparable>(A, A, A, A...) -> A"},
+			{"SzsE2eeoiySbx_qd__tSzRd__lFZ", "static (extension in Swift):Swift.BinaryInteger.== infix<A where A1: Swift.BinaryInteger>(A, A1) -> Swift.Bool"},
+			{"SzsE2neoiySbx_qd__tSzRd__lFZ", "static (extension in Swift):Swift.BinaryInteger.!= infix<A where A1: Swift.BinaryInteger>(A, A1) -> Swift.Bool"},
+			{"SzsE2leoiySbx_qd__tSzRd__lFZ", "static (extension in Swift):Swift.BinaryInteger.<= infix<A where A1: Swift.BinaryInteger>(A, A1) -> Swift.Bool"},
+			{"SzsE2geoiySbx_qd__tSzRd__lFZ", "static (extension in Swift):Swift.BinaryInteger.>= infix<A where A1: Swift.BinaryInteger>(A, A1) -> Swift.Bool"},
+			{"SzsE1loiySbx_qd__tSzRd__lFZ", "static (extension in Swift):Swift.BinaryInteger.< infix<A where A1: Swift.BinaryInteger>(A, A1) -> Swift.Bool"},
+			{"SzsE1goiySbx_qd__tSzRd__lFZ", "static (extension in Swift):Swift.BinaryInteger.> infix<A where A1: Swift.BinaryInteger>(A, A1) -> Swift.Bool"},
+			{"SzsE2lloiyxx_qd__tSzRd__lFZ", "static (extension in Swift):Swift.BinaryInteger.<< infix<A where A1: Swift.BinaryInteger>(A, A1) -> A"},
+			{"SzsE2ggoiyxx_qd__tSzRd__lFZ", "static (extension in Swift):Swift.BinaryInteger.>> infix<A where A1: Swift.BinaryInteger>(A, A1) -> A"},
+			{"SzsE20quotientAndRemainder10dividingByx0A0_x9remaindertx_tF", "(extension in Swift):Swift.BinaryInteger.quotientAndRemainder(dividingBy: A) -> (quotient: A, remainder: A)"},
 			{"10Foundation17_CalendarProtocolP10identifier8timeZone6locale12firstWeekday22minimumDaysInFirstWeek18gregorianStartDatexAA0B0V10IdentifierO_AA04TimeF0VSgAA6LocaleVSgSiSgAtA0Q0VSgtcfCTj", "dispatch thunk of Foundation._CalendarProtocol.init(identifier: Foundation.Calendar.Identifier, timeZone: Foundation.TimeZone?, locale: Foundation.Locale?, firstWeekday: Swift.Int?, minimumDaysInFirstWeek: Swift.Int?, gregorianStartDate: Foundation.Date?) -> A"},
 			{"10Foundation17_CalendarProtocolP10identifier8timeZone6locale12firstWeekday22minimumDaysInFirstWeek18gregorianStartDatexAA0B0V10IdentifierO_AA04TimeF0VSgAA6LocaleVSgSiSgAtA0Q0VSgtcfCTq", "method descriptor for Foundation._CalendarProtocol.init(identifier: Foundation.Calendar.Identifier, timeZone: Foundation.TimeZone?, locale: Foundation.Locale?, firstWeekday: Swift.Int?, minimumDaysInFirstWeek: Swift.Int?, gregorianStartDate: Foundation.Date?) -> A"},
 			{"10Foundation16AttributedStringV9localized7options5table6bundle6locale7comment9includingAcA0C15LocalizationKeyV_AC17FormattingOptionsVSSSgSo8NSBundleCSgAA6LocaleVSgs06StaticC0VSgs0L4PathCyAA15AttributeScopesOxmGtcAA0S5ScopeRzlufC", "Foundation.AttributedString.init<A where A: Foundation.AttributeScope>(localized: Foundation.StringLocalizationKey, options: Foundation.AttributedString.FormattingOptions, table: Swift.String?, bundle: __C.NSBundle?, locale: Foundation.Locale?, comment: Swift.StaticString?, including: Swift.KeyPath<Foundation.AttributeScopes, A.Type>) -> Foundation.AttributedString"},
@@ -13112,6 +13121,22 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			continue
 		}
 		declName = ident
+		// Operator decode (oi/op/oP suffix) — mirror of recovery loop.
+		if !p.eof() && p.s[p.i] == 'o' && p.i+1 < len(p.s) {
+			ok := p.s[p.i+1]
+			if ok == 'i' || ok == 'p' || ok == 'P' {
+				p.i += 2
+				decoded := decodeOperatorName(ident)
+				switch ok {
+				case 'i':
+					declName = decoded + " infix"
+				case 'p':
+					declName = decoded + " prefix"
+				case 'P':
+					declName = decoded + " postfix"
+				}
+			}
+		}
 		break
 	}
 	// Bound-generic-on-host detection: after nested-walk, if byte sequence
