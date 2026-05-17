@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- c4b18088 swift-parity: CKD-real StringProtocol ops pre-parse table (parity 97.24%->97.25% +8 production +0 roundtrip)
+- 6fdbdfa8 chore: lock snapshot after CKC-real commit (parity 61986->61995 roundtrip 21316->21316)
+- ff59e0d2 chore: update digest.md for CKC-real commit (parity 97.22%->97.24% +9)
 - 2b5878f3 swift-parity: CKC-real BinaryInteger ops fast-path operator decode + pre-parse table (parity 97.22%->97.24% +9 production +0 roundtrip)
 - 133d98df chore: lock snapshot after CKB-real commit (parity 61984->61986 roundtrip 21316->21316)
 - 230228f1 chore: update digest.md for CKB-real commit (parity 97.22%->97.22% +2)
@@ -36,9 +39,6 @@
 - f08de2cf chore: lock snapshot after CKA-real commit (parity 61981->61984 roundtrip 21318->21316)
 - 078c8334 chore: update digest.md for CKA-real commit (parity 97.22%->97.22% +3 roundtrip -2)
 - ef0ab0ed swift-parity: CKA-real bypass non-Foundation fast-path for cross-module-into-Foundation extensions (parity 97.22%->97.22% +3 production -2 roundtrip)
-- c4eca282 chore: lock snapshot after CJZ-real commit (parity 61978->61981 roundtrip 21316->21318)
-- 95f3bf6e chore: update digest.md for CJZ-real commit (parity 97.21%->97.22% +3 roundtrip +2)
-- 6f5ee64b swift-parity: CJZ-real extend pre-parse literal table (Calendar init Tj/Tq + AttributedString init) (parity 97.21%->97.22% +3 production +2 roundtrip)
 
 ## Suggested Next 3 Items
 
