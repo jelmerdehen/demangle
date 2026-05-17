@@ -13671,13 +13671,21 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 		if isStatic && bodyEnd >= 1 {
 			bodyEnd--
 		}
-		// Async marker `Ya` precedes F: strip if present.
-		if bodyEnd >= 2 && body[bodyEnd-2] == 'Y' && body[bodyEnd-1] == 'a' {
-			bodyEnd -= 2
-		}
-		// Throws marker `K` precedes F: strip if present.
-		if bodyEnd >= 1 && body[bodyEnd-1] == 'K' {
-			bodyEnd--
+		// Async/throws markers `Ya` and `K` can stack as `YaK` or `KYa`;
+		// strip iteratively to handle both orderings before tuple-end strip.
+		for {
+			stripped := false
+			if bodyEnd >= 2 && body[bodyEnd-2] == 'Y' && body[bodyEnd-1] == 'a' {
+				bodyEnd -= 2
+				stripped = true
+			}
+			if bodyEnd >= 1 && body[bodyEnd-1] == 'K' {
+				bodyEnd--
+				stripped = true
+			}
+			if !stripped {
+				break
+			}
 		}
 		// Single-arg escape-closure detection: body ends `XE` directly
 		// (NO trailing `t` before F). Multi-arg fns end `XEt` (outer
