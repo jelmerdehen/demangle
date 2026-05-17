@@ -2113,3 +2113,27 @@ that downstream tryFunctionEntity exploits to produce verbose form for
 inits/methods on host types that ALSO have inner-ext-marker params.
 Decoupling needs the verbose-form generator promoted out of the
 extension fallthrough path.
+
+### inner-AE-in-constraint-type-confuses-eAt-scanner [5+ syms, deferred-2]
+
+Body: `_$s7SwiftUI8GroupBoxVA2A0cD18StyleConfigurationV5LabelVRszAE7ContentVRs_rlEyACyAgIGAEcfC`
+- got: `GroupBox<A>.Content.init(_:)`
+- want: `GroupBox<>.init(_:)`
+
+Affects: GroupBox, Label, Menu, LabeledContent — SwiftUI Style configurations
+where a constraint references nested type via `A E <n><name>V` syntax
+(extension marker for substituted host's nested type, inside a Rsz same-
+type constraint expression). Pattern: `Rsz A E <type>V Rs_ rl E <entity>`.
+
+The A-branch eAt scanner at stable.go:12914 grabs the FIRST E (the inner
+one in `AE7ContentV`) instead of the OUTER entity-level E after `rl`.
+This causes fpConstraintBytes to truncate before `rl`, so fast-path emits
+`<A>` (Rsz-only branch) instead of `<>` (rl branch). Also pulls `Content`
+into nestedNames via subsequent nested-walk.
+
+Tried: skip E if preceded by uppercase letter. Parity -23, roundtrip -56.
+Many real extensions have A-preceding-E patterns legitimately.
+
+Defer reason: need depth-aware scanner that tracks constraint vs type-
+expression context to distinguish inner-AE-as-type-ref vs outer-E-as-
+entity. Single-fire scope insufficient.
