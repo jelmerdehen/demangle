@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 97.21% (61975/63757) — 2026-05-17T06:57:19Z
+**Parity**: 97.21% (61976/63757) — 2026-05-17T07:05:15Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 89 parse-errors + 1693 mismatches
+**Failures**: 89 parse-errors + 1692 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- 304f98e6 chore: lock snapshot after CJX-real commit (parity 61975->61976 roundtrip 21314->21314)
+- f7e6aa45 chore: update digest.md for CJX-real commit (parity 97.20%->97.21% +1)
+- 7ea68ea0 swift-parity: CJX-real E-scanner skips S<letter> stdlib subs (parity 97.20%->97.21% +1 production +0 roundtrip)
 - ca91692e chore: lock snapshot after CJW-real commit (parity 61974->61975 roundtrip 21314->21314)
 - 66a472f7 chore: update digest.md for CJW-real commit (parity 97.20%->97.20% +1)
 - 7319ea00 swift-parity: CJW-real Tn assoc-conformance loops past 2 segments (parity 97.20%->97.20% +1 production +0 roundtrip)
@@ -36,9 +39,6 @@
 - 458c7944 chore: update digest.md for CJV-real commit (parity 97.20%->97.20% +1)
 - f27cc29c swift-parity: CJV-real Tn assoc-conformance handles mod+name constraint without kind byte (parity 97.20%->97.20% +1 production +0 roundtrip)
 - aa005e6d chore: lock snapshot after CJU-real commit (parity 61973->61973 roundtrip 21313->21314)
-- 797c545f chore: update digest.md for CJU-real commit (parity 97.20%->97.20% +0 roundtrip +1)
-- 392d20ef swift-parity: CJU-real Swift-module fast-path accepts x/q after E (parity 97.20%->97.20% +0 production +1 roundtrip)
-- 7b438e87 chore: lock snapshot after CJT-real commit (parity 61973->61973 roundtrip 21312->21313)
 
 ## Suggested Next 3 Items
 
