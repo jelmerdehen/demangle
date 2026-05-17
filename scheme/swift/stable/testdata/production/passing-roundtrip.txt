@@ -1,4 +1,4 @@
-# snapshot-pass-set update 2026-05-17T06:23:19Z — union with previous (high-water)
+# snapshot-pass-set update 2026-05-17T06:28:48Z — union with previous (high-water)
 _$s10Foundation10CocoaErrorV03_nsC0ACSo7NSErrorC_tcfC
 _$s10Foundation10CocoaErrorV14stringEncodingSSAAE0E0VSgvg
 _$s10Foundation10CocoaErrorV14stringEncodingSSAAE0E0VSgvpMV
@@ -20330,6 +20330,7 @@ _$ss5SliceVsSMRzrlEyAByxGSny5IndexQzGcipMV
 _$ss5SliceVsSMRzrlEyAByxGSny5IndexQzGcis
 _$ss5SliceVsSmRzrlE15replaceSubrange_4withySny5IndexQzG_qd__tSlRd__7ElementQyd__AHRtzlF
 _$ss5SliceVsSmRzrlE6insert10contentsOf2atyqd___5IndexQztSlRd__7ElementQyd__AHRtzlF
+_$ss5SliceVsSmRzrlEAByxGycfC
 _$ss5SliceVsSmRzrlEyAByxGqd__cSTRd__7ElementQyd__ADRtzlufC
 _$ss5SliceVyxG10Foundation12DataProtocolA2dERzrlMc
 _$ss5SliceVyxG10Foundation12DataProtocolA2dERzrlWP
