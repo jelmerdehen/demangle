@@ -42,7 +42,7 @@ Apple's verbose form:
       to produce `< where A: ...>` clause. Store in local
       `fpVerboseConstraint string`.
 
-- [ ] **P4 — emit branch wiring**: in the `isPropAcc` / `isFn` emit
+- [x] **P4 — emit branch wiring** (2026-05-17): in the `isPropAcc` / `isFn` emit
       branches (around stable.go:14115 / 14146), check
       `fpVerboseFormCandidate`. If set, emit:
       - PropAcc: `(extension in <mod>):Swift.<host><sig>.<decl>.<acc> : <retType>`
@@ -74,6 +74,14 @@ Apple's verbose form:
   formatted ` where A: ...` clause. Verified for SN ClosedRange sample:
   sig=`< where A: Swift.Strideable, A.Stride: Swift.SignedInteger>`.
   Smoke green, parity unchanged (62050).
+- 2026-05-17: P4 shipped. Wired verbose-form override into isPropAcc /
+  isPropDesc branches at stable.go:14305+. Uses subsidiary parseType
+  call (save/restore state) to render retType from retTypeBytes.
+  Safety: only fires when parseType fully consumes retTypeBytes
+  (partial consumption indicates nested-ext shape not yet handled).
+  Initial broad scope regressed -2; narrowing to full-consumption
+  recovered parity (62050 = baseline). P5 will expand retType
+  renderer to handle nested-extension types.
 
 ## Failed attempts
 

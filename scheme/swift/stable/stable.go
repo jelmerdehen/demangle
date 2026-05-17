@@ -14304,6 +14304,44 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 		}
 		text = staticPfx + hostStr + nameOut + localGen + labelStr
 	}
+	// P4: Verbose-form override for stdlib-host + ext property accessors
+	// / property descriptors. See plans/verbose-form-printer.md. Only
+	// applies when we have a clean candidate AND can parse the retType.
+	if fpVerboseFormCandidate && (isPropAcc || isPropDesc) && !isSubscript {
+		retOff := strings.Index(p.s, fpVerboseFormRetTypeBytes)
+		if retOff >= 0 && fpVerboseFormRetTypeBytes != "" {
+			saveI, saveSubs, saveWords := p.i, p.subs, p.words
+			p.i = retOff
+			retNode, retErr := p.parseType()
+			postI := p.i
+			// Restore state — emit-only side effect.
+			p.i, p.subs, p.words = saveI, saveSubs, saveWords
+			// Only proceed if parseType consumed ALL of retTypeBytes.
+			// Partial consumption means we missed nested extension types.
+			retEnd := retOff + len(fpVerboseFormRetTypeBytes)
+			if retErr == nil && retNode != nil && postI == retEnd {
+				retStr := common.Print(retNode, common.DefaultPrintOptions())
+				if retStr != "" && !strings.HasPrefix(retStr, "<<") {
+					hostName := ""
+					if std, hOk := common.BuildStdlibNominal(fpVerboseFormHostLetter); hOk &&
+						len(std.Children) > 0 && len(std.Children[0].Children) > 1 {
+						hostName = std.Children[0].Children[1].Text
+					}
+					if hostName != "" {
+						newText := "(extension in " + fpVerboseFormExtMod + "):Swift." + hostName +
+							fpVerboseFormConstraintSig + "." + fpVerboseFormDeclName
+						if isPropAcc {
+							newText += fpVerboseFormAccessor + " : " + retStr
+						} else {
+							// isPropDesc
+							newText = "property descriptor for " + newText + " : " + retStr
+						}
+						text = newText
+					}
+				}
+			}
+		}
+	}
 	if isQOMQ {
 		text = "opaque type descriptor for <<opaque return type of " + text + ">>"
 	}

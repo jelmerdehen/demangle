@@ -32,7 +32,7 @@ Each fire:
 
 | Plan | File | Status | Last touched |
 |------|------|--------|--------------|
-| verbose-form printer | plans/verbose-form-printer.md | P4 pending | 2026-05-17 |
+| verbose-form printer | plans/verbose-form-printer.md | P5 pending | 2026-05-17 |
 
 ## Closed plans
 
