@@ -18101,6 +18101,58 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 			break
 		}
 	}
+	// Bail-out: when declName was set by the nested-walk AND constraintBytes
+	// have a function-body labels pattern (2+ digit-led identifiers not
+	// followed by V/C/O/P/E) AND lack any real R-constraint marker, this is
+	// not actually an extension entity — the E scanner matched on an inner
+	// AE substitution chain inside a parameter type. Restore and let the
+	// function-entity path handle it.
+	if declName != "" && len(nestedTypesSuffix) == 0 {
+		// Scan constraintBytes for the labels-pattern.
+		labelLikeCount := 0
+		hasRConstraint := false
+		i := 0
+		for i < len(constraintBytes) {
+			c := constraintBytes[i]
+			if c == 'R' && i+1 < len(constraintBytes) {
+				switch constraintBytes[i+1] {
+				case 'p', 'b', 's', 'z', 'm', 'j', 'd', 'l', 't':
+					hasRConstraint = true
+				}
+			}
+			if c == 'r' && i+1 < len(constraintBytes) {
+				// Lowercase r<digit>_l = local generic sig — real constraint.
+				nb := constraintBytes[i+1]
+				if (nb >= '0' && nb <= '9') || nb == 'l' {
+					hasRConstraint = true
+				}
+			}
+			if c >= '1' && c <= '9' {
+				lenStart := i
+				for i < len(constraintBytes) && constraintBytes[i] >= '0' && constraintBytes[i] <= '9' {
+					i++
+				}
+				n := 0
+				for _, d := range constraintBytes[lenStart:i] {
+					n = n*10 + int(d-'0')
+				}
+				i += n
+				if i >= len(constraintBytes) {
+					break
+				}
+				nb := constraintBytes[i]
+				if nb != 'V' && nb != 'C' && nb != 'O' && nb != 'P' && nb != 'E' {
+					labelLikeCount++
+				}
+				continue
+			}
+			i++
+		}
+		if labelLikeCount >= 2 && !hasRConstraint {
+			restore()
+			return nil, false, nil
+		}
+	}
 	// Inner-extension detection: when the nested-type loop exits with no declName
 	// but there is another extension context encoded before the actual decl name
 	// (e.g. FormatStyle nested inside Measurement with its own constraint sig),
