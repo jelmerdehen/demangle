@@ -13032,13 +13032,15 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 	} else if p.s[p.i] == 's' {
 		// Swift module marker. Skip past constraint bytes until E followed
 		// by digit (decl-name), `y` (direct entity body), `_` (init
-		// underscore label-leader), or `A` (init-return-type via sub-ref).
+		// underscore label-leader), `A` (init-return-type via sub-ref),
+		// or `x`/`q` (generic-param-typed return).
 		p.i++ // consume 's'
 		eAt := -1
 		for k := p.i; k < len(p.s)-1 && k < p.i+120; k++ {
 			if p.s[k] == 'E' && k+1 < len(p.s) &&
 				((p.s[k+1] >= '0' && p.s[k+1] <= '9') ||
-					p.s[k+1] == 'y' || p.s[k+1] == '_' || p.s[k+1] == 'A') {
+					p.s[k+1] == 'y' || p.s[k+1] == '_' ||
+					p.s[k+1] == 'A' || p.s[k+1] == 'x' || p.s[k+1] == 'q') {
 				eAt = k
 				break
 			}
