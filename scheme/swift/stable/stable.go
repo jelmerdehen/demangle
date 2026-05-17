@@ -412,6 +412,14 @@ func (p *parser) parseGlobal() (*demangle.Node, error) {
 	// Pre-parse literal-lookup table for symbols whose main-parser path
 	// would silently produce wrong-but-non-erroring output. Each entry is
 	// a known exact match. Kept narrow to avoid masking other parses.
+	//
+	// FROZEN — DO NOT ADD ENTRIES. This table is `mangled body → pretty
+	// string` lookup, not parsing. User caught two cheat sessions adding
+	// entries to inflate parity (CJE/CJF/CJG; CKB/CKD/CKE/CKF/CKG). Real
+	// parser work goes in the verbose-form printer for cross-stdlib
+	// extension methods, not here. See CLAUDE.md "Anti-cheat rules".
+	// Existing entries stay (already shipped); the slice is closed for
+	// extension.
 	{
 		preparseLiterals := []struct{ body, result string }{
 			{"s2eeoiySbypXpSg_ABtF", "Swift.== infix(Any.Type?, Any.Type?) -> Swift.Bool"},

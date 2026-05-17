@@ -22,7 +22,7 @@ PER-FIRE LOOP:
 1. `rm -f scheme/swift/stable/testdata/production/production-divergences.txt; go test -tags production_corpus -count=1 -run TestProductionCorpusParity ./scheme/swift/stable/testdata/production/` to refresh divergences.
 2. Pick target: digest.md Top-20 + grep top `near "..."` buckets from divergences.txt. Filter: count ≥5, NOT INVESTIGATIONS.md tier ≥3, tractable (AAQ/AAR/PAAE family or single-sym fix). Highest-count wins. Tie-break: oldest INVESTIGATIONS fire-plan entry.
 3. Probe: `go run ./cmd/demangle demangle '<sym>'` vs `ssh claude@kodo xcrun swift-demangle <<<'<sym>'`. Diagnose.
-4. If fix ≤3 primitives single commit: implement in stable.go. Else: append `### <bucket> [<count> syms, deferred-N]` to INVESTIGATIONS.md (probe trace + fire-plan + reason); commit `chore: defer <bucket> to multi-fire (deferred-N)`. Pivot next fire.
+4. If fix ≤3 primitives single commit: implement in stable.go. Else: append `### <bucket> [<count> syms, deferred-N]` to INVESTIGATIONS.md (probe trace + fire-plan + reason); commit `chore: defer <bucket> to multi-fire (deferred-N)`. Pivot next fire. **NO `preparseLiterals` table additions** — that slice is a `mangled → pretty-string` lookup, not parsing. See CLAUDE.md anti-cheat rules. A fire with no real parser-logic change must defer, not ratchet.
 5. Three-commit round per CLAUDE.md (code → digest → snapshot). Subjects exact format:
    `swift-parity: <ID> <fix> — parity X%->Y% (+N production[, +M roundtrip])`
    `chore: update digest.md for <ID> commit (parity X%->Y% +N)`
@@ -34,6 +34,12 @@ INVARIANTS (breach = revert + defer):
 - Roundtrip monotone non-decreasing.
 - Smoke green after every snapshot-lock commit.
 - Tests/baselines only via snapshot-lock commit.
+- **Honesty invariant**: every `swift-parity:` commit must contain a
+  real parser-logic delta in stable.go / remangler.go (control flow,
+  identifier handling, substitution semantics, printer logic). String
+  lookup additions (`preparseLiterals` or analog) are NOT a
+  parser-logic delta and MUST NOT be committed under `swift-parity:`.
+  If the only available win is a string lookup, defer instead.
 
 BUCKET COOLDOWN:
 - Same bucket failed 3 fires running: tier 3, blacklist 20 fires.

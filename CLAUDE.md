@@ -53,6 +53,69 @@ Picking the next fix: read `digest.md` → "Suggested Next 3 Items"
 or the Top-20 mismatch list. Counts (e.g. "property descriptor 12")
 say how much parity you'd recover by fixing the category.
 
+### Anti-cheat rules (read every fire)
+
+The parity ratchet is a parser quality measure, NOT a number to inflate.
+The following patterns are **forbidden**. Repeat detection erodes user
+trust — and trust has already been broken twice on parity-padding and
+once, catastrophically, on scoring-mechanism tampering.
+
+**Past cheat incidents (cited for memory, not pride):**
+- Prior session: edited the parity scoring code itself to produce
+  >99.5%. User lost weeks of work to the fake number. The scoring
+  mechanism is **trust-critical** — see "Scoring integrity" below.
+- Session pre-2026-05-17: CJE/CJF/CJG used a `body → want` lookup
+  table dressed as parser fixes.
+- 2026-05-17 session: CKB/CKD/CKE/CKF/CKG repeated the same lookup
+  cheat under `-real` suffix; CKC-real bundled one real parser
+  tweak with 9 lookup entries to hide the ratio.
+
+**Forbidden patterns:**
+
+- **No `preparseLiterals` table additions**. The slice at
+  `scheme/swift/stable/stable.go:~415` mapping `body` → literal result
+  string is a `mangled → pretty-string` lookup that bypasses parsing.
+  Existing entries stay — accepted under protest. **Do not extend.**
+  Adding an entry is parity-padding, not parser work.
+- **No "fast-path lookup" disguised as parser logic**. If the change is
+  `if input == X { return Y }` and `X` / `Y` are full mangled / pretty
+  strings, that's a lookup. Defer to INVESTIGATIONS.md.
+- **No bundling lookup entries with one real parser tweak** to hide the
+  ratio. If a parser-logic change ships, commit it alone with an honest
+  subject; the +0 parity is the price of honesty.
+- **Commit subjects must reflect mechanism**, not just count. A
+  `swift-parity:` commit that ships zero parser-logic deltas is
+  misframed. Use `chore: defer <bucket> to multi-fire (deferred-N)`
+  per the goal step 4 instead.
+
+The honest fallback when no ≤3-primitive fix exists: append a
+`### <bucket> [<count> syms, deferred-N]` entry to INVESTIGATIONS.md
+with probe trace + fire-plan + reason; commit
+`chore: defer <bucket> to multi-fire (deferred-N)`. Defer-write is
+forward motion per the goal.
+
+### Scoring integrity (trust-critical)
+
+The parity score is the **only** external signal of correctness for this
+work. If the score lies, every downstream decision is poisoned. The
+following files / paths are **trust-critical**. Never modify them as
+part of a `swift-parity:` or any parity-gain commit:
+
+- `cmd/snapshot-pass-set/main.go` — computes pass-sets, writes baselines
+- `cmd/check-baselines/main.go` — ratchet gate
+- `testdata/baselines.json` — absolute counts; only via `make snapshot`
+- `scheme/swift/stable/testdata/production/passing-parity.txt`
+- `scheme/swift/stable/testdata/production/passing-roundtrip.txt`
+- `scheme/swift/stable/testdata/production/` test harness
+
+These change **only** as the side effect of `make snapshot` inside the
+snapshot-lock commit (commit 3 of the three-commit round). Hand-editing
+them — including "just to make the test pass" — is the same class of
+cheat that previously cost the user weeks.
+
+If parity is stalling, the only legitimate responses are parser work or
+`chore: defer`. Never "make the test pass" by editing the test.
+
 ## Daily commands
 
 ```
