@@ -70,6 +70,17 @@ compositional type renderer from `verbose-form-nested-host`
       Implementation: make `fpVerboseRenderTypeAt` return the consumed
       end offset; loop the arg tuple element-by-element matching the
       label list. Bail on closures / generics / variadic.
+      **Compact form decoded (fire-12)** from `tryStdlibCompactFunctionType`
+      (stable.go:29740): `S<N><letter>` lays down N copies of the
+      stdlib type `S<letter>` — F1 = function result, F2..FN = repeated
+      params; subsequent bytes *extend the last* laid-down type (so
+      `S2SAAE0F0V` = result `SS`, param `SSAAE0F0V` = String.Encoding).
+      `parseType` already builds the whole compact function-type node
+      via that helper, so an **all-simple-typed** multi-arg function
+      (`commonPrefixWith`: `S2S_So22NSStringCompareOptionsVt`) is fully
+      parseable — P3a can render those by walking the parsed
+      FunctionType node's ArgumentTuple children + merging labels.
+      P3b handles extension-nested param/result types.
 - [ ] **P4 — closure params + throws/inout/async**: render
       closure-typed params `((X) throws -> Y)`, `inout`, `throws`,
       `async` markers.
@@ -89,6 +100,9 @@ compositional type renderer from `verbose-form-nested-host`
   function verbose form via fpVerboseFunctionText / fpVerboseRenderTypeAt.
 - 2026-05-17 fire-11: decoded multi-arg / no-label / compact-form
   encoding from the Apple --expand tree; wrote the P3 spec.
+- 2026-05-17 fire-12: decoded the compact `S<N><letter>` form from
+  tryStdlibCompactFunctionType source; split P3 into P3a (all-simple
+  multi-arg, parseType-renderable) and P3b (extension-nested types).
 
 ## Failed attempts
 
