@@ -18648,7 +18648,27 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 	// is set and the symbol ends in F (function) or FZ (static function),
 	// emit "[static ]Host.declName<gen>(label:...)" directly. Roundtrip-safe
 	// via swift.fastpath.rawBody attr.
-	if modName != "Foundation" && declName != "" && len(p.s) > 60 {
+	//
+	// Skip the fast-path when the extension is INTO Foundation (constraint
+	// bytes are a digit-led module ident "Foundation") — that case needs
+	// the verbose `(extension in Foundation):<mod>.<host>.<decl>(<args>) ->
+	// <ret>` form which only the main parser path produces.
+	extIntoFoundation := false
+	if len(constraintBytes) > 0 && constraintBytes[0] >= '0' && constraintBytes[0] <= '9' {
+		// Extract first digit-led module name.
+		i := 0
+		for i < len(constraintBytes) && constraintBytes[i] >= '0' && constraintBytes[i] <= '9' {
+			i++
+		}
+		n := 0
+		for _, d := range constraintBytes[:i] {
+			n = n*10 + int(d-'0')
+		}
+		if i+n <= len(constraintBytes) && string(constraintBytes[i:i+n]) == "Foundation" {
+			extIntoFoundation = true
+		}
+	}
+	if modName != "Foundation" && declName != "" && len(p.s) > 60 && !extIntoFoundation {
 		sEnd := len(p.s)
 		isStatic := false
 		isFnFP := false
