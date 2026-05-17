@@ -20552,6 +20552,9 @@ func (p *parser) tryGlobalAssocConformanceDescriptor() (*demangle.Node, bool) {
 		if !(p.s[p.i] >= '0' && p.s[p.i] <= '9') {
 			break
 		}
+		segIterStart := p.i
+		segIterSubs := p.subs
+		segIterWords := p.words
 		assocName, err := p.parseIdentifier()
 		if err != nil {
 			revert()
@@ -20564,6 +20567,15 @@ func (p *parser) tryGlobalAssocConformanceDescriptor() (*demangle.Node, bool) {
 		// Next: middle protocol Type (back-ref or compact-stdlib or s-path).
 		mt, mtErr := p.parseType()
 		if mtErr != nil {
+			// On iter >= 2, treat this as constraint-mod (not another seg).
+			// Revert to start of this iter so the constraint parser can
+			// re-read the bytes as `<mod-ident><name-ident>`.
+			if len(segs) >= 1 {
+				p.i = segIterStart
+				p.subs = segIterSubs
+				p.words = segIterWords
+				break
+			}
 			revert()
 			return nil, false
 		}
@@ -20572,6 +20584,13 @@ func (p *parser) tryGlobalAssocConformanceDescriptor() (*demangle.Node, bool) {
 			mtInner = mtInner.Children[0]
 		}
 		if common.NodeKind(mtInner.Kind) != common.KindProtocol {
+			// On iter >= 2, treat this as constraint-mod (not another seg).
+			if len(segs) >= 1 {
+				p.i = segIterStart
+				p.subs = segIterSubs
+				p.words = segIterWords
+				break
+			}
 			revert()
 			return nil, false
 		}
@@ -20597,8 +20616,34 @@ func (p *parser) tryGlobalAssocConformanceDescriptor() (*demangle.Node, bool) {
 	}
 	constraint, cerr := p.parseType()
 	if cerr != nil {
-		revert()
-		return nil, false
+		// Fallback: constraint may be `<mod-ident><name-ident>` without an
+		// explicit kind byte (Tn-specific shortcut for protocol constraints).
+		// Try parsing two consecutive identifiers and synthesise a Protocol.
+		saveC := p.i
+		saveSubsC := p.subs
+		saveWordsC := p.words
+		if p.i < end && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+			modIdent, err1 := p.parseIdentifier()
+			if err1 == nil && p.i < end {
+				nameIdent, err2 := p.parseIdentifier()
+				if err2 == nil && p.i == end {
+					mod := common.NewModule(modIdent)
+					name := common.NewIdentifier(nameIdent)
+					proto := common.NewNode(common.KindProtocol)
+					common.AddChildren(proto, mod, name)
+					constraint = common.NewNode(common.KindType)
+					common.AddChildren(constraint, proto)
+					cerr = nil
+				}
+			}
+		}
+		if cerr != nil {
+			p.i = saveC
+			p.subs = saveSubsC
+			p.words = saveWordsC
+			revert()
+			return nil, false
+		}
 	}
 	cInner := constraint
 	if common.NodeKind(cInner.Kind) == common.KindType && len(cInner.Children) > 0 {
