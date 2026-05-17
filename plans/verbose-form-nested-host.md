@@ -59,12 +59,22 @@ Remaining failures in the bucket, by sub-shape (probed 2026-05-17):
       `parseType`. +4 production (`String.LocalizationOptions`
       `_pluralizationNumber` getter/setter/modify/descriptor).
       P2b (subs seeding + emit wiring) is subsumed by this renderer.
-- [ ] **P3 — Optional retType wrap**: in `fpVerboseRetExtCont`, after
-      the nominal-kind byte, accept a trailing `Sg` (and `SgSg`...) →
-      append `?` per wrap. Re-check full consumption to retEnd.
-- [ ] **P4 — function verbose form**: handle `isFn` candidates — render
-      typed params + `-> <ret>` instead of the label-only `(_:_:)`
-      form. May fork further if param rendering is large.
+- [~] **P3 — Optional retType wrap (dropped)**: probing the corpus
+      found no single-level pattern-A property accessor with an
+      Optional retType — every Optional-retType verbose-form symbol is
+      a nested host (already handled by `fpVerboseNestedHostText`'s
+      `Sg*` loop, CKK) or a function. P3 would be +0; dropped.
+- [ ] **P4 — function / initializer verbose form**: the remaining
+      verbose-form bucket is almost entirely `isFn` / `cfC` symbols
+      (`static (extension` — digest #2, ~102; plus the `String.init`
+      / `_PluralizationNumber.init(from:)` cluster). Apple form:
+      `[static ]<hostStr>.<decl>(<label>: <typed-param>, ...) [throws]
+      -> <retType>`. The fast-path emits label-only `(_:_:)`. Needs:
+      parse each param's type + the result type. Param types are
+      themselves frequently extension-nested (`String.Encoding` etc.),
+      so this needs the compositional renderer's type resolution
+      generalised, or the parseType extension-nested gap closed first.
+      Large — fork a dedicated plan if it exceeds ~5 primitives.
 - [ ] **P5 — enable + scope**: smoke wide, record parity delta, narrow
       on regression, close.
 
@@ -82,6 +92,10 @@ Remaining failures in the bucket, by sub-shape (probed 2026-05-17):
 - 2026-05-17 fire-5: P2 shipped via a compositional renderer
   (`fpVerboseNestedHostText`) — sidesteps the parseType gap entirely.
   +4 production (62054->62058). CKK.
+- 2026-05-17 fire-6: probed remaining bucket. P3 dropped (+0 — no
+  qualifying symbols). P4 (functions/inits) refined: it is the bulk of
+  what is left and needs typed-param rendering; flagged for a possible
+  dedicated fork.
 
 ## Failed attempts
 
