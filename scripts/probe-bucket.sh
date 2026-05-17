@@ -14,7 +14,8 @@
 
 set -euo pipefail
 
-DIV=/data/p/demangle/scheme/swift/stable/testdata/production/production-divergences.txt
+REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+DIV="$REPO/scheme/swift/stable/testdata/production/production-divergences.txt"
 if [ ! -f "$DIV" ]; then
 	echo "divergence file missing: $DIV" >&2
 	exit 1
@@ -33,9 +34,13 @@ echo
 
 while read -r sym; do
 	# Our output via the CLI.
-	got=$(GOWORK=off go run /data/p/demangle/cmd/demangle demangle "$sym" 2>/dev/null | head -1 || echo "<ERR>")
-	# Apple oracle.
-	want=$(ssh claude@kodo xcrun swift-demangle <<<"$sym" 2>/dev/null | head -1 || echo "<ERR>")
+	got=$(GOWORK=off go run "$REPO/cmd/demangle" demangle "$sym" 2>/dev/null | head -1 || echo "<ERR>")
+	# Apple oracle — local xcrun when available (on kodo), else ssh.
+	if command -v xcrun >/dev/null 2>&1; then
+		want=$(xcrun swift-demangle <<<"$sym" 2>/dev/null | head -1 || echo "<ERR>")
+	else
+		want=$(ssh claude@kodo xcrun swift-demangle <<<"$sym" 2>/dev/null | head -1 || echo "<ERR>")
+	fi
 
 	# Hint heuristics — short tags pointing at suspected root cause.
 	hint=""
