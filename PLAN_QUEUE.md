@@ -32,7 +32,7 @@ Each fire:
 
 | Plan | File | Status | Last touched |
 |------|------|--------|--------------|
-| function verbose-form | plans/function-verbose-form.md | P3 pending (multi-arg/nested types) | 2026-05-17 |
+| function verbose-form | plans/function-verbose-form.md | P3 BLOCKED (entity-sig parser needed); plateaued after CKL | 2026-05-17 |
 | verbose-form nested-host | plans/verbose-form-nested-host.md | P4 split to function plan; P5 scope pending | 2026-05-17 |
 
 ## Closed plans

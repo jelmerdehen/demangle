@@ -103,7 +103,27 @@ compositional type renderer from `verbose-form-nested-host`
 - 2026-05-17 fire-12: decoded the compact `S<N><letter>` form from
   tryStdlibCompactFunctionType source; split P3 into P3a (all-simple
   multi-arg, parseType-renderable) and P3b (extension-nested types).
+- 2026-05-17 fire-13: P3a found harder than the fire-12 note assumed —
+  see Failed attempts. function-verbose-form **plateaued** after CKL;
+  bucket cooled, pivot to another bucket next fire.
 
 ## Failed attempts
 
-(none yet)
+### P3a (fire-13): "parseType renders the whole function type" is wrong
+The fire-12 note assumed an all-simple multi-arg function type is one
+parseType-able `FunctionType`. It is not:
+- An entity's pre-`F` bytes are `<result-type><arg-tuple>`, *not* a
+  single function-type node — result and args are separate top-level
+  manglings.
+- The compact `S<N><letter>` token **fuses the result type with the
+  first arg** (`S2S` = result String + arg-0 String), so you cannot
+  cleanly "parse the result, then the args" — the compact run must be
+  expanded first.
+- `tryStdlibCompactFunctionType`'s extended form only accepts
+  `_S<digit>`; real arg tuples mix in ObjC types (`_So22…V`) and
+  extension-nested types, which it rejects.
+A correct P3 needs a dedicated entity-signature parser: expand compact
+`S<N>` runs, split result vs arg-tuple, then render each element
+(reusing `fpVerboseRenderTypeAt`) with its label. That is 4-6
+primitives on its own — defer to a future focused fork rather than
+guess the encoding.
