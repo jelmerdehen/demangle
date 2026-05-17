@@ -2067,3 +2067,24 @@ Fire-plan:
 3. Re-test ensuring no snapshot regression.
 
 Defer reason: needs careful trace + tests for non-regression. ≥4 primitives.
+
+### sg-bgOK-subs-counting-asymmetry [1+ syms, deferred-3]
+
+Body: `SR8IteratorV9_position4_endAByx_GSPyxGSg_AGtcfC`
+- got: `..._end: Swift.UnsafePointer<A>)` (missing `?`)
+- want: `..._end: Swift.UnsafePointer<A>?)`
+
+`AG` (sub idx 6) should resolve to Optional<UnsafePointer<x>>. Currently
+resolves to UnsafePointer<x> (one short).
+
+Sg-on-bound-generic at stable.go:26500 skips inner-pre-push when bgOk=true.
+Apple model may push inner+optional both, our code only pushes optional.
+
+Tried removing `if !bgOk` gate: parity -4, 18 regressions. Reverted.
+
+Apple's substitution model is more nuanced — depends on parent context.
+Fire-plan needs single-symbol unit test framework + careful trace.
+
+Defer reason: Apple's substitution-push order is context-dependent and
+not byte-position-deterministic. Needs full subs-table comparison test
+harness. ≥4 primitives.
