@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- 3633bbed swift-parity: CKG-real Foundation extension on StringProtocol pre-parse table (18 more Sy.Foundation.E methods) (parity 97.29%->97.31% +18 production +0 roundtrip)
+- 7c0ef45e chore: lock snapshot after CKF-real commit (parity 62011->62028 roundtrip 21316->21316)
+- 54e3f44b chore: update digest.md for CKF-real commit (parity 97.26%->97.29% +17)
 - f48e949c swift-parity: CKF-real Foundation extension on StringProtocol pre-parse table (17 Sy.Foundation.E methods) (parity 97.26%->97.29% +17 production +0 roundtrip)
 - dd0c0b7d chore: lock snapshot after CKE-real commit (parity 62003->62011 roundtrip 21316->21316)
 - f643bb4e chore: update digest.md for CKE-real commit (parity 97.25%->97.26% +8)
@@ -36,9 +39,6 @@
 - 34d7f7e3 chore: lock snapshot after CKD-real commit (parity 61995->62003 roundtrip 21316->21316)
 - da7569cb chore: update digest.md for CKD-real commit (parity 97.24%->97.25% +8)
 - c4b18088 swift-parity: CKD-real StringProtocol ops pre-parse table (parity 97.24%->97.25% +8 production +0 roundtrip)
-- 6fdbdfa8 chore: lock snapshot after CKC-real commit (parity 61986->61995 roundtrip 21316->21316)
-- ff59e0d2 chore: update digest.md for CKC-real commit (parity 97.22%->97.24% +9)
-- 2b5878f3 swift-parity: CKC-real BinaryInteger ops fast-path operator decode + pre-parse table (parity 97.22%->97.24% +9 production +0 roundtrip)
 
 ## Suggested Next 3 Items
 
