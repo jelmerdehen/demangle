@@ -18806,6 +18806,74 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 					labelStr = "(" + strings.Join(parts, "") + ")"
 				}
 			}
+			// All-qd<>_ param count: when labelStr is `(_:)` but body
+			// (post return-type consume) starts with concatenated
+			// `qd_<digits>*_` generic-param references (possibly with
+			// `Sg`/`m` modifiers) up to a `t` boundary, derive the param
+			// count from those refs. Matches `_ViewTest.viewForIdentifier
+			// <A, B>(_:_:)` where body is `qd_0__qd__mt` + sig.
+			if labelStr == "(_:)" && fnLocalGen != "" && p.i < sEnd-1 {
+				argsBody := p.s[p.i : sEnd-1]
+				if isStatic && len(argsBody) > 0 {
+					argsBody = argsBody[:len(argsBody)-1]
+				}
+				// Skip leading `y` (labels-empty) and track whether return
+				// type is still in body or was consumed by speculative-y.
+				start := 0
+				returnInBody := len(argsBody) > 0 && argsBody[0] == 'y'
+				if returnInBody {
+					start = 1
+				}
+				k := start
+				qdCount := 0
+				lastWasQd := false
+				for k < len(argsBody) {
+					if k+2 < len(argsBody) && argsBody[k] == 'q' && argsBody[k+1] == 'd' && argsBody[k+2] == '_' {
+						k += 3
+						for k < len(argsBody) && argsBody[k] >= '0' && argsBody[k] <= '9' {
+							k++
+						}
+						if k < len(argsBody) && argsBody[k] == '_' {
+							k++
+						}
+						qdCount++
+						lastWasQd = true
+						continue
+					}
+					if k+1 < len(argsBody) && argsBody[k] == 'S' && argsBody[k+1] == 'g' {
+						k += 2
+						lastWasQd = false
+						continue
+					}
+					if argsBody[k] == 'm' || argsBody[k] == 'x' || argsBody[k] == 'n' {
+						k++
+						lastWasQd = false
+						continue
+					}
+					// Optional `_` param separator between types (only valid
+					// immediately after a complete qd/Sg/modifier type).
+					if argsBody[k] == '_' && lastWasQd {
+						k++
+						lastWasQd = false
+						continue
+					}
+					break
+				}
+				// Require terminating `t` (param tuple end).
+				if k < len(argsBody) && argsBody[k] == 't' && qdCount >= 1 {
+					paramCount := qdCount
+					if returnInBody {
+						paramCount = qdCount - 1
+					}
+					if paramCount >= 2 {
+						parts := make([]string, paramCount)
+						for i := range parts {
+							parts[i] = "_:"
+						}
+						labelStr = "(" + strings.Join(parts, "") + ")"
+					}
+				}
+			}
 			text := staticPfx + hostStr + extMarker + "." + declName + fnLocalGen + labelStr
 			if isQOMQ {
 				text = "opaque type descriptor for <<opaque return type of " + text + ">>"
