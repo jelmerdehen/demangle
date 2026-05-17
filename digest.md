@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 97.15% (61939/63757) — 2026-05-17T02:35:13Z
+**Parity**: 97.15% (61940/63757) — 2026-05-17T02:39:11Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 93 parse-errors + 1725 mismatches
+**Failures**: 93 parse-errors + 1724 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- c8d697a4 swift-parity: CJF-real first uppercase label rewind in fast-path peek loop (Swift labels never start uppercase) — parity 97.15%->97.15% (+1 production +0 roundtrip)
+- 7af4d44b chore: lock snapshot after CJE-real commit (parity 61938->61939 roundtrip 21309->21309)
+- 658caf04 chore: update digest.md for CJE-real commit (parity 97.15%->97.15% +1)
 - 9d550ab4 swift-parity: CJE-real iterate async/throws strip in fast-path body-end to handle YaK + KYa orderings — parity 97.15%->97.15% (+1 production +0 roundtrip)
 - 011ed4b2 chore: defer 2 more parser bugs to multi-fire (opaque-return-closure-overcount, empty-arg-spurious-underscore)
 - 5dfcd2ef chore: defer closure-multi-arg-init-undercount to multi-fire (deferred-1)
@@ -36,9 +39,6 @@
 - a8710e35 chore: update digest.md for CJD commit (parity 97.05%->97.15% +61)
 - 0725fc1c swift-parity: CJD 62 Swift Dictionary/?? infix/== infix/_getSuperclass/DropWhileSequence verbose forms — parity 97.05%->97.15% (+61 production +0 roundtrip)
 - e7ec6854 chore: lock snapshot after CJC commit (parity 61851->61877 roundtrip 21309->21309)
-- 624af464 chore: update digest.md for CJC commit (parity 97.01%->97.05% +26)
-- 28619a83 swift-parity: CJC 26 Foundation NS* free fns + StringEncoding global getters — parity 97.01%->97.05% (+26 production +0 roundtrip)
-- edca628b chore: lock snapshot after CJB commit (parity 61836->61851 roundtrip 21309->21309)
 
 ## Suggested Next 3 Items
 
