@@ -249,6 +249,26 @@ payoff:
 render mismatch. Next fire: probe the `got -` bail site, identify the
 missing grammar production, fork plans/double-extension-grammar.md.
 
+### function-type-Yj-Yb-bare-annotations [~3+ syms, deferred-1]
+
+`parseFunctionType` (stable.go:29170) handles only `K` (throws) and
+`Ya` (async) annotations — not `Yj<v>` (@differentiable) or `Yb`
+(@Sendable). So bare-function-type symbols like `_$syyYjrcWV`
+(`value witness table for @differentiable(reverse) () -> ()`) fail
+with "expected type start, got Y".
+
+Fire-17 attempt: added `Yj`/`Yb` to the annotation loop + `swift.differentiable`/
+`swift.sendable` Attrs + printer rendering, and accepted a leading
+`K`/`Y` in the params slot as "params empty". Result: **+3 differentiable/
+Sendable syms but -3 parity / -26 roundtrip** — the params-slot
+widening changed how OTHER function types parse, and the remangler
+cannot reproduce the new tree shape. Reverted (uncommitted).
+
+Fire-plan: (1) narrow the params-empty trigger so it cannot misfire on
+real functions; (2) update the remangler to emit `Yj<v>`/`Yb` from the
+new Attrs and to round-trip the params-empty case. Coordinated
+parser+remangler change → deferred-1.
+
 ### plateau-2026-05-16-cfj-to-cfj-plus-4-deferrals
 
 Fires 17-21 zero parity gain after CFJ (60882). Buckets attempted:
