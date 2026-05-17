@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- 7b438e87 chore: lock snapshot after CJT-real commit (parity 61973->61973 roundtrip 21312->21313)
+- f3c201f9 chore: update digest.md for CJT-real commit (parity 97.20%->97.20% +0 roundtrip +1)
+- 4d8e30ef swift-parity: CJT-real Swift-module fast-path accepts A after E (parity 97.20%->97.20% +0 production +1 roundtrip)
 - 23dff1c3 chore: lock snapshot after CJS-real commit (parity 61972->61973 roundtrip 21311->21312)
 - a7d80102 chore: update digest.md for CJS-real commit (parity 97.20%->97.20% +1)
 - 664c9e3c swift-parity: CJS-real Tb base-conformance-descriptor accepts word-sub protocol name (parity 97.20%->97.20% +1 production +1 roundtrip)
@@ -36,9 +39,6 @@
 - 45576b34 chore: update digest.md for CJR-real commit (parity 97.20%->97.20% +1)
 - a9b2c38a swift-parity: CJR-real bail tryExtensionEntity when constraintBytes look like function-body labels (parity 97.19%->97.20% +1 production +2 roundtrip)
 - 2f9085fd chore: lock snapshot after CJQ-real commit (parity 61970->61971 roundtrip 21309->21309)
-- c328711e chore: update digest.md for CJQ-real commit (parity 97.19%->97.19% +1)
-- 572c9992 swift-parity: CJQ-real preserve trailing empty-arg-tuple marker for subscript prop-desc body inference (parity 97.19%->97.19% +1 production +0 roundtrip)
-- 223020db chore: lock snapshot after CJP-real commit (parity 61969->61970 roundtrip 21309->21309)
 
 ## Suggested Next 3 Items
 
