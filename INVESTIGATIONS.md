@@ -132,6 +132,42 @@ a one-shot Explore agent. Before any `swift-parity:` commit:
 
 ## Active targets
 
+### plateau-2026-05-17 — 5 fires zero parity gain
+
+Post-CKH-real (62049), five fires zero parity gain:
+- Fire +1: stdlibProtoExt attempt in tryTypeFirstExtensionEntity, -7 regressed, reverted
+- Fire +2: defer cross-module verbose-form printer (deferred-2, ~+400P)
+- Fire +3: defer cross-mod verbose-form fast-path refinement
+- Fire +4: defer NSNotificationCenter UIKit cluster
+- Fire +5 (this fire): scanning for narrow targets — every remaining
+  bucket is one of:
+  1. Cross-module extension verbose-form (deferred-2)
+  2. Label-list arity over/undercount (deferred-1)
+  3. Closure-arg-tuple depth tracking (deferred-1)
+  4. Stdlib Iterator.next full-form (deferred-1)
+  5. Foundation Measurement/Duration/AttributedString family (deferred-2)
+
+JindoTripleVStack single-sym deferred-1 entry was actually FIXED
+sometime earlier (parser correctly emits the want now). Not in
+current divergence file.
+
+All paths lead to the same big-payoff multi-fire investments. No
+narrow single-symbol fixes remain in the divergence file.
+
+**SOS direction:** stop scanning for narrow fixes. Commit to multi-fire
+build of EITHER:
+(a) Verbose-form printer in tryGlobalLastResortFastPath: 3-5 fires to
+    plumb retType + module qualification + constraint sig. Payoff
+    ~80-100 syms.
+(b) Cross-module extension Foundation Measurement bucket: 3-5 fires
+    to thread `extractConstraintSigFullOpts` into nested-extension
+    host emission. Payoff ~70 syms.
+(c) Label-list arity from-args parsing: 2-3 fires to add backtrack
+    when label-walk consumes existential module qualifiers. Payoff
+    ~40 syms.
+
+Next fire: pick ONE and start primitive 1. Cease single-symbol probing.
+
 ### plateau-2026-05-16-cfj-to-cfj-plus-4-deferrals
 
 Fires 17-21 zero parity gain after CFJ (60882). Buckets attempted:
