@@ -2042,3 +2042,28 @@ Fire-plan:
 
 Defer reason: needs printf-trace bisect to find producer; multiple
 candidate paths in stable.go. ≥3 primitives.
+
+### qr-opaque-return-closure-sepcount-overlap [6+ syms, deferred-2]
+
+Body sample: `7SwiftUI4ViewPAAE19onScrollPhaseChangeyQryAA0eF0O_AfA0efG7ContextVtcF`
+Producer: stable.go:18648 sepCount loop in protocol-ext fn fast-path.
+This loop expands parts=["_:"] → N parts based on `_` preceded by
+V/C/O/P/G/m. Doesn't track bound-generic / closure depth.
+
+Tried bgDepth `y...G` tracker (fire CJG-real+1): fixed onScrollPhaseChange
+but regressed 22 unrelated syms (CGFloat._bridgeToObjectiveC,
+UITextEffectView delegate methods, etc).
+
+Root cause: bgDepth bumps on `y<S|A|x|q|digit>` but those bytes also
+appear in non-bound-generic contexts (e.g. extension-context marker
+bytes, identifier digit-prefixes within longer names). Need byte-
+position-aware tracker that respects function/closure structure.
+
+Fire-plan:
+1. Identify bytes after which `y` *is* a depth opener vs a marker:
+   most reliably after `c` (closure-end), `t` (tuple-end), `G`
+   (bound-generic close). Not after letters.
+2. Restrict bgDepth bump to context: `prev_letter == 'c' || 'G' || 't'`.
+3. Re-test ensuring no snapshot regression.
+
+Defer reason: needs careful trace + tests for non-regression. ≥4 primitives.
