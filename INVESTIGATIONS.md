@@ -1970,3 +1970,29 @@ Multi-primitive: requires
 Defer reason: requires full verbose-form renderer (defer-ceo family) +
 new specialization-suffix dispatch + substitution-aware type-arg list
 parser. ≥4 primitives.
+
+### closure-multi-arg-init-undercount [4 syms, deferred-1]
+
+Body: `7Combine25ClosureBasedAnySubscriberCyACyxq_GyAA12Subscription_pc_AA11SubscribersO6DemandVxcyAG10CompletionOy_q_GctcfC`
+- got: `ClosureBasedAnySubscriber.__allocating_init(_:)` (1 arg)
+- want: `ClosureBasedAnySubscriber.__allocating_init(_:_:_:)` (3 args)
+
+Init takes 3 closure params. Mangling shape:
+`<host>y<ret>y<closure_a>_<closure_b>_<closure_c>tcfC`
+
+Parser path `tryGenInit` / class-allocating fast-path treats post-result
+`y` as labels-empty marker, then params single parseType eats only first
+closure type and bails (or wraps as single). TypeList with 3 children
+never built; labels-empty implies no per-arg labels, so output collapses
+to `(_:)`.
+
+Fire-plan:
+1. After labels-empty `y` shortcut and result parsed, detect param
+   shape: parseType returns first elem; check next byte for `_`.
+2. If `_` follows, enter tuple-element loop (same shape as labeled
+   path at ~6588). Build TypeList. Generate per-elem `_` labels.
+3. Re-emit `(_:_:_:)` from TypeList child count.
+
+Defer reason: requires modification at >=3 sites (class-alloc fast-path,
+sepCount sniffer, fpLabels fallback). Need narrow probe + bisect tests
+to avoid regressing labeled init shapes. ≥3 primitives.
