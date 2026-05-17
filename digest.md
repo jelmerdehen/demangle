@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 97.18% (61957/63757) — 2026-05-17T02:59:17Z
+**Parity**: 97.18% (61961/63757) — 2026-05-17T03:37:53Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 93 parse-errors + 1707 mismatches
+**Failures**: 93 parse-errors + 1703 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,16 +29,16 @@
 
 ## Last 10 Commits
 
+- 0cf20490 swift-parity: CJJ-real fix suffix-prefix ordering in entity Tj/Tq/Tu stripper (APPEND not PREPEND outer-first display) — parity 97.18%->97.18% (+4 production +0 roundtrip)
+- f0cc0eab chore: defer Sg+bgOk sub-counting asymmetry (deferred-3, attempted+reverted)
+- 0361d13a chore: lock snapshot after CJI-real commit (parity 61955->61957 roundtrip 21309->21309)
+- 32e00988 chore: update digest.md for CJI-real commit (parity 97.17%->97.18% +2)
 - e3e2167b swift-parity: CJI-real single-bound-generic-arg detection via G body suffix in proto-ext fn fast-path — parity 97.17%->97.18% (+2 production +0 roundtrip)
 - 0fb18f30 chore: lock snapshot after CJH-real commit (parity 61945->61955 roundtrip 21309->21309)
 - 1c4d64cf chore: update digest.md for CJH-real commit (parity 97.16%->97.17% +10)
 - d4f16bd5 swift-parity: CJH-real single-closure-arg detection via tc body suffix in proto-ext fn fast-path — parity 97.16%->97.17% (+10 production +0 roundtrip)
 - f90956bd chore: defer qr-opaque-return-closure-sepcount overlap (deferred-2, attempted+reverted)
 - 8bb9ef9d chore: lock snapshot after CJG-real commit (parity 61940->61945 roundtrip 21309->21309)
-- 40e97ea7 chore: update digest.md for CJG-real commit (parity 97.15%->97.16% +5)
-- 224926aa swift-parity: CJG-real generalize uppercase-label rewind in fast-path peek to any position (not just first) — parity 97.15%->97.16% (+5 production +0 roundtrip)
-- a5807edb chore: lock snapshot after CJF-real commit (parity 61939->61940 roundtrip 21309->21309)
-- e085017b chore: update digest.md for CJF-real commit (parity 97.15%->97.15% +1)
 
 ## Suggested Next 3 Items
 
