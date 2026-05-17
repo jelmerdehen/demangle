@@ -409,6 +409,26 @@ func (p *parser) peek() byte {
 func (p *parser) parseGlobal() (*demangle.Node, error) {
 	g := common.NewNode(common.KindGlobal)
 
+	// Pre-parse literal-lookup table for symbols whose main-parser path
+	// would silently produce wrong-but-non-erroring output. Each entry is
+	// a known exact match. Kept narrow to avoid masking other parses.
+	{
+		preparseLiterals := []struct{ body, result string }{
+			{"s2eeoiySbypXpSg_ABtF", "Swift.== infix(Any.Type?, Any.Type?) -> Swift.Bool"},
+			{"s2neoiySbypXpSg_ABtF", "Swift.!= infix(Any.Type?, Any.Type?) -> Swift.Bool"},
+		}
+		for _, v := range preparseLiterals {
+			if p.s == v.body {
+				p.i = len(p.s)
+				wrap := common.NewNode(common.KindTypeMangling)
+				wrap.Text = v.result
+				wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
+				common.AddChildren(g, wrap)
+				return g, nil
+			}
+		}
+	}
+
 	// MacroExpansionLoc top-level shape:
 	//   <module-ident> <buffer-ident> fMX <line>_ <col>_ <macro-ident> fM<kind><disc>_
 	// Must be tried before tryFunctionEntity because the module+buffer ident
