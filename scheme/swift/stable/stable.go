@@ -6394,7 +6394,15 @@ func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 				break
 			}
 			if !p.eof() && (p.s[p.i] == 'V' || p.s[p.i] == 'C' ||
-				p.s[p.i] == 'O' || p.s[p.i] == 'P') {
+				p.s[p.i] == 'O' || p.s[p.i] == 'P' || p.s[p.i] == 'E') {
+				p.i = lblSave
+				p.subs = lblSubs
+				break
+			}
+			// Uppercase-leading label: Swift labels never start uppercase.
+			// This is type material (module / identifier), not a label —
+			// rewind and stop consuming labels.
+			if len(lbl) > 0 && lbl[0] >= 'A' && lbl[0] <= 'Z' {
 				p.i = lblSave
 				p.subs = lblSubs
 				break
