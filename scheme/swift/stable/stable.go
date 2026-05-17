@@ -18618,10 +18618,18 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 				if isStatic {
 					body = body[:len(body)-1] // strip Z
 				}
+				// Single-closure-arg detection: body ends `tc` (outer
+				// 1-tuple of 1 escape-closure) or `tXE` (1 noescape
+				// closure). Keep parts=["_:"]; any `_` inside body is
+				// internal to the closure's arg tuple, not outer separator.
+				if len(body) >= 2 && body[len(body)-1] == 'c' && body[len(body)-2] == 't' {
+					goto skipSep18648
+				}
 				// Strip trailing 't' tuple end if present.
 				if len(body) > 0 && body[len(body)-1] == 't' {
 					body = body[:len(body)-1]
 				}
+				{
 				sepCount := 0
 				for j := 1; j < len(body); j++ {
 					if body[j] != '_' {
@@ -18651,6 +18659,8 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 						parts[i] = "_:"
 					}
 				}
+				}
+			skipSep18648:
 			}
 			labelStr := "(" + strings.Join(parts, "") + ")"
 			staticPfx := ""
