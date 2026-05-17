@@ -4,6 +4,30 @@ Per-category root-cause + emit-path map. Pre-classified targets for
 fast loop fires — avoids re-deriving path/cause each fire. Bounded
 6 KB. Append to `## Active`; move to `## Closed` when category drained.
 
+## NSNotificationCenter.MessageIdentifier UIKit cluster [72 syms, deferred-2, ~+72P]
+
+Pattern: `_$sSo20NSNotificationCenterC10FoundationE17MessageIdentifierP5UIKitAbCE<n>BasedE0V<bound-gen>Rszrl E<decl><static-prop-desc>`.
+- got: `property descriptor for static NSNotificationCenter.MessageIdentifier.UIKit`
+- want: `property descriptor for static NSNotificationCenter.MessageIdentifier<>.<declName>`
+
+Our parser takes "UIKit" (which is actually the inner extension's
+module name) as the decl-name and stops. Then drops the actual
+decl-name AND the `<>` bound-gen marker.
+
+Tried this fire: added inner-ext back-ref detection
+`A[a-z]+([A-Z])?E<digit/y/_>` in fast-path nested-walk. Skipped past
+`UIKit.AbCE` correctly, but then nested-walk parsed `BasedE0V` as a
+new nested type ("BaseMessageIdentifier" via word-sub) — producing
+`MessageIdentifier.BaseMessageIdentifier.` with trailing dot, no
+decl-name. Reverted.
+
+Real fix needs Apple's `--simplified` behavior: when an inner
+extension on a back-referenced host nests INSIDE the outer extended
+type, drop the intermediate nested types from output and emit
+`<OuterHost>.<OuterType><>.<actualDeclName>`. The actualDeclName is
+encoded at the END of the symbol after `E<n><word-sub>` (e.g. `03didL0`
+decodes to "didChange" via word-sub L). 3+ primitives — defer.
+
 ## Cross-module extension verbose-form printer [~400-600 syms, deferred-2, ~+400P]
 
 **Confirmed by probe-bucket.sh on multiple sub-buckets:** all share
