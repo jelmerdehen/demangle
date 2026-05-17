@@ -12,7 +12,7 @@ the loop.
 ## How to invoke
 
 ```
-/loop /goal ~/apps/demangle/GOAL_PERPETUAL_99.md
+/goal ~/apps/demangle/GOAL_PERPETUAL_99.md
 ```
 
 ## Condition (paste into /goal)
@@ -59,7 +59,7 @@ PROOF EVERY FIRE (surface in conversation):
 - INVESTIGATIONS.md diffstat if changed
 
 LOOP:
-- ScheduleWakeup prompt = this `/loop /goal <path>` verbatim. delaySeconds=60 (memory: feedback_loop_cadence).
+- ScheduleWakeup prompt = this `/goal <path>` verbatim. delaySeconds=60 (memory: feedback_loop_cadence).
 - No empty-fire ceiling — defer-write IS forward motion.
 - Stop ONLY: parity ≥99.99% (PushNotification "mission complete" + halt) OR pre-existing git-unsafe state (PushNotification "git unsafe" + halt).
 
