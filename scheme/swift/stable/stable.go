@@ -13914,7 +13914,11 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 	}
 	nameOut := ""
 	if isInit {
-		if isClassAlloc && !fpHostIsObjC && fpHostIsSwiftClass {
+		// Class allocators on the BASE host inside an extension display as
+		// `.init` (Apple --simplified). Class allocators on the base host
+		// directly OR on a nested type display as `.__allocating_init`.
+		inExtensionOnBase := len(fpConstraintBytes) > 0 && len(nestedNames) == 0
+		if isClassAlloc && !fpHostIsObjC && fpHostIsSwiftClass && !inExtensionOnBase {
 			nameOut = ".__allocating_init"
 		} else {
 			nameOut = ".init"
