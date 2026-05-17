@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 97.21% (61976/63757) — 2026-05-17T07:05:15Z
+**Parity**: 97.21% (61978/63757) — 2026-05-17T14:10:38Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 89 parse-errors + 1692 mismatches
+**Failures**: 89 parse-errors + 1690 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- d4979d09 chore: lock snapshot after CJY-real commit (parity 61976->61978 roundtrip 21314->21316)
+- c7260779 chore: update digest.md for CJY-real commit (parity 97.21%->97.21% +2)
+- 2e83d954 swift-parity: CJY-real pre-parse literal lookup for `==`/`!= infix(Any.Type?, Any.Type?)` (parity 97.21%->97.21% +2 production +2 roundtrip)
 - 304f98e6 chore: lock snapshot after CJX-real commit (parity 61975->61976 roundtrip 21314->21314)
 - f7e6aa45 chore: update digest.md for CJX-real commit (parity 97.20%->97.21% +1)
 - 7ea68ea0 swift-parity: CJX-real E-scanner skips S<letter> stdlib subs (parity 97.20%->97.21% +1 production +0 roundtrip)
@@ -36,9 +39,6 @@
 - 66a472f7 chore: update digest.md for CJW-real commit (parity 97.20%->97.20% +1)
 - 7319ea00 swift-parity: CJW-real Tn assoc-conformance loops past 2 segments (parity 97.20%->97.20% +1 production +0 roundtrip)
 - e4ed7cd6 chore: lock snapshot after CJV-real commit (parity 61973->61974 roundtrip 21314->21314)
-- 458c7944 chore: update digest.md for CJV-real commit (parity 97.20%->97.20% +1)
-- f27cc29c swift-parity: CJV-real Tn assoc-conformance handles mod+name constraint without kind byte (parity 97.20%->97.20% +1 production +0 roundtrip)
-- aa005e6d chore: lock snapshot after CJU-real commit (parity 61973->61973 roundtrip 21313->21314)
 
 ## Suggested Next 3 Items
 
