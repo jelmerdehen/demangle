@@ -1996,3 +1996,49 @@ Fire-plan:
 Defer reason: requires modification at >=3 sites (class-alloc fast-path,
 sepCount sniffer, fpLabels fallback). Need narrow probe + bisect tests
 to avoid regressing labeled init shapes. ≥3 primitives.
+
+### opaque-return-overcounts-closure-tuple-args [6+ syms, deferred-1]
+
+Body sample: `7SwiftUI4ViewPAAE19onScrollPhaseChangeyQryAA0eF0O_AfA0efG7ContextVtcF`
+- got: `View.onScrollPhaseChange(_:_:)` (2 args)
+- want: `View.onScrollPhaseChange(_:)` (1 arg)
+
+Shape: protocol-ext function with `Qr` opaque return + single closure
+arg whose body itself is a 2-tuple. Outer function takes 1 closure;
+our parser counts the inner-closure tuple-separator `_` as outer
+separator. Same family of bug includes:
+- `View.fileDialogURLEnabled(_:_:)` → `(_:)`
+- `Scene.idealWindowPlacement(_:_:)` → `(_:)`
+- `Scene.windowIdealPlacement(_:_:)` → `(_:)`
+- `Scene.defaultWindowPlacement(_:_:)` (2 sigs) → `(_:)`
+
+Fire-plan:
+1. Identify producer for these. `tryFunctionEntity` likely route.
+2. When body has `Qr` followed by closure-typed param: the body
+   AFTER `Qr<retType>` is the params slot. Tuple-sep counter must
+   skip `_` chars inside closure body (depth-tracked by `c` open/
+   close not just `y...G`).
+3. Add closure-depth tracking parallel to bound-generic depth.
+
+Defer reason: closure-depth tracker is a parser-wide concept;
+adding it locally to sepCount sniffer would also be ad-hoc. Better
+done as part of structural verbose-form printer effort (defer-ceo
+family). ≥3 primitives.
+
+### empty-arg-emits-spurious-underscore [~3 syms, deferred-1]
+
+Body sample: `7SwiftUI12RemoteScenesV7SessionPAAE04openC5SceneyyYaKF`
+- got: `RemoteScenes.Session.openRemoteScene(_:)` (1 arg)
+- want: `RemoteScenes.Session.openRemoteScene()` (0 args)
+
+`yyYaKF` = empty-result + empty-params + async + throws + Fn. After
+strip, body = `yy`, bodyEnd=0, fast-path skips fpLabels fallback.
+Some other producer emits `(_:)` (single "_" entry).
+
+Fire-plan:
+1. Locate producer for this no-arg async-throws form. Likely main
+   parser's parseFunctionEntity path, not the labels-only fast-path.
+2. Ensure 0-arg emit yields `()` not `(_:)`.
+
+Defer reason: needs printf-trace bisect to find producer; multiple
+candidate paths in stable.go. ≥3 primitives.
