@@ -1,7 +1,11 @@
-# /goal — perpetual swift-stable parity ratchet to ≥99%
+# /goal — perpetual swift-stable parity ratchet to ≥99.99%
+
+**Target raised from 99% → 99.99% as punishment for two cheat incidents
+(pre-parse literal table padding). 99.99% = 63751/63757; from current
+62046 need +1705 real parser-logic fixes. No lookups. No tamper.**
 
 Single-fire prompt. Loop never stops except on mission complete
-(parity ≥99%) or pre-existing git-unsafe state. Auto-pivots between
+(parity ≥99.99%) or pre-existing git-unsafe state. Auto-pivots between
 buckets; deferred-write counts as forward motion so no bucket blocks
 the loop.
 
@@ -14,7 +18,7 @@ the loop.
 ## Condition (paste into /goal)
 
 ```
-MISSION: drive swift-stable parity to ≥99% (now 89.58%, 57116/63757). Perpetual ratchet — NEVER stop except parity ≥99% or pre-existing git-unsafe state.
+MISSION: drive swift-stable parity to ≥99.99% (now 89.58%, 57116/63757). Perpetual ratchet — NEVER stop except parity ≥99.99% or pre-existing git-unsafe state.
 
 WORKDIR /data/p/demangle. Re-read CLAUDE.md + INVESTIGATIONS.md + digest.md at every fire start. Sequential commit IDs from latest `swift-parity:` on main, two-letter, skip taken (AAR -> AAS -> ...; after AZZ -> BAA).
 
@@ -71,7 +75,7 @@ POINTERS:
 - 4000-char `/goal` limit. Block above ~3700 chars.
 - Risk: degenerate fire writes garbage to INVESTIGATIONS.md without
   probing. Probe-first discipline must hold — step 3 is non-skippable.
-- 99% from 89.58% ≈ 6055 syms ≈ 60-200 fires. Days of wall-clock.
+- 99.99% from 97.31% ≈ 1705 syms ≈ many hundreds of fires. Weeks of wall-clock.
 - `git reset --hard HEAD~3` is destructive. Gate strictly on
   (unpushed + last 3 commits match parity-round shape) before firing.
 - Pair with auto mode so per-turn loop runs unattended.
