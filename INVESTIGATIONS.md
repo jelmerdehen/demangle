@@ -2088,3 +2088,28 @@ Fire-plan needs single-symbol unit test framework + careful trace.
 Defer reason: Apple's substitution-push order is context-dependent and
 not byte-position-deterministic. Needs full subs-table comparison test
 harness. ≥4 primitives.
+
+### false-ext-positive-from-inner-param-AAE [1+ syms, deferred-2]
+
+Body: `_$s5UIKit6_GlassV8resolved5using4sizeSo6UIViewCAAE8Material_pSgSo17UITraitCollectionC_So6CGSizeVtF`
+- got: `_Glass.Material(_:_:)`
+- want: `_Glass.resolved(using:size:)`
+
+The E scanner at stable.go:16781 finds the E inside `So6UIViewCAAE8Material_p`
+(a param type's extension marker for `(extension in UIKit):__C.UIView.Material`
+protocol existential), treating it as the entity-level extension marker.
+This routes to tryExtensionEntity which mis-derives declName="Material"
+and labels=[_,_].
+
+Tried adding `notExtension` guard: when first digit-led identifier after
+host kind byte is NOT followed by E/V/C/O/P (i.e., looks like func-body
+labels), bail. Apple curated regressed -1 (1 hard-gated symbol breaks).
+Also parity -13 because 21 AttributedString.localized symbols rely on
+tryExtensionEntity's restore-side-effects to produce verbose form when
+falling through to tryFunctionEntity.
+
+Defer reason: tryExtensionEntity's restore-on-fail leaves subs state
+that downstream tryFunctionEntity exploits to produce verbose form for
+inits/methods on host types that ALSO have inner-ext-marker params.
+Decoupling needs the verbose-form generator promoted out of the
+extension fallthrough path.
