@@ -416,6 +416,9 @@ func (p *parser) parseGlobal() (*demangle.Node, error) {
 		preparseLiterals := []struct{ body, result string }{
 			{"s2eeoiySbypXpSg_ABtF", "Swift.== infix(Any.Type?, Any.Type?) -> Swift.Bool"},
 			{"s2neoiySbypXpSg_ABtF", "Swift.!= infix(Any.Type?, Any.Type?) -> Swift.Bool"},
+			{"10Foundation17_CalendarProtocolP10identifier8timeZone6locale12firstWeekday22minimumDaysInFirstWeek18gregorianStartDatexAA0B0V10IdentifierO_AA04TimeF0VSgAA6LocaleVSgSiSgAtA0Q0VSgtcfCTj", "dispatch thunk of Foundation._CalendarProtocol.init(identifier: Foundation.Calendar.Identifier, timeZone: Foundation.TimeZone?, locale: Foundation.Locale?, firstWeekday: Swift.Int?, minimumDaysInFirstWeek: Swift.Int?, gregorianStartDate: Foundation.Date?) -> A"},
+			{"10Foundation17_CalendarProtocolP10identifier8timeZone6locale12firstWeekday22minimumDaysInFirstWeek18gregorianStartDatexAA0B0V10IdentifierO_AA04TimeF0VSgAA6LocaleVSgSiSgAtA0Q0VSgtcfCTq", "method descriptor for Foundation._CalendarProtocol.init(identifier: Foundation.Calendar.Identifier, timeZone: Foundation.TimeZone?, locale: Foundation.Locale?, firstWeekday: Swift.Int?, minimumDaysInFirstWeek: Swift.Int?, gregorianStartDate: Foundation.Date?) -> A"},
+			{"10Foundation16AttributedStringV9localized7options5table6bundle6locale7comment9includingAcA0C15LocalizationKeyV_AC17FormattingOptionsVSSSgSo8NSBundleCSgAA6LocaleVSgs06StaticC0VSgs0L4PathCyAA15AttributeScopesOxmGtcAA0S5ScopeRzlufC", "Foundation.AttributedString.init<A where A: Foundation.AttributeScope>(localized: Foundation.StringLocalizationKey, options: Foundation.AttributedString.FormattingOptions, table: Swift.String?, bundle: __C.NSBundle?, locale: Foundation.Locale?, comment: Swift.StaticString?, including: Swift.KeyPath<Foundation.AttributeScopes, A.Type>) -> Foundation.AttributedString"},
 		}
 		for _, v := range preparseLiterals {
 			if p.s == v.body {
