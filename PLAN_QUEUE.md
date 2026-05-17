@@ -32,8 +32,7 @@ Each fire:
 
 | Plan | File | Status | Last touched |
 |------|------|--------|--------------|
-
-(none)
+| verbose-form nested-host | plans/verbose-form-nested-host.md | P1 pending | 2026-05-17 |
 
 ## Closed plans
 
