@@ -49,12 +49,24 @@ Remaining failures in the bucket, by sub-shape (probed 2026-05-17):
       P2. Trace verified for the `LocalizationOptions` sample:
       decl=`_pluralizationNumber` nestedHost=`[LocalizationOptions]`.
       Smoke green, parity unchanged (62054).
-- [ ] **P2 — multi-level subs seeding**: extend `fpVerboseSeedContext`
-      to also push the extension-of-host context (idx 1) and each
-      nested-host nominal (idx 2+) so nested-host retTypes resolve
-      their `A<C..>` sub-refs. Wire `fpVerboseFormNestedHost` into the
-      emit at stable.go:14341 (`Swift.<host>.<nested...>.<decl>`).
-      First parity wins expected here.
+- [ ] **P2 — parseType extension-nested nominal (root cause)**:
+      `parseType` cannot parse an extension-nested nominal whose base
+      is a substitution — given `SS10FoundationE19LocalizationOptionsV`
+      it consumes only `SS` and returns `Swift.String`. This blocks
+      both the host-type parse AND the `AC…`-rooted retType parse for
+      nested hosts, and is the same gap `fpVerboseRetExtCont` string-
+      patches for single-level retTypes. Fix: after parseType yields a
+      substitution/stdlib type, if `<module-or-subref> E` follows,
+      continue into the extension-nested nominal — build the Extension
+      + nested-nominal node AND push idx 0 (module) / idx 1 (extension)
+      / idx 2+ (nested nominals) to `p.subs` so later `A<C..>` refs
+      resolve. This is broad parser surgery — probe regression risk on
+      the full corpus before shipping; narrow scope if needed.
+- [ ] **P2b — multi-level subs seeding + emit wiring**: once P2 lets
+      parseType parse the host type, parse `p.s[0:hostTypeEnd]` at the
+      emit site to populate subs/words, then wire
+      `fpVerboseFormNestedHost` into the emit. First nested-host parity
+      wins land here.
 - [ ] **P3 — Optional retType wrap**: in `fpVerboseRetExtCont`, after
       the nominal-kind byte, accept a trailing `Sg` (and `SgSg`...) →
       append `?` per wrap. Re-check full consumption to retEnd.
@@ -71,7 +83,20 @@ Remaining failures in the bucket, by sub-shape (probed 2026-05-17):
   printer plan's single-level scope.
 - 2026-05-17 fire-3: P1 shipped. Nested-host peel + detection;
   emit gated off for nested hosts pending P2.
+- 2026-05-17 fire-4: P2 attempt — tried parsing the host type from the
+  symbol start to populate subs/words for the retType. Blocked:
+  parseType stops after `SS` and will not continue into the
+  extension-nested `…E19LocalizationOptionsV` tail (trace: hostStr
+  came back `Swift.String`, retType parse then failed `expected valid
+  substitution index "0"`). Re-scoped P2 to fix that parseType gap as
+  the root cause; the host-type/emit work is now P2b. Code reverted to
+  the P1 state.
 
 ## Failed attempts
 
-(none yet)
+### P2 (fire-4): parse host-type from offset 0
+Attempted `p.i=0; p.subs={}; p.parseType()` at the emit site to build
+the host node + populate subs. parseType consumed only the leading
+substitution (`SS`), not the extension-nested continuation. parseType
+must be taught the `<sub> <module> E <ident> <kind>` continuation
+first — see re-scoped P2.
