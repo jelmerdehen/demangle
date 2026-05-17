@@ -21,7 +21,7 @@ Apple's verbose form:
 
 ## Primitives
 
-- [ ] **P1 — detect + flag**: in `tryGlobalLastResortFastPath`
+- [x] **P1 — detect + flag** (2026-05-17): in `tryGlobalLastResortFastPath`
       (stable.go:8668), identify symbols matching
       `S<letter><n><mod>E<n><decl>...v<kind>` or
       `S<letter><n><mod>E<n><decl>...y<args>F`. Set local boolean
@@ -57,7 +57,11 @@ Apple's verbose form:
 
 ## Status
 
-- 2026-05-17: plan forked, P1 not yet started
+- 2026-05-17: plan forked.
+- 2026-05-17: P1 shipped. Flag `fpVerboseFormCandidate` + `fpVerboseFormExtMod`
+  added near start of `tryGlobalLastResortFastPath` in stable.go.
+  Verified flag fires for Sy.Foundation getter/setter/vpMV sample symbols.
+  Smoke green, parity unchanged (62050).
 
 ## Failed attempts
 

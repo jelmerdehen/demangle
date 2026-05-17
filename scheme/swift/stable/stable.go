@@ -8712,6 +8712,61 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 	fpHostIsObjC := false
 	fpHostIsSwiftClass := false
 	fpMcGenSig := ""
+	// Verbose-form-printer plan P1: detect stdlib-host + cross-module
+	// extension + property-accessor/method shape that needs verbose-form
+	// output. See plans/verbose-form-printer.md. Flag-only this primitive;
+	// emit divergence comes in P4.
+	fpVerboseFormCandidate := false
+	fpVerboseFormExtMod := ""
+	{
+		// Shape: `S<letter><n><mod>E<n><decl>...v<kind>` (property)
+		//   OR   `S<letter><n><mod>E<n><decl>...F` (function)
+		// where <letter> resolves to a stdlib protocol/type substitution
+		// AND <mod> is digit-led (not 's' for self-Swift), AND tail
+		// indicates property accessor or function entity.
+		i := 0
+		if len(p.s) >= 8 && p.s[i] == 'S' && p.s[i+1] != 'o' &&
+			p.s[i+1] != 'c' && p.s[i+1] != 'C' {
+			if _, ok := common.BuildStdlibNominal(p.s[i+1]); ok {
+				j := i + 2
+				// Digit-led ext-mod ident.
+				if j < len(p.s) && p.s[j] >= '1' && p.s[j] <= '9' {
+					lenStart := j
+					n := 0
+					for j < len(p.s) && p.s[j] >= '0' && p.s[j] <= '9' {
+						n = n*10 + int(p.s[j]-'0')
+						j++
+					}
+					if n > 0 && j+n < len(p.s) {
+						modName := p.s[j : j+n]
+						j += n
+						// Must be 'E' immediately after mod ident.
+						if j < len(p.s) && p.s[j] == 'E' {
+							// Cheap tail-shape sniff: ends in F or vg/vs/vM/vw/vW/vpMV.
+							tail2 := ""
+							if len(p.s) >= 2 {
+								tail2 = p.s[len(p.s)-2:]
+							}
+							tail4 := ""
+							if len(p.s) >= 4 {
+								tail4 = p.s[len(p.s)-4:]
+							}
+							if p.s[len(p.s)-1] == 'F' ||
+								tail2 == "vg" || tail2 == "vs" || tail2 == "vM" ||
+								tail2 == "vw" || tail2 == "vW" ||
+								tail4 == "vpMV" {
+								fpVerboseFormCandidate = true
+								fpVerboseFormExtMod = modName
+							}
+						}
+					}
+					_ = lenStart
+				}
+			}
+		}
+	}
+	_ = fpVerboseFormCandidate // TODO P2/P3/P4: actually emit verbose form
+	_ = fpVerboseFormExtMod    // TODO P2/P3/P4
 	// Special: `xSg<...>Mc` / `xSg<...>WP` — Optional<gen-param> conformance
 	// descriptor or protocol witness table. Apple short form is `<A> A?`.
 	if len(p.s) >= 4 && p.s[0] == 'x' && p.s[1] == 'S' && p.s[2] == 'g' {
