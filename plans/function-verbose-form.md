@@ -26,10 +26,13 @@ compositional type renderer from `verbose-form-nested-host`
 
 ## Primitives
 
-- [ ] **P1 — function-type byte span**: in the fast-path, for `isFn`
-      candidates, locate the function-type bytes (params tuple +
-      result) between the label run and the terminal `F`. Capture the
-      span; ship +0 with a trace.
+- [x] **P1 — function-type byte span** (2026-05-17): added the `FZ`
+      (static function) terminal to the verbose-form detection switch
+      and recorded `fpVerboseFormIsFn`. The span between the decl and
+      the `F`/`FZ` terminal (label run + function type) is captured in
+      `fpVerboseFormRetTypeBytes`. Trace-verified: `localizedName` →
+      span `2ofS2SAAE8EncodingV_t`; `enumerateLines` → span
+      `8invokingyySS_Sbztc_t`. Emit branch is P2. Smoke green, +0.
 - [ ] **P2 — simple-param rendering**: render parameters whose types
       are plain stdlib substitutions (`Si`, `Sb`, `SS`, `Sd`...) —
       `(label: Type, ...)`. Land functions whose params + result are
@@ -48,6 +51,8 @@ compositional type renderer from `verbose-form-nested-host`
 ## Status
 
 - 2026-05-17 fire-7: plan forked from verbose-form-nested-host P4.
+- 2026-05-17 fire-8: P1 shipped — `FZ` terminal + `fpVerboseFormIsFn`
+  flag; function-type span captured. +0.
 
 ## Failed attempts
 

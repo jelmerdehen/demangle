@@ -8726,6 +8726,7 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 	fpVerboseFormConstraintBytes := "" // raw constraint bytes between host and E (pattern B)
 	fpVerboseFormConstraintSig := ""   // formatted "< where A: ...>" clause
 	var fpVerboseFormNestedHost []string // nested-host type levels between E and the decl
+	fpVerboseFormIsFn := false           // candidate terminal is F (function), not a property
 	{
 		// Pattern A: `S<letter><n><mod>E<n><decl><type-bytes>v<kind>` (cross-mod property)
 		//        OR  `S<letter><n><mod>E<n><decl><type-bytes>F` (cross-mod function)
@@ -8847,6 +8848,10 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 						case tail2 == "vW":
 							accessor = ".didset"
 							terminalLen = 2
+						case tail2 == "FZ":
+							// Static function terminal (F + Z static).
+							isFn = true
+							terminalLen = 2
 						case p.s[len(p.s)-1] == 'F':
 							isFn = true
 							terminalLen = 1
@@ -8863,6 +8868,7 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 								fpVerboseFormRetTypeBytes = p.s[j:endRet]
 								fpVerboseFormAccessor = accessor
 								fpVerboseFormIsPropDesc = isPropDesc
+								fpVerboseFormIsFn = isFn
 								fpVerboseFormConstraintBytes = constraintBytes
 								if len(constraintBytes) > 0 {
 									// P3: extract " where A: ..." clause.
@@ -8884,6 +8890,7 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 	_ = fpVerboseFormRetTypeBytes   // TODO P4: parse via parseType
 	_ = fpVerboseFormAccessor       // TODO P4
 	_ = fpVerboseFormIsPropDesc     // TODO P4
+	_ = fpVerboseFormIsFn           // function-verbose-form P2: emit branch
 	_ = fpVerboseFormConstraintBytes // TODO P4
 	_ = fpVerboseFormConstraintSig  // TODO P4
 	// Special: `xSg<...>Mc` / `xSg<...>WP` — Optional<gen-param> conformance
