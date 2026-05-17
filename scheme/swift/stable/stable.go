@@ -24722,13 +24722,16 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 				isFnFP := false
 				// Strip Tj/Tq/Tu suffixes (dispatch thunk / method descriptor /
 				// async function pointer), then detect F/FZ.
+				// Suffixes are stripped from outer (rightmost) inward; the
+				// outermost prefix must appear FIRST in the final display, so
+				// APPEND each newly-stripped prefix to tjPrefix.
 				tjPrefix := ""
 				for {
 					stripped := false
 					if sEnd >= 3 && p.s[sEnd-2:sEnd] == "Tj" {
 						prev := p.s[sEnd-3]
 						if prev == 'F' || prev == 'Z' {
-							tjPrefix = "dispatch thunk of " + tjPrefix
+							tjPrefix += "dispatch thunk of "
 							sEnd -= 2
 							stripped = true
 						}
@@ -24736,7 +24739,7 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 					if !stripped && sEnd >= 3 && p.s[sEnd-2:sEnd] == "Tq" {
 						prev := p.s[sEnd-3]
 						if prev == 'F' || prev == 'Z' {
-							tjPrefix = "method descriptor for " + tjPrefix
+							tjPrefix += "method descriptor for "
 							sEnd -= 2
 							stripped = true
 						}
@@ -24744,7 +24747,7 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 					if !stripped && sEnd >= 3 && p.s[sEnd-2:sEnd] == "Tu" {
 						prev := p.s[sEnd-3]
 						if prev == 'F' || prev == 'Z' || prev == 'j' || prev == 'q' {
-							tjPrefix = "async function pointer to " + tjPrefix
+							tjPrefix += "async function pointer to "
 							sEnd -= 2
 							stripped = true
 						}
