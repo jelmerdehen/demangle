@@ -220,6 +220,35 @@ build of EITHER:
 
 Next fire: pick ONE and start primitive 1. Cease single-symbol probing.
 
+### plateau-2026-05-17-fire14 — verbose-form drained, +10 shipped
+
+The plateau-2026-05-17 SOS option (a) was executed this session:
+verbose-form printer built across CKJ (+4 single-level), CKK (+4
+nested-host), CKL (+2 single-param function) = **+10**, 62050->62060.
+Plans: verbose-form-printer (closed), verbose-form-nested-host (P1-P2
+done), function-verbose-form (P1-P2 done, P3 blocked).
+
+Probed every remaining bucket — no single-fire wins remain. Ranked by
+payoff:
+
+1. **Foundation double-extension parse-error cluster [~88 syms]** —
+   the entire `[error]` bucket. Symbols like
+   `10Foundation11MeasurementVAASo11NSDimensionCRbzrlE11FormatStyleV…Mc`
+   fail outright: `unsupported … got -`. These are conformance
+   descriptors / witness tables for *double-nested* extension generic
+   types (`(extension in Foundation):(extension in Foundation):…`).
+   Biggest payoff; needs real grammar work on nested-extension
+   contexts. Largest single bucket in the corpus.
+2. **function-verbose-form P3** — entity-signature parser (expand
+   compact `S<N>` runs, split result/arg-tuple, render per-label).
+   ~100 syms, 4-6 primitives. Spec in plans/function-verbose-form.md.
+3. label-arity (deferred-2/3), NSNotificationCenter (deferred-2).
+
+**SOS direction:** fork a plan for bucket 1 (double-extension grammar)
+— it is the highest payoff and currently a hard parse failure, not a
+render mismatch. Next fire: probe the `got -` bail site, identify the
+missing grammar production, fork plans/double-extension-grammar.md.
+
 ### plateau-2026-05-16-cfj-to-cfj-plus-4-deferrals
 
 Fires 17-21 zero parity gain after CFJ (60882). Buckets attempted:
