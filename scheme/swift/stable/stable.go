@@ -8718,9 +8718,14 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 	// emit divergence comes in P4.
 	fpVerboseFormCandidate := false
 	fpVerboseFormExtMod := ""
+	fpVerboseFormHostLetter := byte(0)
+	fpVerboseFormDeclName := ""
+	fpVerboseFormRetTypeBytes := "" // raw bytes between decl-name and v<kind>/F terminal
+	fpVerboseFormAccessor := ""     // .getter/.setter/.modify/.willset/.didset or "" for fn / vpMV
+	fpVerboseFormIsPropDesc := false
 	{
-		// Shape: `S<letter><n><mod>E<n><decl>...v<kind>` (property)
-		//   OR   `S<letter><n><mod>E<n><decl>...F` (function)
+		// Shape: `S<letter><n><mod>E<n><decl><type-bytes>v<kind>` (property)
+		//   OR   `S<letter><n><mod>E<n><decl><type-bytes>F` (function)
 		// where <letter> resolves to a stdlib protocol/type substitution
 		// AND <mod> is digit-led (not 's' for self-Swift), AND tail
 		// indicates property accessor or function entity.
@@ -8728,10 +8733,10 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 		if len(p.s) >= 8 && p.s[i] == 'S' && p.s[i+1] != 'o' &&
 			p.s[i+1] != 'c' && p.s[i+1] != 'C' {
 			if _, ok := common.BuildStdlibNominal(p.s[i+1]); ok {
+				hostLetter := p.s[i+1]
 				j := i + 2
 				// Digit-led ext-mod ident.
 				if j < len(p.s) && p.s[j] >= '1' && p.s[j] <= '9' {
-					lenStart := j
 					n := 0
 					for j < len(p.s) && p.s[j] >= '0' && p.s[j] <= '9' {
 						n = n*10 + int(p.s[j]-'0')
@@ -8742,31 +8747,82 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 						j += n
 						// Must be 'E' immediately after mod ident.
 						if j < len(p.s) && p.s[j] == 'E' {
-							// Cheap tail-shape sniff: ends in F or vg/vs/vM/vw/vW/vpMV.
-							tail2 := ""
-							if len(p.s) >= 2 {
-								tail2 = p.s[len(p.s)-2:]
-							}
-							tail4 := ""
-							if len(p.s) >= 4 {
-								tail4 = p.s[len(p.s)-4:]
-							}
-							if p.s[len(p.s)-1] == 'F' ||
-								tail2 == "vg" || tail2 == "vs" || tail2 == "vM" ||
-								tail2 == "vw" || tail2 == "vW" ||
-								tail4 == "vpMV" {
-								fpVerboseFormCandidate = true
-								fpVerboseFormExtMod = modName
+							j++ // past E
+							// Parse decl-name: digit-led ident.
+							if j < len(p.s) && p.s[j] >= '1' && p.s[j] <= '9' {
+								dlen := 0
+								for j < len(p.s) && p.s[j] >= '0' && p.s[j] <= '9' {
+									dlen = dlen*10 + int(p.s[j]-'0')
+									j++
+								}
+								if dlen > 0 && j+dlen <= len(p.s) {
+									declName := p.s[j : j+dlen]
+									j += dlen
+									// Cheap tail-shape sniff: ends in F or
+									// vg/vs/vM/vw/vW/vpMV.
+									tail2 := ""
+									if len(p.s) >= 2 {
+										tail2 = p.s[len(p.s)-2:]
+									}
+									tail4 := ""
+									if len(p.s) >= 4 {
+										tail4 = p.s[len(p.s)-4:]
+									}
+									var accessor string
+									isFn := false
+									isPropDesc := false
+									terminalLen := 0
+									switch {
+									case tail4 == "vpMV":
+										isPropDesc = true
+										terminalLen = 4
+									case tail2 == "vg":
+										accessor = ".getter"
+										terminalLen = 2
+									case tail2 == "vs":
+										accessor = ".setter"
+										terminalLen = 2
+									case tail2 == "vM":
+										accessor = ".modify"
+										terminalLen = 2
+									case tail2 == "vw":
+										accessor = ".willset"
+										terminalLen = 2
+									case tail2 == "vW":
+										accessor = ".didset"
+										terminalLen = 2
+									case p.s[len(p.s)-1] == 'F':
+										isFn = true
+										terminalLen = 1
+									}
+									_ = isFn
+									if terminalLen > 0 {
+										endRet := len(p.s) - terminalLen
+										if endRet > j {
+											fpVerboseFormCandidate = true
+											fpVerboseFormExtMod = modName
+											fpVerboseFormHostLetter = hostLetter
+											fpVerboseFormDeclName = declName
+											fpVerboseFormRetTypeBytes = p.s[j:endRet]
+											fpVerboseFormAccessor = accessor
+											fpVerboseFormIsPropDesc = isPropDesc
+										}
+									}
+								}
 							}
 						}
 					}
-					_ = lenStart
 				}
 			}
 		}
 	}
-	_ = fpVerboseFormCandidate // TODO P2/P3/P4: actually emit verbose form
-	_ = fpVerboseFormExtMod    // TODO P2/P3/P4
+	_ = fpVerboseFormCandidate    // TODO P3/P4: actually emit verbose form
+	_ = fpVerboseFormExtMod       // TODO P3/P4
+	_ = fpVerboseFormHostLetter   // TODO P3/P4
+	_ = fpVerboseFormDeclName     // TODO P3/P4
+	_ = fpVerboseFormRetTypeBytes // TODO P3: parse via parseType
+	_ = fpVerboseFormAccessor     // TODO P4
+	_ = fpVerboseFormIsPropDesc   // TODO P4
 	// Special: `xSg<...>Mc` / `xSg<...>WP` — Optional<gen-param> conformance
 	// descriptor or protocol witness table. Apple short form is `<A> A?`.
 	if len(p.s) >= 4 && p.s[0] == 'x' && p.s[1] == 'S' && p.s[2] == 'g' {

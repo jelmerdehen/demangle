@@ -30,7 +30,7 @@ Apple's verbose form:
       parity commit with the flag + a `// TODO P2/P3/P4` comment
       where emit will diverge.
 
-- [ ] **P2 — retType plumbing**: when `fpVerboseFormCandidate` is
+- [x] **P2 — retType plumbing** (2026-05-17): when `fpVerboseFormCandidate` is
       true, parse the type bytes BEFORE the `v<kind>` / `F` terminal
       to recover retType. Use existing `parseType` if reachable, else
       a narrow byte-scan + format helper. Store result in
@@ -62,6 +62,12 @@ Apple's verbose form:
   added near start of `tryGlobalLastResortFastPath` in stable.go.
   Verified flag fires for Sy.Foundation getter/setter/vpMV sample symbols.
   Smoke green, parity unchanged (62050).
+- 2026-05-17: P2 shipped. Extended detection block to capture
+  fpVerboseFormHostLetter, fpVerboseFormDeclName, fpVerboseFormRetTypeBytes,
+  fpVerboseFormAccessor, fpVerboseFormIsPropDesc. Bytes captured correctly
+  for sample symbols (e.g. Sy.Foundation.smallestEncoding vg → host='y'
+  decl="smallestEncoding" ret="SSAAE0C0V" acc=".getter"). Smoke green,
+  parity unchanged (62050).
 
 ## Failed attempts
 
