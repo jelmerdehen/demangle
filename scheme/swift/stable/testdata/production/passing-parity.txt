@@ -1,4 +1,4 @@
-# snapshot-pass-set update 2026-05-17T15:20:15Z — union with previous (high-water)
+# snapshot-pass-set update 2026-05-17T15:21:17Z — union with previous (high-water)
 _$s10Foreground7SwiftUI18LabelGroupStyle_v0PTl
 _$s10Foundation10CocoaErrorV010formattingC0AC4CodeVvgZ
 _$s10Foundation10CocoaErrorV010formattingC0AC4CodeVvpZMV
@@ -51171,7 +51171,15 @@ _$sSysE15_toUTF16IndicesySnySS5IndexVGSnySiGF
 _$sSysE15_toUTF16OffsetsySnySiGSnySS5IndexVGF
 _$sSysE16_ephemeralStringSSvg
 _$sSysE16_ephemeralStringSSvpMV
+_$sSysE1goiySbx_qd__tSyRd__lFZ
+_$sSysE1loiySbx_qd__tSyRd__lFZ
+_$sSysE2eeoiySbx_qd__tSyRd__lFZ
+_$sSysE2geoiySbx_qd__tSyRd__lFZ
+_$sSysE2leoiySbx_qd__tSyRd__lFZ
+_$sSysE2neoiySbx_qd__tSyRd__lFZ
 _$sSysE4hash4intoys6HasherVz_tF
+_$sSysE9hasPrefixySbqd__SyRd__lF
+_$sSysE9hasSuffixySbqd__SyRd__lF
 _$sSz10FoundationE27numericStringRepresentationSSvg
 _$sSz10FoundationE27numericStringRepresentationSSvpMV
 _$sSz10FoundationE9formattedSSyF
