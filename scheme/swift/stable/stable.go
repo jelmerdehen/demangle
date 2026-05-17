@@ -20607,6 +20607,10 @@ func (p *parser) tryGlobalAssocConformanceDescriptor() (*demangle.Node, bool) {
 			if p.i < end && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
 				continue
 			}
+		} else if p.i < end && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+			// On iter >= 2, no `_` separator — continue if next byte is digit
+			// (another seg) and we're not at the constraint+Tn boundary yet.
+			continue
 		}
 		break
 	}
