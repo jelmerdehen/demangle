@@ -24926,6 +24926,9 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 										names[i] = string(rune('A' + i))
 									}
 									localGenPart = "<" + strings.Join(names, ", ") + ">"
+								} else if lOff >= 1 && p.s[lOff-1] == 'r' {
+									// ...rl → conditional-conformance only → "<>"
+									localGenPart = "<>"
 								} else {
 									// Any other constraint shape ending in l
 									// (Rd__l, Rzl, Rpl, etc.) → default <A>.
