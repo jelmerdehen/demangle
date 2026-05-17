@@ -49,6 +49,10 @@ compositional type renderer from `verbose-form-nested-host`
       `SS…AAE…V`, nested host). Land the tractable cluster first:
       `canBeConverted`, `lengthOfBytes` (single extension-nested arg,
       simple result). Bail (no emit) on closures / generics / variadic.
+      **Shipped 2026-05-17 (CKL): +2** — `fpVerboseFunctionText` +
+      `fpVerboseRenderTypeAt`, scoped to single-labelled-param,
+      bare-stdlib (`S<x>`) result. Multi-arg / no-label / longer result
+      types still fall through — widening is the next step.
 - [ ] **P3 — extension-nested param/result types**: route
       extension-nested param/result types through the compositional
       renderer. Lands the `localizedName`-style cross-module funcs.
@@ -65,6 +69,10 @@ compositional type renderer from `verbose-form-nested-host`
 - 2026-05-17 fire-7: plan forked from verbose-form-nested-host P4.
 - 2026-05-17 fire-8: P1 shipped — `FZ` terminal + `fpVerboseFormIsFn`
   flag; function-type span captured. +0.
+- 2026-05-17 fire-9: decoded the function-type encoding from the Apple
+  --expand tree; wrote the P2 spec.
+- 2026-05-17 fire-10: P2 shipped (CKL, +2) — single-labelled-param
+  function verbose form via fpVerboseFunctionText / fpVerboseRenderTypeAt.
 
 ## Failed attempts
 

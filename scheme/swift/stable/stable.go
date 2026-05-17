@@ -8727,6 +8727,7 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 	fpVerboseFormConstraintSig := ""   // formatted "< where A: ...>" clause
 	var fpVerboseFormNestedHost []string // nested-host type levels between E and the decl
 	fpVerboseFormIsFn := false           // candidate terminal is F (function), not a property
+	fpVerboseFormFnStatic := false       // function candidate terminal is FZ (static)
 	{
 		// Pattern A: `S<letter><n><mod>E<n><decl><type-bytes>v<kind>` (cross-mod property)
 		//        OR  `S<letter><n><mod>E<n><decl><type-bytes>F` (cross-mod function)
@@ -8827,6 +8828,7 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 						}
 						var accessor string
 						isFn := false
+						isFnStatic := false
 						isPropDesc := false
 						terminalLen := 0
 						switch {
@@ -8851,6 +8853,7 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 						case tail2 == "FZ":
 							// Static function terminal (F + Z static).
 							isFn = true
+							isFnStatic = true
 							terminalLen = 2
 						case p.s[len(p.s)-1] == 'F':
 							isFn = true
@@ -8869,6 +8872,7 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 								fpVerboseFormAccessor = accessor
 								fpVerboseFormIsPropDesc = isPropDesc
 								fpVerboseFormIsFn = isFn
+								fpVerboseFormFnStatic = isFnStatic
 								fpVerboseFormConstraintBytes = constraintBytes
 								if len(constraintBytes) > 0 {
 									// P3: extract " where A: ..." clause.
@@ -8890,7 +8894,8 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 	_ = fpVerboseFormRetTypeBytes   // TODO P4: parse via parseType
 	_ = fpVerboseFormAccessor       // TODO P4
 	_ = fpVerboseFormIsPropDesc     // TODO P4
-	_ = fpVerboseFormIsFn           // function-verbose-form P2: emit branch
+	_ = fpVerboseFormIsFn
+	_ = fpVerboseFormFnStatic
 	_ = fpVerboseFormConstraintBytes // TODO P4
 	_ = fpVerboseFormConstraintSig  // TODO P4
 	// Special: `xSg<...>Mc` / `xSg<...>WP` — Optional<gen-param> conformance
@@ -14335,6 +14340,17 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 		}
 		text = staticPfx + hostStr + nameOut + localGen + labelStr
 	}
+	// Verbose-form override for cross-module function candidates with a
+	// single labelled param + bare-stdlib result. See
+	// plans/function-verbose-form.md P2.
+	if fpVerboseFormCandidate && fpVerboseFormIsFn && !isSubscript &&
+		len(fpVerboseFormNestedHost) == 0 && fpVerboseFormConstraintBytes == "" &&
+		fpVerboseFormExtMod != "" && fpVerboseFormExtMod != "Swift" {
+		if ft := p.fpVerboseFunctionText(fpVerboseFormHostLetter, fpVerboseFormExtMod,
+			fpVerboseFormDeclName, fpVerboseFormRetTypeBytes, fpVerboseFormFnStatic); ft != "" {
+			text = ft
+		}
+	}
 	// Verbose-form override for stdlib-host + ext property accessors /
 	// property descriptors. See plans/verbose-form-printer.md (single
 	// level) and plans/verbose-form-nested-host.md (nested host).
@@ -14529,6 +14545,98 @@ func (p *parser) fpVerboseNestedHostText(hostLetter byte, extMod string,
 		return "property descriptor for " + text + " : " + retStr
 	}
 	return text + accessor + " : " + retStr
+}
+
+// fpVerboseRenderTypeAt renders the type mangled in p.s[start:end] to its
+// verbose string. Uses parseType for types it can fully consume; falls
+// back to fpVerboseRetExtCont for single-level extension-nested nominals
+// (`SS…AAE…V`). Substitutions are seeded as for a cross-module pattern-A
+// retType (module = index 0). Returns "" if the bytes are not exactly a
+// renderable type. State is saved/restored — emit-only.
+func (p *parser) fpVerboseRenderTypeAt(start, end int, extMod, declName string) string {
+	if start < 0 || end > len(p.s) || start >= end {
+		return ""
+	}
+	saveI, saveSubs, saveWords := p.i, p.subs, p.words
+	p.subs, p.words = fpVerboseSeedContext(extMod, declName)
+	p.i = start
+	node, err := p.parseType()
+	postI := p.i
+	res := ""
+	if err == nil && node != nil {
+		if postI == end {
+			res = common.Print(node, common.DefaultPrintOptions())
+		} else {
+			res = p.fpVerboseRetExtCont(node, end)
+		}
+	}
+	p.i, p.subs, p.words = saveI, saveSubs, saveWords
+	if res == "" || strings.HasPrefix(res, "<<") {
+		return ""
+	}
+	return res
+}
+
+// fpVerboseFunctionText renders the verbose form for a single-level
+// pattern-A function candidate with exactly one labelled parameter and a
+// bare-stdlib (2-byte `S<x>`) result type — e.g.
+// `Sy10FoundationE14canBeConverted2toSbSSAAE8EncodingV_tF` →
+// `(extension in Foundation):Swift.StringProtocol.canBeConverted(to:
+// (extension in Foundation):Swift.String.Encoding) -> Swift.Bool`.
+// The span is `<labels><result-type><arg-tuple>`. Returns "" for any
+// shape outside this tractable subset (multi-arg, closures, generics).
+// See plans/function-verbose-form.md P2.
+func (p *parser) fpVerboseFunctionText(hostLetter byte, extMod, declName, span string, isStatic bool) string {
+	spanStart := strings.Index(p.s, span)
+	if spanStart < 0 || span == "" {
+		return ""
+	}
+	// Parse the leading label run.
+	k := 0
+	var labels []string
+	for k < len(span) && span[k] >= '1' && span[k] <= '9' {
+		n := 0
+		for k < len(span) && span[k] >= '0' && span[k] <= '9' {
+			n = n*10 + int(span[k]-'0')
+			k++
+		}
+		if n <= 0 || k+n > len(span) {
+			return ""
+		}
+		labels = append(labels, span[k:k+n])
+		k += n
+	}
+	if len(labels) != 1 {
+		return "" // P2: single-labelled-param only
+	}
+	rest := span[k:]
+	if !strings.HasSuffix(rest, "_t") || len(rest) < 6 {
+		return ""
+	}
+	body := rest[:len(rest)-2] // result-type + arg-type, minus the `_t`
+	// Result type: exactly one bare stdlib substitution `S<letter>`.
+	if body[0] != 'S' || len(body) < 4 {
+		return ""
+	}
+	resStart := spanStart + k
+	argStart := resStart + 2
+	argEnd := spanStart + k + len(body)
+	resStr := p.fpVerboseRenderTypeAt(resStart, resStart+2, extMod, declName)
+	argStr := p.fpVerboseRenderTypeAt(argStart, argEnd, extMod, declName)
+	if resStr == "" || argStr == "" {
+		return ""
+	}
+	std, ok := common.BuildStdlibNominal(hostLetter)
+	if !ok || len(std.Children) == 0 || len(std.Children[0].Children) < 2 {
+		return ""
+	}
+	hostName := std.Children[0].Children[1].Text
+	text := "(extension in " + extMod + "):Swift." + hostName + "." +
+		declName + "(" + labels[0] + ": " + argStr + ") -> " + resStr
+	if isStatic {
+		text = "static " + text
+	}
+	return text
 }
 
 // fpVerboseRetExtCont continues a verbose-form retType parse when
