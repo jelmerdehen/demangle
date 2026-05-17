@@ -160,6 +160,24 @@ breaks-status:
 digest:
 	$(GO) run ./cmd/swiftclose-digest/
 
+# divergences-fresh: refresh production-divergences.txt only if stale (>1h
+# mtime). Per-fire loop step 1 calls this to avoid 30s test re-run when
+# the file is already recent.
+DIVERGENCES := scheme/swift/stable/testdata/production/production-divergences.txt
+divergences-fresh:
+	@if [ -f "$(DIVERGENCES)" ] && [ -z "$$(find "$(DIVERGENCES)" -mmin +60 2>/dev/null)" ]; then \
+	  echo "divergences-fresh: $(DIVERGENCES) is fresh (<1h old) — skipping regen"; \
+	else \
+	  echo "divergences-fresh: regenerating $(DIVERGENCES)..."; \
+	  rm -f "$(DIVERGENCES)"; \
+	  $(GO) test -tags production_corpus -count=1 -run TestProductionCorpusParity ./scheme/swift/stable/testdata/production/ || true; \
+	fi
+
+# divergences-force: unconditional regen.
+divergences-force:
+	rm -f "$(DIVERGENCES)"
+	$(GO) test -tags production_corpus -count=1 -run TestProductionCorpusParity ./scheme/swift/stable/testdata/production/ || true
+
 # install-hooks: wire up .githooks/ as the git hook directory.
 install-hooks:
 	git config core.hooksPath .githooks

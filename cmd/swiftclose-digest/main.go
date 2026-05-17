@@ -8,6 +8,7 @@ package main
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
@@ -46,6 +47,19 @@ func main() {
 	defer f.Close()
 
 	lastParity, lastRT, lastParityLines := parseDivergences(f)
+
+	// Fallback: if divergence file lacks the round-trip header (parity-only
+	// runs don't write it), pull RT count from testdata/baselines.json so
+	// the digest doesn't show "0/0". Use parity total as denominator
+	// (same corpus, RT is a subset of parity-attempted symbols).
+	if lastRT.total == 0 {
+		if rt, ok := readBaselineRT(); ok {
+			if rt.total == 0 && lastParity.total > 0 {
+				rt.total = lastParity.total
+			}
+			lastRT = rt
+		}
+	}
 
 	catCount := map[string]int{}
 	errCount := 0
@@ -113,6 +127,48 @@ func locateDivFile() string {
 		}
 	}
 	return candidates[0]
+}
+
+func readBaselineRT() (runStat, bool) {
+	candidates := []string{
+		"testdata/baselines.json",
+		filepath.Join("..", "..", "..", "..", "testdata", "baselines.json"),
+	}
+	var data []byte
+	var err error
+	for _, p := range candidates {
+		data, err = os.ReadFile(p)
+		if err == nil {
+			break
+		}
+	}
+	if err != nil {
+		return runStat{}, false
+	}
+	var b struct {
+		RT    int    `json:"production_roundtrip_pass"`
+		Total int    `json:"production_parity_total"`
+		TS    string `json:"snapshot_ts"`
+	}
+	if jerr := json.Unmarshal(data, &b); jerr != nil {
+		return runStat{}, false
+	}
+	// Total may not be in baselines; default to parity total via separate read.
+	total := b.Total
+	if total == 0 {
+		var p struct {
+			Parity int `json:"production_parity_pass"`
+		}
+		_ = json.Unmarshal(data, &p)
+		// Approximation: assume corpus total ~63757 (current). Better: read
+		// from passing-roundtrip.txt line count? RT total tracked elsewhere.
+		// For now: skip if unknown so we don't show fake percentage.
+		total = 0
+	}
+	if b.RT == 0 && total == 0 {
+		return runStat{}, false
+	}
+	return runStat{ts: b.TS, pass: b.RT, total: total}, b.RT > 0
 }
 
 func parseDivergences(f *os.File) (lastParity, lastRT runStat, lastParityLines []string) {
