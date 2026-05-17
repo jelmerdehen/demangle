@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 97.20% (61969/63757) — 2026-05-17T05:40:30Z
+**Parity**: 97.20% (61970/63757) — 2026-05-17T05:48:08Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 93 parse-errors + 1695 mismatches
+**Failures**: 93 parse-errors + 1694 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- 223020db chore: lock snapshot after CJP-real commit (parity 61969->61970 roundtrip 21309->21309)
+- eca64843 chore: update digest.md for CJP-real commit (parity 97.19%->97.19% +1)
+- 641791ee swift-parity: CJP-real class-alloc init renders as .init when entity is on extended base host (parity 97.19%->97.19% +1 production +0 roundtrip)
 - a18623b9 chore: lock snapshot after CJO-real commit (parity 61968->61969 roundtrip 21309->21309)
 - 6d7acb1c chore: update digest.md for CJO-real commit (parity 97.19%->97.19% +1)
 - 418ae2f4 swift-parity: CJO-real qd<>_ generic-param-count label expansion (parity 97.19%->97.19% +1 production +0 roundtrip)
@@ -36,9 +39,6 @@
 - 3c11229d chore: log false-ext-positive-from-inner-param-AAE investigation (defer-2)
 - 02bac17f chore: lock snapshot after CJN-real commit (parity 61967->61968 roundtrip 21309->21309)
 - a0ae12dd chore: update digest.md for CJN-real commit (parity 97.19%->97.19% +1)
-- 12aa00ec swift-parity: CJN-real reject self-ref A<letter> labels (parity 97.19%->97.19% +1 production +0 roundtrip)
-- 95ddd27e chore: update digest.md for CJM-real commit (parity 97.19%->97.19% +0)
-- 14243bcd swift-parity: CJM-real generalize labels-parser module-rewind to uppercase-first heuristic (parity unchanged, cleanup of hardcoded module list) — parity 97.19%->97.19% (+0 production +0 roundtrip)
 
 ## Suggested Next 3 Items
 
