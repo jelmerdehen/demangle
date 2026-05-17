@@ -12,7 +12,7 @@ the loop.
 ## How to invoke
 
 ```
-/loop /goal /data/p/demangle/GOAL_PERPETUAL_99.md
+/loop /goal ~/apps/demangle/GOAL_PERPETUAL_99.md
 ```
 
 ## Condition (paste into /goal)
@@ -20,7 +20,7 @@ the loop.
 ```
 MISSION: drive swift-stable parity to ≥99.99% (now 89.58%, 57116/63757). Perpetual ratchet — NEVER stop except parity ≥99.99% or pre-existing git-unsafe state.
 
-WORKDIR /data/p/demangle. Re-read CLAUDE.md + INVESTIGATIONS.md + digest.md at every fire start. Sequential commit IDs from latest `swift-parity:` on main, two-letter, skip taken (AAR -> AAS -> ...; after AZZ -> BAA).
+WORKDIR ~/apps/demangle. Re-read CLAUDE.md + INVESTIGATIONS.md + digest.md at every fire start. Sequential commit IDs from latest `swift-parity:` on main, two-letter, skip taken (AAR -> AAS -> ...; after AZZ -> BAA).
 
 PER-FIRE LOOP:
 1. Skip divergence regen if file mtime <1h. Else `rm -f scheme/swift/stable/testdata/production/production-divergences.txt; go test -tags production_corpus -count=1 -run TestProductionCorpusParity ./scheme/swift/stable/testdata/production/` to refresh.
@@ -61,7 +61,7 @@ PROOF EVERY FIRE (surface in conversation):
 LOOP:
 - ScheduleWakeup prompt = this `/loop /goal <path>` verbatim. delaySeconds=60 (memory: feedback_loop_cadence).
 - No empty-fire ceiling — defer-write IS forward motion.
-- Stop ONLY: parity ≥99.0% (PushNotification "mission complete" + halt) OR pre-existing git-unsafe state (PushNotification "git unsafe" + halt).
+- Stop ONLY: parity ≥99.99% (PushNotification "mission complete" + halt) OR pre-existing git-unsafe state (PushNotification "git unsafe" + halt).
 
 POINTERS:
 - Oracle: ssh claude@kodo xcrun swift-demangle <<<'<sym>'
