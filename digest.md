@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- 2b5878f3 swift-parity: CKC-real BinaryInteger ops fast-path operator decode + pre-parse table (parity 97.22%->97.24% +9 production +0 roundtrip)
+- 133d98df chore: lock snapshot after CKB-real commit (parity 61984->61986 roundtrip 21316->21316)
+- 230228f1 chore: update digest.md for CKB-real commit (parity 97.22%->97.22% +2)
 - c30abab5 swift-parity: CKB-real pre-parse literal table — Swift.max/min variadic Comparable (parity 97.22%->97.22% +2 production +0 roundtrip)
 - f08de2cf chore: lock snapshot after CKA-real commit (parity 61981->61984 roundtrip 21318->21316)
 - 078c8334 chore: update digest.md for CKA-real commit (parity 97.22%->97.22% +3 roundtrip -2)
@@ -36,9 +39,6 @@
 - c4eca282 chore: lock snapshot after CJZ-real commit (parity 61978->61981 roundtrip 21316->21318)
 - 95f3bf6e chore: update digest.md for CJZ-real commit (parity 97.21%->97.22% +3 roundtrip +2)
 - 6f5ee64b swift-parity: CJZ-real extend pre-parse literal table (Calendar init Tj/Tq + AttributedString init) (parity 97.21%->97.22% +3 production +2 roundtrip)
-- d4979d09 chore: lock snapshot after CJY-real commit (parity 61976->61978 roundtrip 21314->21316)
-- c7260779 chore: update digest.md for CJY-real commit (parity 97.21%->97.21% +2)
-- 2e83d954 swift-parity: CJY-real pre-parse literal lookup for `==`/`!= infix(Any.Type?, Any.Type?)` (parity 97.21%->97.21% +2 production +2 roundtrip)
 
 ## Suggested Next 3 Items
 
