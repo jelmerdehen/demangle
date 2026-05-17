@@ -24,9 +24,11 @@ WORKDIR /data/p/demangle. Re-read CLAUDE.md + INVESTIGATIONS.md + digest.md at e
 
 PER-FIRE LOOP:
 1. Skip divergence regen if file mtime <1h. Else `rm -f scheme/swift/stable/testdata/production/production-divergences.txt; go test -tags production_corpus -count=1 -run TestProductionCorpusParity ./scheme/swift/stable/testdata/production/` to refresh.
-2. Pick target by ROOT CAUSE, not symbol. Read INVESTIGATIONS.md "Root-cause map" section (built up over fires). Highest-payoff root cause not blacklisted/tier-3 wins. Single-sym fallback only if no mapped root cause has open fire-plan.
-3. Probe: `go run ./cmd/demangle demangle '<sym>'` vs `ssh claude@kodo xcrun swift-demangle <<<'<sym>'`. Use `scripts/probe-bucket.sh <regex>` for categorical probe (diff matrix across N symbols sharing a pattern).
-4. If fix ≤5 primitives single commit: implement in stable.go. Else: append `### <bucket> [<count> syms, deferred-N, ~<gain>P]` to INVESTIGATIONS.md (probe trace + fire-plan + payoff estimate + reason); commit `chore: defer <bucket> to multi-fire (deferred-N)`. Defer-batch allowed: 3-5 buckets per defer commit if all probed this fire. **NO `preparseLiterals` table additions** — see CLAUDE.md anti-cheat rules. A fire with no real parser-logic change must defer, not ratchet.
+2. Read `PLAN_QUEUE.md` FIRST. If active plan with pending primitive exists, execute that primitive per plan's instructions. ELSE pick target by ROOT CAUSE from INVESTIGATIONS.md "Root-cause map".
+3. Probe: `go run ./cmd/demangle demangle '<sym>'` vs `ssh claude@kodo xcrun swift-demangle <<<'<sym>'`. Use `scripts/probe-bucket.sh <regex>` for categorical probe.
+4. **Multi-fire path (preferred for deferred-2/3 buckets)**: if a fix needs >5 primitives, fork a new plan file `plans/<name>.md` from `plans/_TEMPLATE.md`, add row to PLAN_QUEUE.md `## Active plans` table, commit `plan: fork <name> ...`. Then start P1 next fire.
+5. **Single-fire path**: if fix ≤5 primitives and lands in this fire, ship swift-parity: commit (or chore: if +0 parity). **NO `preparseLiterals` table additions** — see CLAUDE.md anti-cheat rules.
+6. **Plan primitive ship**: when working on a plan, each fire ships ONE commit advancing one primitive. Intermediate +0 parity is success if primitive's smoke gates pass. `chore: plan-<name>-P<N> ...` subject style.
 5. Bundling: multiple unrelated parser-logic fixes in ONE `swift-parity:` commit is allowed when each is independently reviewable. The cheat is lookup-padding, not bundle-size. Three-commit round (code → digest → snapshot). Subjects:
    `swift-parity: <ID> <fix-list> — parity X%->Y% (+N production[, +M roundtrip])`
    `chore: update digest.md for <ID> commit (parity X%->Y% +N)`
