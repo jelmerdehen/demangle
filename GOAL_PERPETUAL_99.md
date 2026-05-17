@@ -23,12 +23,12 @@ MISSION: drive swift-stable parity to ≥99.99% (now 89.58%, 57116/63757). Perpe
 WORKDIR /data/p/demangle. Re-read CLAUDE.md + INVESTIGATIONS.md + digest.md at every fire start. Sequential commit IDs from latest `swift-parity:` on main, two-letter, skip taken (AAR -> AAS -> ...; after AZZ -> BAA).
 
 PER-FIRE LOOP:
-1. `rm -f scheme/swift/stable/testdata/production/production-divergences.txt; go test -tags production_corpus -count=1 -run TestProductionCorpusParity ./scheme/swift/stable/testdata/production/` to refresh divergences.
-2. Pick target: digest.md Top-20 + grep top `near "..."` buckets from divergences.txt. Filter: count ≥5, NOT INVESTIGATIONS.md tier ≥3, tractable (AAQ/AAR/PAAE family or single-sym fix). Highest-count wins. Tie-break: oldest INVESTIGATIONS fire-plan entry.
-3. Probe: `go run ./cmd/demangle demangle '<sym>'` vs `ssh claude@kodo xcrun swift-demangle <<<'<sym>'`. Diagnose.
-4. If fix ≤3 primitives single commit: implement in stable.go. Else: append `### <bucket> [<count> syms, deferred-N]` to INVESTIGATIONS.md (probe trace + fire-plan + reason); commit `chore: defer <bucket> to multi-fire (deferred-N)`. Pivot next fire. **NO `preparseLiterals` table additions** — that slice is a `mangled → pretty-string` lookup, not parsing. See CLAUDE.md anti-cheat rules. A fire with no real parser-logic change must defer, not ratchet.
-5. Three-commit round per CLAUDE.md (code → digest → snapshot). Subjects exact format:
-   `swift-parity: <ID> <fix> — parity X%->Y% (+N production[, +M roundtrip])`
+1. Skip divergence regen if file mtime <1h. Else `rm -f scheme/swift/stable/testdata/production/production-divergences.txt; go test -tags production_corpus -count=1 -run TestProductionCorpusParity ./scheme/swift/stable/testdata/production/` to refresh.
+2. Pick target by ROOT CAUSE, not symbol. Read INVESTIGATIONS.md "Root-cause map" section (built up over fires). Highest-payoff root cause not blacklisted/tier-3 wins. Single-sym fallback only if no mapped root cause has open fire-plan.
+3. Probe: `go run ./cmd/demangle demangle '<sym>'` vs `ssh claude@kodo xcrun swift-demangle <<<'<sym>'`. Use `scripts/probe-bucket.sh <regex>` for categorical probe (diff matrix across N symbols sharing a pattern).
+4. If fix ≤5 primitives single commit: implement in stable.go. Else: append `### <bucket> [<count> syms, deferred-N, ~<gain>P]` to INVESTIGATIONS.md (probe trace + fire-plan + payoff estimate + reason); commit `chore: defer <bucket> to multi-fire (deferred-N)`. Defer-batch allowed: 3-5 buckets per defer commit if all probed this fire. **NO `preparseLiterals` table additions** — see CLAUDE.md anti-cheat rules. A fire with no real parser-logic change must defer, not ratchet.
+5. Bundling: multiple unrelated parser-logic fixes in ONE `swift-parity:` commit is allowed when each is independently reviewable. The cheat is lookup-padding, not bundle-size. Three-commit round (code → digest → snapshot). Subjects:
+   `swift-parity: <ID> <fix-list> — parity X%->Y% (+N production[, +M roundtrip])`
    `chore: update digest.md for <ID> commit (parity X%->Y% +N)`
    `chore: lock snapshot after <ID> commit (parity <prev>->Y_count)`
 6. Gates: `make smoke`, snapshot-check, ratchet all exit 0. If RED + 3 commits last on branch + unpushed: `git reset --hard HEAD~3` + bucket tier++. Never --no-verify, never BREAK_OK, never Co-Authored-By trailer.

@@ -29,6 +29,21 @@ Examples confirmed:
   need fully-qualified `(extension in Swift):Swift.ClosedRange<A>< where A: ...>.Index`
   for both params.
 
+**Failed attempt log (2026-05-17, this session):**
+- Tried adding `stdlibProtoExt` branch to tryTypeFirstExtensionEntity's
+  v-accessor emit (case 'g', 's', etc. around line 16361). Branch
+  condition: `stdlibShortNode != nil && extHostMod == "Swift" &&
+  modName != "Swift"`. Emit form
+  `(extension in <mod>):Swift.<host>.<decl>.<accessor> + verboseRetStr(false)`.
+- Result: regression -7 parity. Target symbols (Sy.Foundation getter)
+  not reached — they go via tryGlobalLastResortFastPath instead. The
+  -7 came from OTHER symbols hitting tryTypeFirstExtensionEntity that
+  now incorrectly route to the new branch. Reverted.
+- **Next attempt direction:** the verbose-form needs to be installed
+  in tryGlobalLastResortFastPath, NOT tryTypeFirstExtensionEntity.
+  Specifically the path that handles `S<letter><n><mod>E<n><decl>...vg`
+  needs to detect the cross-module pattern and emit verbose form.
+
 Fire-plan:
 1. New emit-path: detect (stdlib-protocol-sub host) + (extension marker
    with constraint bytes) → must use verbose-form printer instead of
