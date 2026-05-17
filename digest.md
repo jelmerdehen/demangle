@@ -29,16 +29,16 @@
 
 ## Last 10 Commits
 
+- c8c8f243 chore: log inner-AE-in-constraint-type-confuses-eAt-scanner investigation (defer-2)
+- 3c11229d chore: log false-ext-positive-from-inner-param-AAE investigation (defer-2)
+- 02bac17f chore: lock snapshot after CJN-real commit (parity 61967->61968 roundtrip 21309->21309)
+- a0ae12dd chore: update digest.md for CJN-real commit (parity 97.19%->97.19% +1)
+- 12aa00ec swift-parity: CJN-real reject self-ref A<letter> labels (parity 97.19%->97.19% +1 production +0 roundtrip)
 - 95ddd27e chore: update digest.md for CJM-real commit (parity 97.19%->97.19% +0)
 - 14243bcd swift-parity: CJM-real generalize labels-parser module-rewind to uppercase-first heuristic (parity unchanged, cleanup of hardcoded module list) — parity 97.19%->97.19% (+0 production +0 roundtrip)
 - 19b1ca2e chore: lock snapshot after CJL-real commit (parity 61963->61967 roundtrip 21309->21309)
 - 26588c94 chore: update digest.md for CJL-real commit (parity 97.19%->97.19% +4)
 - baebf25a swift-parity: CJL-real labels-parser uppercase-rewind + E ext-marker terminator in second-level labels loop — parity 97.19%->97.19% (+4 production +0 roundtrip)
-- f062e419 chore: lock snapshot after CJK-real commit (parity 61961->61963 roundtrip 21309->21309)
-- 34783576 chore: update digest.md for CJK-real commit (parity 97.18%->97.19% +2)
-- bd0667e0 swift-parity: CJK-real handle rl conditional-conformance in static-fn fast-path localGenPart (matches existing logic at line 13848) — parity 97.18%->97.19% (+2 production +0 roundtrip)
-- b58e4d02 chore: lock snapshot after CJJ-real commit (parity 61957->61961 roundtrip 21309->21309)
-- 5dd48be6 chore: update digest.md for CJJ-real commit (parity 97.18%->97.18% +4)
 
 ## Suggested Next 3 Items
 
