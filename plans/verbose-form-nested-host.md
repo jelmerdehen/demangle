@@ -41,14 +41,14 @@ Remaining failures in the bucket, by sub-shape (probed 2026-05-17):
 
 ## Primitives
 
-- [ ] **P1 — nested-host detection**: in the detection block at
-      stable.go:8787, after `E<n><ident>`, peek the next byte; while it
-      is a nominal-kind (`V`/`O`/`C`), record `<ident>` as a nested-host
-      level, consume the kind byte, read the next `<n><ident>`. The
-      final identifier (followed by the retType bytes) is the decl.
-      Store the nested-host path in a new
-      `fpVerboseFormNestedHost []string`. Ship +0 with a sentinel trace
-      proving the path is captured for the `LocalizationOptions` sample.
+- [x] **P1 — nested-host detection** (2026-05-17): detection block at
+      stable.go:8787 now peels `<n><ident><V|O|C>` nested-host levels
+      into `fpVerboseFormNestedHost []string`; the final identifier is
+      the decl. Verbose emit is gated to `len(nestedHost)==0` so
+      nested-host candidates do not emit a host-incomplete form until
+      P2. Trace verified for the `LocalizationOptions` sample:
+      decl=`_pluralizationNumber` nestedHost=`[LocalizationOptions]`.
+      Smoke green, parity unchanged (62054).
 - [ ] **P2 — multi-level subs seeding**: extend `fpVerboseSeedContext`
       to also push the extension-of-host context (idx 1) and each
       nested-host nominal (idx 2+) so nested-host retTypes resolve
@@ -69,6 +69,8 @@ Remaining failures in the bucket, by sub-shape (probed 2026-05-17):
 - 2026-05-17 fire-2: plan forked after probing showed every remaining
   verbose-form sub-shape needs structural work beyond the closed
   printer plan's single-level scope.
+- 2026-05-17 fire-3: P1 shipped. Nested-host peel + detection;
+  emit gated off for nested hosts pending P2.
 
 ## Failed attempts
 

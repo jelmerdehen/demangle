@@ -8725,6 +8725,7 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 	fpVerboseFormIsPropDesc := false
 	fpVerboseFormConstraintBytes := "" // raw constraint bytes between host and E (pattern B)
 	fpVerboseFormConstraintSig := ""   // formatted "< where A: ...>" clause
+	var fpVerboseFormNestedHost []string // nested-host type levels between E and the decl
 	{
 		// Pattern A: `S<letter><n><mod>E<n><decl><type-bytes>v<kind>` (cross-mod property)
 		//        OR  `S<letter><n><mod>E<n><decl><type-bytes>F` (cross-mod function)
@@ -8785,14 +8786,36 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 					}
 				}
 				if detected && j < len(p.s) && p.s[j] >= '1' && p.s[j] <= '9' {
-					dlen := 0
-					for j < len(p.s) && p.s[j] >= '0' && p.s[j] <= '9' {
-						dlen = dlen*10 + int(p.s[j]-'0')
-						j++
-					}
-					if dlen > 0 && j+dlen <= len(p.s) {
-						declName := p.s[j : j+dlen]
+					// Peel nested-host type levels: each `<n><ident>`
+					// followed by a nominal-kind byte (V/O/C) is a
+					// nested host type, not the decl. The final
+					// `<n><ident>` not followed by a kind byte is the
+					// decl. See plans/verbose-form-nested-host.md P1.
+					var nestedHost []string
+					declName := ""
+					declOK := false
+					for j < len(p.s) && p.s[j] >= '1' && p.s[j] <= '9' {
+						dlen := 0
+						for j < len(p.s) && p.s[j] >= '0' && p.s[j] <= '9' {
+							dlen = dlen*10 + int(p.s[j]-'0')
+							j++
+						}
+						if dlen <= 0 || j+dlen > len(p.s) {
+							break
+						}
+						ident := p.s[j : j+dlen]
 						j += dlen
+						if j < len(p.s) &&
+							(p.s[j] == 'V' || p.s[j] == 'O' || p.s[j] == 'C') {
+							nestedHost = append(nestedHost, ident)
+							j++
+							continue
+						}
+						declName = ident
+						declOK = true
+						break
+					}
+					if declOK {
 						tail2 := ""
 						if len(p.s) >= 2 {
 							tail2 = p.s[len(p.s)-2:]
@@ -8836,6 +8859,7 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 								fpVerboseFormExtMod = modName
 								fpVerboseFormHostLetter = hostLetter
 								fpVerboseFormDeclName = declName
+								fpVerboseFormNestedHost = nestedHost
 								fpVerboseFormRetTypeBytes = p.s[j:endRet]
 								fpVerboseFormAccessor = accessor
 								fpVerboseFormIsPropDesc = isPropDesc
@@ -14307,7 +14331,11 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 	// P4: Verbose-form override for stdlib-host + ext property accessors
 	// / property descriptors. See plans/verbose-form-printer.md. Only
 	// applies when we have a clean candidate AND can parse the retType.
-	if fpVerboseFormCandidate && (isPropAcc || isPropDesc) && !isSubscript {
+	// Nested-host candidates are detected but not yet emitted — the
+	// emit + retType seeding for nested hosts lands in
+	// plans/verbose-form-nested-host.md P2.
+	if fpVerboseFormCandidate && (isPropAcc || isPropDesc) && !isSubscript &&
+		len(fpVerboseFormNestedHost) == 0 {
 		retOff := strings.Index(p.s, fpVerboseFormRetTypeBytes)
 		if retOff >= 0 && fpVerboseFormRetTypeBytes != "" {
 			saveI, saveSubs, saveWords := p.i, p.subs, p.words
