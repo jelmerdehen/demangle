@@ -4,6 +4,49 @@ Per-category root-cause + emit-path map. Pre-classified targets for
 fast loop fires — avoids re-deriving path/cause each fire. Bounded
 6 KB. Append to `## Active`; move to `## Closed` when category drained.
 
+## Cross-module extension verbose-form printer [~400-600 syms, deferred-2, ~+400P]
+
+**Confirmed by probe-bucket.sh on multiple sub-buckets:** all share
+the same shape — when the host is a stdlib protocol substitution
+(Sy/Sz/SY/SN/Sx/SU/SW/SI/...) extended in a foreign module
+(Foundation, etc.) OR when the host has bound-generic constraints +
+nested-type chain, our parser emits the simplified form lacking:
+
+- `(extension in <extMod>):Swift.<HostName>` prefix
+- ` where <constraint>` clause on the host
+- `<A>` qualifier on inner-most extension-nested type back-refs
+- ` : <return-type>` (property accessors) or ` -> <ret>` (functions)
+- proper param-type rendering when constraint resolves them
+
+Examples confirmed:
+- `_$sSy10FoundationE16smallestEncodingSSAAE0C0Vvg` → emits
+  `StringProtocol.smallestEncoding.getter` — need full Foundation-ext form.
+- `_$sSNsSxRzSZ6StrideRpzrlE10startIndexSNsSxRzSZABRQrlE0C0Oyx_Gvg` →
+  emits `ClosedRange<>.startIndex.getter` — need
+  `(extension in Swift):Swift.ClosedRange< where A: ...>.startIndex.getter : <ret>`.
+- `_$sSNsSxRzSZ6StrideRpzrlE5IndexO2eeoiySbADyx_G_AFtFZ` → emits
+  `static (extension in Swift):Swift.ClosedRange<...>.Index.== infix(Index<A>, Index<A>) -> Swift.Bool` —
+  need fully-qualified `(extension in Swift):Swift.ClosedRange<A>< where A: ...>.Index`
+  for both params.
+
+Fire-plan:
+1. New emit-path: detect (stdlib-protocol-sub host) + (extension marker
+   with constraint bytes) → must use verbose-form printer instead of
+   short-form fast-path.
+2. Verbose-form printer needs `extractConstraintSigFullOpts` integration
+   for the host's `< where A: ...>` clause.
+3. For property accessors (`vg`/`vs`/`vM`/`vw`/`vW`/`vpMV`): add
+   ` : <type>` suffix with same verbose printer applied to the
+   return-type node.
+4. For binary infix back-refs (CKH-real partial fix): when both params
+   are back-refs to an inner extension-nested type, render them with
+   the full `(extension in M):HostMod.Host<A>< where ...>.NestedName`
+   form, not short `NestedName<A>`.
+
+Risk: HIGH (touches multiple fast-path bypasses; round-trip may regress
+on existing simplified-form symbols). Required: sentinel-trace each
+emit path, smoke + roundtrip green per primitive.
+
 ## Root-cause map (2026-05-17, post-cheat retrospective)
 
 Top-5 buckets mapped by parallel Explore agents. Hypotheses; each needs

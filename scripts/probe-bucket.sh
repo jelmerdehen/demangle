@@ -33,7 +33,7 @@ echo
 
 while read -r sym; do
 	# Our output via the CLI.
-	got=$(echo "$sym" | GOWORK=off go run /data/p/demangle/cmd/demangle demangle 2>/dev/null | head -1 || echo "<ERR>")
+	got=$(GOWORK=off go run /data/p/demangle/cmd/demangle demangle "$sym" 2>/dev/null | head -1 || echo "<ERR>")
 	# Apple oracle.
 	want=$(ssh claude@kodo xcrun swift-demangle <<<"$sym" 2>/dev/null | head -1 || echo "<ERR>")
 
