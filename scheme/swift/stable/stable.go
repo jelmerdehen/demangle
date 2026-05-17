@@ -18412,6 +18412,22 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 			idx := int(p.s[p.i+1] - 'A')
 			if n, ok := p.subs.Get(idx); ok &&
 				common.NodeKind(n.Kind) == common.KindIdentifier {
+				// Reject when the substitution resolves to a path component
+				// (the host or last nested type). Such refs are RETURN-TYPE
+				// substitutions back to the entity's own type, not labels.
+				selfRef := false
+				if n.Text == hostName {
+					selfRef = true
+				}
+				for _, nt := range nestedTypesSuffix {
+					if n.Text == nt {
+						selfRef = true
+						break
+					}
+				}
+				if selfRef {
+					break
+				}
 				labels = append(labels, n.Text)
 				p.i += 2
 			} else {
