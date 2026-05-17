@@ -18625,6 +18625,12 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 				if len(body) >= 2 && body[len(body)-1] == 'c' && body[len(body)-2] == 't' {
 					goto skipSep18648
 				}
+				// Single-bound-generic-arg detection: body ends in `G` not
+				// preceded by `t` (bound-generic close, no outer tuple).
+				// Inner `_` characters are inside `<>` generic args.
+				if len(body) >= 1 && body[len(body)-1] == 'G' {
+					goto skipSep18648
+				}
 				// Strip trailing 't' tuple end if present.
 				if len(body) > 0 && body[len(body)-1] == 't' {
 					body = body[:len(body)-1]
