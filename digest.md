@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 97.20% (61972/63757) — 2026-05-17T06:14:16Z
+**Parity**: 97.20% (61973/63757) — 2026-05-17T06:33:22Z
 **Round-trip**: 0.00% (0/0) — 
-**Failures**: 94 parse-errors + 1691 mismatches
+**Failures**: 91 parse-errors + 1693 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- aa005e6d chore: lock snapshot after CJU-real commit (parity 61973->61973 roundtrip 21313->21314)
+- 797c545f chore: update digest.md for CJU-real commit (parity 97.20%->97.20% +0 roundtrip +1)
+- 392d20ef swift-parity: CJU-real Swift-module fast-path accepts x/q after E (parity 97.20%->97.20% +0 production +1 roundtrip)
 - 7b438e87 chore: lock snapshot after CJT-real commit (parity 61973->61973 roundtrip 21312->21313)
 - f3c201f9 chore: update digest.md for CJT-real commit (parity 97.20%->97.20% +0 roundtrip +1)
 - 4d8e30ef swift-parity: CJT-real Swift-module fast-path accepts A after E (parity 97.20%->97.20% +0 production +1 roundtrip)
@@ -36,9 +39,6 @@
 - a7d80102 chore: update digest.md for CJS-real commit (parity 97.20%->97.20% +1)
 - 664c9e3c swift-parity: CJS-real Tb base-conformance-descriptor accepts word-sub protocol name (parity 97.20%->97.20% +1 production +1 roundtrip)
 - c08df774 chore: lock snapshot after CJR-real commit (parity 61971->61972 roundtrip 21309->21311)
-- 45576b34 chore: update digest.md for CJR-real commit (parity 97.20%->97.20% +1)
-- a9b2c38a swift-parity: CJR-real bail tryExtensionEntity when constraintBytes look like function-body labels (parity 97.19%->97.20% +1 production +2 roundtrip)
-- 2f9085fd chore: lock snapshot after CJQ-real commit (parity 61970->61971 roundtrip 21309->21309)
 
 ## Suggested Next 3 Items
 
