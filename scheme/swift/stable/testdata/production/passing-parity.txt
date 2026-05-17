@@ -1,4 +1,4 @@
-# snapshot-pass-set update 2026-05-17T06:52:20Z — union with previous (high-water)
+# snapshot-pass-set update 2026-05-17T06:55:23Z — union with previous (high-water)
 _$s10Foreground7SwiftUI18LabelGroupStyle_v0PTl
 _$s10Foundation10CocoaErrorV010formattingC0AC4CodeVvgZ
 _$s10Foundation10CocoaErrorV010formattingC0AC4CodeVvpZMV
@@ -2136,6 +2136,7 @@ _$s10Foundation12CharacterSetVs28CustomDebugStringConvertibleAAMc
 _$s10Foundation12DataProtocolMp
 _$s10Foundation12DataProtocolP10firstRange2of2inSny5IndexQzGSgqd___qd_0_tAaBRd__SXRd_0_5BoundQyd_0_AHRSr0_lFTj
 _$s10Foundation12DataProtocolP11SubSequenceSl_AaBTn
+_$s10Foundation12DataProtocolP7RegionsAC_7ElementST11SubSequenceSlAA15ContiguousBytesTn
 _$s10Foundation12DataProtocolP7RegionsAC_7ElementSTAA15ContiguousBytesTn
 _$s10Foundation12DataProtocolP7RegionsAC_7ElementSTAaBTn
 _$s10Foundation12DataProtocolP7RegionsAC_SKTn
