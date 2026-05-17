@@ -13869,6 +13869,15 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 						depth++
 					}
 				}
+				// Closure-arg separator: `_` preceded by closure-end `c`.
+				// Closures are self-contained units that don't naturally
+				// rebalance the y...G depth counter, so we check before
+				// the depth-skip and treat each `c_` as an arg separator
+				// at any depth (a closure ends at its own depth-level).
+				if j > 0 && c == '_' && body[j-1] == 'c' {
+					sepCount++
+					continue
+				}
 				if depth > 0 {
 					continue
 				}
