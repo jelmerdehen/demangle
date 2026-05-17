@@ -49,24 +49,16 @@ Remaining failures in the bucket, by sub-shape (probed 2026-05-17):
       P2. Trace verified for the `LocalizationOptions` sample:
       decl=`_pluralizationNumber` nestedHost=`[LocalizationOptions]`.
       Smoke green, parity unchanged (62054).
-- [ ] **P2 — parseType extension-nested nominal (root cause)**:
-      `parseType` cannot parse an extension-nested nominal whose base
-      is a substitution — given `SS10FoundationE19LocalizationOptionsV`
-      it consumes only `SS` and returns `Swift.String`. This blocks
-      both the host-type parse AND the `AC…`-rooted retType parse for
-      nested hosts, and is the same gap `fpVerboseRetExtCont` string-
-      patches for single-level retTypes. Fix: after parseType yields a
-      substitution/stdlib type, if `<module-or-subref> E` follows,
-      continue into the extension-nested nominal — build the Extension
-      + nested-nominal node AND push idx 0 (module) / idx 1 (extension)
-      / idx 2+ (nested nominals) to `p.subs` so later `A<C..>` refs
-      resolve. This is broad parser surgery — probe regression risk on
-      the full corpus before shipping; narrow scope if needed.
-- [ ] **P2b — multi-level subs seeding + emit wiring**: once P2 lets
-      parseType parse the host type, parse `p.s[0:hostTypeEnd]` at the
-      emit site to populate subs/words, then wire
-      `fpVerboseFormNestedHost` into the emit. First nested-host parity
-      wins land here.
+- [x] **P2 — nested-host compositional renderer** (2026-05-17, CKK):
+      instead of broad `parseType` surgery, render the nested-host
+      verbose form compositionally in `fpVerboseNestedHostText`: build
+      the host string from the stdlib host + module + nested levels,
+      build a substitution-index→string table, and resolve the
+      `A<X> <ident> <kind> Sg*` retType shape directly (word-subs via
+      `parseIdentifier` over a seeded word list). Zero risk to general
+      `parseType`. +4 production (`String.LocalizationOptions`
+      `_pluralizationNumber` getter/setter/modify/descriptor).
+      P2b (subs seeding + emit wiring) is subsumed by this renderer.
 - [ ] **P3 — Optional retType wrap**: in `fpVerboseRetExtCont`, after
       the nominal-kind byte, accept a trailing `Sg` (and `SgSg`...) →
       append `?` per wrap. Re-check full consumption to retEnd.
@@ -86,11 +78,10 @@ Remaining failures in the bucket, by sub-shape (probed 2026-05-17):
 - 2026-05-17 fire-4: P2 attempt — tried parsing the host type from the
   symbol start to populate subs/words for the retType. Blocked:
   parseType stops after `SS` and will not continue into the
-  extension-nested `…E19LocalizationOptionsV` tail (trace: hostStr
-  came back `Swift.String`, retType parse then failed `expected valid
-  substitution index "0"`). Re-scoped P2 to fix that parseType gap as
-  the root cause; the host-type/emit work is now P2b. Code reverted to
-  the P1 state.
+  extension-nested `…E19LocalizationOptionsV` tail. Code reverted.
+- 2026-05-17 fire-5: P2 shipped via a compositional renderer
+  (`fpVerboseNestedHostText`) — sidesteps the parseType gap entirely.
+  +4 production (62054->62058). CKK.
 
 ## Failed attempts
 

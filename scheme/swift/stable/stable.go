@@ -14328,12 +14328,18 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 		}
 		text = staticPfx + hostStr + nameOut + localGen + labelStr
 	}
-	// P4: Verbose-form override for stdlib-host + ext property accessors
-	// / property descriptors. See plans/verbose-form-printer.md. Only
-	// applies when we have a clean candidate AND can parse the retType.
-	// Nested-host candidates are detected but not yet emitted — the
-	// emit + retType seeding for nested hosts lands in
-	// plans/verbose-form-nested-host.md P2.
+	// Verbose-form override for stdlib-host + ext property accessors /
+	// property descriptors. See plans/verbose-form-printer.md (single
+	// level) and plans/verbose-form-nested-host.md (nested host).
+	if fpVerboseFormCandidate && (isPropAcc || isPropDesc) && !isSubscript &&
+		len(fpVerboseFormNestedHost) > 0 {
+		// Nested-host candidate: render compositionally.
+		if nt := p.fpVerboseNestedHostText(fpVerboseFormHostLetter,
+			fpVerboseFormExtMod, fpVerboseFormNestedHost, fpVerboseFormDeclName,
+			fpVerboseFormRetTypeBytes, fpVerboseFormAccessor, fpVerboseFormIsPropDesc); nt != "" {
+			text = nt
+		}
+	}
 	if fpVerboseFormCandidate && (isPropAcc || isPropDesc) && !isSubscript &&
 		len(fpVerboseFormNestedHost) == 0 {
 		retOff := strings.Index(p.s, fpVerboseFormRetTypeBytes)
@@ -14409,17 +14415,25 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 func fpVerboseSeedContext(modName, declName string) (common.SubstitutionTable, []string) {
 	var subs common.SubstitutionTable
 	subs.Push(common.NewModule(modName))
+	return subs, fpVerboseWords(modName, declName)
+}
+
+// fpVerboseWords splits the given identifiers (in symbol order) into the
+// word list that word-sub-encoded identifiers later in the symbol
+// reference. Mirrors parseIdentifier's word capture: words are >=2-letter
+// runs split at lower->upper camelCase boundaries; cap 26.
+func fpVerboseWords(idents ...string) []string {
 	var words []string
-	addWords := func(ident string) {
-		isLetter := func(c byte) bool {
-			return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z')
+	isLetter := func(c byte) bool {
+		return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z')
+	}
+	isWordEnd := func(c, prev byte) bool {
+		if !isLetter(c) {
+			return true
 		}
-		isWordEnd := func(c, prev byte) bool {
-			if !isLetter(c) {
-				return true
-			}
-			return c >= 'A' && c <= 'Z' && prev >= 'a' && prev <= 'z'
-		}
+		return c >= 'A' && c <= 'Z' && prev >= 'a' && prev <= 'z'
+	}
+	for _, ident := range idents {
 		wordStart := -1
 		for i := 0; i <= len(ident); i++ {
 			var c byte
@@ -14437,9 +14451,77 @@ func fpVerboseSeedContext(modName, declName string) (common.SubstitutionTable, [
 			}
 		}
 	}
-	addWords(modName)
-	addWords(declName)
-	return subs, words
+	return words
+}
+
+// fpVerboseNestedHostText renders the verbose form for a nested-host
+// pattern-A property accessor / descriptor — symbols whose host has one
+// or more nested type levels between the extension `E` and the decl,
+// e.g. `SS10FoundationE19LocalizationOptionsV20_pluralizationNumber...`.
+//
+// parseType cannot parse extension-nested nominals rooted at a
+// substitution, so the host string and the `A<X>`-rooted retType are
+// rendered compositionally here. Returns "" if the retType does not
+// match the supported `A<X> <identifier> <kind> Sg*` shape.
+// See plans/verbose-form-nested-host.md.
+func (p *parser) fpVerboseNestedHostText(hostLetter byte, extMod string,
+	nestedHost []string, declName, retBytes, accessor string, isPropDesc bool) string {
+	std, ok := common.BuildStdlibNominal(hostLetter)
+	if !ok || len(std.Children) == 0 || len(std.Children[0].Children) < 2 {
+		return ""
+	}
+	extTypeName := std.Children[0].Children[1].Text
+	// subStrings[idx] is the verbose string for substitution index idx:
+	// 0 = module, 1 = (extension in M):Swift.<host>, 2+ = each nested
+	// type level appended.
+	extCtx := "(extension in " + extMod + "):Swift." + extTypeName
+	subStrings := []string{extMod, extCtx}
+	cur := extCtx
+	for _, nh := range nestedHost {
+		cur += "." + nh
+		subStrings = append(subStrings, cur)
+	}
+	hostStr := cur
+
+	retOff := strings.Index(p.s, retBytes)
+	if retOff < 0 || retBytes == "" {
+		return ""
+	}
+	retEnd := retOff + len(retBytes)
+	saveI, saveSubs, saveWords := p.i, p.subs, p.words
+	p.words = fpVerboseWords(append([]string{extMod}, append(append([]string{}, nestedHost...), declName)...)...)
+	p.i = retOff
+	retStr := ""
+	// Shape: A<X> <identifier> <V|O|C> Sg*
+	if p.i+1 < retEnd && p.s[p.i] == 'A' &&
+		p.s[p.i+1] >= 'A' && p.s[p.i+1] <= 'Z' {
+		idx := int(p.s[p.i+1] - 'A')
+		p.i += 2
+		if idx >= 0 && idx < len(subStrings) {
+			if ident, err := p.parseIdentifier(); err == nil && ident != "" &&
+				p.i < retEnd &&
+				(p.s[p.i] == 'V' || p.s[p.i] == 'O' || p.s[p.i] == 'C') {
+				p.i++
+				opt := ""
+				for p.i+2 <= retEnd && p.s[p.i] == 'S' && p.s[p.i+1] == 'g' {
+					opt += "?"
+					p.i += 2
+				}
+				if p.i == retEnd {
+					retStr = subStrings[idx] + "." + ident + opt
+				}
+			}
+		}
+	}
+	p.i, p.subs, p.words = saveI, saveSubs, saveWords
+	if retStr == "" {
+		return ""
+	}
+	text := hostStr + "." + declName
+	if isPropDesc {
+		return "property descriptor for " + text + " : " + retStr
+	}
+	return text + accessor + " : " + retStr
 }
 
 // fpVerboseRetExtCont continues a verbose-form retType parse when
