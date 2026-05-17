@@ -37,7 +37,7 @@ Apple's verbose form:
       `fpVerboseRetType *demangle.Node`. Ship +0 parity if retType
       isn't used yet.
 
-- [ ] **P3 — constraint-sig extraction**: if body has constraint
+- [x] **P3 — constraint-sig extraction** (2026-05-17): if body has constraint
       bytes between host and `E`, invoke `extractConstraintSigFullOpts`
       to produce `< where A: ...>` clause. Store in local
       `fpVerboseConstraint string`.
@@ -68,6 +68,12 @@ Apple's verbose form:
   for sample symbols (e.g. Sy.Foundation.smallestEncoding vg → host='y'
   decl="smallestEncoding" ret="SSAAE0C0V" acc=".getter"). Smoke green,
   parity unchanged (62050).
+- 2026-05-17: P3 shipped. Added Pattern B (self-Swift extension with
+  constraint bytes, e.g. SN.s...rl.E) alongside Pattern A. Constraint
+  bytes captured + extractConstraintSigFullOpts invoked to produce
+  formatted ` where A: ...` clause. Verified for SN ClosedRange sample:
+  sig=`< where A: Swift.Strideable, A.Stride: Swift.SignedInteger>`.
+  Smoke green, parity unchanged (62050).
 
 ## Failed attempts
 

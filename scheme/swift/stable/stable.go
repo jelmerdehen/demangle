@@ -8720,94 +8720,131 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 	fpVerboseFormExtMod := ""
 	fpVerboseFormHostLetter := byte(0)
 	fpVerboseFormDeclName := ""
-	fpVerboseFormRetTypeBytes := "" // raw bytes between decl-name and v<kind>/F terminal
-	fpVerboseFormAccessor := ""     // .getter/.setter/.modify/.willset/.didset or "" for fn / vpMV
+	fpVerboseFormRetTypeBytes := ""    // raw bytes between decl-name and v<kind>/F terminal
+	fpVerboseFormAccessor := ""        // .getter/.setter/.modify/.willset/.didset or "" for fn / vpMV
 	fpVerboseFormIsPropDesc := false
+	fpVerboseFormConstraintBytes := "" // raw constraint bytes between host and E (pattern B)
+	fpVerboseFormConstraintSig := ""   // formatted "< where A: ...>" clause
 	{
-		// Shape: `S<letter><n><mod>E<n><decl><type-bytes>v<kind>` (property)
-		//   OR   `S<letter><n><mod>E<n><decl><type-bytes>F` (function)
-		// where <letter> resolves to a stdlib protocol/type substitution
-		// AND <mod> is digit-led (not 's' for self-Swift), AND tail
-		// indicates property accessor or function entity.
+		// Pattern A: `S<letter><n><mod>E<n><decl><type-bytes>v<kind>` (cross-mod property)
+		//        OR  `S<letter><n><mod>E<n><decl><type-bytes>F` (cross-mod function)
+		// Pattern B: `S<letter>s<constraint-bytes>E<n><decl><type-bytes>v<kind>|F` (self-Swift with constraints)
+		// where <letter> resolves to a stdlib protocol/type substitution.
 		i := 0
 		if len(p.s) >= 8 && p.s[i] == 'S' && p.s[i+1] != 'o' &&
 			p.s[i+1] != 'c' && p.s[i+1] != 'C' {
 			if _, ok := common.BuildStdlibNominal(p.s[i+1]); ok {
 				hostLetter := p.s[i+1]
 				j := i + 2
-				// Digit-led ext-mod ident.
+				modName := ""
+				constraintBytes := ""
+				detected := false
 				if j < len(p.s) && p.s[j] >= '1' && p.s[j] <= '9' {
+					// Pattern A: digit-led ext-mod ident.
 					n := 0
 					for j < len(p.s) && p.s[j] >= '0' && p.s[j] <= '9' {
 						n = n*10 + int(p.s[j]-'0')
 						j++
 					}
 					if n > 0 && j+n < len(p.s) {
-						modName := p.s[j : j+n]
+						modName = p.s[j : j+n]
 						j += n
-						// Must be 'E' immediately after mod ident.
 						if j < len(p.s) && p.s[j] == 'E' {
 							j++ // past E
-							// Parse decl-name: digit-led ident.
-							if j < len(p.s) && p.s[j] >= '1' && p.s[j] <= '9' {
-								dlen := 0
-								for j < len(p.s) && p.s[j] >= '0' && p.s[j] <= '9' {
-									dlen = dlen*10 + int(p.s[j]-'0')
-									j++
+							detected = true
+						}
+					}
+				} else if j < len(p.s) && p.s[j] == 's' {
+					// Pattern B: self-Swift extension with constraint bytes.
+					// Scan for first E preceded by what looks like constraint
+					// markers (Rz/Rsz/Rb/Rp/rl).
+					modName = "Swift"
+					scan := j + 1 // past 's'
+					eAt := -1
+					for k := scan; k < len(p.s)-1 && k < scan+200; k++ {
+						if p.s[k] == 'E' && k+1 < len(p.s) {
+							nx := p.s[k+1]
+							if nx >= '1' && nx <= '9' {
+								// Require constraint marker in between.
+								cb := p.s[scan:k]
+								if strings.Contains(cb, "Rz") ||
+									strings.Contains(cb, "Rsz") ||
+									strings.Contains(cb, "Rb") ||
+									strings.Contains(cb, "Rp") ||
+									strings.Contains(cb, "rl") {
+									eAt = k
+									break
 								}
-								if dlen > 0 && j+dlen <= len(p.s) {
-									declName := p.s[j : j+dlen]
-									j += dlen
-									// Cheap tail-shape sniff: ends in F or
-									// vg/vs/vM/vw/vW/vpMV.
-									tail2 := ""
-									if len(p.s) >= 2 {
-										tail2 = p.s[len(p.s)-2:]
-									}
-									tail4 := ""
-									if len(p.s) >= 4 {
-										tail4 = p.s[len(p.s)-4:]
-									}
-									var accessor string
-									isFn := false
-									isPropDesc := false
-									terminalLen := 0
-									switch {
-									case tail4 == "vpMV":
-										isPropDesc = true
-										terminalLen = 4
-									case tail2 == "vg":
-										accessor = ".getter"
-										terminalLen = 2
-									case tail2 == "vs":
-										accessor = ".setter"
-										terminalLen = 2
-									case tail2 == "vM":
-										accessor = ".modify"
-										terminalLen = 2
-									case tail2 == "vw":
-										accessor = ".willset"
-										terminalLen = 2
-									case tail2 == "vW":
-										accessor = ".didset"
-										terminalLen = 2
-									case p.s[len(p.s)-1] == 'F':
-										isFn = true
-										terminalLen = 1
-									}
-									_ = isFn
-									if terminalLen > 0 {
-										endRet := len(p.s) - terminalLen
-										if endRet > j {
-											fpVerboseFormCandidate = true
-											fpVerboseFormExtMod = modName
-											fpVerboseFormHostLetter = hostLetter
-											fpVerboseFormDeclName = declName
-											fpVerboseFormRetTypeBytes = p.s[j:endRet]
-											fpVerboseFormAccessor = accessor
-											fpVerboseFormIsPropDesc = isPropDesc
-										}
-									}
+							}
+						}
+					}
+					if eAt >= 0 {
+						constraintBytes = p.s[scan:eAt]
+						j = eAt + 1
+						detected = true
+					}
+				}
+				if detected && j < len(p.s) && p.s[j] >= '1' && p.s[j] <= '9' {
+					dlen := 0
+					for j < len(p.s) && p.s[j] >= '0' && p.s[j] <= '9' {
+						dlen = dlen*10 + int(p.s[j]-'0')
+						j++
+					}
+					if dlen > 0 && j+dlen <= len(p.s) {
+						declName := p.s[j : j+dlen]
+						j += dlen
+						tail2 := ""
+						if len(p.s) >= 2 {
+							tail2 = p.s[len(p.s)-2:]
+						}
+						tail4 := ""
+						if len(p.s) >= 4 {
+							tail4 = p.s[len(p.s)-4:]
+						}
+						var accessor string
+						isFn := false
+						isPropDesc := false
+						terminalLen := 0
+						switch {
+						case tail4 == "vpMV":
+							isPropDesc = true
+							terminalLen = 4
+						case tail2 == "vg":
+							accessor = ".getter"
+							terminalLen = 2
+						case tail2 == "vs":
+							accessor = ".setter"
+							terminalLen = 2
+						case tail2 == "vM":
+							accessor = ".modify"
+							terminalLen = 2
+						case tail2 == "vw":
+							accessor = ".willset"
+							terminalLen = 2
+						case tail2 == "vW":
+							accessor = ".didset"
+							terminalLen = 2
+						case p.s[len(p.s)-1] == 'F':
+							isFn = true
+							terminalLen = 1
+						}
+						_ = isFn
+						if terminalLen > 0 {
+							endRet := len(p.s) - terminalLen
+							if endRet > j {
+								fpVerboseFormCandidate = true
+								fpVerboseFormExtMod = modName
+								fpVerboseFormHostLetter = hostLetter
+								fpVerboseFormDeclName = declName
+								fpVerboseFormRetTypeBytes = p.s[j:endRet]
+								fpVerboseFormAccessor = accessor
+								fpVerboseFormIsPropDesc = isPropDesc
+								fpVerboseFormConstraintBytes = constraintBytes
+								if len(constraintBytes) > 0 {
+									// P3: extract " where A: ..." clause.
+									sig, _ := extractConstraintSigFullOpts(
+										[]byte(constraintBytes), true, p.words, modName)
+									fpVerboseFormConstraintSig = sig
 								}
 							}
 						}
@@ -8816,13 +8853,15 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			}
 		}
 	}
-	_ = fpVerboseFormCandidate    // TODO P3/P4: actually emit verbose form
-	_ = fpVerboseFormExtMod       // TODO P3/P4
-	_ = fpVerboseFormHostLetter   // TODO P3/P4
-	_ = fpVerboseFormDeclName     // TODO P3/P4
-	_ = fpVerboseFormRetTypeBytes // TODO P3: parse via parseType
-	_ = fpVerboseFormAccessor     // TODO P4
-	_ = fpVerboseFormIsPropDesc   // TODO P4
+	_ = fpVerboseFormCandidate      // TODO P4: actually emit verbose form
+	_ = fpVerboseFormExtMod         // TODO P4
+	_ = fpVerboseFormHostLetter     // TODO P4
+	_ = fpVerboseFormDeclName       // TODO P4
+	_ = fpVerboseFormRetTypeBytes   // TODO P4: parse via parseType
+	_ = fpVerboseFormAccessor       // TODO P4
+	_ = fpVerboseFormIsPropDesc     // TODO P4
+	_ = fpVerboseFormConstraintBytes // TODO P4
+	_ = fpVerboseFormConstraintSig  // TODO P4
 	// Special: `xSg<...>Mc` / `xSg<...>WP` — Optional<gen-param> conformance
 	// descriptor or protocol witness table. Apple short form is `<A> A?`.
 	if len(p.s) >= 4 && p.s[0] == 'x' && p.s[1] == 'S' && p.s[2] == 'g' {
