@@ -18388,14 +18388,10 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 					break
 				}
 			}
-			// Known module-qualifier name in label position = return-type
-			// module prefix. Rewind when lbl matches and next is digit-led.
-			if !p.eof() &&
-				(p.s[p.i] >= '0' && p.s[p.i] <= '9') &&
-				(lbl == "Foundation" || lbl == "SwiftUI" ||
-					lbl == "UIKit" || lbl == "Combine" ||
-					lbl == "CoreGraphics" || lbl == "CoreData" ||
-					lbl == "CoreText" || lbl == "Dispatch") {
+			// Uppercase-leading label: Swift labels never start uppercase.
+			// This is type material (module / identifier), not a label —
+			// rewind and stop consuming labels.
+			if len(lbl) > 0 && lbl[0] >= 'A' && lbl[0] <= 'Z' {
 				p.i = lblSave
 				p.subs = lblSubs
 				p.words = lblWords
