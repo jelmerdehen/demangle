@@ -13679,12 +13679,17 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 	if (isFn || isInit || (isSubscript && isPropDesc)) && len(fpLabels) == 0 {
 		body := p.s[peekI:sEnd]
 		// Strip trailing F or FZ + optional 't' tuple end.
+		// For subscript property descriptors, sEnd already excludes the
+		// `cipMV` terminator — no extra strip needed (the body's last
+		// byte is the empty-arg-tuple marker `y`).
 		bodyEnd := len(body)
-		if bodyEnd >= 1 {
-			bodyEnd--
-		}
-		if isStatic && bodyEnd >= 1 {
-			bodyEnd--
+		if !(isSubscript && isPropDesc) {
+			if bodyEnd >= 1 {
+				bodyEnd--
+			}
+			if isStatic && bodyEnd >= 1 {
+				bodyEnd--
+			}
 		}
 		// Async/throws markers `Ya` and `K` can stack as `YaK` or `KYa`;
 		// strip iteratively to handle both orderings before tuple-end strip.
