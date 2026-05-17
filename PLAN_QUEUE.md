@@ -32,11 +32,14 @@ Each fire:
 
 | Plan | File | Status | Last touched |
 |------|------|--------|--------------|
-| verbose-form printer | plans/verbose-form-printer.md | P5 pending | 2026-05-17 |
+
+(none)
 
 ## Closed plans
 
-(none yet)
+| Plan | File | Outcome | Closed |
+|------|------|---------|--------|
+| verbose-form printer | plans/verbose-form-printer.md | P1–P5 done; +4 production (CKJ) | 2026-05-17 |
 
 ## Forking new plans
 

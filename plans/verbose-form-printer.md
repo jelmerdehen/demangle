@@ -50,10 +50,15 @@ Apple's verbose form:
 
       Ship — expect first parity wins here.
 
-- [ ] **P5 — enable + scope**: limit emission to known stdlib-host
-      substitutions (Sy/Sz/SY/SN/Sh/Sq/SR). Run smoke wide; record
-      parity delta. If regression, narrow scope. Close primitive
-      with summary commit.
+- [x] **P5 — nested-extension retType renderer** (2026-05-17): the P4
+      full-consumption guard rejected every cross-module retType because
+      parseType could not parse extension-nested nominals (`SSAAE0C0V`
+      → only `SS` consumed). Added `fpVerboseSeedContext` (seeds the
+      extension module as substitution index 0 + words from module/decl
+      name so `AA` refs and word-sub identifiers resolve) and
+      `fpVerboseRetExtCont` (continuation parser for the
+      `<moduleRef>E<ident><kind>` tail). Gated to pattern-A candidates.
+      First real parity win of the plan: +4 production.
 
 ## Status
 
@@ -82,6 +87,14 @@ Apple's verbose form:
   Initial broad scope regressed -2; narrowing to full-consumption
   recovered parity (62050 = baseline). P5 will expand retType
   renderer to handle nested-extension types.
+
+- 2026-05-17: P5 shipped. fpVerboseSeedContext + fpVerboseRetExtCont
+  land the cross-module retType. `smallestEncoding` now matches Apple:
+  `(extension in Foundation):Swift.StringProtocol.smallestEncoding.getter
+  : (extension in Foundation):Swift.String.Encoding`. parity 62050->62054
+  (+4). Optional-wrapped (`...VSg`) and multi-level-nested retTypes still
+  fall through the guard — follow-up bucket if the count warrants.
+  Plan complete.
 
 ## Failed attempts
 

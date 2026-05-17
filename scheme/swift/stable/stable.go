@@ -14312,16 +14312,34 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 		if retOff >= 0 && fpVerboseFormRetTypeBytes != "" {
 			saveI, saveSubs, saveWords := p.i, p.subs, p.words
 			p.i = retOff
+			// P5: cross-module (pattern A) retTypes back-reference the
+			// extension module as substitution index 0, and word-sub
+			// identifiers resolve against words captured (in symbol
+			// order) from the module name and the decl name. Seed that
+			// context so parseType can resolve `AA` refs and word-subs
+			// in nested-extension retTypes. See plans/verbose-form-printer.md.
+			if fpVerboseFormConstraintBytes == "" && fpVerboseFormExtMod != "" &&
+				fpVerboseFormExtMod != "Swift" {
+				p.subs, p.words = fpVerboseSeedContext(fpVerboseFormExtMod, fpVerboseFormDeclName)
+			}
+			retEnd := retOff + len(fpVerboseFormRetTypeBytes)
 			retNode, retErr := p.parseType()
 			postI := p.i
+			retStr := ""
+			if retErr == nil && retNode != nil {
+				if postI == retEnd {
+					// parseType consumed all of retTypeBytes.
+					retStr = common.Print(retNode, common.DefaultPrintOptions())
+				} else {
+					// parseType consumed only the extended type; the
+					// remainder is an extension-nested nominal.
+					retStr = p.fpVerboseRetExtCont(retNode, retEnd)
+				}
+			}
 			// Restore state — emit-only side effect.
 			p.i, p.subs, p.words = saveI, saveSubs, saveWords
-			// Only proceed if parseType consumed ALL of retTypeBytes.
-			// Partial consumption means we missed nested extension types.
-			retEnd := retOff + len(fpVerboseFormRetTypeBytes)
-			if retErr == nil && retNode != nil && postI == retEnd {
-				retStr := common.Print(retNode, common.DefaultPrintOptions())
-				if retStr != "" && !strings.HasPrefix(retStr, "<<") {
+			if retStr != "" && !strings.HasPrefix(retStr, "<<") {
+				{
 					hostName := ""
 					if std, hOk := common.BuildStdlibNominal(fpVerboseFormHostLetter); hOk &&
 						len(std.Children) > 0 && len(std.Children[0].Children) > 1 {
@@ -14353,6 +14371,104 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 	wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
 	p.i = len(p.s)
 	return wrap, true
+}
+
+// fpVerboseSeedContext builds the substitution table and word list that
+// a cross-module (pattern A) verbose-form retType back-references: the
+// extension module is substitution index 0, and word-sub identifiers in
+// the retType resolve against words captured (in symbol order) from the
+// module name and the decl name. See plans/verbose-form-printer.md P5.
+func fpVerboseSeedContext(modName, declName string) (common.SubstitutionTable, []string) {
+	var subs common.SubstitutionTable
+	subs.Push(common.NewModule(modName))
+	var words []string
+	addWords := func(ident string) {
+		isLetter := func(c byte) bool {
+			return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z')
+		}
+		isWordEnd := func(c, prev byte) bool {
+			if !isLetter(c) {
+				return true
+			}
+			return c >= 'A' && c <= 'Z' && prev >= 'a' && prev <= 'z'
+		}
+		wordStart := -1
+		for i := 0; i <= len(ident); i++ {
+			var c byte
+			if i < len(ident) {
+				c = ident[i]
+			}
+			if wordStart >= 0 && (i == len(ident) || isWordEnd(c, ident[i-1])) {
+				if i-wordStart >= 2 && len(words) < 26 {
+					words = append(words, ident[wordStart:i])
+				}
+				wordStart = -1
+			}
+			if wordStart < 0 && i < len(ident) && isLetter(c) {
+				wordStart = i
+			}
+		}
+	}
+	addWords(modName)
+	addWords(declName)
+	return subs, words
+}
+
+// fpVerboseRetExtCont continues a verbose-form retType parse when
+// parseType consumed only the extended type and the remaining bytes
+// (up to retEnd) encode an extension-nested nominal:
+//
+//	<moduleRef> E <identifier> <nominal-kind-byte>
+//
+// e.g. `SSAAE0C0V` → extended type `SS` (Swift.String) parsed by
+// parseType, then `AA` E `0C0` `V` → `(extension in Foundation):
+// Swift.String.Encoding`. p.i must sit right after the extended type.
+// Returns "" if the remainder doesn't match that shape or isn't fully
+// consumed up to retEnd. See plans/verbose-form-printer.md P5.
+func (p *parser) fpVerboseRetExtCont(extNode *demangle.Node, retEnd int) string {
+	extStr := common.Print(extNode, common.DefaultPrintOptions())
+	if extStr == "" || strings.HasPrefix(extStr, "<<") {
+		return ""
+	}
+	// Module: A-prefixed substitution ref or literal <n><name>.
+	modName := ""
+	if p.i < retEnd && p.s[p.i] == 'A' {
+		p.i++
+		modNode, _, ok := p.parseMultiSubstitution()
+		if !ok || modNode == nil || common.NodeKind(modNode.Kind) != common.KindModule {
+			return ""
+		}
+		modName = modNode.Text
+	} else if p.i < retEnd && p.s[p.i] >= '1' && p.s[p.i] <= '9' {
+		n := 0
+		for p.i < retEnd && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+			n = n*10 + int(p.s[p.i]-'0')
+			p.i++
+		}
+		if n <= 0 || p.i+n > retEnd {
+			return ""
+		}
+		modName = p.s[p.i : p.i+n]
+		p.i += n
+	} else {
+		return ""
+	}
+	if p.i >= retEnd || p.s[p.i] != 'E' {
+		return ""
+	}
+	p.i++ // consume E
+	ident, err := p.parseIdentifier()
+	if err != nil || ident == "" {
+		return ""
+	}
+	if p.i >= retEnd || (p.s[p.i] != 'V' && p.s[p.i] != 'C' && p.s[p.i] != 'O') {
+		return ""
+	}
+	p.i++ // consume nominal-kind byte
+	if p.i != retEnd {
+		return ""
+	}
+	return "(extension in " + modName + "):" + extStr + "." + ident
 }
 
 // tryStdlibExtensionAllocator handles the extension-allocator shape where
