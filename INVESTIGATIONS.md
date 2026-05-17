@@ -132,6 +132,27 @@ a one-shot Explore agent. Before any `swift-parity:` commit:
 
 ## Active targets
 
+### label-arity all-paths-tuple-tokenizer needed [~40 syms, deferred-3, ~+40P]
+
+**Promoted to tier-3** after this fire's probing revealed the problem
+is more general than expected:
+
+- dispatch_read body `ys5Int32V_SiSo03OS_B6_queueCySo0e1_B5_dataC_ADtXEt`
+  has 4 tuple elements (Int32, Int, dispatch_queue, escaping-closure)
+  but only ONE `_` separator (after Int32V). The Si→So and C→y
+  boundaries have NO underscore — Apple's tokenizer uses kind-byte
+  end as implicit boundary.
+- Byte-level separator heuristics can't distinguish "V followed by
+  digit-ident" between (nested-type continuation) vs (tuple-element
+  boundary) without parsing the full type grammar.
+- Real fix: implement proper type-tokenizer that walks left-to-right
+  consuming whole types and counts the boundary count = N-1
+  separators for N-element tuple.
+
+This is structural — not 1-3 primitives. Pure deferral until a
+proper type-walker can be slotted into the fast-path label-arity
+counter.
+
 ### label-arity multi-arg-tuple closure separator [~40 syms, deferred-2, ~+40P]
 
 Fast-path label counter at line 13855 uses `_` separator counting
