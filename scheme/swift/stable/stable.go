@@ -20224,6 +20224,15 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 				p0Str != p1Str && len(p0Str) > len(p1Str) &&
 				p0Str[lastDot0:] == p1Str[lastDot1:] {
 				paramsNode.Children[1] = paramsNode.Children[0]
+			} else if lastDot0 >= 0 && lastDot1 >= 0 &&
+				p0Str != p1Str && strings.Contains(p0Str, "<") &&
+				!strings.Contains(p1Str, "<") {
+				// p0 has bound-gen brackets (e.g. `X<A, B>`); p1 is a
+				// bare nominal (e.g. `Swift.Equatable`). Apple's contract
+				// for Equatable/Comparable infix is symmetric (Self, Self)
+				// — p1 has resolved to the constraint protocol rather
+				// than the constrained type. Force p1=p0.
+				paramsNode.Children[1] = paramsNode.Children[0]
 			}
 		}
 	}
