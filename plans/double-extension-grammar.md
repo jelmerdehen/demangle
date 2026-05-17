@@ -28,11 +28,19 @@ constraint clauses, double nesting, and descriptor wrapping.
 
 ## Primitives
 
-- [ ] **P1 — bail-site probe**: debug-trace which parser path consumes
-      `10Foundation11MeasurementV` and the exact `p.i` / leftover at
-      return. Identify the precise missing production (extension on a
-      bound-generic with `Rbzrl`-class constraints). Ship +0 with the
-      trace recorded here.
+- [x] **P1 — bail-site probe** (2026-05-17 fire-16): the main parser
+      consumes ONLY the base nominal (`10Foundation11MeasurementV` →
+      `Foundation.Measurement`, p.i=26) and leaves the *entire*
+      extension chain `AASo11NSDimensionCRbzrlE11FormatStyleV…E…V…Mc`
+      as leftover; `parseGlobal` then errors at stable.go:188.
+      The last-resort fast-path renders *single*-extension
+      conformance-descriptor shapes but declines the double-extension
+      ones. So the gap is: nothing consumes a repeatable
+      `<extended-type> <module|objc> <constraints> E` chain when it
+      sits in conformance-descriptor (`Mc`/`WP`) position. This is the
+      same parseType extension-nested-nominal gap worked around for
+      verbose-form retTypes — here it must be fixed in the *type*
+      parser (or fast-path) so the whole nested chain is consumed.
 - [ ] **P2 — extension-on-bound-generic context**: parse
       `<extended-bound-generic> <defining-module|objc> <constraints> E`
       as an extension context node, with the constraint clause captured
@@ -51,7 +59,8 @@ constraint clauses, double nesting, and descriptor wrapping.
 
 ## Status
 
-- 2026-05-17 fire-15: plan forked from the plateau SOS. Bail site
+- 2026-05-17 fire-15: plan forked from the plateau SOS.
+- 2026-05-17 fire-16: P1 done — bail site
   located at stable.go:188 (parseGlobal leftover-bytes error).
 
 ## Failed attempts
