@@ -13634,11 +13634,10 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			peekI = lblStart
 			break
 		}
-		// First-label uppercase: Swift labels never start uppercase.
-		// This is the return-type module/identifier, not a label —
+		// Uppercase-leading label: Swift labels never start uppercase.
+		// This is type material (module / identifier), not a label —
 		// rewind and stop consuming labels.
-		if len(fpLabels) == 0 && len(lbl) > 0 &&
-			lbl[0] >= 'A' && lbl[0] <= 'Z' {
+		if len(lbl) > 0 && lbl[0] >= 'A' && lbl[0] <= 'Z' {
 			peekI = lblStart
 			break
 		}
