@@ -132,6 +132,37 @@ a one-shot Explore agent. Before any `swift-parity:` commit:
 
 ## Active targets
 
+### label-arity multi-arg-tuple closure separator [~40 syms, deferred-2, ~+40P]
+
+Fast-path label counter at line 13855 uses `_` separator counting
+with prev-byte heuristic (prev in V/C/O/P/G/m → sepCount++). For
+multi-arg closure-typed init/fn args, the heuristic mis-counts:
+
+1. Closure-end `c` is NOT in the recognized prev set. Fixed this
+   fire — primitive 1 done (`prev=='c'` check pre-depth-skip).
+   Result: ClosureBasedAnySubscriber goes from `(_:)` to `(_:_:)`.
+   Want is `(_:_:_:)` — third arg separator not yet detected.
+2. Escaping-closure `XE` terminator: dispatch_read has 4 args ending
+   `...CySo0e1_B5_dataC_ADtXE`. After `queueC` and after `dataC`
+   the parser doesn't recognize the boundary because next byte is
+   `y` (start of next type) not `_`.
+3. Tuple grammar requires `_` between adjacent simple types BUT
+   when one element ends with a kind byte (V/C/O/P) and the next
+   starts with a type-marker (y/A/S), Apple's tokenizer can use
+   the kind byte itself as boundary. Our fast-path doesn't.
+
+Next primitives:
+(b) Recognize `XE` (NoEscape function-type closer) as arg-tuple
+    element terminator at depth 0 → sepCount++.
+(c) For ClosureBasedAnySubscriber's tcfC outer-tuple-end shape:
+    inspect body bytes immediately before `tcfC`/`fC` terminal —
+    `c` at depth-0 just before `t` = last closure arg. Adjusting
+    arg count by counting depth-0 `c` chars overall.
+
+Probing the actual tuple-element count via Apple's grammar (count
+TupleElement nodes via --tree-only) confirms 3 for ClosureBased and
+4 for dispatch_read.
+
 ### plateau-2026-05-17 — 5 fires zero parity gain
 
 Post-CKH-real (62049), five fires zero parity gain:
