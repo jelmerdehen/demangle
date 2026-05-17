@@ -16848,6 +16848,14 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 				continue
 			}
 		}
+		// Skip stdlib 2-char substitutions `S<letter>` (Sd, SS, Si, SE,
+		// etc.) so the trailing letter isn't misidentified as the
+		// extension marker.
+		if c == 'S' && k+1 < len(p.s)-1 &&
+			((p.s[k+1] >= 'A' && p.s[k+1] <= 'Z') || (p.s[k+1] >= 'a' && p.s[k+1] <= 'z')) {
+			k += 2
+			continue
+		}
 		// Skip function-type convention markers X<letter> (XE=@escaping, XC=C-func, XK=noescape, etc.)
 		// Prevents 'E' in 'XE' from being misidentified as the extension entity marker.
 		if c == 'X' && k+1 < len(p.s)-1 {
