@@ -44,6 +44,27 @@ Examples confirmed:
   Specifically the path that handles `S<letter><n><mod>E<n><decl>...vg`
   needs to detect the cross-module pattern and emit verbose form.
 
+**Probe finding (2026-05-17, fire-N+1):** Emit at stable.go:14115
+(isPropAcc branch in fast-path) is `text = propStaticPfx + hostStr +
+"." + declName + propAcc`. Has hostStr, declName, propAcc but NOT
+retType. The fast-path is labels-only by design — Apple's verbose
+form needs the return-type, which means the fix can't just be at line
+14115. Options:
+(a) Block the fast-path from accepting these symbols + route to the
+    main parser path that has retType.
+(b) Re-parse the type bytes inline at line 14115 to recover retType.
+(c) Track ret-type info at host-parse time (Sh/Sq/Sy/Sz cases at
+    line 12918+) — but the type bytes come AFTER the decl-name, so
+    "track at host parse" needs a 2-pass.
+
+Option (a) cleanest. Option (c) most surgical. Either is multi-fire.
+
+Adjacent buckets sharing root cause (probed this fire):
+- `Sh.Index._asCocoa.<acc>` — Swift.Set.Index._asCocoa getter/setter/modify
+- `Sq.map<A>(_:)`, `Sq.flatMap<A>(_:)` — Optional methods, missing module + ret + closure shape
+- `Sy.<F>.<prop>.<acc>` — StringProtocol Foundation extension property
+- `SN.E.<prop>` — ClosedRange extension property/method
+
 Fire-plan:
 1. New emit-path: detect (stdlib-protocol-sub host) + (extension marker
    with constraint bytes) → must use verbose-form printer instead of
