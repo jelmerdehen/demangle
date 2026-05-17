@@ -4,6 +4,29 @@ Per-category root-cause + emit-path map. Pre-classified targets for
 fast loop fires — avoids re-deriving path/cause each fire. Bounded
 6 KB. Append to `## Active`; move to `## Closed` when category drained.
 
+## Root-cause map (2026-05-17, post-cheat retrospective)
+
+Top-5 buckets mapped by parallel Explore agents. Hypotheses; each needs
+probe-first verification before commit. **Sorted by estimated payoff
+× confidence.**
+
+| Bucket | Payoff (est) | File:line hypothesis | Risk | Conf |
+|--------|-------------|----------------------|------|------|
+| property-descriptor subscript verbose-form | ~220 | stable.go:14116-14126 (subscript propdesc bypass) | Medium | M |
+| static (extension binary-op symmetry | ~11-137 | stable.go:16076-16094 (boundGenericHeadName / bareNominalName) | Low | M |
+| PredicateExpressions Foundation nested | ~85 | stable.go:16385/16412/16433 (foundationExt cond) + ~20362 | Low | L (agent unsure) |
+| Foundation Measurement bound-generic constraint | ~35-45 | stable.go:19660-19670, 13292-13299, 19704-19748 | Low | M |
+| Foundation×Foundation doubled-prefix | ~238 (claimed) | stable.go:18513-18517 — **REVIEW**: oracle shows double prefix IS correct for these; agent direction reversed | N/A | Wrong |
+
+**Methodology rule (post-cheat):** Each entry above is a hypothesis from
+a one-shot Explore agent. Before any `swift-parity:` commit:
+1. Run `scripts/probe-bucket.sh '<bucket-regex>' 12` to enumerate the
+   bucket's exact want/got patterns.
+2. Trace the actual emit path with a single-instance sentinel (e.g.
+   `/*PR1*/` appended at the suspect line) — confirm the bucket symbols
+   hit that path.
+3. Apply fix only after the trace confirms. Otherwise `chore: defer`.
+
 ## Active targets
 
 ### plateau-2026-05-16-cfj-to-cfj-plus-4-deferrals
