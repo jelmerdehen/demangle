@@ -13551,6 +13551,21 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 	if isTb {
 		probe := p.i
 		for probe < sEnd && p.s[probe] >= '0' && p.s[probe] <= '9' {
+			// Word-sub identifier form: `0<word-refs>0` resolves to a name via
+			// the captured-words table. Parse via parseIdentifier with a
+			// temporary p.i.
+			if p.s[probe] == '0' {
+				saveProbe := p.i
+				p.i = probe
+				ident, perr := p.parseIdentifier()
+				probe = p.i
+				p.i = saveProbe
+				if perr != nil || ident == "" {
+					break
+				}
+				tbProtoName = ident
+				continue
+			}
 			n := 0
 			for probe < sEnd && p.s[probe] >= '0' && p.s[probe] <= '9' {
 				n = n*10 + int(p.s[probe]-'0')
