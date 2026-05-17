@@ -20194,6 +20194,31 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 			localSig = "<" + strings.Join(gnames, ", ") + ">"
 		}
 	}
+	// Binary-op symmetric param fixup: Equatable/Comparable infix
+	// (==/!=/</>/<=/>=) operators are Self-symmetric by contract.
+	// When back-ref under-resolves param[1] to a less-decorated form
+	// than param[0] (e.g. drops outer bound-gen `<A>` qualifier),
+	// force param[1] = param[0]. Safety: only fire when both end on
+	// the same trailing `.X` segment AND p0 is strictly longer —
+	// indicates p1 is the same type chain with a missing inner
+	// `<...>` qualifier, not an unrelated type.
+	if paramsNode != nil && common.NodeKind(paramsNode.Kind) == common.KindTypeList &&
+		len(paramsNode.Children) == 2 {
+		switch declName {
+		case "== infix", "!= infix", "< infix", "> infix",
+			"<= infix", ">= infix":
+			p0Str := common.Print(paramsNode.Children[0], common.DefaultPrintOptions())
+			p1Str := common.Print(paramsNode.Children[1], common.DefaultPrintOptions())
+			lastDot0 := strings.LastIndex(p0Str, ".")
+			lastDot1 := strings.LastIndex(p1Str, ".")
+			if lastDot0 >= 0 && lastDot1 >= 0 &&
+				p0Str != p1Str && len(p0Str) > len(p1Str) &&
+				p0Str[lastDot0:] == p1Str[lastDot1:] {
+				paramsNode.Children[1] = paramsNode.Children[0]
+			}
+		}
+	}
+
 	// Build params string, applying labels when present.
 	var paramsStr string
 	switch {
