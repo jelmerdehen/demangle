@@ -6209,7 +6209,16 @@ func (p *parser) tryVariableEntity() (resNode *demangle.Node, resOK bool, resErr
 			continue
 		}
 		_ = accType
-		pathSteps = append(pathSteps, common.NewIdentifier(ident))
+		// Mechanism A (substitution-model-rebuild P2): Apple's
+		// entity-tree model registers the terminating decl-name
+		// Identifier (the variable's own name) in addSubstitution,
+		// the same as every nominal-kind step above. The walk
+		// previously pushed Identifier+Type for each nominal step
+		// but omitted this final decl-name push, leaving p.subs one
+		// entry SHORT of Apple's frame. Push it to align.
+		declNameIdent := common.NewIdentifier(ident)
+		pathSteps = append(pathSteps, declNameIdent)
+		p.subs.Push(declNameIdent)
 		break
 	}
 	// Type.

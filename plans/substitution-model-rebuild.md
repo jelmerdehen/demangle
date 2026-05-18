@@ -139,18 +139,34 @@ convergence — done inside the open `BREAK_OK` window.
       achievable +0 — it needs the A/B realigned frame first (see
       "Mechanism-C decoupling — P1 verdict" above). C re-sequenced as
       P3.5. P1 ships plan-only, no `stable.go` change. +0.
-- [ ] **P2 — Mechanism A (first `BREAK_OK` fire)**: in
-      `tryVariableEntity` (`stable.go:~6045-6214`) push the
-      terminating decl-name Identifier (the variable's own name, the
-      loop-exit at `~6212`) onto `p.subs`, mirroring Apple's entity
-      tree. Sweep sibling context-walkers (`tryFunctionEntity`,
-      subscript/property-descriptor walkers) for the same omission and
-      fix uniformly. This regresses the Mechanism-C tuple roundtrips
-      (+18 parity / −4 parity / −2 roundtrip per alignment-P1) — open
-      a `BREAK_OK` window: `BREAK_OK="substitution-model-rebuild: A
-      decl-name push regresses C tuples + remangler, restored by
-      P3.5/P4" RESTORE_BY=<+5d>`. Record the exact disappeared symbol
-      list in this plan.
+- [x] **P2 — Mechanism A (first `BREAK_OK` fire)** — done
+      2026-05-19. In `tryVariableEntity` (`stable.go:~6212`) the
+      loop-exit now pushes the terminating decl-name Identifier
+      (`declNameIdent`) onto `p.subs`, mirroring Apple's
+      addSubstitution-on-every-Identifier model. Sibling walkers
+      swept: `tryFunctionEntity`'s digit-led decl-name path already
+      pushes the decl-name ident (`stable.go:~25695`) — no omission;
+      its A-chain decl-name comes from a back-ref and is left as-is.
+      The subscript / property-descriptor walkers
+      (`trySubscriptEntity*`) operate on a pre-built `inner` context
+      node and do no nominal context-walk of their own — no decl-name
+      to push. Fix is therefore correctly localised to
+      `tryVariableEntity`, matching alignment-P1's `P1_DECLPUSH`.
+      **Measured delta:** parity 62216 → 62230 (+14 net; the deferred
+      `AD`-back-ref slices unblocked), roundtrip 22059 → 22057 (−2).
+      **Disappeared set (BREAK_OK window):** exactly 6, all the
+      Mechanism-C repeat-count tuple family —
+      parity (4): `_$s10Foundation4DataV06InlineB0V5bytess5UInt8V_A13HtvpMV`,
+      `_$s10Foundation4DataV8IteratorV7_buffers5UInt8V_A31HtvpMV`,
+      `_$s10Foundation4UUIDV4uuids5UInt8V_A15Ftvg`,
+      `_$s10Foundation4UUIDV4uuids5UInt8V_A15FtvpMV`;
+      roundtrip (2): `_$s10Foundation20PredicateExpressionsO0B5RegexV5regex17_StringProcessing0D0VyAG03AnyD6OutputVGvg`,
+      `_$s10Foundation20PredicateExpressionsO0B5RegexV5regex17_StringProcessing0D0VyAG03AnyD6OutputVGvpMV`.
+      Bounded to the Mechanism-C family as alignment-P1 predicted
+      (~4 parity / ~2 roundtrip — the lengthened table shifts the
+      absolute index those `A<digits><letter>` / `AG` back-refs use).
+      Restored by P3.5 (Mechanism-C decoupling) + P4 (remangler).
+      Committed under `BREAK_OK` / `RESTORE_BY=2026-05-24`.
 - [ ] **P3 — Mechanism B (chained `BREAK_OK` fire)**: drop the
       `parseType` post-switch `p.subs.Push(node)` at `stable.go:~28155`
       for `case 'A'`-resolved back-refs — Apple's `case 'A'` returns
@@ -183,6 +199,16 @@ convergence — done inside the open `BREAK_OK` window.
 
 ## Status
 
+- 2026-05-19: **P2 complete (Mechanism A, first `BREAK_OK` fire).**
+  `tryVariableEntity` now pushes the terminating decl-name Identifier
+  to `p.subs`. Parity 62216 → 62230 (+14 net), roundtrip 22059 →
+  22057 (−2). 6 symbols disappeared from the snapshot — all the
+  Mechanism-C repeat-count tuple family (`_A13Ht`/`_A31Ht`/`_A15Ft`
+  + the two `AG`-back-ref PredicateRegex roundtrips), bounded exactly
+  to alignment-P1's prediction. Hard gates green (Apple 153/153,
+  swiftc 222/222, categories, build). `BREAK_OK` window opened,
+  `RESTORE_BY=2026-05-24`; restored by P3.5 + P4. Next: P3
+  (Mechanism B).
 - 2026-05-19: **P1 complete (+0, plan-only).** Divergences refreshed
   (baseline parity 62216 / roundtrip 22059 confirmed). `BREAK_OK`
   mechanics recorded. A/B/C re-confirmed against HEAD (B and C
