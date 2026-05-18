@@ -122,15 +122,13 @@ and the protocol step carries `<>`, emit at `:14332` produces
 - [x] **P2 — corrected-location probe** — done 2026-05-18; see P2
       findings. Real site is `stable.go:13355-13394`, not
       `tryVariableEntity`.
-- [ ] **P3 — protocol-extension skip in the host-walk loop**: in the
-      `:13355-13394` loop, track the kind byte of the last nominal
-      step. When about to set `declName = ident` and that last step
-      was a protocol (`P`), test whether the bytes from `p.i` open a
-      protocol-extension chain (subst-ref/module + structural `E`).
-      On match: discard `ident` (it is the extension module), skip the
-      chain through the protocol-extension's generic signature + `E`,
-      set the `<>` ext-marker for the protocol step, and `continue`
-      the loop so `05stateJ0` is parsed as declName. Net parity round.
+- [x] **P3 — protocol-extension skip in the host-walk loop** — done
+      2026-05-18 (CKN). Added `skipProtoExtChain`; the host-walk loop
+      tracks the last nominal kind and, on a protocol step followed by
+      an `A<idx>E` extension opener, skips the chain to its trailing
+      structural `E` and resumes at the decl-name with the `<>`
+      placeholder. Drained all 72 AMvpZMV symbols — parity
+      62062→62134 (+72), roundtrip unchanged.
 - [ ] **P4 — scope + stragglers**: probe the remaining AMvpZMV
       symbols; widen/narrow the P3 guard so all 72 pass without
       regression elsewhere. Net parity round (may be +0 if P3 already
@@ -146,6 +144,8 @@ and the protocol step carries `<>`, emit at `:14332` produces
   chosen; primitives P2–P5 rewritten as a parse fix.
 - 2026-05-18: P2 done — corrected the bail site (fast-path descriptor
   host-walk `stable.go:13355-13394`, not `tryVariableEntity`).
+- 2026-05-18: P3 done (CKN) — `skipProtoExtChain` drains the 72-sym
+  AMvpZMV bucket; parity 62062→62134.
 
 ## Failed attempts
 
