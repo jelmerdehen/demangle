@@ -93,7 +93,15 @@ constraint clauses, double nesting, and descriptor wrapping.
       Caveat: the trailing substitution run is parsed but not resolved —
       the last-resort path carries no substitution table; the protocol
       is derived structurally instead (see P6 for scope).
-- [ ] **P6 — enable + scope**: smoke wide; narrow on regression; close.
+- [x] **P6 — enable + scope** (2026-05-18 fire-21): the renderer is
+      enabled (wired into `parseGlobal`'s last-resort branch ahead of the
+      general fast-path) and confirmed correctly scoped — it runs only
+      after the main parser has already failed, requires ≥2 extension
+      layers + an `Mc`/`WP` suffix + a well-formed conformed-type tail,
+      and emits a roundtrippable node (`swift.fastpath.rawBody`). Smoke /
+      snapshot-check / ratchet all green; **+0 regressions** across the
+      full corpus. `[error]` bucket 89 → 87 (the canonical Mc/WP pair
+      recovered). No narrowing needed. **Plan closed.**
 
 ## Status
 
@@ -111,6 +119,30 @@ constraint clauses, double nesting, and descriptor wrapping.
   are recoverable here (Mc/WP pair), not ~88.
 - 2026-05-18 fire-20: P5 done — verbose render shipped as swift-parity
   CKM; parity 62060→62062, roundtrip 21316→21318; gates green.
+- 2026-05-18 fire-21: P6 done — scope confirmed, no regressions.
+  **PLAN CLOSED.** All 6 primitives `[x]`.
+
+## Outcome
+
+Net result: +2 production parity, +2 roundtrip (the
+`Foundation.Measurement<A>.FormatStyle.ByteCount` Mc/WP conformance
+descriptor / witness table pair). The plan's original ~+88 estimate
+counted the whole `[error]` bucket; in practice only ~3 symbols carry
+the true double-extension grammar, and the third
+(`_$s10Foundation11FormatStyleP…FZ`) is a static **function** entity
+whose double-extension type sits in a same-type constraint — a
+different entity shape that belongs to the function-verbose-form
+bucket, not this conformance-descriptor plan. It is left in `[error]`
+for that bucket to pick up.
+
+Known limitation (acceptable, logged): the trailing substitution run
+(`A`<lower>*<upper>) before `Mc`/`WP` is parsed but not resolved — the
+last-resort path carries no substitution table. The conformed
+protocol is instead derived structurally as
+`<rootModule>.<layers[0].nestedName>`. This is correct for every
+double-extension conformance-descriptor symbol in the current corpus;
+a future fire that routes these through the real type parser (the
+substitution table) would resolve the protocol from the run directly.
 
 ## Failed attempts
 
