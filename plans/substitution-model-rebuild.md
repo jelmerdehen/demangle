@@ -199,6 +199,18 @@ convergence — done inside the open `BREAK_OK` window.
 
 ## Status
 
+- 2026-05-19: **P3 attempt FAILED — reverted, no `stable.go` change,
+  no chained break opened.** Mechanism B implemented as a blanket
+  `c != 'A'` guard on the `parseType` post-switch push broke the HARD
+  gate `TestAppleCorpusStrict` (`matched` 153→146, floor ≥151) by
+  dropping the `@substituted … for <…>` impl-function-type
+  substitution list. The plain back-ref case worked (`AttributesSlice1
+  …ALcig` fixed), but the post-switch push is load-bearing for
+  impl-fn-type `for <subs-list>` clauses. Hard-gate break = BUG, not a
+  BREAK_OK regression — reverted per the P3 fire rule. `TestThreeWayParity`
+  222/222 stayed green throughout. P3 remains `[ ]`; only one break
+  (P2's `pending-1779145924`) stays open. See "Failed attempts" for the
+  scoping requirement on the next P3 attempt.
 - 2026-05-19: **P2 complete (Mechanism A, first `BREAK_OK` fire).**
   `tryVariableEntity` now pushes the terminating decl-name Identifier
   to `p.subs`. Parity 62216 → 62230 (+14 net), roundtrip 22059 →
@@ -226,6 +238,35 @@ convergence — done inside the open `BREAK_OK` window.
 
 ## Failed attempts
 
+- 2026-05-19 (P3): attempted Mechanism B as a blanket post-switch
+  push-skip in `parseType` — guarded the `p.subs.Push(node)` at
+  `stable.go:~29088` with `c != 'A'` (plus dropped the now-unjustified
+  DM-path `TruncateTo` at `~28749`). The plain back-ref case worked
+  exactly as designed: the `AttributesSlice1…ALcig` index param
+  resolved from `(Foundation.AttributedString)` to the Apple-correct
+  `(Foundation.AttributedString.Index)`. **But it broke a HARD GATE.**
+  `make smoke` → `TestAppleCorpusStrict` dropped `matched` 153→146
+  (floor is ≥151), with one un-known-divergence error on
+  `$s3Bar3FooVAA5DrinkVyxGs5Error_pSeRzSERzly…ALSeHPAKSe…Iseggozo_SgWOe`:
+  the `@substituted … for <Swift.Set<Abcd.Abcd.Member>>` clause lost
+  its `for <…>` substitution list. Root cause: the post-switch push of
+  a resolved `A`-back-ref is **load-bearing for impl-function-type
+  `for <subs-list>` clauses** — the `AL`/`AK` back-refs feeding the
+  impl-fn-type's substitution list must stay addressable in `p.subs`.
+  Apple's `case 'A'` non-push applies only to the plain
+  type-resolution path; when the resolved sub is consumed into a
+  substitution-list-bearing impl-fn-type the table position is still
+  needed. A blanket `c != 'A'` is therefore too broad. `TestThreeWayParity`
+  (222/222) stayed green; only the curated gate broke. Per the P3
+  fire's hard-gate rule (hard-gate break = BUG, not a BREAK_OK
+  regression) the change was reverted (`git checkout -- stable.go`).
+  P3 left `[ ]`. **Next attempt must scope the push-skip narrowly** —
+  only the plain back-ref resolution path (`node = sub`,
+  `findTypeForIdent`-promoted), NOT the impl-fn-type-bound paths — or
+  coordinate the skip with the impl-fn-type substitution-list parser
+  (`tryImplFunctionType`) so its `for <…>` back-refs index the
+  realigned frame. The `AttributesSlice` gain is real and recoverable
+  once the scope is correct.
 - 2026-05-19 (P1): attempted to make Mechanism C
   (`A<digits><letter>` repeat-count tuple resolver) table-length-
   independent as a gate-safe +0 prerequisite. Not achievable: the
