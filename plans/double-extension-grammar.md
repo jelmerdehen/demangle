@@ -79,9 +79,20 @@ constraint clauses, double nesting, and descriptor wrapping.
       — the Mc/WP pair on the canonical body plus one `…FZ`
       static-function variant; realistic payoff is ~+2, not the plan's
       original ~+88 (that counted the whole bucket). parity +0.
-- [ ] **P5 — verbose render**: emit the full
-      `(extension in X):(extension in X):Host<A>< where …>.Nested…`
-      string.
+- [x] **P5 — verbose render** (2026-05-18 fire-20, swift-parity CKM):
+      `tryDoubleExtensionConformanceDescriptor` now renders the full
+      `<descriptor> (extension in M):(extension in M):<root>.<base><A>
+      < where …>.<nested1>< where …>.<nested2> : <protocol> in <module>`
+      string and returns true. One `(extension in M):` qualifier per
+      layer; layer0's constraint clause attaches to the base host,
+      layer1's to nested1. Protocol = `<rootModule>.<layers[0].
+      nestedName>` (the conformance targets the protocol named after the
+      first extension's introduced type). CLI output byte-matches the
+      corpus want for both the Mc and WP canonical symbols. parity
+      62060→62062 (+2 production), roundtrip 21316→21318 (+2).
+      Caveat: the trailing substitution run is parsed but not resolved —
+      the last-resort path carries no substitution table; the protocol
+      is derived structurally instead (see P6 for scope).
 - [ ] **P6 — enable + scope**: smoke wide; narrow on regression; close.
 
 ## Status
@@ -98,6 +109,8 @@ constraint clauses, double nesting, and descriptor wrapping.
 - 2026-05-18 fire-19: P4 done — conformed-type tail + descriptor marker
   parsed; +0; gates green. Scope correction: only ~2 corpus symbols
   are recoverable here (Mc/WP pair), not ~88.
+- 2026-05-18 fire-20: P5 done — verbose render shipped as swift-parity
+  CKM; parity 62060→62062, roundtrip 21316→21318; gates green.
 
 ## Failed attempts
 

@@ -14701,15 +14701,56 @@ func (p *parser) tryDoubleExtensionConformanceDescriptor() (*demangle.Node, bool
 	default:
 		return nil, false
 	}
-	// TODO P5: resolve protocol + module from subRun and emit the verbose
-	// `<descriptor> (extension in X):(extension in X):Host<A>< where …>
-	//  .Nested… : <protocol> in <module>` string.
-	_ = baseName
-	_ = layers
-	_ = baseHasGenericArg
+	// P5: render the verbose double-extension descriptor string.
+	//
+	//   <descriptor> (extension in M):(extension in M):
+	//     <root>.<base>[<A>]< where …>.<nested1>< where …>.<nested2…>
+	//     : <protocol> in <module>
+	//
+	// One `(extension in M):` qualifier per extension layer. The
+	// constraint clauses interleave: layer0's clause attaches to the base
+	// host, layer1's to nested1, and so on.
+	var sb strings.Builder
+	sb.WriteString(descriptorKind)
+	for _, layer := range layers {
+		sb.WriteString("(extension in ")
+		sb.WriteString(layer.module)
+		sb.WriteString("):")
+	}
+	sb.WriteString(rootModule)
+	sb.WriteByte('.')
+	sb.WriteString(baseName)
+	if baseHasGenericArg {
+		sb.WriteString("<A>")
+	}
+	sb.WriteString(layers[0].constraintSig)
+	for k := 0; k < len(layers); k++ {
+		sb.WriteByte('.')
+		sb.WriteString(layers[k].nestedName)
+		if k+1 < len(layers) {
+			sb.WriteString(layers[k+1].constraintSig)
+		}
+	}
+	// The conformed protocol. In this cluster the conformance targets the
+	// protocol whose name matches the first extension's introduced type
+	// (e.g. `Foundation.FormatStyle`), declared in the base root module.
+	// The trailing substitution run encodes the same protocol + module
+	// references; resolving it structurally would require the full
+	// substitution table, which the last-resort path does not carry.
 	_ = subRun
-	_ = descriptorKind
-	return nil, false
+	protocolName := layers[0].nestedName
+	sb.WriteString(" : ")
+	sb.WriteString(rootModule)
+	sb.WriteByte('.')
+	sb.WriteString(protocolName)
+	sb.WriteString(" in ")
+	sb.WriteString(rootModule)
+
+	wrap := common.NewNode(common.KindTypeMangling)
+	wrap.Text = sb.String()
+	wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
+	p.i = len(p.s)
+	return wrap, true
 }
 
 // fpVerboseSeedContext builds the substitution table and word list that

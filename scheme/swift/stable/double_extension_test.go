@@ -53,18 +53,35 @@ func TestParseNominalDecl(t *testing.T) {
 	}
 }
 
-func TestDoubleExtensionParseChainNoPanic(t *testing.T) {
-	// P2-P4: the parse chain (base nominal, extension-layer loop,
-	// conformed-type tail, descriptor marker) must walk the canonical
-	// body without panicking. It still returns false pending P5 render.
-	for _, body := range []string{
-		deCanonicalBody,
-		deCanonicalBody[:len(deCanonicalBody)-2] + "WP",
-		"10Foundation4DataV", // not a double-extension symbol
-	} {
+func TestDoubleExtensionRender(t *testing.T) {
+	const conformed = "(extension in Foundation):(extension in Foundation):" +
+		"Foundation.Measurement<A>< where A: __C.NSDimension>" +
+		".FormatStyle< where A == __C.NSUnitInformationStorage>.ByteCount"
+	cases := []struct {
+		body string
+		want string
+	}{
+		{deCanonicalBody, "protocol conformance descriptor for " + conformed +
+			" : Foundation.FormatStyle in Foundation"},
+		{deCanonicalBody[:len(deCanonicalBody)-2] + "WP",
+			"protocol witness table for " + conformed +
+				" : Foundation.FormatStyle in Foundation"},
+	}
+	for _, c := range cases {
+		p := &parser{s: c.body, origin: "_$s" + c.body}
+		node, ok := p.tryDoubleExtensionConformanceDescriptor()
+		if !ok {
+			t.Fatalf("tryDoubleExtensionConformanceDescriptor declined %q", c.body)
+		}
+		if node.Text != c.want {
+			t.Fatalf("render mismatch for %q\n got:  %s\n want: %s", c.body, node.Text, c.want)
+		}
+	}
+	// Non-double-extension symbols must be declined.
+	for _, body := range []string{"10Foundation4DataV", "SiSdMc"} {
 		p := &parser{s: body, origin: "_$s" + body}
 		if _, ok := p.tryDoubleExtensionConformanceDescriptor(); ok {
-			t.Fatalf("tryDoubleExtensionConformanceDescriptor returned true (P5 not done) for %q", body)
+			t.Fatalf("tryDoubleExtensionConformanceDescriptor matched non-target %q", body)
 		}
 	}
 }
