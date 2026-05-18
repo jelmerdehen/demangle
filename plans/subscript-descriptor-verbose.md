@@ -146,15 +146,25 @@ only fires if the main parser still bails).
       index/return types. Determine whether the main parser reaches
       `trySubscriptEntityTyped` or a separate `lu`-prefixed path; fix
       accordingly. May split across fires if >3 primitives.
-- [ ] **P7 — extension-nested hosts** (33 syms, `want` carries
-      `(extension in <Mod>):`): `(extension in <Mod>):<Mod>.<Host>`
-      prefix + ` where <constraint>` clause. Reuse the
-      double-extension-grammar / property-descriptor host-walk
-      helpers. Largest sub-bucket — likely multi-fire; re-split into
-      P7a/P7b… when scoped. Honest defer-write per bail if no
-      ≤3-primitive slice.
-- [ ] **P8 — enable + scope + close**: smoke wide; narrow on
-      regression; final snapshot lock; close plan.
+- [x] **P7 — extension-nested hosts — DEFERRED** (2026-05-18). Probed
+      the 33-symbol slice: every `want` carries `(extension in
+      <Mod>):<Mod>.<Host>` with a constrained stdlib-protocol /
+      bound-generic-constraint host (`SnsSxRzSZ6StrideRpzrlE`,
+      `SlsE`, `MeasurementV…RbzrlE`, …). Rendering the verbose form
+      needs the **cross-module extension verbose-form printer** —
+      already a large deferred bucket in INVESTIGATIONS.md
+      (`Cross-module extension verbose-form printer`, ~400-600 syms,
+      deferred-2). The fast-path verbose-form override explicitly
+      excludes `isSubscript` (stable.go:~14576/14587/14596). No
+      ≤3-primitive slice exists — the whole 33 share that one
+      deferred mechanism. Per the goal Notes, the extension-nested
+      half was anticipated to defer (shares the host-walk `E`
+      mechanism). Deferred onto the existing deferred-2 bucket; added
+      a subscript-slice note there.
+- [x] **P8 — close** — done 2026-05-18. Plan closed: plain-module
+      slice landed (P2 +4 production / +681 roundtrip; P5 grammar
+      fix). P4/P6/P7 deferred with honest INVESTIGATIONS entries. No
+      further bounded primitives remain in this plan's scope.
 
 ## Status
 
@@ -176,7 +186,23 @@ only fires if the main parser still bails).
   index blocked on deferred-P4), no regressions.
 - 2026-05-18: P6 deferred — 3 plain symbols, 3 distinct mechanisms
   (greedy-result fold; labeled-form subscript ×2); logged to
-  INVESTIGATIONS.md (deferred-1). Next fire picks up P7.
+  INVESTIGATIONS.md (deferred-1).
+- 2026-05-18: P7 deferred — 33 extension-nested syms all need the
+  cross-module extension verbose-form printer (INVESTIGATIONS
+  deferred-2). P8 closed the plan.
+
+## Outcome
+
+Plain-module subscript-property-descriptor slice landed: P2 shipped
++4 production parity (62140->62144) and +681 roundtrip
+(21318->21999, raw-body stamp closing a typed-subscript round-trip
+gap). P3 fixed a substitution-table-corruption bug in tryBoundGeneric
+(+0, correctness). P5 fixed the result-tuple FirstElementMarker
+grammar (+0, AttributesSlice2-5 now fold). Deferred: P4
+(substitution-count alignment, −104 on attempt — corpus-wide
+refactor), P6 (labeled-form + greedy-result, 3 mechanisms), P7
+(extension-nested, needs the cross-module extension verbose printer).
+ipMV mismatch bucket 49->47. Plan CLOSED.
 
 ## Failed attempts
 

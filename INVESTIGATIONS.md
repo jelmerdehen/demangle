@@ -42,6 +42,16 @@ nested-type chain, our parser emits the simplified form lacking:
 - ` : <return-type>` (property accessors) or ` -> <ret>` (functions)
 - proper param-type rendering when constraint resolves them
 
+**Subscript slice (added 2026-05-18, plan-subscript-descriptor-verbose
+P7):** 33 subscript property descriptors (`…ipMV`) on extension-nested
+hosts join this bucket — e.g. `_$sSnsSxRzSZ6StrideRpzrlEyxxcipMV`
+wants `(extension in Swift):Swift.Range< where A: Swift.Strideable,
+A.Stride: Swift.SignedInteger>.subscript(A) -> A`, emits `Range<>.
+subscript(_:)`. Same mechanism; additionally the fast-path verbose-form
+override explicitly excludes `isSubscript`
+(stable.go:~14576/14587/14596) — that gate must also be lifted for the
+subscript slice once the printer exists.
+
 Examples confirmed:
 - `_$sSy10FoundationE16smallestEncodingSSAAE0C0Vvg` → emits
   `StringProtocol.smallestEncoding.getter` — need full Foundation-ext form.
