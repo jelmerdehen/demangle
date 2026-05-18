@@ -2401,7 +2401,24 @@ Defer reason: need depth-aware scanner that tracks constraint vs type-
 expression context to distinguish inner-AE-as-type-ref vs outer-E-as-
 entity. Single-fire scope insufficient.
 
-### vpMV-instance-var-verbose-form [65 syms, deferred-2]
+### vpMV-instance-var-verbose-form [59 syms, deferred-2]
+
+UPDATE 2026-05-18 (CKP swift-parity, +2P): the bound-generic
+unlabelled-tuple-arg slice is fixed — `tryFoldBoundGenericTupleArg`
+folds `<head>('_'<type>)+'t'` in `tryBoundGeneric`'s arg loop, gated
+to `inVariableEntityType`, committing only on a `t`+`G` close. Landed
+`KeyValuePairs._elements` +1. Bucket 61→59. Blocker 3 below now only
+covers the LABELLED bound-generic-tuple-arg (`Mirror.children`).
+
+UPDATE 2026-05-18 (CKO swift-parity, +4P): the labelled multi-element
+tuple slice (4 syms — StrideToIterator/StrideThroughIterator/
+Unicode.Scalar.Properties.age/`_ValidUTF8Buffer`) is FIXED.
+`foldVariableTupleTail` (stable.go) folds the
+`<type>('_'<type><label>)*'t'` continuation in the variable-entity
+declared-type position, gated to commit only on a `vpMV`/`vpZMV`
+terminal and stamping `swift.fastpath.rawBody` for byte-exact
+round-trip. Bucket 65→61. Three blockers remain for the rest
+(blocker 3 added below).
 
 Body (plain-module): `_$ss11_StringGutsV7rawBitss6UInt64V_AEtvpMV`
 - got:  `property descriptor for _StringGuts.rawBits`
@@ -2421,21 +2438,16 @@ continuation, so `tryVariableEntity` sees a non-`v` byte and bails;
 parseGlobal then leaves `p.i != len(p.s)` and the fast-path catches
 the symbol and renders the simplified form.
 
-Two distinct, independent blockers — neither is a ≤3-primitive fix:
+Three blockers remain — none is a ≤3-primitive fix:
 
-1. Missing general multi-element tuple parsing. The declared type of
-   the unlabelled cluster (`_StringGuts`/`_SmallString`/`_StringObject`,
-   6 syms, all `(UInt64, UInt64)`) and the labelled cluster
-   (StrideToIterator/StrideThroughIterator/Unicode.Scalar.Properties.age/
-   `_ValidUTF8Buffer`/Duration.components, 5 syms) is a multi-element
-   tuple `<elt>('_'<elt>)*'t'`. parseType's postfix handlers cover only
-   `tryPostfixCompactTuple` (`_S<N><L>` form) and `tryPostfixLabeledTuple`
-   (single-element). The bound-generic cluster (`Mirror.children` et al.,
-   ~10 syms) is blocked transitively — its generic arg is itself a
-   multi-element labelled tuple, so `tryBoundGeneric` cannot parse the
-   `y...G` arg-list and parseType stops at `y`.
+1. General multi-element tuple parsing — RESOLVED for the labelled
+   variable-type slice (CKO, see UPDATE above). `foldVariableTupleTail`
+   handles `<type>('_'<type><label>?)*'t'` in the variable-entity
+   declared-type position only, committing on a vpMV/vpZMV terminal.
+   Still open: the bound-generic cluster (blocker 3) and the
+   unlabelled `(UInt64,UInt64)` cluster (blocker 2).
 
-   Tried: a general postfix handler `tryPostfixTuple` matching
+   Tried first: a general postfix handler `tryPostfixTuple` matching
    `<type>('_'<type>)+'t'` wired after `tryPostfixCompactTuple`. It
    regressed Apple-corpus strict (hard-gated): `_TFC3foo3bar3basfT3zim
    CS_3zim_T_` flipped from `foo.bar.bas(zim: foo.zim) -> ()` to
@@ -2443,7 +2455,21 @@ Two distinct, independent blockers — neither is a ≤3-primitive fix:
    the `_T_` empty-tuple result separator of an old-`_TF`-mangling
    function as a tuple continuation. The `_` separator is overloaded
    (param-list separators, generic-sig separators, list separators), so
-   a context-free postfix tuple is unsafe. Reverted.
+   a context-free postfix tuple is unsafe. Reverted; replaced with the
+   variable-entity-position-gated `foldVariableTupleTail`.
+
+3. Bound-generic-with-tuple-arg. `KeyValuePairs._elements`
+   (`Sayx_q_tG` = `[(A,B)]`) and `Mirror.children`
+   (`s13AnyCollectionVySSSg5label_yp5valuetG`): the generic arg is
+   itself a multi-element tuple. `tryBoundGeneric`'s arg loop
+   (stable.go:28375) consumes `_` as a generic-chain LEVEL separator;
+   a tuple's `_` element separator is indistinguishable without
+   lookahead, and the labelled variant's `<label>` digit additionally
+   derails the loop (parseType returns the head, leaving `<label>_…`).
+   Disambiguating the overloaded `_` in the bound-generic arg position
+   is regression-prone — the level-separator is a real, widely-used
+   feature. Needs a speculative tuple-fold-then-validate that only
+   commits when the run closes with `t` followed by `G`.
 
 2. Substitution-numbering inconsistency. Even with general tuple
    parsing, the unlabelled `(UInt64, UInt64)` cluster fails: the 2nd

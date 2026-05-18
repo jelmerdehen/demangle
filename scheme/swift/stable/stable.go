@@ -384,6 +384,14 @@ type parser struct {
 	// Apple does not push bare S<letter> stdlib types to subs when they appear
 	// as args to a raw-stdlib bound-generic (e.g. SS inside SnySS5IndexVG).
 	inRawStdlibBoundGenericArgs bool
+	// inVariableEntityType is true while tryVariableEntity parses a
+	// variable's declared type. It gates tryFoldBoundGenericTupleArg so
+	// the multi-element-tuple fold cannot disturb function/other parses.
+	inVariableEntityType bool
+	// tuplePreRendered is set when a tuple was folded into a pre-rendered
+	// node during the current variable-entity parse; tryVariableEntity
+	// then stamps swift.fastpath.rawBody so the symbol round-trips.
+	tuplePreRendered bool
 }
 
 const maxParseDepth = 64
@@ -5862,12 +5870,13 @@ func (p *parser) foldVariableTupleTail(head *demangle.Node) (*demangle.Node, boo
 // where prefix depends on kind.
 func (p *parser) tryVariableEntity() (resNode *demangle.Node, resOK bool, resErr error) {
 	// When the declared type needed a multi-element-tuple fold (see
-	// foldVariableTupleTail), the folded tuple node is pre-rendered and
-	// cannot remangle structurally. Stamp the raw body so the symbol
-	// round-trips byte-exact, mirroring the last-resort fast-path.
-	tupleFolded := false
+	// foldVariableTupleTail / tryFoldBoundGenericTupleArg), the folded
+	// tuple node is pre-rendered and cannot remangle structurally.
+	// Stamp the raw body so the symbol round-trips byte-exact, mirroring
+	// the last-resort fast-path.
+	p.tuplePreRendered = false
 	defer func() {
-		if resOK && tupleFolded && resNode != nil {
+		if resOK && p.tuplePreRendered && resNode != nil {
 			if resNode.Attrs == nil {
 				resNode.Attrs = map[string]string{}
 			}
@@ -6030,7 +6039,10 @@ func (p *parser) tryVariableEntity() (resNode *demangle.Node, resOK bool, resErr
 		break
 	}
 	// Type.
+	prevInVET := p.inVariableEntityType
+	p.inVariableEntityType = true
 	typ, err := p.parseType()
+	p.inVariableEntityType = prevInVET
 	if err != nil {
 		restore()
 		return nil, false, nil
@@ -6040,7 +6052,7 @@ func (p *parser) tryVariableEntity() (resNode *demangle.Node, resOK bool, resErr
 	// continuation in here — variable-type position only.
 	if folded, ok := p.foldVariableTupleTail(typ); ok {
 		typ = folded
-		tupleFolded = true
+		p.tuplePreRendered = true
 	}
 	// v + kind, OR 'fm' for macro-entity (rendered as "<ctx>.<name> : <type>").
 	if p.i+1 < len(p.s) && p.s[p.i] == 'f' && p.s[p.i+1] == 'm' {
@@ -28357,6 +28369,49 @@ func (p *parser) skipConformanceRef() bool {
 	return true
 }
 
+// tryFoldBoundGenericTupleArg folds a multi-element tuple that appears
+// as a single bound-generic argument, e.g. Array<(A,B)> mangled as
+// 'Sayx_q_tG'. tryBoundGeneric's arg loop otherwise reads the tuple's
+// '_' element separators as generic-chain level separators. head is the
+// tuple's first element (already parsed as a pseudo-arg by the loop);
+// p.i points at the '_' before the second element. Commits only when
+// the run closes with 't' immediately followed by 'G' — guaranteeing a
+// tuple, not a level separator. Gated to the variable-entity declared-
+// type position (inVariableEntityType) so it cannot disturb other
+// parses; the folded node is pre-rendered, so tryVariableEntity stamps
+// swift.fastpath.rawBody for round-trip.
+func (p *parser) tryFoldBoundGenericTupleArg(head *demangle.Node) (*demangle.Node, bool) {
+	if !p.inVariableEntityType || p.eof() || p.s[p.i] != '_' {
+		return head, false
+	}
+	save := p.i
+	saveSubs := p.subs
+	parts := []string{common.Print(head, common.DefaultPrintOptions())}
+	for !p.eof() && p.s[p.i] == '_' {
+		p.i++ // consume '_'
+		t, err := p.parseType()
+		if err != nil || t == nil {
+			p.i = save
+			p.subs = saveSubs
+			return head, false
+		}
+		parts = append(parts, common.Print(t, common.DefaultPrintOptions()))
+	}
+	if p.i+1 >= len(p.s) || p.s[p.i] != 't' || p.s[p.i+1] != 'G' || len(parts) < 2 {
+		p.i = save
+		p.subs = saveSubs
+		return head, false
+	}
+	p.i++ // consume 't' (leave 'G' for tryBoundGeneric's loop terminator)
+	display := "(" + strings.Join(parts, ", ") + ")"
+	wrap := common.NewNode(common.KindType)
+	inner := common.NewNode(common.KindBuiltinTypeName)
+	inner.Text = display
+	common.AddChildren(wrap, inner)
+	p.tuplePreRendered = true
+	return wrap, true
+}
+
 func (p *parser) tryBoundGeneric(base *demangle.Node) (*demangle.Node, bool, error) {
 	if p.eof() || p.s[p.i] != 'y' {
 		return base, false, nil
@@ -28375,6 +28430,14 @@ func (p *parser) tryBoundGeneric(base *demangle.Node) (*demangle.Node, bool, err
 	for !p.eof() && p.s[p.i] != 'G' {
 		// '_' = positional null: no generic params at currentLevel; advance.
 		if p.s[p.i] == '_' {
+			// ...unless it is the element separator of a tuple-typed
+			// single generic arg (e.g. Array<(A,B)> = 'Sayx_q_tG').
+			if len(args) > 0 {
+				if tup, ok := p.tryFoldBoundGenericTupleArg(args[len(args)-1]); ok {
+					args[len(args)-1] = tup
+					continue
+				}
+			}
 			p.i++
 			currentLevel++
 			continue

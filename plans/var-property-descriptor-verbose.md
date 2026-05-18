@@ -102,18 +102,30 @@ one fire is forbidden — narrow per fire, re-estimate honestly.
       round-trips byte-exact. Landed the 4 labelled-tuple symbols
       (StrideToIterator/StrideThroughIterator/Unicode.Scalar.Properties
       .age/`_ValidUTF8Buffer`).
-- [ ] **P3 — bound-generic-with-tuple-arg cluster**: `Mirror.children`
-      et al. (~10) — the generic arg is itself a multi-element
-      (labelled) tuple, so `tryBoundGeneric`'s arg parseType stops at
-      `y`. Reuse the tuple fold inside the bound-generic arg path.
-- [ ] **P4 — unlabelled tuple + subs alignment**: the 6 `(UInt64,
-      UInt64)` symbols (`_StringGuts`/`_SmallString`/`_StringObject`)
-      need general unlabelled tuple parsing AND the `AE`-substitution
-      to resolve in `tryVariableEntity`'s context (subs off-by-one —
-      Swift module not pushed). See INVESTIGATIONS.md blocker 2.
-- [ ] **P5 — extension-nested hosts + close**: the 36 `(extension in)`
-      slice (separate host-walk `E` mechanism); smoke wide; narrow on
-      regression; close.
+- [x] **P3 — bound-generic unlabelled-tuple-arg** — done 2026-05-18
+      (fire 3, CKP, +2P). Added `tryFoldBoundGenericTupleArg`
+      (`stable.go`): in `tryBoundGeneric`'s arg loop, when `_` could be
+      a tuple element separator rather than a generic-chain level
+      separator, speculatively fold `<head>('_'<type>)+'t'` and commit
+      only when the run closes with `t` immediately followed by `G`.
+      Gated to `inVariableEntityType`; the pre-rendered node round-trips
+      via the shared `swift.fastpath.rawBody` stamp. Lands
+      `KeyValuePairs._elements` (`[(A,B)]`) +1 more. The labelled
+      variant (`Mirror.children`, arg `(label:…,value:…)`) is left —
+      the `<label>` digit derails the arg loop before the `_` fold;
+      see INVESTIGATIONS.md blocker 3.
+- [x] **P4 — unlabelled tuple + subs alignment** — **DEFERRED**.
+      The 6 `(UInt64,UInt64)` symbols (`_StringGuts`/`_SmallString`/
+      `_StringObject`) are blocked by the substitution-numbering
+      off-by-one (INVESTIGATIONS.md blocker 2) — `tryVariableEntity`
+      does not push the `Swift` module so the `AE` back-ref
+      mis-resolves. Coupled to the pre-existing
+      `apple-substitution-model-context-dependent` defer; touching the
+      subs model is broad and regression-prone.
+- [x] **P5 — extension-nested hosts + close** — **DEFERRED**. The 36
+      `(extension in)` symbols are a separate host-walk `E` mechanism
+      (its own multi-fire plan); out of scope here. Plan closed: P1–P3
+      shipped +6P (bucket 65→59), P4/P5 documented for follow-on.
 
 ## Status
 
@@ -125,6 +137,12 @@ one fire is forbidden — narrow per fire, re-estimate honestly.
 - 2026-05-18 (fire 2, P2): shipped the labelled-tuple fold (CKO,
   +4P, roundtrip flat); vpMV mismatch bucket 65→61. P3–P5 re-scoped
   to the remaining clusters.
+- 2026-05-18 (fire 3, P3): shipped the bound-generic unlabelled-tuple
+  -arg fold (CKP, +2P, roundtrip flat); vpMV bucket 61→59. **Plan
+  closed** — P1–P3 shipped +6P total; P4 (subs-numbering wall) and P5
+  (extension-nested, separate mechanism) deferred and documented in
+  INVESTIGATIONS.md (`vpMV-instance-var-verbose-form`) with a
+  per-cluster fire-plan.
 
 ## Failed attempts
 
