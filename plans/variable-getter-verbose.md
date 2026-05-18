@@ -101,13 +101,29 @@ is P3.
       stable.go:6209 (`tryVariableEntity` declines because `parseType`
       truncated the type); simplified render is stable.go:9114. P2
       retargeted to the parseType-continuation mechanism. +0.
-- [ ] **P2 — declared-type continuation for var getters (A1, ~18
-      syms)**: make `tryVariableEntity`'s declared-type parse consume
-      the FULL type — bound-generic `y<args>G` suffix and the
-      substitution-applied member/extension tail (`A…` leftover) —
-      before checking for the `v` terminal at stable.go:6209. The
-      verbose render at 6326-6334 then fires unchanged. Scope to the
-      bound-generic/subref leftover slice; tuple/pack stays for P3.
+- [~] **P2 — declared-type continuation for var getters (A1, ~18
+      syms) — DEFERRED 2026-05-18.** Both A1 sub-slices have a hard
+      blocker confirmed by probe (see "## Failed attempts" 2026-05-18
+      retry). The `y…G` slice fails on a substitution-table
+      misalignment: `tryVariableEntity`'s path-walk pushes a
+      3-entry-shorter subs table than Apple's model, so the `A…`
+      back-refs inside the bound-generic arg list resolve to the
+      wrong nodes (`AG`→Identifier("Regex") instead of
+      Module("_StringProcessing")) — consuming the leftover would
+      produce a structurally wrong type, not a parity gain. The
+      `A…E` slice needs a new substitution-applied extension-member
+      tail parser (`<subref>E<ident><kind>`) that does not exist in
+      type position. Fire-plan: P2 must split into **P2a** (subs-
+      table alignment — make `tryVariableEntity`'s path-walk push
+      the same node sequence Apple's entity-context walk pushes, so
+      `y…G` arg back-refs resolve; cross-check subsLen against the
+      standalone full-type parse) and **P2b** (extension-member tail
+      parser for the `A…E` leftover, reusing the `A<subs>E<digit>`
+      skip logic at stable.go:6120-6137 but building a real
+      Extension+member type node). P2a is the "needs model
+      coordination" class — do it as a standalone non-parity-gain
+      commit first, verified by `make snapshot-check` clean, before
+      attempting the getter continuation.
 - [ ] **P3 — tuple / pack declared-type tail for var getters (~11
       syms)**: extend `foldVariableTupleTail` (stable.go:5803) — which
       currently commits only on `vpMV`/`vpZMV` — to also fire on the
@@ -187,3 +203,48 @@ is P3.
     narrowing does not help the `vpMV`/`F` siblings and so cannot
     be done without first confirming it does not re-introduce the
     getter-side roundtrip break.
+
+- **2026-05-18 — P2 retry (localized-continuation approach),
+  DEFERRED.** Followed the goal's re-scoped plan: do the
+  declared-type continuation LOCALLY inside `tryVariableEntity`
+  rather than in the global `parseType` postfix loop. Instrumented
+  `tryVariableEntity` (post-`parseType` leftover dump) and
+  `tryBoundGeneric` (per-arg parse trace + subs-length dump) on
+  three probe symbols. Findings:
+  - **`y…G` bound-generic slice — subs-table misalignment, not a
+    consume gap.** For
+    `_$s10Foundation20PredicateExpressionsO0B5RegexV5regex17_StringProcessing0D0VyAG03AnyD6OutputVGvg`,
+    `parseType` returns the head `_StringProcessing.Regex` and
+    leaves leftover `yAG03AnyD6OutputVGvg`. `parseType` *does*
+    invoke the postfix `tryBoundGeneric` (stable.go:28323), but it
+    bails: the first bound-generic arg `AG` is a substitution
+    back-ref, and inside `tryVariableEntity`'s context the subs
+    table has only 8 entries — `AG` (index 6) resolves to
+    `Identifier("Regex")`. The same `tryBoundGeneric` on the same
+    bytes in the standalone full-type fallback context has 11 subs
+    entries and `AG` correctly resolves to
+    `_StringProcessing.AnyRegexOutput`. `tryBoundGeneric` then
+    rejects the bare-Identifier arg (stable.go:28913) and rolls
+    back. **Consuming the leftover would NOT gain parity** — it
+    would build a structurally wrong type (wrong arg back-refs).
+    The blocker is that `tryVariableEntity`'s context-path walk
+    (stable.go:6114-6180) pushes a different — 3-entries-shorter —
+    substitution sequence than Apple's entity-context model.
+  - **`A…E` subref-tail slice — needs a new parser.** For
+    `_$s10Foundation10CocoaErrorV14stringEncodingSSAAE0E0VSgvg`,
+    `parseType` consumes `SS` (String) and leaves `AAE0E0VSgvg`.
+    The leftover `AAE0E0V` is a substitution-applied extension-
+    member tail (`<subref>E<ident><kind>` →
+    `(extension in Foundation):Swift.String.Encoding`), wrapped in
+    `Sg` Optional. No parser exists for an extension-member tail
+    in type position; the only `A<subs>E<digit>` handling is the
+    *context-path* skip at stable.go:6120-6137, which discards the
+    bytes rather than building an Extension type node.
+  - **No ≤3-primitive fix exists.** Both blockers are structural:
+    one is the same subs-alignment / model-coordination class as
+    the prior P2 revert and the deferred `Yj/Yb` work; the other
+    needs a brand-new extension-member-tail type production. Per
+    the goal's defer rule, reverted all probe instrumentation
+    (`git checkout`) and deferred. P2 → `[~]`, split into P2a
+    (subs alignment) + P2b (extension-member tail) — see the
+    updated P2 primitive row for the fire-plan.
