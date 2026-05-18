@@ -50,15 +50,22 @@ does not.
       in `scheme/swift/stable/stable.go`, unit-tested in
       `entity_signature_test.go`. No live wiring, +0 parity. Probe +
       re-scope written below. See "## P1 findings".
-- [ ] **P2 — literal-typed render (first gain)**: wire
-      `decodeEntitySignatureSpan` into the verbose-form emit site
-      (`fpVerboseFunctionText` widening) and render
-      `(label: type, …) -> result` for the **fully-literal-typed**
-      slice — every param/result type a literal nominal
-      `<n><name><kind>`, a bare stdlib `S<x>`, or `y` void; NO leading
-      substitution ref in any type. Each type goes through
-      `fpVerboseRenderTypeAt`. This is the slice the byte scanner
-      decodes unambiguously today.
+- [x] **P2 — literal-typed render (first gain)** (2026-05-18): wired
+      `decodeEntitySignatureSpan` into `fpVerboseFunctionText` — it now
+      decodes the full pre-`F`/`FZ` span (any arg count, empty-LabelList
+      `y` prefix, FirstElementMarker `_`, `y` void result) and renders
+      each type range through `fpVerboseRenderTypeAt`. Added the
+      `emptyLabels` field to `entitySigDecode` so a `y`-prefix span
+      renders args bare (`(t0, t1)`) vs an explicit run rendering
+      `(label: t0, …)`. Gated to `dec.ok` AND every type fully
+      rendered — non-literal symbols (closures, generics, ref-led
+      types the module-seed cannot resolve) fall through cleanly. +1
+      production (`String.data(using:allowLossyConversion:)`); the
+      strict literal slice for the stdlib-host-extension candidate
+      detector is genuinely thin — the bulk (plain module-qualified
+      nominal hosts, `AcA`/`A2E` ref-led init result types) needs the
+      P3 nominal-host detection + live-`p.subs` boundary work. End-to-end
+      unit test `TestVerboseFunctionLiteralRender` added.
 - [ ] **P3 — substitution-ref-led types (live `p.subs`)**: the byte
       scanner cannot tell a complete substitution-ref type (`AcA`) from
       a ref-qualified nominal (`AA18AttributeContainerV`) — that needs
@@ -138,6 +145,16 @@ in a context-free decoder.
   slice, P3 = substitution-ref types at the live-`p.subs` emit site
   (the byte scanner's hard wall), P4 = word-sub idents + bound
   generics, P5 = compact-fused runs.
+- 2026-05-18 fire-2: P2 shipped (CKW, +1) — `decodeEntitySignatureSpan`
+  wired into `fpVerboseFunctionText`; multi-arg / empty-LabelList /
+  FirstElementMarker / void-result render. The stdlib-host-extension
+  candidate slice for fully-literal functions turned out near-empty in
+  the corpus (most are generic or use refs the module-seed cannot
+  resolve); the +100ish AffineTransform/Morphology-style bucket is
+  plain module-qualified nominal hosts which the current
+  `S<letter>`-led candidate detector does not catch — that, plus the
+  `AcA`/`A2E` ref-led init result types, is P3's nominal-host
+  detection + live-`p.subs` boundary work.
 
 ## Failed attempts
 

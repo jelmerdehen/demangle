@@ -15520,53 +15520,60 @@ func (p *parser) fpVerboseRenderTypeAt(start, end int, extMod, declName string) 
 }
 
 // fpVerboseFunctionText renders the verbose form for a single-level
-// pattern-A function candidate with exactly one labelled parameter and a
-// bare-stdlib (2-byte `S<x>`) result type — e.g.
+// pattern-A (stdlib-host extension) function candidate whose every
+// parameter type and result type is fully literal — a literal nominal
+// `<n><name><kind>`, a bare stdlib `S<x>`, a module-ref-qualified
+// nominal (`AA…V`, where the ref resolves to the seeded extension
+// module), or `y` (the empty tuple). e.g.
 // `Sy10FoundationE14canBeConverted2toSbSSAAE8EncodingV_tF` →
 // `(extension in Foundation):Swift.StringProtocol.canBeConverted(to:
 // (extension in Foundation):Swift.String.Encoding) -> Swift.Bool`.
-// The span is `<labels><result-type><arg-tuple>`. Returns "" for any
-// shape outside this tractable subset (multi-arg, closures, generics).
-// See plans/function-verbose-form.md P2.
+//
+// The pre-`F`/`FZ` span is `<labels><result-type><arg-tuple>`; it is
+// decoded structurally by decodeEntitySignatureSpan, then each type
+// range is rendered through fpVerboseRenderTypeAt. Returns "" for any
+// shape the decoder declines (closures, generics, variadic, compact
+// fused runs) or any type fpVerboseRenderTypeAt cannot fully consume —
+// so non-literal symbols fall through cleanly to the label-only form.
+// See plans/entity-signature-parser.md P2.
 func (p *parser) fpVerboseFunctionText(hostLetter byte, extMod, declName, span string, isStatic bool) string {
 	spanStart := strings.Index(p.s, span)
 	if spanStart < 0 || span == "" {
 		return ""
 	}
-	// Parse the leading label run.
-	k := 0
-	var labels []string
-	for k < len(span) && span[k] >= '1' && span[k] <= '9' {
-		n := 0
-		for k < len(span) && span[k] >= '0' && span[k] <= '9' {
-			n = n*10 + int(span[k]-'0')
-			k++
-		}
-		if n <= 0 || k+n > len(span) {
+	dec := p.decodeEntitySignatureSpan(spanStart, spanStart+len(span))
+	if !dec.ok {
+		return ""
+	}
+	// Result type. `y` is the empty tuple `()`.
+	resStr := "()"
+	if !(dec.resultEnd-dec.resultStart == 1 && p.s[dec.resultStart] == 'y') {
+		resStr = p.fpVerboseRenderTypeAt(dec.resultStart, dec.resultEnd, extMod, declName)
+		if resStr == "" {
 			return ""
 		}
-		labels = append(labels, span[k:k+n])
-		k += n
 	}
-	if len(labels) != 1 {
-		return "" // P2: single-labelled-param only
-	}
-	rest := span[k:]
-	if !strings.HasSuffix(rest, "_t") || len(rest) < 6 {
-		return ""
-	}
-	body := rest[:len(rest)-2] // result-type + arg-type, minus the `_t`
-	// Result type: exactly one bare stdlib substitution `S<letter>`.
-	if body[0] != 'S' || len(body) < 4 {
-		return ""
-	}
-	resStart := spanStart + k
-	argStart := resStart + 2
-	argEnd := spanStart + k + len(body)
-	resStr := p.fpVerboseRenderTypeAt(resStart, resStart+2, extMod, declName)
-	argStr := p.fpVerboseRenderTypeAt(argStart, argEnd, extMod, declName)
-	if resStr == "" || argStr == "" {
-		return ""
+	// Argument list. An empty-LabelList span renders args bare
+	// (`(t0, t1)`); an explicit label run renders `(label: t0, …)`,
+	// where a FirstElementMarker label "" prints `_:`.
+	var argParts []string
+	for i, r := range dec.argRanges {
+		argStr := "()"
+		if !(r[1]-r[0] == 1 && p.s[r[0]] == 'y') {
+			argStr = p.fpVerboseRenderTypeAt(r[0], r[1], extMod, declName)
+			if argStr == "" {
+				return ""
+			}
+		}
+		if dec.emptyLabels {
+			argParts = append(argParts, argStr)
+		} else {
+			lbl := dec.labels[i]
+			if lbl == "" {
+				lbl = "_"
+			}
+			argParts = append(argParts, lbl+": "+argStr)
+		}
 	}
 	std, ok := common.BuildStdlibNominal(hostLetter)
 	if !ok || len(std.Children) == 0 || len(std.Children[0].Children) < 2 {
@@ -15574,7 +15581,7 @@ func (p *parser) fpVerboseFunctionText(hostLetter byte, extMod, declName, span s
 	}
 	hostName := std.Children[0].Children[1].Text
 	text := "(extension in " + extMod + "):Swift." + hostName + "." +
-		declName + "(" + labels[0] + ": " + argStr + ") -> " + resStr
+		declName + "(" + strings.Join(argParts, ", ") + ") -> " + resStr
 	if isStatic {
 		text = "static " + text
 	}
@@ -15596,6 +15603,7 @@ type entitySigDecode struct {
 	resultStart int      // absolute offset of the result type
 	resultEnd   int      // absolute offset one past the result type
 	argRanges   [][2]int // absolute [start,end) of each arg element
+	emptyLabels bool     // span had a `y` empty-LabelList prefix (no labels at all)
 	ok          bool     // true only if the span fully decoded
 	reason      string   // why ok==false (closure / generic / variadic / …)
 }
@@ -15641,6 +15649,7 @@ func (p *parser) decodeEntitySignatureSpan(spanStart, spanEnd int) entitySigDeco
 	// A lone `y` is the empty-LabelList marker. Otherwise the run is a
 	// sequence of `_` (FirstElementMarker) and `<n><name>` tokens.
 	var labels []string
+	emptyLabelList := false
 	k := 0 // offset within span
 	if len(span) >= 1 && span[0] == 'y' &&
 		(len(span) == 1 || span[1] != 't') {
@@ -15653,6 +15662,7 @@ func (p *parser) decodeEntitySignatureSpan(spanStart, spanEnd int) entitySigDeco
 		// no args and no result bytes — handled by the no-arg branch.
 		if len(span) > 1 {
 			k = 1
+			emptyLabelList = true
 		}
 	} else {
 		for k < len(span) {
@@ -15776,6 +15786,7 @@ func (p *parser) decodeEntitySignatureSpan(spanStart, spanEnd int) entitySigDeco
 		resultStart: resStart,
 		resultEnd:   resEnd,
 		argRanges:   argRanges,
+		emptyLabels: emptyLabelList,
 		ok:          true,
 	}
 }

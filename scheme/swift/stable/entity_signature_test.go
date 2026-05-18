@@ -4,8 +4,11 @@
 package stable
 
 import (
+	"context"
 	"strings"
 	"testing"
+
+	"github.com/jelmerdehen/demangle"
 )
 
 // TestDecodeEntitySignatureSpan exercises decodeEntitySignatureSpan, the
@@ -190,6 +193,47 @@ func TestDecodeEntitySignatureSpanRejects(t *testing.T) {
 			}
 			if got.reason == "" {
 				t.Fatalf("expected non-empty reason for %q", tc.name)
+			}
+		})
+	}
+}
+
+// TestVerboseFunctionLiteralRender exercises the P2 wiring of
+// decodeEntitySignatureSpan into fpVerboseFunctionText: a stdlib-host
+// extension function whose parameter and result types are all literal
+// (literal nominal / bare stdlib / module-ref-qualified nominal) is
+// rendered in Apple's verbose `(label: type, …) -> result` form. The
+// expected strings are byte-exact against kodo `xcrun swift-demangle`.
+// See plans/entity-signature-parser.md P2.
+func TestVerboseFunctionLiteralRender(t *testing.T) {
+	cases := []struct {
+		name string
+		sym  string
+		want string
+	}{
+		{
+			// single labelled param, bare-stdlib result (P2 regression
+			// guard — was the function-verbose-form P2/CKL slice).
+			name: "single-label-bare-result",
+			sym:  "_$sSy10FoundationE14canBeConverted2toSbSSAAE8EncodingV_tF",
+			want: "(extension in Foundation):Swift.StringProtocol.canBeConverted(to: (extension in Foundation):Swift.String.Encoding) -> Swift.Bool",
+		},
+		{
+			// two labelled params, module-ref-qualified optional result
+			// (`AA4DataVSg` → Foundation.Data?) — the new P2 gain.
+			name: "multi-label-ref-qualified-result",
+			sym:  "_$sSS10FoundationE4data5using20allowLossyConversionAA4DataVSgSSAAE8EncodingV_SbtF",
+			want: "(extension in Foundation):Swift.String.data(using: (extension in Foundation):Swift.String.Encoding, allowLossyConversion: Swift.Bool) -> Foundation.Data?",
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			res, err := Scheme{}.Demangle(context.Background(), tc.sym, demangle.Options{})
+			if err != nil {
+				t.Fatalf("demangle %q: %v", tc.sym, err)
+			}
+			if res.Output != tc.want {
+				t.Errorf("output mismatch\n got: %s\nwant: %s", res.Output, tc.want)
 			}
 		})
 	}
