@@ -124,11 +124,26 @@ is P3.
       coordination" class — do it as a standalone non-parity-gain
       commit first, verified by `make snapshot-check` clean, before
       attempting the getter continuation.
-- [ ] **P3 — tuple / pack declared-type tail for var getters (~11
-      syms)**: extend `foldVariableTupleTail` (stable.go:5803) — which
-      currently commits only on `vpMV`/`vpZMV` — to also fire on the
-      `vg`/`vs`/`vM` accessor terminals, so multi-element tuple and
-      `repeat`/pack declared types fold in variable-getter position.
+- [x] **P3 — tuple / pack declared-type tail for var getters
+      (done 2026-05-18).** Extended `foldVariableTupleTail`'s commit
+      gate (stable.go:5869) from `{vpMV, vpZMV}` to also accept the
+      variable-accessor terminals `vg`/`vs`/`vM` (plus the static
+      `vZg`/`vZs`/`vZM` forms). `tryVariableEntity` already renders
+      the verbose `Module.X.Y.getter : <tuple>` form for these kinds
+      and stamps `swift.fastpath.rawBody` when `tuplePreRendered` is
+      set, so the pre-rendered tuple node round-trips byte-exact.
+      Result: parity 62204→62212 (+8 production), getter mismatch
+      bucket 74→71, snapshot-check clean (+0 roundtrip regressions).
+      The plain `_`-separated multi-element-tuple slice flipped
+      (`StrideToIterator._current`, `Duration.components`,
+      `Unicode.Scalar.Properties.age`, …). NOT covered by this fold:
+      (a) the `repeat`/pack `xQp_t` / `q_q_Qp_t` slice — a pack
+      expansion is not a `_`-separated tuple, `foldVariableTupleTail`
+      has no pack production; (b) the `s<T>V_A<n>H t` repeat-count
+      and `_AE t` substitution-ref tuple-element slice — `parseType`
+      of the post-`_` element resolves a back-ref that does not
+      align inside the variable-entity subs context (same subs-table
+      wall as deferred P2). Both are follow-on work.
 - [ ] **P4 — extension-nested var-getter hosts (A2, 14 syms)**:
       `(extension in <Mod>):` host prefix for `So<Class>C<Mod>E…vg`
       shapes. Reuse the property-descriptor / double-extension host-
@@ -144,6 +159,11 @@ is P3.
 - 2026-05-18: plan forked from the mismatch scan (post
   witness-thunk-grammar close). Executed by the orchestrating session
   via one subagent per fire, sequential, with cross-fire verification.
+- 2026-05-18: **P3 complete.** `foldVariableTupleTail` commit gate
+  widened to the `vg`/`vs`/`vM` (+static) accessor terminals.
+  Parity 62204→62212 (+8), getter bucket 74→71, snapshot-check
+  clean. Pack-expansion and substitution-ref tuple-element slices
+  remain (noted on the P3 row).
 - 2026-05-18: **P1 complete.** Bucket = 74. Root cause is NOT a
   missing verbose printer (it exists at stable.go:6326-6334) — it is
   `parseType` truncating the declared type inside `tryVariableEntity`,

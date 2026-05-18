@@ -5862,11 +5862,17 @@ func (p *parser) foldVariableTupleTail(head *demangle.Node) (*demangle.Node, boo
 		optional = true
 	}
 	// Commit only when the run lands exactly on a property-descriptor
-	// terminal (vpMV / vpZMV). The folded tuple node is pre-rendered and
-	// does not remangle structurally; restricting to the descriptor
-	// terminal keeps accessor kinds (vg/vs/vM…) on their existing
-	// fast-path round-trip and bounds the change to the target bucket.
-	if rest := p.s[p.i:]; rest != "vpMV" && rest != "vpZMV" {
+	// terminal (vpMV / vpZMV) or a variable-accessor terminal whose
+	// verbose render in tryVariableEntity emits the declared-type
+	// annotation (vg getter / vs setter / vM modify). The folded tuple
+	// node is pre-rendered; tryVariableEntity stamps swift.fastpath.rawBody
+	// when tuplePreRendered is set, so the symbol still round-trips
+	// byte-exact. Restricting to these terminals bounds the change to the
+	// variable-getter/setter/modify bucket and leaves other accessor
+	// kinds (vw/vW/addressors) untouched.
+	switch rest := p.s[p.i:]; rest {
+	case "vpMV", "vpZMV", "vg", "vs", "vM", "vZg", "vZs", "vZM":
+	default:
 		revert()
 		return head, false
 	}
