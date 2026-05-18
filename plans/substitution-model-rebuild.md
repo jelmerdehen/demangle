@@ -167,12 +167,45 @@ convergence — done inside the open `BREAK_OK` window.
       absolute index those `A<digits><letter>` / `AG` back-refs use).
       Restored by P3.5 (Mechanism-C decoupling) + P4 (remangler).
       Committed under `BREAK_OK` / `RESTORE_BY=2026-05-24`.
-- [ ] **P3 — Mechanism B (chained `BREAK_OK` fire)**: drop the
-      `parseType` post-switch `p.subs.Push(node)` at `stable.go:~28155`
-      for `case 'A'`-resolved back-refs — Apple's `case 'A'` returns
-      the resolved sub WITHOUT `addSubstitution`. This is the −104
-      wall from subscript-descriptor P4; chain a second `BREAK_ID`.
-      Record the disappeared set.
+- [x] **P3 — Mechanism B (chained `BREAK_OK` fire)** — done
+      2026-05-19 (retry, scoped). The `parseType` post-switch
+      `p.subs.Push(node)` is now SKIPPED for plain `case 'A'`-resolved
+      back-refs — Apple's `case 'A'` resolves a back-ref WITHOUT
+      `addSubstitution`. Scoping (re the failed blanket attempt):
+      a new `caseAPlainBackref` flag is set when `case 'A'` resolved
+      to an ordinary substitution (`node = sub` / `findTypeForIdent`-
+      promoted) and cleared on every fresh-node path (DM-wrap,
+      `parseNominalWithModule`, module-DM, ident-DM). Two scope gates
+      keep the resolved entry addressable where it is load-bearing:
+      (1) the skip is disabled inside an impl-fn type list — new
+      `inImplFnTypeList` flag set across `tryImplFunctionType`'s
+      `<type>*` loop (via `defer` so speculative reverts restore it),
+      because `tryImplSubstitutedSig` / `parseAppleSubsBoundGeneric` /
+      `tryForClauseAMultiSub` index `p.subs` by absolute position for
+      the `for <subs-list>` clause; (2) when a bound-generic
+      immediately wraps the resolved base (`bgOk`) the deferred
+      bare-base push is reinstated before the BG push — the
+      un-realigned `A<letter>` index resolver is still calibrated to
+      that 2-push layout (Mechanism C, P3.5). **Gain preserved:**
+      `…AttributesSlice1…ALcig` index param now resolves to
+      `Foundation.AttributedString.Index` (Apple-correct).
+      **Hard gates GREEN:** Apple 153/153, swiftc 222/222,
+      categories, build. **Measured delta:** parity 62230 → 62151
+      (−79 net), roundtrip 22057 → 22067 (+10 net).
+      **Disappeared set (chained `BREAK_OK` window): 96** — 85 parity
+      + 11 roundtrip (the 11 incl. the 2 PredicateRegex roundtrips
+      shared with P2's break). All structurally explained: dropping
+      the plain `case 'A'` re-push shifts every subsequent
+      `A<letter>` back-ref index by one in symbols carrying chained
+      `A`-back-refs — the `AttributedString.Index` accessor families
+      (`AC5IndexV…AI`/`AJ` — `index(after:/before:)`,
+      `_index(_:offsetBy:)`, `_distance(from:to:)`), the
+      `NSDecimal*` `AF`/`AG`/`AH` chains, `WeekendRange` `AH`, the
+      SwiftUI `_GraphValue` `AC`/`AH` chains. The `A<letter>` /
+      `A<digits><letter>` resolver is still calibrated to the
+      pre-skip table length; restored at P3.5 (Mechanism C
+      realignment) + P5 convergence. Chained as a second
+      independent `BREAK_ID`; P2's break stays open.
 - [ ] **P3.5 — Mechanism C decoupling (inside the window)**: with A
       and B realigned, the substitution table now matches Apple's
       frame. Re-implement the `A<digits><letter>` repeat-count
@@ -199,6 +232,23 @@ convergence — done inside the open `BREAK_OK` window.
 
 ## Status
 
+- 2026-05-19: **P3 complete (Mechanism B, retry — scoped, chained
+  `BREAK_OK` fire).** The blanket `c != 'A'` skip that broke the
+  prior attempt's hard gate is replaced by a precisely-scoped skip:
+  a `caseAPlainBackref` flag distinguishes plain `case 'A'`
+  back-refs from fresh-node paths, and two gates (`inImplFnTypeList`
+  context + bound-generic-base reinstatement) keep the resolved
+  entry addressable where the `for <subs-list>` clause and the
+  un-realigned `A<letter>` resolver need it. Parity 62230 → 62151
+  (−79 net), roundtrip 22057 → 22067 (+10 net). **96 symbols
+  disappeared** (85 parity + 11 roundtrip) — all index-shift
+  casualties of the dropped re-push, structurally bounded to symbols
+  with chained `A<letter>`/`A<digits><letter>` back-refs; restored
+  at P3.5 + P5. Hard gates green (Apple 153/153, swiftc 222/222,
+  categories, build) — the scoped fix recovers the `simdMatrix`
+  curated symbol the blanket attempt regressed. Second `BREAK_ID`
+  chained, `RESTORE_BY=2026-05-24`; P2's break stays open (2 breaks
+  now open). Next: P3.5 (Mechanism C decoupling).
 - 2026-05-19: **P3 attempt FAILED — reverted, no `stable.go` change,
   no chained break opened.** Mechanism B implemented as a blanket
   `c != 'A'` guard on the `parseType` post-switch push broke the HARD

@@ -388,6 +388,19 @@ type parser struct {
 	// variable's declared type. It gates tryFoldBoundGenericTupleArg so
 	// the multi-element-tuple fold cannot disturb function/other parses.
 	inVariableEntityType bool
+	// inImplFnTypeList is true while tryImplFunctionType collects its
+	// leading <type>* list. Mechanism B (substitution-model-rebuild P3):
+	// Apple's `case 'A'` resolves a back-ref WITHOUT addSubstitution, so
+	// parseType's post-switch push must be skipped for plain
+	// `case 'A'`-resolved back-refs. But inside an impl-function-type
+	// type list the post-switch push of those back-refs is load-bearing —
+	// the `for <subs-list>` clause (tryImplSubstitutedSig /
+	// parseAppleSubsBoundGeneric / tryForClauseAMultiSub) reads the
+	// resolved entries straight out of p.subs by absolute index. The
+	// skip is therefore gated on NOT being in this context; the impl-fn
+	// loop's own `byteBeforeParse == 'A'` dup-strip (~5743) keeps the
+	// table aligned there.
+	inImplFnTypeList bool
 	// tuplePreRendered is set when a tuple was folded into a pre-rendered
 	// node during the current variable-entity parse; tryVariableEntity
 	// then stamps swift.fastpath.rawBody so the symbol round-trips.
@@ -5401,6 +5414,16 @@ func (p *parser) tryImplFunctionType() (*demangle.Node, bool) {
 	save := p.i
 	saveSubs := p.subs
 	revert := func() { p.i = save; p.subs = saveSubs }
+	// Mechanism B (substitution-model-rebuild P3): mark the impl-fn
+	// type-list context so parseType keeps the post-switch push for
+	// `case 'A'`-resolved back-refs here — the for-clause / @substituted
+	// subs-list parsers index p.subs by absolute position. Restored on
+	// every exit path (including speculative revert) via defer; build
+	// phase below does not call parseType so the flag staying set
+	// through it is harmless.
+	prevInImplFnTypeList := p.inImplFnTypeList
+	p.inImplFnTypeList = true
+	defer func() { p.inImplFnTypeList = prevInImplFnTypeList }()
 	// Parse 0-or-more leading types. Inside this loop we also
 	// recognise 'S<digits><letter>' multi-count stdlib shortcut and
 	// expand inline as N copies of the letter-typed stdlib sub.
@@ -28618,6 +28641,16 @@ func (p *parser) parseType() (*demangle.Node, error) {
 		parsedRawStdlib   bool
 		parsedStdlib      bool // set whenever S<letter> stdlib type was parsed
 		fromNominalModule bool // set when 'A'→Module→parseNominalWithModule fires
+		// caseAPlainBackref — Mechanism B (substitution-model-rebuild P3):
+		// set true when `case 'A'` resolved to an ordinary substitution
+		// (node = sub, or a findTypeForIdent-promoted nominal) used as a
+		// plain type. Apple's `case 'A'` does NOT addSubstitution on this
+		// path, so the post-switch push below is skipped — UNLESS we are
+		// inside an impl-fn type list, where the resolved entry is
+		// load-bearing for the `for <subs-list>` clause. Stays false for
+		// freshly-built nodes (DM-wrap, parseNominalWithModule) — those
+		// are new types and must push.
+		caseAPlainBackref bool
 	)
 	switch {
 	case c == 'B':
@@ -28671,6 +28704,10 @@ func (p *parser) parseType() (*demangle.Node, error) {
 	case c == 'A':
 		p.i++
 		sub, subErr := p.parseNumericSubstitution()
+		// Mechanism B: a resolved `case 'A'` defaults to a plain
+		// back-ref (Apple does NOT addSubstitution). Cleared below on
+		// any path that builds a fresh node.
+		caseAPlainBackref = subErr == nil
 		if subErr != nil {
 			err = subErr
 		} else if (common.NodeKind(sub.Kind) == common.KindProtocol ||
@@ -28742,6 +28779,10 @@ func (p *parser) parseType() (*demangle.Node, error) {
 					tn.Text = paramName + "." + protoText + "." + assocName
 					common.AddChildren(wrap, tn)
 					node = wrap
+					// Fresh DM node — must push (Mechanism B: not a plain
+					// back-ref). The post-switch push places it at the
+					// transient-Identifier slot vacated just below.
+					caseAPlainBackref = false
 					// Remove the transient Identifier copy that multi-sub
 					// 'a' pushed — parseType's post-switch push will place
 					// the DM result at the same slot, keeping Apple's subs
@@ -28785,6 +28826,9 @@ func (p *parser) parseType() (*demangle.Node, error) {
 					err = nil
 				} else {
 					fromNominalModule = true
+					// Fresh nominal built from module back-ref + path —
+					// must push (Mechanism B: not a plain back-ref).
+					caseAPlainBackref = false
 				}
 			} else if !p.eof() && p.s[p.i] == 'Q' && p.i+1 < len(p.s) &&
 				(p.s[p.i+1] == 'z' || p.s[p.i+1] == 'y') {
@@ -28840,6 +28884,8 @@ func (p *parser) parseType() (*demangle.Node, error) {
 						tn.Text = paramMod + "." + assocMod
 						common.AddChildren(wrap, tn)
 						node = wrap
+						// Fresh DM node — must push (Mechanism B).
+						caseAPlainBackref = false
 					} else {
 						node = sub
 					}
@@ -28895,6 +28941,8 @@ func (p *parser) parseType() (*demangle.Node, error) {
 					tn.Text = paramId + "." + sub.Text
 					common.AddChildren(wrap, tn)
 					node = wrap
+					// Fresh DM node — must push (Mechanism B).
+					caseAPlainBackref = false
 				} else {
 					if t, ok := p.findTypeForIdent(sub.Text); ok {
 						node = t
@@ -29077,6 +29125,19 @@ func (p *parser) parseType() (*demangle.Node, error) {
 	// Mirror Apple: generic params and bare stdlib types are NOT added to
 	// the substitution table. Bound-generics of stdlib types ARE pushed
 	// via the postfix tryBoundGeneric / Sg handlers below.
+	// caseADeferredBase — Mechanism B (substitution-model-rebuild P3):
+	// holds a plain `case 'A'`-resolved back-ref whose post-switch push
+	// was SKIPPED. Apple's `case 'A'` resolves a back-ref WITHOUT
+	// addSubstitution, so a back-ref used as a plain type must not
+	// re-enter p.subs. Exception: when a bound-generic immediately wraps
+	// the resolved base (bgOk below) the bare-base push is reinstated —
+	// the as-yet-un-realigned `A<letter>` index resolver is calibrated
+	// to that 2-push layout (Mechanism C, deferred to P3.5). The skip is
+	// also disabled inside an impl-fn type list, where the resolved
+	// entry is load-bearing for the `for <subs-list>` clause
+	// (tryImplSubstitutedSig / parseAppleSubsBoundGeneric /
+	// tryForClauseAMultiSub index p.subs by absolute position).
+	var caseADeferredBase *demangle.Node
 	if node != nil {
 		nk := common.NodeKind(node.Kind)
 		// Generic-param: DependentGenericParamType directly, or a KindType
@@ -29085,7 +29146,11 @@ func (p *parser) parseType() (*demangle.Node, error) {
 			(nk == common.KindType && len(node.Children) == 1 &&
 				common.NodeKind(node.Children[0].Kind) == common.KindDependentGenericParamType)
 		if !isGenParam && !parsedRawStdlib && !(parsedStdlib && p.inRawStdlibBoundGenericArgs) {
-			p.subs.Push(node)
+			if caseAPlainBackref && !p.inImplFnTypeList {
+				caseADeferredBase = node
+			} else {
+				p.subs.Push(node)
+			}
 		}
 	}
 	// Postfix modifiers.
@@ -29287,6 +29352,14 @@ afterNestedLoop:
 	if bgErr != nil {
 		return nil, bgErr
 	} else if bgOk {
+		// Mechanism B: a bound-generic consumed the plain `case 'A'`
+		// base. Reinstate the deferred bare-base push BEFORE the BG
+		// push — the un-realigned `A<letter>` index resolver expects
+		// the bare base + BG result both present (Mechanism C, P3.5).
+		if caseADeferredBase != nil {
+			p.subs.Push(caseADeferredBase)
+			caseADeferredBase = nil
+		}
 		node = bg
 		p.subs.Push(node)
 	}
