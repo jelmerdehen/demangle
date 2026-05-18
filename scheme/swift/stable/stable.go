@@ -2288,6 +2288,13 @@ func (p *parser) trySubscriptEntityTyped(inner *demangle.Node) (*demangle.Node, 
 			revert()
 			return inner, false
 		}
+		// The subscript's result type may be a multi-element tuple encoded
+		// as <e0> '_' <e1> ... 't'. parseType has no general tuple
+		// production and returns only the head element; fold the tail so
+		// the index-type loop below sees the real 'c' terminator.
+		if folded, ok := p.parseSubscriptResultTuple(resultNode); ok {
+			resultNode = folded
+		}
 	}
 
 	// Parse additional index types until 'c' (not a valid type-start, so parseType errors).
@@ -2425,17 +2432,38 @@ func (p *parser) trySubscriptEntityTyped(inner *demangle.Node) (*demangle.Node, 
 	case 'm':
 		wrap.Text = "unsafeMutableAddressor for " + strippedOwner + ".subscript : (" + paramsStr + ") -> " + resultStr
 	case 'p':
+		var subText string
 		if fullForm {
-			// Full form: subscript call notation — consumed by MV → "property descriptor for ..."
-			wrap.Text = strippedOwner + ".subscript(" + paramsStr + ") -> " + resultStr
+			// Full form: subscript call notation.
+			subText = strippedOwner + ".subscript(" + paramsStr + ") -> " + resultStr
 		} else {
 			// Simplified: subscript label notation — one "_:" per unnamed param.
 			labels := make([]string, len(indexNodes))
 			for i := range labels {
 				labels[i] = "_:"
 			}
-			wrap.Text = strippedOwner + ".subscript(" + strings.Join(labels, "") + ")"
+			subText = strippedOwner + ".subscript(" + strings.Join(labels, "") + ")"
 		}
+		// The 'p' accessor is the property-descriptor accessor and is always
+		// followed by the `MV` terminal. When MV ends the symbol, consume it
+		// here so the complete "property descriptor for ..." node is the
+		// Global child (the raw-body stamp below then round-trips it).
+		if p.i+2 == len(p.s) && p.s[p.i] == 'M' && p.s[p.i+1] == 'V' {
+			p.i += 2
+			wrap.Text = "property descriptor for " + subText
+		} else {
+			wrap.Text = subText
+		}
+	}
+	// When the typed subscript consumed the whole symbol, stamp the raw body
+	// so the node — which does not remangle structurally — round-trips
+	// byte-exact. trySubscriptEntityTyped here is the last wrap before the
+	// Global child, so mangleGlobal's fast-path raw-body emission applies.
+	if p.i == len(p.s) {
+		if wrap.Attrs == nil {
+			wrap.Attrs = map[string]string{}
+		}
+		wrap.Attrs["swift.fastpath.rawBody"] = p.s
 	}
 	return wrap, true
 }
@@ -5835,6 +5863,87 @@ func (p *parser) foldVariableTupleTail(head *demangle.Node) (*demangle.Node, boo
 	if rest := p.s[p.i:]; rest != "vpMV" && rest != "vpZMV" {
 		revert()
 		return head, false
+	}
+	var sb strings.Builder
+	sb.WriteByte('(')
+	for i, e := range elts {
+		if i > 0 {
+			sb.WriteString(", ")
+		}
+		if e.label != "" {
+			sb.WriteString(e.label)
+			sb.WriteString(": ")
+		}
+		sb.WriteString(e.typeStr)
+	}
+	sb.WriteByte(')')
+	display := sb.String()
+	if optional {
+		display += "?"
+	}
+	wrap := common.NewNode(common.KindType)
+	inner := common.NewNode(common.KindBuiltinTypeName)
+	inner.Text = display
+	common.AddChildren(wrap, inner)
+	return wrap, true
+}
+
+// parseSubscriptResultTuple folds a multi-element tuple result inside a
+// typed subscript signature. parseType returns only the head element of
+// a tuple (there is no general tuple production); when the subscript's
+// result type is a tuple it is encoded as '<e0> ['_' <eN>]+ t' with an
+// optional per-element label preceding each '_' / 't'. head is the
+// element parseType already returned. The fold reverts atomically when
+// the run is not a well-formed >=2-element tuple, leaving head intact.
+func (p *parser) parseSubscriptResultTuple(head *demangle.Node) (*demangle.Node, bool) {
+	if p.eof() {
+		return head, false
+	}
+	c := p.s[p.i]
+	if c != '_' && !(c >= '0' && c <= '9') {
+		return head, false
+	}
+	save := p.i
+	saveSubs := p.subs
+	revert := func() { p.i = save; p.subs = saveSubs }
+	opts := common.DefaultPrintOptions()
+	type tupleElt struct{ label, typeStr string }
+	elts := []tupleElt{{typeStr: common.Print(head, opts)}}
+	if c >= '0' && c <= '9' {
+		name, err := p.parseIdentifier()
+		if err != nil {
+			revert()
+			return head, false
+		}
+		elts[0].label = name
+	}
+	for !p.eof() && p.s[p.i] == '_' {
+		p.i++ // consume '_'
+		t, err := p.parseType()
+		if err != nil || t == nil {
+			revert()
+			return head, false
+		}
+		e := tupleElt{typeStr: common.Print(t, opts)}
+		if !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
+			name, nerr := p.parseIdentifier()
+			if nerr != nil {
+				revert()
+				return head, false
+			}
+			e.label = name
+		}
+		elts = append(elts, e)
+	}
+	if p.eof() || p.s[p.i] != 't' || len(elts) < 2 {
+		revert()
+		return head, false
+	}
+	p.i++ // consume 't'
+	optional := false
+	if p.i+1 < len(p.s) && p.s[p.i] == 'S' && p.s[p.i+1] == 'g' {
+		p.i += 2
+		optional = true
 	}
 	var sb strings.Builder
 	sb.WriteByte('(')

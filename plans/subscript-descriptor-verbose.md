@@ -77,22 +77,29 @@ only fires if the main parser still bails).
 
 - [x] **P1 — categorise + bail-site probe** — done 2026-05-18. See
       "P1 findings" above. Primitives below rewritten to match.
-- [ ] **P2 — result-tuple parse in trySubscriptEntityTyped**: in the
-      result-type parse (stable.go:2284-2291), after the first
-      `parseType`, if the next byte is `_`, treat the result as a
-      tuple — keep parsing `_`-separated elements (with optional
-      element labels) until `t`, then build a tuple node. The existing
-      `'p'` case then renders `subscript(<index>) -> (<elts>)`. Probe
-      the AttributesSlice1-5 + NSAttributesSlice + KeyValuePairs
-      symbols before/after; ship the recovered count. Three-commit
-      swift-parity round if parity rises.
-- [ ] **P3 — remaining plain non-tuple `cipMV` shapes**: probe
-      `_CocoaArrayWrapper` (`yXl` AnyObject result), `_NativeDictionary`
-      (`(_:isUnique:)` multi-label, `B?` result), `_AnyCollectionBox`
-      (`(start:end:)` multi-label) individually with `--expand`; fix
-      the remaining `trySubscriptEntityTyped` bail causes (multi-label
-      index list, protocol-list result). swift-parity round if parity
-      rises; +0 defer-write if no ≤3-primitive fix.
+- [x] **P2 — result-tuple parse in trySubscriptEntityTyped** — done
+      2026-05-18 (CKQ). Added `parseSubscriptResultTuple` (folds the
+      `<e0> '_' <eN>+ t` multi-element tuple result) + raw-body stamp
+      on the consumed typed-subscript node so it round-trips. Parity
+      62140->62144 (+4 production); roundtrip 21318->21999 (the
+      raw-body stamp fixes a long-standing round-trip gap for all
+      typed-subscript entities). ipMV mismatches 49->47.
+      Substitution-index mismatch on the AttributesSlice family (`AL`
+      resolves one slot short — the result-tuple back-references "Value"
+      assoc-type-refs not registered identically to Apple) deferred to
+      P3.
+- [ ] **P3 — substitution-index consistency + remaining plain
+      non-tuple `cipMV` shapes**: (a) the AttributesSlice1-5 /
+      NSAttributesSlice family parse via P2's tuple-fold but the index
+      substitution `A<letter>` resolves one slot short — the
+      result-tuple's "Value" associated-type-ref back-references are
+      not registered into `p.subs` identically to Apple; fix the
+      registration so `AL`/`AN`/… resolve. (b) probe `_CocoaArrayWrapper`
+      (`yXl` AnyObject result), `_NativeDictionary` (`(_:isUnique:)`
+      multi-label, `B?` result), `_AnyCollectionBox` (`(start:end:)`
+      multi-label) with `--expand`; fix remaining bail causes.
+      swift-parity round if parity rises; +0 defer-write if no
+      ≤3-primitive fix. May split across fires.
 - [ ] **P4 — plain local-generic subscript propdescs** (`luipMV` /
       `cluipMV`): AttributedString.Runs.Run dynamicMember ×2,
       PredicateBindings, ScopedAttributeContainer, Data, String —
@@ -117,6 +124,8 @@ only fires if the main parser still bails).
   `trySubscriptEntityTyped` reverts on multi-element-tuple result (and
   other shapes); fast-path renders the simplified form. Primitives
   rewritten; P-count grown to 6.
+- 2026-05-18: P2 done (CKQ) — result-tuple fold + raw-body stamp.
+  parity 62140->62144, roundtrip 21318->21999, no regressions.
 
 ## Failed attempts
 
