@@ -132,6 +132,37 @@ a one-shot Explore agent. Before any `swift-parity:` commit:
 
 ## Active targets
 
+### subscript ipMV substitution-count alignment [~5 syms, deferred-1, ~+5P]
+
+The AttributesSlice1-5 subscript property descriptors (`...cipMV`)
+parse via `trySubscriptEntityTyped` + `parseSubscriptResultTuple`
+(plan-subscript-descriptor-verbose P2) but the index substitution
+`A<letter>` resolves ~1-2 slots short of Apple, so the rendered index
+type is wrong (`Foundation.AttributedString` instead of
+`Foundation.AttributedString.Index`).
+
+Root cause: our `p.subs` table is not slot-aligned with Apple's. The
+specific divergence — when `parseType` resolves a bare substitution
+back-reference (`AC` → an already-registered nominal), the post-switch
+`p.subs.Push(node)` at `stable.go:~27866` registers it AGAIN. Apple
+does not re-register a back-ref.
+
+Tried (P4, 2026-05-18): skip that push when `node` is pointer-identical
+to an existing table entry. Regressed parity 62144 -> 62040 (−104) —
+reverted. The re-push is corpus-calibrated: a large set of currently
+passing symbols' `A<letter>` indices resolve correctly *because of*
+the extra push (their `want` strings were locked against the
+re-pushing parser).
+
+Fire-plan (3+ primitives, corpus-wide): re-derive Apple's
+`addSubstitution` order from `Demangler.cpp`; introduce a parser mode
+that registers substitutions Apple-faithfully; migrate the corpus's
+`A<letter>`-bearing symbols in lockstep behind a `BREAK_OK` window.
+Not a bounded fix — defer until a dedicated substitution-semantics
+goal. Note: `tryBoundGeneric` already restores `p.subs` on rollback
+(plan-subscript-descriptor-verbose P3) so the table is no longer
+*doubled* — only mis-counted by the re-push.
+
 ### label-arity all-paths-tuple-tokenizer needed [~40 syms, deferred-3, ~+40P]
 
 **Promoted to tier-3** after this fire's probing revealed the problem

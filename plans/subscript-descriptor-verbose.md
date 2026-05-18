@@ -99,16 +99,18 @@ only fires if the main parser still bails).
       it on every rollback. +0 parity (no symbol flips on its own) but
       removes table corruption that mis-resolves `A<letter>` back-refs
       across the corpus. snapshot-check clean.
-- [ ] **P4 — AttributesSlice substitution-count alignment**: even with
-      the table un-doubled, the index `A<letter>` resolves ~2 slots
-      short of Apple. Discrepancies in the result-tuple region: (1)
-      building a nested type from an `A<letter>` back-ref base
-      (`AC5IndexV`) re-pushes the base nominal as a fresh substitution
-      — Apple does not; (2) the "Index" identifier / element-region
-      push count differs from Apple's `addSubstitution` order. Probe
-      with a subs-dump (DBG print in trySubscriptEntityTyped before the
-      index loop) against Apple, align the pushes. Targets Slice1
-      (+1); Slice2-5 additionally need P5.
+- [x] **P4 — AttributesSlice substitution-count alignment — DEFERRED**
+      (2026-05-18). Attempted: skip the `parseType` post-switch
+      `p.subs.Push` when the parsed node is a bare substitution
+      back-reference already in the table (pointer-identity scan).
+      Result: parity 62144 -> 62040 (−104 regression) — reverted. The
+      "spurious" re-push is **corpus-calibrated**: a large set of
+      passing symbols' `A<letter>` indices currently resolve correctly
+      *because of* the extra push. Aligning the substitution table to
+      Apple's `addSubstitution` semantics is a corpus-wide refactor,
+      not a bounded primitive. Deferred to INVESTIGATIONS.md
+      (`subscript ipMV substitution-count`, deferred-1). Slice1 (+1)
+      and the index-resolution half of Slice2-5 stay blocked on it.
 - [ ] **P5 — `A<letter>…Q<param>` substitution-ref-led dependent
       member type**: Slice2-5 carry `AHQy_Sg` etc. — a dependent member
       type whose associated-type-ref is an `A<letter>` substitution
@@ -152,7 +154,15 @@ only fires if the main parser still bails).
   rollback. +0 parity, no regressions. P-count grown to 8; P4/P5
   carry the remaining AttributesSlice substitution-count + dependent-
   member-grammar work.
+- 2026-05-18: P4 deferred — substitution-count alignment regressed
+  −104, reverted; logged to INVESTIGATIONS.md (deferred-1). Next fire
+  picks up P5 (`A<letter>…Q` dependent-member grammar).
 
 ## Failed attempts
 
-(none yet)
+- 2026-05-18 (P4): skipping the `parseType` post-switch
+  `p.subs.Push(node)` for bare substitution back-references (to stop
+  the AttributesSlice index resolving short) regressed parity
+  62144 -> 62040 (−104). The extra push is corpus-calibrated; many
+  passing symbols depend on it. Reverted. Real fix = corpus-wide
+  substitution-semantics alignment — deferred.
