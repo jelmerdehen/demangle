@@ -2401,13 +2401,13 @@ Defer reason: need depth-aware scanner that tracks constraint vs type-
 expression context to distinguish inner-AE-as-type-ref vs outer-E-as-
 entity. Single-fire scope insufficient.
 
-### vpMV-instance-var-verbose-form [59 syms, deferred-2]
+### vpMV-instance-var-verbose-form [60 syms, deferred-2]
 
 UPDATE 2026-05-18 (CKP swift-parity, +2P): the bound-generic
 unlabelled-tuple-arg slice is fixed — `tryFoldBoundGenericTupleArg`
 folds `<head>('_'<type>)+'t'` in `tryBoundGeneric`'s arg loop, gated
 to `inVariableEntityType`, committing only on a `t`+`G` close. Landed
-`KeyValuePairs._elements` +1. Bucket 61→59. Blocker 3 below now only
+`KeyValuePairs._elements` +1. Bucket 61→60. Blocker 3 below now only
 covers the LABELLED bound-generic-tuple-arg (`Mirror.children`).
 
 UPDATE 2026-05-18 (CKO swift-parity, +4P): the labelled multi-element

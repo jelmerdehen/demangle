@@ -125,7 +125,7 @@ one fire is forbidden — narrow per fire, re-estimate honestly.
 - [x] **P5 — extension-nested hosts + close** — **DEFERRED**. The 36
       `(extension in)` symbols are a separate host-walk `E` mechanism
       (its own multi-fire plan); out of scope here. Plan closed: P1–P3
-      shipped +6P (bucket 65→59), P4/P5 documented for follow-on.
+      shipped +6P (bucket 65→60), P4/P5 documented for follow-on.
 
 ## Status
 
@@ -138,7 +138,7 @@ one fire is forbidden — narrow per fire, re-estimate honestly.
   +4P, roundtrip flat); vpMV mismatch bucket 65→61. P3–P5 re-scoped
   to the remaining clusters.
 - 2026-05-18 (fire 3, P3): shipped the bound-generic unlabelled-tuple
-  -arg fold (CKP, +2P, roundtrip flat); vpMV bucket 61→59. **Plan
+  -arg fold (CKP, +2P, roundtrip flat); vpMV bucket 61→60. **Plan
   closed** — P1–P3 shipped +6P total; P4 (subs-numbering wall) and P5
   (extension-nested, separate mechanism) deferred and documented in
   INVESTIGATIONS.md (`vpMV-instance-var-verbose-form`) with a
