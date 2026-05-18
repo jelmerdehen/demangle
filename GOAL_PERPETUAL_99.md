@@ -25,7 +25,7 @@ WORKDIR ~/apps/demangle. Re-read CLAUDE.md + INVESTIGATIONS.md + digest.md at ev
 PER-FIRE LOOP:
 1. Skip divergence regen if file mtime <1h. Else `rm -f scheme/swift/stable/testdata/production/production-divergences.txt; go test -tags production_corpus -count=1 -run TestProductionCorpusParity ./scheme/swift/stable/testdata/production/` to refresh.
 2. Read `PLAN_QUEUE.md` FIRST. If active plan with pending primitive exists, execute that primitive per plan's instructions. ELSE pick target by ROOT CAUSE from INVESTIGATIONS.md "Root-cause map".
-3. Probe: `go run ./cmd/demangle demangle '<sym>'` vs `ssh claude@kodo xcrun swift-demangle <<<'<sym>'`. Use `scripts/probe-bucket.sh <regex>` for categorical probe.
+3. Probe: `go run ./cmd/demangle demangle '<sym>'` vs `xcrun swift-demangle <<<'<sym>'` (this box IS kodo — run swift-demangle directly, never ssh). Use `scripts/probe-bucket.sh <regex>` for categorical probe.
 4. **Multi-fire path (preferred for deferred-2/3 buckets)**: if a fix needs >5 primitives, fork a new plan file `plans/<name>.md` from `plans/_TEMPLATE.md`, add row to PLAN_QUEUE.md `## Active plans` table, commit `plan: fork <name> ...`. Then start P1 next fire.
 5. **Single-fire path**: if fix ≤5 primitives and lands in this fire, ship swift-parity: commit (or chore: if +0 parity). **NO `preparseLiterals` table additions** — see CLAUDE.md anti-cheat rules.
 6. **Plan primitive ship**: when working on a plan, each fire ships ONE commit advancing one primitive. Intermediate +0 parity is success if primitive's smoke gates pass. `chore: plan-<name>-P<N> ...` subject style.
@@ -64,7 +64,7 @@ LOOP:
 - Stop ONLY: parity ≥99.99% (PushNotification "mission complete" + halt) OR pre-existing git-unsafe state (PushNotification "git unsafe" + halt).
 
 POINTERS:
-- Oracle: ssh claude@kodo xcrun swift-demangle <<<'<sym>'
+- Oracle: xcrun swift-demangle <<<'<sym>'  (this box IS kodo — run it directly, never ssh)
 - `make smoke` repops pass-sets; `make snapshot` locks.
 - Tractable families to start: PAAE multi-conf (AAQ/AAR), Combine receive(subscriber:) Rtz Failure, depth-1 generics qd_/Rd__ (LOOP_DEPTH1_GENERICS.md), Foundation/Swift small-bucket single-sym fixes.
 - Defer to tier-2 immediately: bound-generic-subs-indexing (multi-session Apple refactor — see INVESTIGATIONS.md).

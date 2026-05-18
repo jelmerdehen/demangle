@@ -21,7 +21,7 @@ WORKDIR ~/apps/demangle. Re-read CLAUDE.md (anti-cheat + scoring-integrity secti
 PER-FIRE LOOP:
 1. Refresh divergences if scheme/swift/stable/testdata/production/production-divergences.txt is missing or >1h stale: rm -f it, then `go test -tags production_corpus -count=1 -run TestProductionCorpusParity ./scheme/swift/stable/testdata/production/`.
 2. Open plans/property-descriptor-verbose.md. Execute the FIRST primitive whose status row is `[ ]`, per its written instructions. One primitive per fire. P1 is a categorise+probe fire that REWRITES the later primitives to match the largest coherent sub-bucket — honour the rewritten primitives on subsequent fires.
-3. Probe before coding: `go run ./cmd/demangle demangle '<sym>'` vs the corpus want (the `---> ` field in scheme/swift/stable/testdata/production/corpus/*.txt). The kodo oracle (xcrun swift-demangle) is the authority when reachable; if it is not, the committed corpus want strings are the ground truth.
+3. Probe before coding: `go run ./cmd/demangle demangle '<sym>'` vs the Apple oracle `xcrun swift-demangle <<<'<sym>'` (this box IS kodo — run swift-demangle directly, never ssh). The corpus want strings (the `---> ` field in scheme/swift/stable/testdata/production/corpus/*.txt) are what the parity gate compares against.
 4. Implement ONE primitive, then ship ONE commit:
    - +0 scaffold/detection/probe primitive: `chore: plan-property-descriptor-verbose-P<N> <desc> (parity +0)`.
    - net parity rise: three-commit round (code -> digest -> snapshot lock), subject `swift-parity: <ID> <fix> — parity X%->Y% +N production`. Sequential two-letter <ID> from the latest swift-parity: commit on main.
@@ -44,7 +44,7 @@ LOOP: keep going fire after fire. Each fire ships exactly one primitive; interme
 STOP ONLY when: every primitive in plans/property-descriptor-verbose.md is `[x]` AND the final snapshot is locked (plan closed) -> PushNotification "property-descriptor-verbose complete" + halt. OR pre-existing git-unsafe state -> PushNotification "git unsafe" + halt.
 
 POINTERS:
-- Oracle: xcrun swift-demangle (kodo-local; --expand for trees; may be unreachable — corpus want strings are then authoritative).
+- Oracle: `xcrun swift-demangle` (this box IS kodo — run it directly, never ssh; `--expand` for parse trees).
 - Plan + per-primitive spec: plans/property-descriptor-verbose.md.
 - Bucket: digest.md Top-20 "property descriptor" (217 mismatches, largest bucket).
 - Root cause: the property-descriptor render path emits the simplified host/accessor form; the fix renders the verbose form (module-qualified host, extension prefixes, subscript signatures).

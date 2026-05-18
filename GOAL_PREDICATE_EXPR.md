@@ -88,7 +88,7 @@ CHECK PROOF — after each parity round, surface in the conversation:
 
 KEY POINTERS (read-only context):
 
-- Apple oracle: `ssh claude@kodo xcrun swift-demangle <<<'<sym>'`.
+- Apple oracle: `xcrun swift-demangle <<<'<sym>'` (this box IS kodo — run swift-demangle directly, never ssh).
 - Target sym 1:
   `_$s10Foundation20PredicateExpressionsO018CollectionContainsD0Vy_xq_GAA08StandardB10ExpressionA2aGRzAaGR_rlMc`
   Expected:

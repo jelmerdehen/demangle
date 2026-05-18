@@ -77,7 +77,7 @@ CHECK PROOF (per round, surface in conversation):
 - digest.md parity line.
 
 KEY POINTERS:
-- Apple oracle: `ssh claude@kodo xcrun swift-demangle <<<'<sym>'`.
+- Apple oracle: `xcrun swift-demangle <<<'<sym>'` (this box IS kodo — run swift-demangle directly, never ssh).
 - Target sym 1 (BG host + Debug PAAE):
   _$s10Foundation20PredicateExpressionsO018CollectionContainsD0VA2A022DebugStringConvertibleB10ExpressionRzAaFR_rlE05debugG05stateSSAA0fG15ConversionStateVz_tF
   Expected: `(extension in Foundation):Foundation.PredicateExpressions.CollectionContainsCollection< where A: Foundation.DebugStringConvertiblePredicateExpression, B: Foundation.DebugStringConvertiblePredicateExpression>.debugString(state: inout Foundation.DebugStringConversionState) -> Swift.String`
