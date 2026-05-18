@@ -85,29 +85,58 @@ simplified `NSNotificationCenter.MessageIdentifier<>.stateChanged`.
 The parity gate compares against the **corpus**, so the simplified
 form is the target.
 
+## P2 findings (2026-05-18) — corrected bail site
+
+P1's pointer (`tryVariableEntity`) was **wrong** — that function
+rejects `So`-prefixed symbols (`:5784` `BuildStdlibNominal('o')`
+fails). The AMvpZMV symbols are handled by the **fast-path
+descriptor function** (the big backwards-scanning host parser; suffix
+strip at `:13699` `vpZMV`, host walk at `:13355-13394`, emit at
+`:14332`).
+
+Exact mechanism: the host-walk loop at `:13355-13394` parses
+`17MessageIdentifier`+`P` → `nestedNames=["MessageIdentifier"]`. Next
+iteration parses `5UIKit` → `ident="UIKit"`; the byte after is `A`
+(not `V/C/O/P`, not an immediate `E`), so the loop hits `:13376`
+`declName = ident` and breaks with **declName="UIKit"**. Because
+`declName != ""`, the nested-extension recovery loop at `:13472`
+(guard `declName == ""`) is **skipped entirely** — the real
+declName `05stateJ0`→"stateChanged" and the `<>` marker are never
+reached.
+
+`5UIKit` is the *extension module* of a constrained protocol
+extension `…P5UIKitAbCE<conformed-type+Rszrl>E05stateJ0`. The fix
+must, when the loop is about to take an ident as declName **and the
+previous nominal step was a protocol (`P`)**, recognise the
+protocol-extension chain, skip it, set the `<>` ext-marker on the
+protocol step, and resume the walk so `05stateJ0` becomes declName.
+
+Render side already supports `<>` via `fpNestedExtMarker` /
+`fpExtMarker` (`:14207-14242`) — once the walk reaches `05stateJ0`
+and the protocol step carries `<>`, emit at `:14332` produces
+`property descriptor for static NSNotificationCenter.MessageIdentifier<>.stateChanged`.
+
 ## Primitives
 
-- [x] **P1 — categorise + bail-site probe** — done 2026-05-18; see
-      P1 findings above.
-- [ ] **P2 — protocol-extension detection scaffold**: in the
-      `tryVariableEntity` ident loop (`:5856-5922`), after a protocol
-      (`P`) step is appended, detect when the next bytes form a
-      `<module-ref> E` extension opener. Add the detection branch that
-      recognises the AMvpZMV shape (`P<module>E…RszrlE<prop>`); +0
-      probe/scaffold fire, no behaviour change yet.
-- [ ] **P3 — consume the protocol-extension constraint chain**: on a
-      P2 match, skip the module-ref, the opening `E`, the conformed
-      type, the `Rszrl…` generic-requirement clause, and the trailing
-      `E`, so the loop resumes at the property-name identifier
-      (`05stateJ0`). Re-enter the loop to parse the decl-name. Net
-      parity round.
-- [ ] **P4 — `<>` on the protocol step**: mark the protocol path step
-      so it renders `MessageIdentifier<>` (empty generic placeholder),
-      matching the corpus `want`. Confirm the simplified render branch
-      joins the full `NSNotificationCenter.MessageIdentifier<>.<prop>`.
-      Net parity round (may merge with P3 if one diff covers both).
-- [ ] **P5 — enable + scope**: `make smoke` wide; narrow on
-      regression; lock snapshot; close the plan.
+- [x] **P1 — categorise + bail-site probe** — done 2026-05-18.
+- [x] **P2 — corrected-location probe** — done 2026-05-18; see P2
+      findings. Real site is `stable.go:13355-13394`, not
+      `tryVariableEntity`.
+- [ ] **P3 — protocol-extension skip in the host-walk loop**: in the
+      `:13355-13394` loop, track the kind byte of the last nominal
+      step. When about to set `declName = ident` and that last step
+      was a protocol (`P`), test whether the bytes from `p.i` open a
+      protocol-extension chain (subst-ref/module + structural `E`).
+      On match: discard `ident` (it is the extension module), skip the
+      chain through the protocol-extension's generic signature + `E`,
+      set the `<>` ext-marker for the protocol step, and `continue`
+      the loop so `05stateJ0` is parsed as declName. Net parity round.
+- [ ] **P4 — scope + stragglers**: probe the remaining AMvpZMV
+      symbols; widen/narrow the P3 guard so all 72 pass without
+      regression elsewhere. Net parity round (may be +0 if P3 already
+      drains the bucket).
+- [ ] **P5 — enable + scope**: `make smoke` wide; lock snapshot;
+      close the plan.
 
 ## Status
 
@@ -115,6 +144,8 @@ form is the target.
   double-extension-grammar close).
 - 2026-05-18: P1 done — 72-sym AMvpZMV protocol-extension bucket
   chosen; primitives P2–P5 rewritten as a parse fix.
+- 2026-05-18: P2 done — corrected the bail site (fast-path descriptor
+  host-walk `stable.go:13355-13394`, not `tryVariableEntity`).
 
 ## Failed attempts
 
