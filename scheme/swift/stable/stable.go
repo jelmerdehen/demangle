@@ -8247,6 +8247,47 @@ func (p *parser) tryProtocolWitnessThunk(inner *demangle.Node) (*demangle.Node, 
 		return inner, false
 	}
 	p.i++
+	o := common.DefaultPrintOptions()
+	o.QualifyEntities = false
+	confType := common.Print(inner, o)
+	// Function-requirement sub-shape: the entity ends in 'F' / 'FZ'.
+	// The requirement entity is a self-contained function entity whose
+	// context is the protocol; re-demangle it as a synthetic
+	// <module><protocol>'P'<entity> global to reuse the function-entity
+	// parser, then wrap the simplified result.
+	entity := p.s[p.i : len(p.s)-2]
+	if strings.HasSuffix(entity, "F") || strings.HasSuffix(entity, "FZ") {
+		// Reparse the function requirement as a synthetic
+		// <module><protocol>'P'<entity> global. The synthetic parser
+		// inherits the live word + substitution tables so the entity's
+		// word-substituted names and substitution back-refs resolve
+		// against the same indices they were mangled against; the
+		// synthetic prefix only appends new entries.
+		synthetic := mangleModulePrefix(mod1.Text) +
+			strconv.Itoa(len(protoName)) + protoName + "P" + entity
+		p2 := &parser{
+			s:          synthetic,
+			schemeName: p.schemeName,
+			words:      append([]string(nil), p.words...),
+			subs:       *p.subs.Clone(),
+		}
+		tree, perr := p2.parseGlobal()
+		if perr != nil || tree == nil || p2.i != len(synthetic) {
+			revert()
+			return inner, false
+		}
+		reqStr := common.Print(tree, common.DefaultPrintOptions())
+		if reqStr == "" {
+			revert()
+			return inner, false
+		}
+		p.i = len(p.s)
+		wrap := common.NewNode(common.KindTypeMangling)
+		wrap.Text = "protocol witness for " + reqStr +
+			" in conformance " + confType
+		wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
+		return wrap, true
+	}
 	// Requirement entity: <name> <declared-type> 'v' 'g' ['Z'].
 	if p.eof() || !(p.s[p.i] >= '0' && p.s[p.i] <= '9') {
 		revert()
@@ -8277,9 +8318,6 @@ func (p *parser) tryProtocolWitnessThunk(inner *demangle.Node) (*demangle.Node, 
 		return inner, false
 	}
 	p.i += 2
-	o := common.DefaultPrintOptions()
-	o.QualifyEntities = false
-	confType := common.Print(inner, o)
 	staticPrefix := ""
 	if isStatic {
 		staticPrefix = "static "
@@ -8289,6 +8327,20 @@ func (p *parser) tryProtocolWitnessThunk(inner *demangle.Node) (*demangle.Node, 
 		".getter in conformance " + confType
 	wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
 	return wrap, true
+}
+
+// mangleModulePrefix renders a module name back into its mangled
+// prefix form: 's' for the Swift module, 'So' for the __C clang
+// importer module, otherwise a length-prefixed identifier.
+func mangleModulePrefix(mod string) string {
+	switch mod {
+	case "Swift":
+		return "s"
+	case "__C":
+		return "So"
+	default:
+		return strconv.Itoa(len(mod)) + mod
+	}
 }
 
 // swiftConcurrencyRuntimeTypes is the set of Swift stdlib concurrency runtime

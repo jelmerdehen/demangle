@@ -103,12 +103,20 @@ Handle plain conformances first; constrained ones may need a narrow.
       requirement clause (`Group` / `_ConditionalContent` / `xSg`
       constrained conformances) — declined cleanly (mod2 run stops at
       a non-`P` byte), deferred to P4.
-- [ ] **P3 — function sub-shape**: extend `tryProtocolWitnessThunk` to
-      the `<labels> <fn-type> tF` / `tFZ` entity tail; render
-      `[static ]<proto>.<fn>(<label>:<label>:)` (labels only, no
-      types, no return — the `--simplified` form). Reuses P2's
-      conformance-region decode. Target ~29 syms (`FZTW` + `FTW`).
-      Three-commit parity round.
+- [x] **P3 — function sub-shape** (2026-05-18): extended
+      `tryProtocolWitnessThunk` with a function branch. The function
+      requirement entity is reparsed as a synthetic
+      `<module><protocol>'P'<entity>` global via a child `parser` that
+      inherits the live word + substitution tables (`words` copy +
+      `subs.Clone()`) so word-substituted names (`_makeViewList`,
+      `_makeView`) and high-index substitution back-refs (`Ak`, `AP`)
+      in the function signature resolve against the same indices they
+      were mangled against. The synthetic global re-demangles through
+      the full function-entity parser; its `common.Print` output is
+      `[static ]<proto>.<fn>(<labels>:)` which wraps directly.
+      **Result: +27 production** (all 27 plain + word-subst function
+      witnesses), TW bucket 45→18. Constrained-conformance getters and
+      2 UIKit nested-protocol funcs remain → P4.
 - [ ] **P4 — scope wide + close**: `make smoke` wide; if constrained-
       conformance symbols (`Group` / `_ConditionalContent`) still fail,
       either land a narrow extension or `chore: defer` them with an
@@ -123,6 +131,8 @@ Handle plain conformances first; constrained ones may need a narrow.
   33 getter / 29 function, primitives rewritten to the two sub-shapes.
 - 2026-05-18: P2 done — `tryProtocolWitnessThunk` getter sub-shape,
   +17 production (CKR), TW bucket 62→45.
+- 2026-05-18: P3 done — function sub-shape via synthetic reparse,
+  +27 production (CKS), TW bucket 45→18.
 
 ## Failed attempts
 
