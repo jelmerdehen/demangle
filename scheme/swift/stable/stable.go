@@ -23,8 +23,8 @@
 package stable
 
 import (
-	"context"
 	"bytes"
+	"context"
 	"fmt"
 	"strconv"
 	"strings"
@@ -181,7 +181,10 @@ func parseBodyWithOpts(schemeName, origin, body string, prefixBytes int, opts de
 	if p.i != len(p.s) {
 		// Last-resort fast-path: try the whole-symbol fast-path before
 		// erroring on leftover. Resets parser state internally.
-		if fpNode, fpOk := p.tryGlobalLastResortFastPath(); fpOk {
+		if deNode, deOk := p.tryDoubleExtensionConformanceDescriptor(); deOk {
+			tree = common.NewNode(common.KindGlobal)
+			common.AddChildren(tree, deNode)
+		} else if fpNode, fpOk := p.tryGlobalLastResortFastPath(); fpOk {
 			tree = common.NewNode(common.KindGlobal)
 			common.AddChildren(tree, fpNode)
 		} else {
@@ -193,11 +196,11 @@ func parseBodyWithOpts(schemeName, origin, body string, prefixBytes int, opts de
 		}
 	}
 	printOpts := common.PrintOptions{
-		QualifyEntities:              opts.QualifyEntities,
-		SynthesizeSugar:              opts.SynthesizeSugar,
+		QualifyEntities:               opts.QualifyEntities,
+		SynthesizeSugar:               opts.SynthesizeSugar,
 		DisplayGenericSpecialisations: opts.DisplayGenericSpecialisations,
-		DisplayThunks:                opts.DisplayThunks,
-		Simplified:                   opts.Simplified,
+		DisplayThunks:                 opts.DisplayThunks,
+		Simplified:                    opts.Simplified,
 	}
 	// Default: QualifyEntities + SynthesizeSugar on if not explicitly disabled
 	// (zero-value Options would otherwise render without module prefix).
@@ -245,7 +248,7 @@ func parseBodyWithOpts(schemeName, origin, body string, prefixBytes int, opts de
 // This handles two levels of nesting:
 //  1. Global → TypeMangling[text!="", children=0]              — direct text-only
 //  2. Global → TypeMangling[prerendered=true, 1 child]
-//             → TypeMangling[text!="", children=0]             — nested text-only
+//     → TypeMangling[text!="", children=0]             — nested text-only
 //
 // The second form arises for dispatch thunks (Tj/Tq) and extension wrappers
 // where the outer TypeMangling references an inner text-only entity.
@@ -385,7 +388,6 @@ type parser struct {
 
 const maxParseDepth = 64
 const maxParseOps = 65536
-
 
 func (p *parser) eof() bool { return p.i >= len(p.s) }
 
@@ -1019,7 +1021,7 @@ func (p *parser) tryAutodiffSigBeforeTJ(inner *demangle.Node) (*demangle.Node, b
 // tryConformanceDescriptorMc matches the protocol-conformance-
 // descriptor shape
 //
-//   <Type> <Module-ident> <Proto-ident> (AB|AC|...) (Ri<idx>_z)? (rl)? Mc
+//	<Type> <Module-ident> <Proto-ident> (AB|AC|...) (Ri<idx>_z)? (rl)? Mc
 //
 // Renders as "protocol conformance descriptor for <sig> <Type> :
 // <Module>.<Proto> in <Module>". Narrow: only 1-constraint Ri inverse
@@ -1349,8 +1351,8 @@ func (p *parser) tryStdlibProtoConformanceSuffix(inner *demangle.Node) (*demangl
 		assocType  string // non-empty for A.AssocType constraints
 	}
 	var parsedReqs []stdReq
-	reqParseOK := true   // false = blind scan used (no structured prefix available)
-	condReq := false     // true when 'rl' (conditional) terminator was used
+	reqParseOK := true // false = blind scan used (no structured prefix available)
+	condReq := false   // true when 'rl' (conditional) terminator was used
 
 	atMcOrWP := func(pos int) bool {
 		return pos+1 < len(p.s) &&
@@ -1610,15 +1612,17 @@ func (p *parser) tryStdlibProtoConformanceSuffix(inner *demangle.Node) (*demangl
 
 // tryAAConformanceSuffix handles protocol-conformance-descriptor and
 // protocol-witness-table suffixes where the protocol module is either:
-//   AA  — same-module back-reference (substitution 0)
-//   s   — Swift stdlib marker followed by a digit-led identifier
+//
+//	AA  — same-module back-reference (substitution 0)
+//	s   — Swift stdlib marker followed by a digit-led identifier
 //
 // and the conformance module is AA or s. Simplified output (no ": Proto in Module")
 // is used when the conformance module is AA (same-module conformance).
 //
 // Handles:
-//   AA<digit-ident>(AA|s)Mc/WP
-//   s<digit-ident>(AA|s)Mc/WP
+//
+//	AA<digit-ident>(AA|s)Mc/WP
+//	s<digit-ident>(AA|s)Mc/WP
 func (p *parser) tryAAConformanceSuffix(inner *demangle.Node) (*demangle.Node, bool) {
 	if p.eof() {
 		return inner, false
@@ -2154,15 +2158,16 @@ func (p *parser) tryAAMultiConformanceSuffix(inner *demangle.Node) (*demangle.No
 
 // trySubscriptEntity matches subscript-entity shapes:
 //
-//  New typed form:  'y' <result-type> <index-types> 'c' 'i' <accessor-kind>
-//  Old generic form: 'x' 'i' <accessor-kind> [<ident> 'P']
+//	New typed form:  'y' <result-type> <index-types> 'c' 'i' <accessor-kind>
+//	Old generic form: 'x' 'i' <accessor-kind> [<ident> 'P']
 //
 // Accessor kinds: g=getter, s=setter, M=modify, a=unsafeAddressor,
 // m=unsafeMutableAddressor, w=willset, W=didset, p=property (for pMV descriptor).
 //
 // Rendering:
-//   Swift/Foundation owners — full module-qualified + type-annotated form.
-//   Other owners — simplified: module stripped, no type annotation.
+//
+//	Swift/Foundation owners — full module-qualified + type-annotated form.
+//	Other owners — simplified: module stripped, no type annotation.
 func (p *parser) trySubscriptEntity(inner *demangle.Node) (*demangle.Node, bool) {
 	if p.eof() {
 		return inner, false
@@ -2512,10 +2517,10 @@ func (p *parser) tryNestedPrivateDecl(inner *demangle.Node) (*demangle.Node, boo
 // reference (typically an 'A<sub>' multi-sub). Wraps as
 // "key path <accessor> for <inner> : <owner>[, serialized]".
 //
-//   TK  → getter
-//   Tk  → setter
-//   TKq → getter, serialized
-//   Tkq → setter, serialized
+//	TK  → getter
+//	Tk  → setter
+//	TKq → getter, serialized
+//	Tkq → setter, serialized
 func (p *parser) tryKeyPathSuffix(inner *demangle.Node) (*demangle.Node, bool) {
 	if p.eof() {
 		return inner, false
@@ -2782,16 +2787,17 @@ func (p *parser) tryTopLevelMacroExpansionLoc() (*demangle.Node, bool) {
 
 // tryMacroExpansion matches the pattern
 //
-//   <N><name> f M <kind> <idx>_
+//	<N><name> f M <kind> <idx>_
 //
 // where <kind> is one of:
-//   f  → freestanding macro expansion
-//   u  → unique name
-//   a  → accessor macro expansion
-//   m  → member macro expansion
-//   e  → extension macro expansion
-//   p  → peer macro expansion
-//   r  → member-attribute macro expansion
+//
+//	f  → freestanding macro expansion
+//	u  → unique name
+//	a  → accessor macro expansion
+//	m  → member macro expansion
+//	e  → extension macro expansion
+//	p  → peer macro expansion
+//	r  → member-attribute macro expansion
 //
 // Wraps inner as "<kind-text> #<idx+1> of <name> in <inner>".
 // Apple's demangleIndex convention: bare '_' = 0, '<N>_' = N+1.
@@ -2867,7 +2873,7 @@ func (p *parser) tryMacroExpansion(inner *demangle.Node) (*demangle.Node, bool) 
 
 // tryNestedLocalVariable matches the pattern
 //
-//   <N><name> L <digits>? _ <type> v p
+//	<N><name> L <digits>? _ <type> v p
 //
 // following a parent function-entity. Wraps as
 // "<name> #<idx+1> : <type> in <inner>". Intended for fixtures
@@ -2924,7 +2930,7 @@ func (p *parser) tryNestedLocalVariable(inner *demangle.Node) (*demangle.Node, b
 
 // tryReabstractionThunk matches the pattern
 //
-//   <first-type> <second-type> T R
+//	<first-type> <second-type> T R
 //
 // and renders as "reabstraction thunk helper from <first> to
 // <second>". Narrow: the second type is consumed via parseType
@@ -3288,7 +3294,7 @@ func (p *parser) tryPostfixCompactTuple(node *demangle.Node) (*demangle.Node, bo
 
 // tryPostfixFunctionTypeWithParams matches the pattern
 //
-//   <params-type> (YT)? c
+//	<params-type> (YT)? c
 //
 // where 'node' is the result-type already parsed and the following
 // bytes are another type serving as params, optional YT (sending
@@ -3379,14 +3385,14 @@ func (p *parser) tryPostfixFunctionTypeWithParams(node *demangle.Node) (*demangl
 
 // tryAssociatedConformanceDescriptor matches the pattern
 //
-//   <Protocol-Type> 'x' 'A' <sub-letter> <ident> 'T' ('n'|'N')
+//	<Protocol-Type> 'x' 'A' <sub-letter> <ident> 'T' ('n'|'N')
 //
 // where the sub-letter is an uppercase-letter-terminated
 // substitution reference (typically the module-ident), and <ident>
 // is the requirement protocol. Renders as:
 //
-//   "associated conformance descriptor for <proto-type>.A: <mod>.<ident>"   (Tn)
-//   "default associated conformance accessor for ..."                       (TN)
+//	"associated conformance descriptor for <proto-type>.A: <mod>.<ident>"   (Tn)
+//	"default associated conformance accessor for ..."                       (TN)
 //
 // Narrow: only the direct 'A<upper>' + simple identifier form. More
 // complex subject paths are a follow-on.
@@ -5309,14 +5315,15 @@ func (p *parser) tryParsePseudogenericSig() (sigStr string, consumedBareL bool, 
 //	<type>* 'I' <attrs> '_'
 //
 // Attributes (order-sensitive, single-letter):
-//   CALLEE-ESCAPE: 'e' = @escaping
-//   DIFFERENTIABLE: 'f' forward / 'r' reverse / 'd' both / 'l' linear
-//   CALLEE-CONVENTION: 'g' guaranteed / 'y' unowned / 't' thick /
-//                      'X' callee-unowned / 'x' thin etc.
-//   PARAM-MODE (per type): 'n' in_guaranteed / 'i' in / 'd' direct_unowned
-//                          / 'g' direct_guaranteed / 'y' direct_unowned
-//                          / 'o' direct_owned / 'l' inout
-//   RESULT-MODE: 'r' out / 'd' direct_unowned / 'o' direct_owned
+//
+//	CALLEE-ESCAPE: 'e' = @escaping
+//	DIFFERENTIABLE: 'f' forward / 'r' reverse / 'd' both / 'l' linear
+//	CALLEE-CONVENTION: 'g' guaranteed / 'y' unowned / 't' thick /
+//	                   'X' callee-unowned / 'x' thin etc.
+//	PARAM-MODE (per type): 'n' in_guaranteed / 'i' in / 'd' direct_unowned
+//	                       / 'g' direct_guaranteed / 'y' direct_unowned
+//	                       / 'o' direct_owned / 'l' inout
+//	RESULT-MODE: 'r' out / 'd' direct_unowned / 'o' direct_owned
 //
 // Narrow rendering — labels the differentiable/escape/conv bits and
 // matches per-param 'n' (@in_guaranteed) + per-result 'r' (@out).
@@ -5798,7 +5805,7 @@ func (p *parser) tryVariableEntity() (*demangle.Node, bool, error) {
 		pathSteps = append(pathSteps, moduleNode)
 		// Build ident node for the stdlib type so pathSteps is parallel
 		// with the digit-led case.
-		nom := stdlibTyp.Children[0] // the Structure/Class/Enum/Protocol node
+		nom := stdlibTyp.Children[0]   // the Structure/Class/Enum/Protocol node
 		stdlibIdent := nom.Children[1] // the Identifier child from buildFromStdlib
 		identNode := common.NewIdentifier(stdlibIdent.Text)
 		var kindByte string
@@ -6218,6 +6225,7 @@ func (p *parser) tryCompactStdlibInitEntity() (*demangle.Node, bool, error) {
 //	<context> <result-type> <params-type> 'c' f <C|c|d|D>
 //
 // Render:  '<prefix> <path>(<params>) -> <result>' where prefix is:
+//
 //	fC   __allocating_init
 //	fc   __nonallocating_init
 //	fD   __deallocating_deinit
@@ -6232,8 +6240,8 @@ func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 	var mod string
 	var pathSteps []*demangle.Node
 	lastKind := byte(0)
-	var stdlibDirect bool      // true when S<letter>/Sc<letter> seeds pathSteps+subs inline
-	var stdlibIsConcurrency bool // true when Sc<letter> concurrency type (simplified display)
+	var stdlibDirect bool             // true when S<letter>/Sc<letter> seeds pathSteps+subs inline
+	var stdlibIsConcurrency bool      // true when Sc<letter> concurrency type (simplified display)
 	var stdlibHostType *demangle.Node // Type(Swift.X) seed for nested-type chain when stdlibDirect
 	if !p.eof() && p.s[p.i] == 's' {
 		p.i++
@@ -7924,74 +7932,74 @@ func (p *parser) tryConformanceDescriptor(inner *demangle.Node) (*demangle.Node,
 // shorthand types they use the full ss<N><name> path, so IsConcurrencyType
 // cannot detect them — check the root name directly.
 var swiftConcurrencyRuntimeTypes = map[string]bool{
-	"AsyncCompactMapSequence":     true,
-	"AsyncDropFirstSequence":      true,
-	"AsyncDropWhileSequence":      true,
-	"AsyncFilterSequence":         true,
-	"AsyncFlatMapSequence":        true,
-	"AsyncMapSequence":            true,
-	"AsyncPrefixSequence":         true,
-	"AsyncPrefixWhileSequence":    true,
-	"AsyncThrowingCompactMapSequence": true,
-	"AsyncThrowingDropWhileSequence":  true,
-	"AsyncThrowingFilterSequence":     true,
-	"AsyncThrowingFlatMapSequence":    true,
-	"AsyncThrowingMapSequence":    true,
+	"AsyncCompactMapSequence":          true,
+	"AsyncDropFirstSequence":           true,
+	"AsyncDropWhileSequence":           true,
+	"AsyncFilterSequence":              true,
+	"AsyncFlatMapSequence":             true,
+	"AsyncMapSequence":                 true,
+	"AsyncPrefixSequence":              true,
+	"AsyncPrefixWhileSequence":         true,
+	"AsyncThrowingCompactMapSequence":  true,
+	"AsyncThrowingDropWhileSequence":   true,
+	"AsyncThrowingFilterSequence":      true,
+	"AsyncThrowingFlatMapSequence":     true,
+	"AsyncThrowingMapSequence":         true,
 	"AsyncThrowingPrefixWhileSequence": true,
-	"Clock":                       true,
-	"ContinuousClock":             true,
-	"DiscardingTaskGroup":         true,
-	"ExecutorFactory":             true,
-	"ExecutorJob":                 true,
-	"GlobalActor":                 true,
-	"Job":                         true,
-	"JobPriority":                 true,
-	"MainExecutor":                true,
-	"PlatformExecutorFactory":     true,
-	"RunLoopExecutor":             true,
-	"SchedulingExecutor":          true,
-	"SuspendingClock":             true,
-	"Task":                        true,
-	"TaskGroup":                   true,
-	"TaskLocal":                   true,
-	"ThrowingDiscardingTaskGroup": true,
-	"ThrowingTaskGroup":           true,
-	"UnimplementedMainExecutor":   true,
-	"UnimplementedTaskExecutor":   true,
-	"UnownedTaskExecutor":         true,
-	"Executor":                    true,
-	"SerialExecutor":              true,
-	"TaskExecutor":                true,
+	"Clock":                            true,
+	"ContinuousClock":                  true,
+	"DiscardingTaskGroup":              true,
+	"ExecutorFactory":                  true,
+	"ExecutorJob":                      true,
+	"GlobalActor":                      true,
+	"Job":                              true,
+	"JobPriority":                      true,
+	"MainExecutor":                     true,
+	"PlatformExecutorFactory":          true,
+	"RunLoopExecutor":                  true,
+	"SchedulingExecutor":               true,
+	"SuspendingClock":                  true,
+	"Task":                             true,
+	"TaskGroup":                        true,
+	"TaskLocal":                        true,
+	"ThrowingDiscardingTaskGroup":      true,
+	"ThrowingTaskGroup":                true,
+	"UnimplementedMainExecutor":        true,
+	"UnimplementedTaskExecutor":        true,
+	"UnownedTaskExecutor":              true,
+	"Executor":                         true,
+	"SerialExecutor":                   true,
+	"TaskExecutor":                     true,
 	// Sc<X> stdlib2 substitutions — all are concurrency-adjacent.
-	"Actor":                       true,
-	"CheckedContinuation":         true,
-	"UnsafeContinuation":          true,
-	"CancellationError":           true,
-	"UnownedSerialExecutor":       true,
-	"AsyncIteratorProtocol":       true,
-	"AsyncSequence":               true,
-	"UnownedJob":                  true,
-	"MainActor":                   true,
-	"TaskPriority":                true,
-	"AsyncStream":                 true,
-	"AsyncThrowingStream":         true,
-	"UnsafeCurrentTask":           true,
+	"Actor":                 true,
+	"CheckedContinuation":   true,
+	"UnsafeContinuation":    true,
+	"CancellationError":     true,
+	"UnownedSerialExecutor": true,
+	"AsyncIteratorProtocol": true,
+	"AsyncSequence":         true,
+	"UnownedJob":            true,
+	"MainActor":             true,
+	"TaskPriority":          true,
+	"AsyncStream":           true,
+	"AsyncThrowingStream":   true,
+	"UnsafeCurrentTask":     true,
 	// Top-level concurrency-context functions: Apple emits these in
 	// simplified form (labels-only, no module prefix, no types, no return).
-	"withCheckedContinuation":         true,
-	"withCheckedThrowingContinuation": true,
-	"withTaskExecutorPreference":      true,
-	"withDiscardingTaskGroup":         true,
-	"withTaskGroup":                   true,
-	"withThrowingDiscardingTaskGroup": true,
-	"withThrowingTaskGroup":           true,
-	"withUnsafeContinuation":          true,
-	"withUnsafeThrowingContinuation":  true,
-	"_runAsyncMain":                                     true,
-	"_checkExpectedExecutor":                            true,
-	"_getGenericSerialExecutor":                         true,
-	"_getUndefinedTaskExecutor":                         true,
-	"_checkIllegalTaskLocalBindingWithinWithTaskGroup":  true,
+	"withCheckedContinuation":                          true,
+	"withCheckedThrowingContinuation":                  true,
+	"withTaskExecutorPreference":                       true,
+	"withDiscardingTaskGroup":                          true,
+	"withTaskGroup":                                    true,
+	"withThrowingDiscardingTaskGroup":                  true,
+	"withThrowingTaskGroup":                            true,
+	"withUnsafeContinuation":                           true,
+	"withUnsafeThrowingContinuation":                   true,
+	"_runAsyncMain":                                    true,
+	"_checkExpectedExecutor":                           true,
+	"_getGenericSerialExecutor":                        true,
+	"_getUndefinedTaskExecutor":                        true,
+	"_checkIllegalTaskLocalBindingWithinWithTaskGroup": true,
 }
 
 // descriptorPrintOpts returns the appropriate PrintOptions for rendering a
@@ -8720,11 +8728,11 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 	fpVerboseFormExtMod := ""
 	fpVerboseFormHostLetter := byte(0)
 	fpVerboseFormDeclName := ""
-	fpVerboseFormRetTypeBytes := ""    // raw bytes between decl-name and v<kind>/F terminal
-	fpVerboseFormAccessor := ""        // .getter/.setter/.modify/.willset/.didset or "" for fn / vpMV
+	fpVerboseFormRetTypeBytes := "" // raw bytes between decl-name and v<kind>/F terminal
+	fpVerboseFormAccessor := ""     // .getter/.setter/.modify/.willset/.didset or "" for fn / vpMV
 	fpVerboseFormIsPropDesc := false
-	fpVerboseFormConstraintBytes := "" // raw constraint bytes between host and E (pattern B)
-	fpVerboseFormConstraintSig := ""   // formatted "< where A: ...>" clause
+	fpVerboseFormConstraintBytes := ""   // raw constraint bytes between host and E (pattern B)
+	fpVerboseFormConstraintSig := ""     // formatted "< where A: ...>" clause
 	var fpVerboseFormNestedHost []string // nested-host type levels between E and the decl
 	fpVerboseFormIsFn := false           // candidate terminal is F (function), not a property
 	fpVerboseFormFnStatic := false       // function candidate terminal is FZ (static)
@@ -8887,17 +8895,17 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			}
 		}
 	}
-	_ = fpVerboseFormCandidate      // TODO P4: actually emit verbose form
-	_ = fpVerboseFormExtMod         // TODO P4
-	_ = fpVerboseFormHostLetter     // TODO P4
-	_ = fpVerboseFormDeclName       // TODO P4
-	_ = fpVerboseFormRetTypeBytes   // TODO P4: parse via parseType
-	_ = fpVerboseFormAccessor       // TODO P4
-	_ = fpVerboseFormIsPropDesc     // TODO P4
+	_ = fpVerboseFormCandidate    // TODO P4: actually emit verbose form
+	_ = fpVerboseFormExtMod       // TODO P4
+	_ = fpVerboseFormHostLetter   // TODO P4
+	_ = fpVerboseFormDeclName     // TODO P4
+	_ = fpVerboseFormRetTypeBytes // TODO P4: parse via parseType
+	_ = fpVerboseFormAccessor     // TODO P4
+	_ = fpVerboseFormIsPropDesc   // TODO P4
 	_ = fpVerboseFormIsFn
 	_ = fpVerboseFormFnStatic
 	_ = fpVerboseFormConstraintBytes // TODO P4
-	_ = fpVerboseFormConstraintSig  // TODO P4
+	_ = fpVerboseFormConstraintSig   // TODO P4
 	// Special: `xSg<...>Mc` / `xSg<...>WP` — Optional<gen-param> conformance
 	// descriptor or protocol witness table. Apple short form is `<A> A?`.
 	if len(p.s) >= 4 && p.s[0] == 'x' && p.s[1] == 'S' && p.s[2] == 'g' {
@@ -14430,6 +14438,188 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 	return wrap, true
 }
 
+// extLayer holds one parsed extension-on-nominal context layer of a
+// double-extension conformance descriptor — the
+// `(extension in <module>)< where ...>` qualifier plus the nominal type
+// the extension introduces after its 'E' terminator.
+//
+// See plans/double-extension-grammar.md.
+type extLayer struct {
+	module          string // module the extension is declared in
+	constraintBytes string // raw generic-signature bytes between mod-ref and 'E'
+	constraintSig   string // formatted "< where A: ...>" clause ("" when unconstrained)
+	nestedName      string // nested type introduced after 'E' (filled by P3)
+	nestedKind      byte   // V/C/O/P of nestedName (filled by P3)
+}
+
+// scanStructuralE returns the index of the first 'E' byte at or after
+// `from` in s that is not inside a length-prefixed identifier body, or -1
+// when none is found. Digit runs are interpreted as identifier-length
+// prefixes and the identifier bodies are skipped, so an 'E' that happens
+// to occur inside an identifier (e.g. the 'E' in "Element") is not
+// matched — only a structural extension terminator is.
+func scanStructuralE(s string, from int) int {
+	i := from
+	for i < len(s) {
+		c := s[i]
+		if c >= '1' && c <= '9' {
+			n := 0
+			for i < len(s) && s[i] >= '0' && s[i] <= '9' {
+				n = n*10 + int(s[i]-'0')
+				i++
+			}
+			if i+n > len(s) {
+				return -1
+			}
+			i += n
+			continue
+		}
+		if c == 'E' {
+			return i
+		}
+		i++
+	}
+	return -1
+}
+
+// parseExtLayerModuleRef resolves the module reference that opens an
+// extension context. After the extended nominal is parsed, the extension
+// grammar continues with the module the extension is declared in, encoded
+// either as a back-reference 'A'<upper> into the substitution table or as
+// a literal length-prefixed identifier. `mods` carries the modules already
+// seen (substitution-index order); the canonical double-extension cluster
+// uses 'AA' = the base nominal's root module (index 0).
+//
+// Returns the resolved module name, the index just past the reference, and
+// ok=false on any shape this primitive does not yet handle.
+func parseExtLayerModuleRef(s string, from int, mods []string) (module string, next int, ok bool) {
+	if from >= len(s) {
+		return "", from, false
+	}
+	if s[from] == 'A' && from+1 < len(s) && s[from+1] >= 'A' && s[from+1] <= 'Z' {
+		idx := int(s[from+1] - 'A')
+		if idx < 0 || idx >= len(mods) {
+			return "", from, false
+		}
+		return mods[idx], from + 2, true
+	}
+	if s[from] >= '1' && s[from] <= '9' {
+		n := 0
+		j := from
+		for j < len(s) && s[j] >= '0' && s[j] <= '9' {
+			n = n*10 + int(s[j]-'0')
+			j++
+		}
+		if n <= 0 || j+n > len(s) {
+			return "", from, false
+		}
+		return s[j : j+n], j + n, true
+	}
+	return "", from, false
+}
+
+// tryDoubleExtensionConformanceDescriptor handles protocol conformance
+// descriptors / witness tables whose conformed type is reached through one
+// or more nested extension contexts on a bound-generic host — e.g.
+//
+//	Foundation.Measurement<A>< where A: __C.NSDimension>
+//	  .FormatStyle< where A == __C.NSUnitInformationStorage>.ByteCount
+//	  : Foundation.FormatStyle in Foundation
+//
+// The main parser bails on these (parseGlobal leftover-bytes error at
+// stable.go:~188): parseType consumes only the base nominal and leaves the
+// whole `…E…E…(Mc|WP)` extension chain unparsed.
+//
+// Build status: P2 — parses the base nominal and the FIRST extension layer
+// (module reference + generic-signature constraint clause) only. Returns
+// false pending P3 (nested-extension loop), P4 (descriptor wrap) and P5
+// (verbose render). See plans/double-extension-grammar.md.
+func (p *parser) tryDoubleExtensionConformanceDescriptor() (*demangle.Node, bool) {
+	s := p.s
+	if len(s) < 16 {
+		return nil, false
+	}
+	// Must terminate in a conformance-descriptor / witness-table marker.
+	if !strings.HasSuffix(s, "Mc") && !strings.HasSuffix(s, "WP") {
+		return nil, false
+	}
+	// Parse the base nominal: <n><module><n><name>(V|C|O|P).
+	i := 0
+	if s[i] < '1' || s[i] > '9' {
+		return nil, false
+	}
+	modLen := 0
+	for i < len(s) && s[i] >= '0' && s[i] <= '9' {
+		modLen = modLen*10 + int(s[i]-'0')
+		i++
+	}
+	if modLen <= 0 || i+modLen > len(s) {
+		return nil, false
+	}
+	rootModule := s[i : i+modLen]
+	i += modLen
+	if i >= len(s) || s[i] < '1' || s[i] > '9' {
+		return nil, false
+	}
+	nameLen := 0
+	for i < len(s) && s[i] >= '0' && s[i] <= '9' {
+		nameLen = nameLen*10 + int(s[i]-'0')
+		i++
+	}
+	if nameLen <= 0 || i+nameLen > len(s) {
+		return nil, false
+	}
+	baseName := s[i : i+nameLen]
+	i += nameLen
+	if i >= len(s) {
+		return nil, false
+	}
+	switch s[i] {
+	case 'V', 'C', 'O', 'P':
+		i++
+	default:
+		return nil, false
+	}
+	// Substitution-index order for the back-references that open extension
+	// layers: index 0 is the base nominal's root module.
+	mods := []string{rootModule}
+	// Require at least two structural 'E' terminators — the defining trait
+	// of the double-extension cluster.
+	e1 := scanStructuralE(s, i)
+	if e1 < 0 {
+		return nil, false
+	}
+	if scanStructuralE(s, e1+1) < 0 {
+		return nil, false
+	}
+	// P2: parse the first extension layer — module reference followed by
+	// the generic-signature constraint bytes up to the layer's 'E'.
+	module, afterMod, ok := parseExtLayerModuleRef(s, i, mods)
+	if !ok {
+		return nil, false
+	}
+	if afterMod > e1 {
+		return nil, false
+	}
+	layer1 := extLayer{
+		module:          module,
+		constraintBytes: s[afterMod:e1],
+	}
+	if len(layer1.constraintBytes) > 0 {
+		sig, _ := extractConstraintSigFullOpts(
+			[]byte(layer1.constraintBytes), true, p.words, module)
+		layer1.constraintSig = sig
+	}
+	// TODO P3: loop the remaining extension layers (…E…E…) and capture
+	// each layer's nested nominal type.
+	// TODO P4: wrap the nested-extension type in the Mc/WP descriptor entity.
+	// TODO P5: emit the verbose
+	// `(extension in X):(extension in X):Host<A>< where …>.Nested…` string.
+	_ = baseName
+	_ = layer1
+	return nil, false
+}
+
 // fpVerboseSeedContext builds the substitution table and word list that
 // a cross-module (pattern A) verbose-form retType back-references: the
 // extension module is substitution index 0, and word-sub identifiers in
@@ -15313,7 +15503,7 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 	}
 
 	var hostPath string
-	var extHostMod string // module of the extended type ("Swift", "__C", etc.)
+	var extHostMod string              // module of the extended type ("Swift", "__C", etc.)
 	var stdlibShortNode *demangle.Node // for S<letter> shorthand: the bare nominal node
 
 	switch {
@@ -15859,7 +16049,7 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 			return nil, false, nil
 		}
 		modName = sub.Text
-		p.i += 2 // consume A<letter>; leave E for the following consumer
+		p.i += 2                   // consume A<letter>; leave E for the following consumer
 		moduleAlreadyPushed = true // module already in subs at idx
 	} else if p.eof() || !(p.s[p.i] >= '0' && p.s[p.i] <= '9') {
 		restore()
@@ -19409,35 +19599,35 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 					body = body[:len(body)-1]
 				}
 				{
-				sepCount := 0
-				for j := 1; j < len(body); j++ {
-					if body[j] != '_' {
-						continue
+					sepCount := 0
+					for j := 1; j < len(body); j++ {
+						if body[j] != '_' {
+							continue
+						}
+						prev := body[j-1]
+						// Type-kind byte preceding `_` (V/C/O/P/G/m metatype).
+						if prev == 'V' || prev == 'C' || prev == 'O' ||
+							prev == 'P' || prev == 'G' || prev == 'm' {
+							sepCount++
+							continue
+						}
+						// Dependent-member type endings: Qz_/Qy_/Qz0_/etc.
+						// pattern is "Q[zy]_" or "Q[zy]<digit>+_".
+						if j >= 2 && body[j-1] == 'z' && body[j-2] == 'Q' {
+							sepCount++
+							continue
+						}
+						if j >= 2 && body[j-1] == 'y' && body[j-2] == 'Q' {
+							sepCount++
+							continue
+						}
 					}
-					prev := body[j-1]
-					// Type-kind byte preceding `_` (V/C/O/P/G/m metatype).
-					if prev == 'V' || prev == 'C' || prev == 'O' ||
-						prev == 'P' || prev == 'G' || prev == 'm' {
-						sepCount++
-						continue
+					if sepCount > 0 {
+						parts = make([]string, sepCount+1)
+						for i := range parts {
+							parts[i] = "_:"
+						}
 					}
-					// Dependent-member type endings: Qz_/Qy_/Qz0_/etc.
-					// pattern is "Q[zy]_" or "Q[zy]<digit>+_".
-					if j >= 2 && body[j-1] == 'z' && body[j-2] == 'Q' {
-						sepCount++
-						continue
-					}
-					if j >= 2 && body[j-1] == 'y' && body[j-2] == 'Q' {
-						sepCount++
-						continue
-					}
-				}
-				if sepCount > 0 {
-					parts = make([]string, sepCount+1)
-					for i := range parts {
-						parts[i] = "_:"
-					}
-				}
 				}
 			skipSep18648:
 			}
@@ -19647,7 +19837,7 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 			p.i++
 			retNode = common.NewNode(common.KindEmptyList)
 		} else {
-				t, terr := p.parseType()
+			t, terr := p.parseType()
 			if terr != nil {
 				// Fallback: when return-type parse fails but a property accessor
 				// terminal is at the very end of the remaining input, skip to the
@@ -21635,54 +21825,54 @@ func extractConstraintSigFullOpts(b []byte, includeObjCRequirements bool, words 
 	// Rb = base class ("A: __C.Name"), Rs = same-type ("A == __C.Name").
 	// Only included for Foundation-module verbose output.
 	if includeObjCRequirements {
-	for pos := 0; pos < len(s)-1; pos++ {
-		if s[pos] != 'S' || s[pos+1] != 'o' {
-			continue
+		for pos := 0; pos < len(s)-1; pos++ {
+			if s[pos] != 'S' || s[pos+1] != 'o' {
+				continue
+			}
+			j := pos + 2
+			if j >= len(s) || !(s[j] >= '1' && s[j] <= '9') {
+				continue
+			}
+			lenStart := j
+			for j < len(s) && s[j] >= '0' && s[j] <= '9' {
+				j++
+			}
+			n := 0
+			for k := lenStart; k < j; k++ {
+				n = n*10 + int(s[k]-'0')
+			}
+			nameEnd := j + n
+			if nameEnd+2 >= len(s) {
+				continue
+			}
+			kind := s[nameEnd]
+			if kind != 'C' && kind != 'O' && kind != 'V' {
+				continue
+			}
+			name := s[j:nameEnd]
+			req := s[nameEnd+1 : nameEnd+3]
+			if nameEnd+3 >= len(s) {
+				continue
+			}
+			subj := s[nameEnd+3]
+			var paramName string
+			switch subj {
+			case 'z':
+				paramName = "A"
+			case '_':
+				paramName = "B"
+			}
+			if paramName == "" {
+				continue
+			}
+			className := "__C." + name
+			switch req {
+			case "Rb":
+				constraints = append(constraints, paramName+": "+className)
+			case "Rs":
+				constraints = append(constraints, paramName+" == "+className)
+			}
 		}
-		j := pos + 2
-		if j >= len(s) || !(s[j] >= '1' && s[j] <= '9') {
-			continue
-		}
-		lenStart := j
-		for j < len(s) && s[j] >= '0' && s[j] <= '9' {
-			j++
-		}
-		n := 0
-		for k := lenStart; k < j; k++ {
-			n = n*10 + int(s[k]-'0')
-		}
-		nameEnd := j + n
-		if nameEnd+2 >= len(s) {
-			continue
-		}
-		kind := s[nameEnd]
-		if kind != 'C' && kind != 'O' && kind != 'V' {
-			continue
-		}
-		name := s[j:nameEnd]
-		req := s[nameEnd+1 : nameEnd+3]
-		if nameEnd+3 >= len(s) {
-			continue
-		}
-		subj := s[nameEnd+3]
-		var paramName string
-		switch subj {
-		case 'z':
-			paramName = "A"
-		case '_':
-			paramName = "B"
-		}
-		if paramName == "" {
-			continue
-		}
-		className := "__C." + name
-		switch req {
-		case "Rb":
-			constraints = append(constraints, paramName+": "+className)
-		case "Rs":
-			constraints = append(constraints, paramName+" == "+className)
-		}
-	}
 	} // end includeObjCRequirements
 
 	// Find 'Ri' (type-param inverse requirement): "A/B: ~Swift.Copyable".
@@ -23889,15 +24079,15 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 	// We speculatively consume a leading `y` as label-list and parse
 	// result/params; on failure we rewind and try without.
 	var (
-		args, ret      *demangle.Node
-		throws         bool
-		throwsTypeStr  string
-		async          bool
-		sendingResult  bool
-		genericSig     bool
-		genericCount   int
-		constraints    []string
-		consumed       int // how much of the signature + F we consumed
+		args, ret     *demangle.Node
+		throws        bool
+		throwsTypeStr string
+		async         bool
+		sendingResult bool
+		genericSig    bool
+		genericCount  int
+		constraints   []string
+		consumed      int // how much of the signature + F we consumed
 	)
 	tryPath := func(assumeLabelList bool) bool {
 		savePath := p.i
@@ -27476,7 +27666,7 @@ afterNestedLoop:
 // metadata block within a bound-generic arg-list. Apple attaches
 // conformance-refs to the last arg; format:
 //
-//   <proto-or-sub> H<kind> ( y H C g <digits>? _ )+
+//	<proto-or-sub> H<kind> ( y H C g <digits>? _ )+
 //
 // The rendered output ignores these entirely. Return true on match.
 // Narrow: the metadata block must START with a multi-sub-letter chain
@@ -30081,10 +30271,10 @@ func (p *parser) tryPostfixFunctionType(node *demangle.Node) (*demangle.Node, bo
 	// Exception: 'cf<C|c|D|d>' is an init/deinit entity suffix, not
 	// an escaping fn-type marker — leave for tryInitDeinitEntity.
 	var convPrefix string
-	var convAttr string  // "noEscape" | "c" | "block" | "thin" | ""
+	var convAttr string // "noEscape" | "c" | "block" | "thin" | ""
 	cfAhead := !p.eof() && p.s[p.i] == 'c' && p.i+2 < len(p.s) &&
 		p.s[p.i+1] == 'f' && (p.s[p.i+2] == 'C' || p.s[p.i+2] == 'c' ||
-			p.s[p.i+2] == 'D' || p.s[p.i+2] == 'd')
+		p.s[p.i+2] == 'D' || p.s[p.i+2] == 'd')
 	if cfAhead {
 		revert()
 		return node, false
@@ -30625,7 +30815,7 @@ func (p *parser) grammarErr(expected string) error {
 // tryAutodiffSubsetParametersThunk matches the swift stable-ABI
 // AutoDiffSubsetParametersThunk suffix:
 //
-//   TJS <kind-byte> <subset> 'p' <subset> 'r' <subset> 'P'
+//	TJS <kind-byte> <subset> 'p' <subset> 'r' <subset> 'P'
 //
 // where <subset> is a non-empty run of 'S' (bit set) and 'U' (bit
 // unset) bytes encoding the indexed bitmask.
@@ -30634,9 +30824,10 @@ func (p *parser) grammarErr(expected string) error {
 // f=forward-mode derivative.
 //
 // Renders as
-//   "autodiff subset parameters thunk for <kind-name>
-//    from <inner-text> with respect to parameters {<fromParams>}
-//    and results {<fromResults>} to parameters {<toParams>}".
+//
+//	"autodiff subset parameters thunk for <kind-name>
+//	 from <inner-text> with respect to parameters {<fromParams>}
+//	 and results {<fromResults>} to parameters {<toParams>}".
 func (p *parser) tryAutodiffSubsetParametersThunk(inner *demangle.Node) (*demangle.Node, bool) {
 	// Speculatively try to parse a leading impl-fn-type ("of type …") that
 	// precedes the TJS suffix.  The attempt is fully speculative: if it
@@ -30716,11 +30907,10 @@ func (p *parser) tryAutodiffSubsetParametersThunk(inner *demangle.Node) (*demang
 	return wrap, true
 }
 
-
 // tryDependentMemberType speculatively parses the Swift stable-ABI
 // dependent-member-type shape at the current parseType dispatch:
 //
-//   <assoc-ident> <proto-path-type> 'Q' ('z' | 'y' digits? '_')
+//	<assoc-ident> <proto-path-type> 'Q' ('z' | 'y' digits? '_')
 //
 // The 'Q' + param-ref combiner pops the proto type and the assoc-name
 // ident (Apple demangler style) and builds a dependent-member. We
@@ -31024,13 +31214,15 @@ func (p *parser) tryForClauseAMultiSub() (*demangle.Node, bool) {
 // parameterized-existential trailer emitted immediately after the
 // `_p` existential marker:
 //
-//   (<rhs-type> <ident> <proto-path-ref>? 'Rts')+ '_'? 'XP'
+//	(<rhs-type> <ident> <proto-path-ref>? 'Rts')+ '_'? 'XP'
 //
 // Each entry binds `Self[.proto-path].<ident> == <rhs-type>`. When a
 // proto-path-ref is present (a sub-ref like 'AaCP' or 'AE') it's
 // rendered as the qualifier prefix on Self; absent, just Self.<ident>.
 // Render: wraps the protocol text as
-//   "any <proto><Self[.path].<ident> == <rhs>, ...>"
+//
+//	"any <proto><Self[.path].<ident> == <rhs>, ...>"
+//
 // Returns (wrapped, true) on match; on any mismatch parser state is
 // restored and the inner protocol node is returned unchanged.
 func (p *parser) tryParameterizedExistentialTail(inner *demangle.Node) (*demangle.Node, bool) {
@@ -31252,13 +31444,14 @@ func (s *hcStack) popAnyConformance() *demangle.Node {
 // mini-stack, mirroring Apple's popAnyProtocolConformanceList.
 //
 // Apple's algorithm:
-//   if top is EmptyList → pop it, return empty list.
-//   else loop:
-//     firstElem = (top is FirstElementMarker → pop it)
-//     pop anyConformance
-//     add to list
-//     if firstElem: break
-//   reverseChildren.
+//
+//	if top is EmptyList → pop it, return empty list.
+//	else loop:
+//	  firstElem = (top is FirstElementMarker → pop it)
+//	  pop anyConformance
+//	  add to list
+//	  if firstElem: break
+//	reverseChildren.
 //
 // We encode EmptyList as KindEmptyList with no attrs.
 // We encode FirstElementMarker as KindEmptyList with Attrs["hc.fem"]="true".

@@ -41,10 +41,20 @@ constraint clauses, double nesting, and descriptor wrapping.
       same parseType extension-nested-nominal gap worked around for
       verbose-form retTypes — here it must be fixed in the *type*
       parser (or fast-path) so the whole nested chain is consumed.
-- [ ] **P2 — extension-on-bound-generic context**: parse
-      `<extended-bound-generic> <defining-module|objc> <constraints> E`
-      as an extension context node, with the constraint clause captured
-      via `extractConstraintSigFullOpts`.
+- [x] **P2 — extension-on-bound-generic context** (2026-05-18 fire-17):
+      added `tryDoubleExtensionConformanceDescriptor` (stable.go, after
+      `tryGlobalLastResortFastPath`), wired into `parseGlobal`'s
+      last-resort branch ahead of the existing fast-path. It parses the
+      base nominal `<n><module><n><name>(V|C|O|P)`, requires ≥2
+      structural `E` terminators (via new `scanStructuralE` helper that
+      skips length-prefixed identifier bodies), resolves the first
+      extension layer's module via new `parseExtLayerModuleRef`
+      (`A`<upper> back-ref or literal ident), and captures the layer-1
+      constraint clause via `extractConstraintSigFullOpts` into an
+      `extLayer{module, constraintBytes, constraintSig}`. Verified on the
+      canonical sym: layer-1 constraintBytes `So11NSDimensionCRbzrl` →
+      `< where A: __C.NSDimension>`. Returns false pending P3–P5;
+      parity +0.
 - [ ] **P3 — nested (double) extension**: allow an extension context to
       itself be extended — `…E…E…` — building the
       `(extension in X):(extension in X):…` chain.
@@ -62,6 +72,9 @@ constraint clauses, double nesting, and descriptor wrapping.
 - 2026-05-17 fire-15: plan forked from the plateau SOS.
 - 2026-05-17 fire-16: P1 done — bail site
   located at stable.go:188 (parseGlobal leftover-bytes error).
+- 2026-05-18 fire-17: P2 done — extension-layer-1 parser scaffold
+  (`tryDoubleExtensionConformanceDescriptor`) wired +0; smoke /
+  snapshot-check / ratchet green; [error] bucket 89 → 89.
 
 ## Failed attempts
 
