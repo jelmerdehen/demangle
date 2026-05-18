@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 97.56% (62204/63757) — 2026-05-18T11:57:31Z
-**Round-trip**: 34.60% (22059/63757) — 2026-05-18T11:58:20.622473Z
-**Failures**: 27 parse-errors + 1526 mismatches
+**Parity**: 97.58% (62212/63757) — 2026-05-18T16:35:08Z
+**Round-trip**: 34.60% (22059/63757) — 2026-05-18T16:34:48.819528Z
+**Failures**: 27 parse-errors + 1518 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,16 +29,16 @@
 
 ## Last 10 Commits
 
+- 0375dacd swift-parity: CKU variable-getter-verbose P3 — tuple/pack declared-type tail for var getters — parity 97.56%->97.58% +8 production
+- 2af95617 chore: plan-variable-getter-verbose-P2 defer — subs-table misalignment + missing extension-member-tail parser (parity +0)
+- d88110d1 chore: plan-variable-getter-verbose-P2 failed-attempt log (parity +0)
+- 775be910 docs: correct kodo oracle instruction in goal files — run xcrun swift-demangle directly
+- ea8eb14e chore: plan-variable-getter-verbose-P1 categorise + bail-site probe (parity +0)
+- 5cf8442a docs: correct Oracle access — this dev box IS kodo, run xcrun swift-demangle directly
+- b0066bee chore: lock snapshot after CKT commit (parity 97.54%->97.56%)
+- 69d5d153 chore: update digest.md for CKT commit (parity 97.54%->97.56%)
+- ce0a4d11 swift-parity: CKT protocol-witness-thunk constrained conformances (plan-witness-thunk-grammar P4) — parity 97.54%->97.56% +16 production
 - eaaa70ae chore: lock snapshot after CKS commit (parity 97.50%->97.54%)
-- 003ec336 chore: update digest.md for CKS commit (parity 97.50%->97.54%)
-- 376d9cff swift-parity: CKS protocol-witness-thunk function sub-shape (plan-witness-thunk-grammar P3) — parity 97.50%->97.54% +27 production
-- a5c49348 chore: lock snapshot after CKR commit (parity 97.47%->97.50%)
-- 85c4e844 chore: update digest.md for CKR commit (parity 97.47%->97.50%)
-- 753bc791 swift-parity: CKR protocol-witness-thunk getter sub-shape (plan-witness-thunk-grammar P2) — parity 97.47%->97.50% +17 production
-- 8da7f529 chore: plan-witness-thunk-grammar-P1 bail-site probe + categorise (parity +0)
-- b137ea47 chore: defer subscript-ipMV extension-nested slice; close plan-subscript-descriptor-verbose (P7/P8)
-- 9a48712f chore: defer subscript-ipMV labeled-form + greedy-result shapes (deferred-1)
-- d75052b9 chore: plan-subscript-descriptor-verbose-P5 result-tuple FirstElementMarker grammar fix (parity +0)
 
 ## Suggested Next 3 Items
 
