@@ -144,10 +144,63 @@ is P3.
       of the post-`_` element resolves a back-ref that does not
       align inside the variable-entity subs context (same subs-table
       wall as deferred P2). Both are follow-on work.
-- [ ] **P4 — extension-nested var-getter hosts (A2, 14 syms)**:
-      `(extension in <Mod>):` host prefix for `So<Class>C<Mod>E…vg`
-      shapes. Reuse the property-descriptor / double-extension host-
-      walk helpers; emit the verbose getter form for extension hosts.
+- [~] **P4 — extension-nested var-getter hosts (A2, 17 syms) —
+      DEFERRED 2026-05-18.** Probe (P4PROBE-instrumented
+      `tryVariableEntity`, reverted) confirms the A2 slice dead-ends
+      on the SAME blockers that deferred P2 — no ≤3-primitive fix.
+      Two distinct walls, both structural:
+      1. **Host gap.** `tryVariableEntity`'s host dispatch
+         (stable.go:6048) accepts only `S<stdlib>` / `s` /
+         digit-led-module. An `So<digits><Class>C` ObjC-class host
+         is rejected at stable.go:6062 (`BuildStdlibNominal('o')`
+         returns false), so every `So…vg` symbol never reaches the
+         variable-entity render at all. The `ss8DurationV10FoundationE…`
+         shape additionally has a `<digits><Mod>E` extension LAYER
+         inside the host path — the host-walk loop (stable.go:6120)
+         has no extension-layer production; it errors at the `E`.
+      2. **Declared-type wall = deferred P2b.** Even with the host
+         parsed, EVERY A2 getter's declared TYPE is an `A…E`
+         substitution-applied extension-member tail that `parseType`
+         cannot handle:
+         - `So9NSRunLoopC…E3nowAbCE17SchedulerTimeTypeVvg` —
+           `parseType` ERRORS on `AbCE17SchedulerTimeTypeV`
+           (`A`-subref then `bC` then `E` extension marker).
+         - `CocoaErrorV14stringEncodingSSAAE0E0VSgvg` —
+           `parseType` succeeds on `SS` but leaves leftover
+           `AAE0E0VSg` (the `AAE<ident><kind>` extension-member
+           tail, Optional-wrapped). This is verbatim the symbol the
+           P2-retry probe cited: "needs a new parser ... no parser
+           exists for an extension-member tail in type position."
+      **Why the `vpMV` siblings "work" is NOT a reusable parser.**
+      Every `vpMV` counterpart of the A2 getter slice
+      (stable.go:10755-10764, 10808, 10833, 10839, …) is a
+      `preparseLiterals` `mangled→string` LOOKUP entry — forbidden
+      to extend and not real parser logic. There is NO real parser
+      for the `So…E` host or the `A…E` type tail to reuse; P4 cannot
+      borrow `vpMV`'s "success".
+      **Fire-plan (P4 unblocks only after P2b lands):**
+      - **P4a — `So<Class>C` ObjC-class host + `<Mod>E` host-layer.**
+        Extend `tryVariableEntity`'s host dispatch with an
+        `So<digits><Class>C` branch building `__C.<Class>` (module
+        node `__C`), and teach the host-walk loop (stable.go:6120)
+        to consume a `<digits><Mod>E` extension layer — reuse
+        `scanStructuralE` / `parseExtLayerModuleRef` / `extLayer`
+        (stable.go:15032-15086) so the rendered path carries the
+        `(extension in <Mod>):` prefix. Standalone non-parity commit;
+        verify `make snapshot-check` clean (host-only change must not
+        regress).
+      - **P4b — enable the verbose getter render for `So…E` hosts**
+        once P2b's `A…E` extension-member-tail type parser exists so
+        `parseType` consumes the declared type; route the verbose
+        `(extension in <Mod>):__C.<Class>.<member>.getter : <type>`
+        form through the existing render at stable.go:6326-6334
+        (extend the `mod=="Foundation"||mod=="Swift"` gate to the
+        ObjC-host case).
+      **Hard dependency: P4 is blocked on P2b.** The declared-type
+      wall is P2b's exact deliverable; P4 cannot ship a parity gain
+      until the `A…E` extension-member-tail type production lands.
+      Per the goal's defer rule, deferred honestly — no forced
+      regression. +0.
 - [ ] **P5 — subscript getters (B1+B2, 22 syms) + enable/scope**:
       verbose `X.subscript.getter : <gen-sig>(<params>) -> <result>`
       for subscript accessors; reuse the subscript-getter sig work
@@ -159,6 +212,16 @@ is P3.
 - 2026-05-18: plan forked from the mismatch scan (post
   witness-thunk-grammar close). Executed by the orchestrating session
   via one subagent per fire, sequential, with cross-fire verification.
+- 2026-05-18: **P4 deferred.** Probe confirmed the A2 slice
+  (17 plain var getters with extension-in hosts) dead-ends on the
+  same two structural walls that deferred P2 — the `So<Class>C`
+  ObjC-class host has no host-dispatch branch, and every A2
+  getter's declared type is an `A…E` substitution-applied
+  extension-member tail with no `parseType` production (P2b's
+  exact deliverable). The `vpMV` siblings only "pass" via
+  `preparseLiterals` lookup entries — no reusable parser exists.
+  P4 → `[~]`, split into P4a (ObjC-class host + host-layer) +
+  P4b (verbose render, blocked on P2b). +0.
 - 2026-05-18: **P3 complete.** `foldVariableTupleTail` commit gate
   widened to the `vg`/`vs`/`vM` (+static) accessor terminals.
   Parity 62204→62212 (+8), getter bucket 74→71, snapshot-check
@@ -268,3 +331,43 @@ is P3.
     (`git checkout`) and deferred. P2 → `[~]`, split into P2a
     (subs alignment) + P2b (extension-member tail) — see the
     updated P2 primitive row for the fire-plan.
+
+- **2026-05-18 — P4 probe (A2 extension-host var getters),
+  DEFERRED.** Instrumented `tryVariableEntity` with a `P4PROBE`
+  env-gated `So<digits><Class>C <digits><Mod>E` host branch + a
+  post-`parseType` leftover dump, ran the 4 representative A2
+  symbols, then `git checkout`-reverted all instrumentation.
+  Findings:
+  - The A2 slice is **17 plain var getters** (not 14 — P1's count
+    pre-dated P3's bucket shift), all with `(extension in)` hosts
+    or extension-member type tails.
+  - **Host gap.** `tryVariableEntity`'s host dispatch
+    (stable.go:6048) has no `So<Class>C` ObjC-class branch —
+    `BuildStdlibNominal('o')` returns false and the function bails
+    at stable.go:6062 before any render. The
+    `ss8DurationV10FoundationE16UnitsFormatStyleV…` shape further
+    has a `<digits><Mod>E` extension LAYER inside the host path;
+    the host-walk loop (stable.go:6120) errors on the `E`
+    (`expected type start, got "E"`).
+  - **Declared-type wall = deferred P2b.** With the host forced
+    through (probe branch), `parseType` of the declared type
+    fails for every A2 symbol:
+    `So9NSRunLoopC…E3nowAbCE17SchedulerTimeTypeVvg` → `parseType`
+    ERRORS on `AbCE17SchedulerTimeTypeV`;
+    `So12NSFileHandleC…E5bytesAbCE10AsyncBytesVvg` → ERRORS on
+    `AbCE10AsyncBytesV`;
+    `CocoaErrorV14stringEncodingSSAAE0E0VSgvg` → `parseType`
+    succeeds on `SS` but leaves leftover `AAE0E0VSg`. All three
+    are the `A…E` substitution-applied extension-member tail —
+    P2b's exact, still-unbuilt deliverable.
+  - **The `vpMV` siblings are NOT a reusable parser.** Every
+    `vpMV` counterpart of the A2 getter slice is a
+    `preparseLiterals` `mangled→string` lookup entry
+    (stable.go:10755-10764, 10808, 10833, 10839). Extending that
+    table is forbidden; there is no real `So…E`-host or `A…E`-type
+    parser to borrow.
+  - **No ≤3-primitive fix exists.** P4 is hard-blocked on P2b.
+    Per the goal's defer rule, reverted everything and deferred.
+    P4 → `[~]`, split into P4a (ObjC-class host + host-layer,
+    standalone non-parity commit) + P4b (verbose render, blocked
+    on P2b) — see the updated P4 primitive row.
