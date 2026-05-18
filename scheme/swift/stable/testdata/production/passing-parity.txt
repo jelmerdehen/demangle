@@ -1,4 +1,4 @@
-# snapshot-pass-set update 2026-05-18T01:33:38Z — union with previous (high-water)
+# snapshot-pass-set update 2026-05-18T02:22:45Z — union with previous (high-water)
 _$s10Foreground7SwiftUI18LabelGroupStyle_v0PTl
 _$s10Foundation10CocoaErrorV010formattingC0AC4CodeVvgZ
 _$s10Foundation10CocoaErrorV010formattingC0AC4CodeVvpZMV
@@ -54069,6 +54069,7 @@ _$ss16StrideToIteratorV6_startxvg
 _$ss16StrideToIteratorV6_startxvpMV
 _$ss16StrideToIteratorV7_stride0A0Qzvg
 _$ss16StrideToIteratorV7_stride0A0QzvpMV
+_$ss16StrideToIteratorV8_currentSiSg5index_x5valuetvpMV
 _$ss16StrideToIteratorVMa
 _$ss16StrideToIteratorVMn
 _$ss16StrideToIteratorVyxGStsMc
@@ -54144,6 +54145,7 @@ _$ss16_ValidUTF8BufferV5countSivpMV
 _$ss16_ValidUTF8BufferV5index5afterAB5IndexVAF_tF
 _$ss16_ValidUTF8BufferV5index6beforeAB5IndexVAF_tF
 _$ss16_ValidUTF8BufferV5index_8offsetByAB5IndexVAF_SitF
+_$ss16_ValidUTF8BufferV6_bytess6UInt64V0D0_Si5counttvpMV
 _$ss16_ValidUTF8BufferV6append10contentsOfyAB_tF
 _$ss16_ValidUTF8BufferV6appendyys5UInt8VF
 _$ss16_ValidUTF8BufferV7isEmptySbvg
@@ -55379,6 +55381,7 @@ _$ss21StrideThroughIteratorV6_startxvg
 _$ss21StrideThroughIteratorV6_startxvpMV
 _$ss21StrideThroughIteratorV7_stride0A0Qzvg
 _$ss21StrideThroughIteratorV7_stride0A0QzvpMV
+_$ss21StrideThroughIteratorV8_currentSiSg5index_x5valuetvpMV
 _$ss21StrideThroughIteratorVMa
 _$ss21StrideThroughIteratorVMn
 _$ss21StrideThroughIteratorVyxGStsMc
@@ -61237,6 +61240,7 @@ _$ss7UnicodeO6ScalarV10PropertiesV26isFullCompositionExclusionSbvg
 _$ss7UnicodeO6ScalarV10PropertiesV26isFullCompositionExclusionSbvpMV
 _$ss7UnicodeO6ScalarV10PropertiesV27isDefaultIgnorableCodePointSbvg
 _$ss7UnicodeO6ScalarV10PropertiesV27isDefaultIgnorableCodePointSbvpMV
+_$ss7UnicodeO6ScalarV10PropertiesV3ageSi5major_Si5minortSgvpMV
 _$ss7UnicodeO6ScalarV10PropertiesV4nameSSSgvg
 _$ss7UnicodeO6ScalarV10PropertiesV4nameSSSgvpMV
 _$ss7UnicodeO6ScalarV10PropertiesV6isDashSbvg
