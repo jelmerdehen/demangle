@@ -2400,3 +2400,75 @@ Many real extensions have A-preceding-E patterns legitimately.
 Defer reason: need depth-aware scanner that tracks constraint vs type-
 expression context to distinguish inner-AE-as-type-ref vs outer-E-as-
 entity. Single-fire scope insufficient.
+
+### vpMV-instance-var-verbose-form [65 syms, deferred-2]
+
+Body (plain-module): `_$ss11_StringGutsV7rawBitss6UInt64V_AEtvpMV`
+- got:  `property descriptor for _StringGuts.rawBits`
+- want: `property descriptor for Swift._StringGuts.rawBits : (Swift.UInt64, Swift.UInt64)`
+
+The `vpMV` instance-var property-descriptor mismatch bucket: 65 symbols
+(29 plain-module + 36 extension-nested). All render via the last-resort
+fast-path `tryGlobalLastResortFastPath` isPropDesc branch
+(stable.go:14424) — simplified host, no module prefix, no type tail.
+
+Root cause: the main parser's `tryVariableEntity` (stable.go:5769)
+already emits the correct verbose form at stable.go:6007 (proven by
+5881 passing `vpMV` symbols), but it BAILS on these 65 because
+`p.parseType()` (stable.go:5966) does not fully consume the declared
+type. parseType parses the head type and stops before the
+continuation, so `tryVariableEntity` sees a non-`v` byte and bails;
+parseGlobal then leaves `p.i != len(p.s)` and the fast-path catches
+the symbol and renders the simplified form.
+
+Two distinct, independent blockers — neither is a ≤3-primitive fix:
+
+1. Missing general multi-element tuple parsing. The declared type of
+   the unlabelled cluster (`_StringGuts`/`_SmallString`/`_StringObject`,
+   6 syms, all `(UInt64, UInt64)`) and the labelled cluster
+   (StrideToIterator/StrideThroughIterator/Unicode.Scalar.Properties.age/
+   `_ValidUTF8Buffer`/Duration.components, 5 syms) is a multi-element
+   tuple `<elt>('_'<elt>)*'t'`. parseType's postfix handlers cover only
+   `tryPostfixCompactTuple` (`_S<N><L>` form) and `tryPostfixLabeledTuple`
+   (single-element). The bound-generic cluster (`Mirror.children` et al.,
+   ~10 syms) is blocked transitively — its generic arg is itself a
+   multi-element labelled tuple, so `tryBoundGeneric` cannot parse the
+   `y...G` arg-list and parseType stops at `y`.
+
+   Tried: a general postfix handler `tryPostfixTuple` matching
+   `<type>('_'<type>)+'t'` wired after `tryPostfixCompactTuple`. It
+   regressed Apple-corpus strict (hard-gated): `_TFC3foo3bar3basfT3zim
+   CS_3zim_T_` flipped from `foo.bar.bas(zim: foo.zim) -> ()` to
+   `foo.bar.bas : (zim: foo.zim) -> ()` — the handler greedily consumed
+   the `_T_` empty-tuple result separator of an old-`_TF`-mangling
+   function as a tuple continuation. The `_` separator is overloaded
+   (param-list separators, generic-sig separators, list separators), so
+   a context-free postfix tuple is unsafe. Reverted.
+
+2. Substitution-numbering inconsistency. Even with general tuple
+   parsing, the unlabelled `(UInt64, UInt64)` cluster fails: the 2nd
+   element `AE` is a substitution back-ref. In `tryVariableEntity`'s
+   parse context the subs table has 4 entries when `AE` (index 4, needs
+   the 5th) is resolved, so it errors; in other parse contexts the same
+   `AE` resolves (subs len 5). `tryVariableEntity`'s hand-rolled
+   host-walk (stable.go:5856-5964) seeds subs differently from
+   parseType's nominal path — off by one. This overlaps the existing
+   deferred `apple-substitution-model-context-dependent` entry.
+
+Fire-plan (≥4 primitives):
+- P-a: context-gated multi-element tuple handler — add an
+  `inVariableType`-style flag set only around tryVariableEntity's type
+  parseType call (and require `!inFunctionTypeSlot && !inSubscriptTypes`)
+  so the handler cannot fire in function-param position. Targets the
+  labelled cluster which avoids blocker 2.
+- P-b: multi-element labelled-tuple postfix (`<type><label>('_'<type>
+  <label>)*'t'`).
+- P-c: bound-generic-with-tuple-arg — verify P-a/P-b feed tryBoundGeneric.
+- P-d: subs-numbering alignment for tryVariableEntity host-walk (blocker
+  2; coupled to apple-substitution-model-context-dependent).
+- P-e: extension-nested 36-sym slice (separate host-walk `E` mechanism).
+
+Defer reason: two independent deep blockers; the obvious general fix
+regresses a hard-gated Apple-corpus symbol. Exceeds the bounded
+5-fire plan. Needs a context-flag-gated tuple grammar plus a subs-table
+alignment pass — ≥4 primitives, regression-prone.

@@ -90,25 +90,17 @@ one fire is forbidden — narrow per fire, re-estimate honestly.
 
 - [x] **P1 — categorise + bail-site probe** — done 2026-05-18 (fire 1).
       Findings above; P2–P5 rewritten.
-- [ ] **P2 — first plain-module bail trigger**: instrument
-      `tryVariableEntity` (temporary stderr trace of the `restore();
-      return false` site reached, or bisect by probing the failing
-      type-mangling fragment in isolation) on 3–4 plain-module
-      representatives. Identify the FIRST bail trigger (a `parseType`
-      sub-case or the host-walk). Fix that one parser bail so the
-      symbol parses end-to-end and `stable.go:6007` emits verbose
-      form. Remove the trace before committing. Three-commit round if
-      parity rises; `chore: defer` if no ≤3-primitive fix exists.
-- [ ] **P3 — next plain-module bail trigger**: repeat P2 for the
-      next-largest plain-module type-shape still mismatching after P2.
-- [ ] **P4 — extension-nested hosts**: the 36 `(extension in)` slice.
-      Probe the `tryVariableEntity` host-walk handling of the `E`
-      extension marker + constraint bytes; make it route to the
-      verbose form with the `(extension in <Mod>):` prefix +
-      `< where …>` clause (reuse double-extension-grammar helpers
-      where they apply). Narrow to the largest coherent sub-slice.
-- [ ] **P5 — enable + scope**: smoke wide; narrow on regression;
-      append any irreducible residue to INVESTIGATIONS.md; close.
+- [x] **P2 — first plain-module bail trigger** — done 2026-05-18
+      (fire 2): **DEFERRED**. Probe pinpointed the bail
+      (`tryVariableEntity` line 5983, after `parseType` returns the
+      head type only). The fix needs general multi-element tuple
+      parsing, which regresses a hard-gated Apple-corpus function
+      symbol, plus a substitution-numbering alignment. Not a
+      ≤3-primitive fix — see INVESTIGATIONS.md
+      `vpMV-instance-var-verbose-form [65 syms, deferred-2]`.
+- [x] **P3–P5 — subsumed by the deferral.** The whole 65-sym bucket
+      shares the two blockers documented in the INVESTIGATIONS.md
+      entry; its 5-primitive fire-plan (P-a…P-e) supersedes P3–P5.
 
 ## Status
 
@@ -117,7 +109,21 @@ one fire is forbidden — narrow per fire, re-estimate honestly.
   located render site (`tryGlobalLastResortFastPath` isPropDesc
   branch, `stable.go:14424`); root cause = `tryVariableEntity` bail,
   verbose form already wired at `stable.go:6007`. P2–P5 rewritten.
+- 2026-05-18 (fire 2, P2): attempted the parser fix; reverted on
+  Apple-corpus regression; bucket deferred to multi-fire. **Plan
+  closed (deferred).**
 
 ## Failed attempts
 
-(none yet)
+- 2026-05-18 (P2): general postfix tuple handler `tryPostfixTuple`
+  matching `<type>('_'<type>)+'t'`, wired into parseType's postfix
+  chain after `tryPostfixCompactTuple`. Correct grammar for the vpMV
+  declared tuples, but regressed Apple-corpus strict (hard-gated):
+  `_TFC3foo3bar3basfT3zimCS_3zim_T_` flipped from
+  `foo.bar.bas(zim: foo.zim) -> ()` to `... : (zim: foo.zim) -> ()` —
+  the handler consumed an old-`_TF`-mangling function's `_T_` result
+  separator as a tuple continuation. The `_` separator is overloaded;
+  a context-free postfix tuple is unsafe. Reverted. Re-scope: a
+  context-flag-gated tuple handler (see INVESTIGATIONS.md fire-plan
+  P-a). Also surfaced blocker 2: `AE` substitution does not resolve in
+  `tryVariableEntity`'s parse context (subs len 4 vs needed 5).
