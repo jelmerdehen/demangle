@@ -66,14 +66,21 @@ does not.
       nominal hosts, `AcA`/`A2E` ref-led init result types) needs the
       P3 nominal-host detection + live-`p.subs` boundary work. End-to-end
       unit test `TestVerboseFunctionLiteralRender` added.
-- [ ] **P3 — substitution-ref-led types (live `p.subs`)**: the byte
-      scanner cannot tell a complete substitution-ref type (`AcA`) from
-      a ref-qualified nominal (`AA18AttributeContainerV`) — that needs
-      the live mid-symbol substitution table. Re-do the result/arg
-      boundary detection at the *emit* site (where `p.subs` is fully
-      populated) using `parseType`-with-consumed-offset, falling back
-      to the byte scanner only for the literal slice. Covers the
-      `AA…V` / `AcA…` / `A2E…` extension-and-nesting types.
+- [x] **P3 — plain-host detection + substitution-ref arg/result types**
+      (2026-05-18): shipped `fpVerbosePlainHostText` — a verbose-form
+      renderer for plain module-qualified nominal-host functions /
+      initializers (the bucket the stdlib-host `S<letter>` candidate
+      detector misses). It re-parses the entity from offset 0 with the
+      parser's own `parseType` so `p.subs` is naturally populated from
+      the host chain, then renders the label-list + result + params
+      span (`A<N><UPPER>` repeat-merge expanded, `Sg` optional sugar,
+      single-bare vs `t`-tuple arg shapes, throws / static / class
+      `__allocating_init`). Wired at the fast-path emit site behind a
+      tight gate. Helpers `fpVerboseSubIndexAt`,
+      `fpVerboseTypeHasGenericMarker`. Unit test
+      `TestVerbosePlainHostRender`. +1 production
+      (`Foundation.Morphology.Pronoun.init`); all gates green, zero
+      regression. See "## P3 findings".
 - [ ] **P4 — `0`-prefixed word-sub idents + bound generics**: extend
       the renderer to types containing word-substitution identifiers
       (`A0B0V…`) and `Say…G` / `…y…G` bound generics.
@@ -133,6 +140,45 @@ to **P3** where the live `p.subs` is available — that is the genuine
 re-scope: result/arg boundary detection belongs at the emit site, not
 in a context-free decoder.
 
+## P3 findings
+
+**Detector widening shipped, substitution-ref resolution mostly walled
+off — net +1.** `fpVerbosePlainHostText` re-parses the whole entity
+from offset 0; the host nominal parses cleanly and populates `p.subs`,
+so a back-ref into the HOST CHAIN (`AE` → the host type, `A2C` → an
+enclosing host level) resolves correctly — that is the genuine P3 win,
+proven by `Foundation.Morphology.Pronoun.init`.
+
+**The hard wall confirmed.** A back-ref that points at a substitution
+introduced LATER in the signature (an earlier arg, the result type)
+does NOT resolve reliably: this incremental re-parse does not reproduce
+Apple's exact signature-time substitution push order, so the index base
+diverges. `parseType` then resolves the ref to the wrong slot and emits
+a plausible-but-wrong type with no error. There is no output-only test
+to catch it. The renderer therefore DECLINES any `A<idx>`-led arg/result
+type whose first index ≥ `hostSubLen` (the post-host-parse subs length).
+This is the same class as the deferred substitution-model-alignment
+wall; at the emit site `p.subs` is "complete" only for the *host* — the
+signature-time pushes are still mid-parse miscalibrated.
+
+**Corpus convention split (critical gating fact).** The production
+corpus renders entities in TWO conventions by source file:
+`iphoneos-foundation.txt` + `iphoneos-libswiftcore.txt` use the verbose
+`Module.Type.decl(label: Type) -> Result` form; `combine`,
+`concurrency`, `coredata`, `swiftui`, `uikit` use the simplified
+label-only form (`Type.init(_:)`). A globally-firing verbose renderer
+regressed 7 SwiftUI inits to gain 1 Foundation init. The renderer is
+therefore module-gated to `Foundation` / `Swift` hosts — the modules
+whose corpus baseline IS verbose. Not a lookup: a module-scoped
+behaviour matching how the corpus was generated.
+
+**Net.** Of 1056 fn/init mismatch symbols, the gated renderer cleanly
+renders 1 byte-exact, 0 wrong, 1055 declined — the decline rate is the
+honest cost of the substitution-alignment wall. P4/P5 inherit the same
+wall; the larger payoff needs the parser's subs model itself to align
+with Apple's signature-time push order (a foundational change, not a
+narrow primitive).
+
 ## Status
 
 - 2026-05-18: plan forked from `function-verbose-form` P3a
@@ -155,6 +201,17 @@ in a context-free decoder.
   `S<letter>`-led candidate detector does not catch — that, plus the
   `AcA`/`A2E` ref-led init result types, is P3's nominal-host
   detection + live-`p.subs` boundary work.
+- 2026-05-18 fire-3: P3 shipped (CKX, +1) — `fpVerbosePlainHostText`,
+  the plain module-qualified nominal-host function/init verbose
+  renderer. Detector widening done; host-chain substitution back-refs
+  resolve at the emit site. But the signature-time substitution
+  back-refs hit the same alignment wall as the deferred
+  substitution-model-alignment work — declined when an index reaches
+  past `hostSubLen` — and the corpus's two-convention split (verbose
+  Foundation/Swift vs simplified everything-else) forced a module gate.
+  Net +1 of 1056 candidates, 0 wrong, 1055 declined. P4/P5 inherit the
+  wall; the bigger payoff is now a foundational subs-model alignment,
+  not a narrow primitive — see "## P3 findings".
 
 ## Failed attempts
 

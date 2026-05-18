@@ -238,3 +238,47 @@ func TestVerboseFunctionLiteralRender(t *testing.T) {
 		})
 	}
 }
+
+// TestVerbosePlainHostRender exercises fpVerbosePlainHostText, the P3
+// renderer for plain module-qualified nominal-host functions and
+// initializers (the bucket the stdlib-host `S<letter>` candidate
+// detector does not catch). It re-parses the entity from offset 0 so
+// the substitution table is naturally populated from the host chain,
+// resolving host-chain back-refs (`AE`, `A2C`) in arg/result types.
+// The expected string is byte-exact against kodo `xcrun swift-demangle`.
+// See plans/entity-signature-parser.md P3.
+func TestVerbosePlainHostRender(t *testing.T) {
+	cases := []struct {
+		name string
+		sym  string
+		want string
+	}{
+		{
+			// nested module-host init; word-sub label `09dependentB0`
+			// → dependentMorphology; result `AE` and arg `A2CSg` are
+			// host-chain substitution back-refs (the new P3 gain).
+			name: "nested-host-init-hostchain-refs",
+			sym:  "_$s10Foundation10MorphologyV7PronounV7pronoun10morphology09dependentB0AESS_A2CSgtcfC",
+			want: "Foundation.Morphology.Pronoun.init(pronoun: Swift.String, morphology: Foundation.Morphology, dependentMorphology: Foundation.Morphology?) -> Foundation.Morphology.Pronoun",
+		},
+		{
+			// non-Foundation/Swift module host: the renderer is module-
+			// gated and must decline, leaving the simplified label-only
+			// form (the production corpus baseline for SwiftUI).
+			name: "non-verbose-module-declines",
+			sym:  "_$s7SwiftUI16GlassButtonStyleVyAcA0C0VcfC",
+			want: "GlassButtonStyle.init(_:)",
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			res, err := Scheme{}.Demangle(context.Background(), tc.sym, demangle.Options{})
+			if err != nil {
+				t.Fatalf("demangle %q: %v", tc.sym, err)
+			}
+			if res.Output != tc.want {
+				t.Errorf("output mismatch\n got: %s\nwant: %s", res.Output, tc.want)
+			}
+		})
+	}
+}

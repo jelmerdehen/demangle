@@ -14978,6 +14978,18 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			text = ft
 		}
 	}
+	// Verbose-form override for plain module-qualified nominal-host
+	// functions / initializers — the bucket the stdlib-host `S<letter>`
+	// candidate detector does not catch. fpVerbosePlainHostText is
+	// module-gated (Foundation / Swift) and returns "" (clean
+	// fall-through) for every shape it cannot fully and unambiguously
+	// render. See plans/entity-signature-parser.md P3.
+	if (isFn || isInit) && !isSubscript && !isPropAcc && !isPropDesc &&
+		fpExtMarker == "" && localGen == "" && fpMcGenSig == "" {
+		if vt := p.fpVerbosePlainHostText(hostStr); vt != "" {
+			text = vt
+		}
+	}
 	// Verbose-form override for stdlib-host + ext property accessors /
 	// property descriptors. See plans/verbose-form-printer.md (single
 	// level) and plans/verbose-form-nested-host.md (nested host).
@@ -15582,6 +15594,414 @@ func (p *parser) fpVerboseFunctionText(hostLetter byte, extMod, declName, span s
 	hostName := std.Children[0].Children[1].Text
 	text := "(extension in " + extMod + "):Swift." + hostName + "." +
 		declName + "(" + strings.Join(argParts, ", ") + ") -> " + resStr
+	if isStatic {
+		text = "static " + text
+	}
+	return text
+}
+
+// fpVerboseSubIndexAt decodes the substitution index that immediately
+// follows an `A` byte (start points one past the `A`), per the encoding
+// in parseNumericSubstitution. It returns the FIRST index of the form —
+// enough to decide whether a back-ref-led type points into the host
+// chain. ok is false for shapes it does not recognise.
+func fpVerboseSubIndexAt(s string, start, limit int) (idx int, ok bool) {
+	if start >= limit {
+		return 0, false
+	}
+	c := s[start]
+	switch {
+	case c == '_':
+		return 0, true
+	case c >= '0' && c <= '9':
+		num, j := 0, start
+		for j < limit && s[j] >= '0' && s[j] <= '9' {
+			num = num*10 + int(s[j]-'0')
+			j++
+		}
+		if j < limit && s[j] >= 'A' && s[j] <= 'Z' {
+			// `<digits><UPPER>` repeat form — index is the letter.
+			return int(s[j] - 'A'), true
+		}
+		if j < limit && s[j] == '_' {
+			return num, true
+		}
+		return 0, false
+	case c >= 'a' && c <= 'z':
+		return int(c - 'a'), true
+	case c >= 'A' && c <= 'Z':
+		return int(c - 'A'), true
+	}
+	return 0, false
+}
+
+// fpVerboseTypeHasGenericMarker reports whether a rendered type string
+// carries a generic-parameter placeholder, an angle-bracketed generic
+// argument list, or a closure/protocol-composition marker — any of which
+// puts the symbol outside the literal-typed verbose-form slice handled
+// by fpVerbosePlainHostText. It is a conservative decline gate.
+func fpVerboseTypeHasGenericMarker(s string) bool {
+	if strings.ContainsAny(s, "<>") {
+		return true
+	}
+	if strings.Contains(s, " -> ") || strings.Contains(s, "...") {
+		return true
+	}
+	// A bare generic placeholder is an uppercase-letter token (`A`, `B`,
+	// optionally `A.Element`) standing alone or as a path root, not part
+	// of a dotted module-qualified name. Scan dot-separated, bracket-
+	// stripped tokens for a leading single uppercase letter.
+	clean := strings.NewReplacer("[", "", "]", "", "?", "", "(", "", ")", "",
+		" ", "", ":", "", ",", "").Replace(s)
+	for _, tok := range strings.Split(clean, ".") {
+		if len(tok) == 1 && tok[0] >= 'A' && tok[0] <= 'Z' {
+			return true
+		}
+	}
+	return false
+}
+
+// fpVerbosePlainHostText renders the verbose form for a plain
+// module-qualified nominal-host function or initializer entity — the
+// `<n><Module><n><Type>[<n><Nested><kind>]*<kind>` host bucket the
+// stdlib-host `S<letter>` candidate detector (fpVerboseFunctionText)
+// does not catch. e.g.
+// `10Foundation10MorphologyV7PronounV…AESS_A2CSgtcfC`
+// → `Foundation.Morphology.Pronoun.init(pronoun: Swift.String,
+// morphology: Foundation.Morphology, dependentMorphology:
+// Foundation.Morphology?) -> Foundation.Morphology.Pronoun`.
+//
+// Unlike the context-free byte scanner (decodeEntitySignatureSpan), this
+// works at the emit site by re-parsing the entity from offset 0 with the
+// parser's own parseType — so the substitution table is naturally
+// populated from the host chain as parsing proceeds, and arg/result
+// types that begin with a substitution back-ref into the host chain
+// (`AcA`, `AE`, `A2C…`) resolve correctly. parseType is the boundary
+// oracle.
+//
+// The entity layout decoded here is:
+//
+//	<host-type> [<decl-name>] <label-list> <result-type> <params> <term>
+//
+//   - host-type: one parseType-consumable nominal (module-qualified).
+//   - decl-name: present for a function (`F`/`FZ`); absent for an
+//     initializer (`cfC`/`cfc`) whose decl-name is "init" (or
+//     "__allocating_init" for a class `cfC`).
+//   - label-list: a `_`-or-`<n><ident>` run, one token per parameter.
+//   - result-type: one type; a lone `y` is the empty tuple `()`.
+//   - params: a single bare element, or `<e0>_<e1>…<eN-1>t`. The
+//     `A<N><UPPER>` repeat merge lays down N copies of one sub.
+//   - term: `F` / `FZ` (static) / `cfC` / `cfc`, optionally `K`-throws.
+//
+// Gated to host modules whose production-corpus baseline is the verbose
+// form (Foundation, the Swift stdlib) — other modules' corpus baselines
+// are the simplified label-only form, so the renderer must not fire on
+// them. Substitution back-refs that reach outside the host chain are
+// declined: this incremental re-parse does not reproduce Apple's exact
+// signature-time substitution push order, so such refs cannot be
+// resolved reliably. Returns "" for every shape it cannot fully and
+// unambiguously render. State is restored — emit-only.
+// See plans/entity-signature-parser.md P3.
+func (p *parser) fpVerbosePlainHostText(wantHost string) string {
+	body := p.s
+	if len(body) < 10 {
+		return ""
+	}
+	// Terminal classification.
+	isInit, isStatic, isThrows := false, false, false
+	termLen := 0
+	switch {
+	case strings.HasSuffix(body, "cfC"), strings.HasSuffix(body, "cfc"):
+		isInit, termLen = true, 3
+	case strings.HasSuffix(body, "FZ"):
+		isStatic, termLen = true, 2
+	case strings.HasSuffix(body, "F"):
+		termLen = 1
+	default:
+		return ""
+	}
+	sigEnd := len(body) - termLen
+	if sigEnd > 1 && body[sigEnd-1] == 'K' {
+		isThrows = true
+		sigEnd--
+	}
+	if sigEnd <= 0 {
+		return ""
+	}
+
+	saveI, saveSubs, saveWords := p.i, p.subs, p.words
+	restore := func() { p.i, p.subs, p.words = saveI, saveSubs, saveWords }
+	defer restore()
+
+	p.i = 0
+	p.subs = common.WithCapacity(32)
+	p.words = make([]string, 0, 26)
+
+	// Host nominal type.
+	hostNode, herr := p.parseType()
+	if herr != nil || hostNode == nil {
+		return ""
+	}
+	hostStr := common.Print(hostNode, common.DefaultPrintOptions())
+	if hostStr == "" || strings.HasPrefix(hostStr, "<<") ||
+		!strings.Contains(hostStr, ".") {
+		return ""
+	}
+	// Generic / bound-generic / specialized hosts are out of scope — the
+	// verbose form would need the generic signature rendered.
+	if strings.ContainsAny(hostStr, "<>") {
+		return ""
+	}
+	// Module gate: the production corpus renders the verbose form only
+	// for Foundation- and Swift-stdlib-hosted entities; every other
+	// module's baseline is the simplified label-only form.
+	hostMod := hostStr
+	if dot := strings.Index(hostMod, "."); dot >= 0 {
+		hostMod = hostMod[:dot]
+	}
+	if hostMod != "Foundation" && hostMod != "Swift" {
+		return ""
+	}
+	// An initializer on a class is rendered `__allocating_init` (the
+	// `cfC` allocating-entry); on a value type it is `init`.
+	hostInner := hostNode
+	if common.NodeKind(hostInner.Kind) == common.KindType &&
+		len(hostInner.Children) > 0 {
+		hostInner = hostInner.Children[0]
+	}
+	hostIsClass := common.NodeKind(hostInner.Kind) == common.KindClass
+	// Substitution back-refs that point INTO the host chain resolve
+	// reliably; refs past hostSubLen are declined (see doc above).
+	hostSubLen := p.subs.Len()
+	// Consistency gate: the label-only fast-path already computed a host
+	// string; require the re-parse to agree on the trailing nominal.
+	if wantHost != "" {
+		hSuffix, wSuffix := hostStr, wantHost
+		if d := strings.LastIndex(hSuffix, "."); d >= 0 {
+			hSuffix = hSuffix[d+1:]
+		}
+		if d := strings.LastIndex(wSuffix, "."); d >= 0 {
+			wSuffix = wSuffix[d+1:]
+		}
+		if hSuffix != wSuffix {
+			return ""
+		}
+	}
+
+	// Decl name.
+	declName := "init"
+	if isInit && hostIsClass && strings.HasSuffix(body, "cfC") {
+		declName = "__allocating_init"
+	}
+	if !isInit {
+		if p.i >= sigEnd {
+			return ""
+		}
+		id, ierr := p.parseIdentifier()
+		if ierr != nil || id == "" {
+			return ""
+		}
+		if !p.eof() && p.s[p.i] == 'o' {
+			return "" // operator designator — out of scope
+		}
+		declName = id
+	}
+
+	// renderOne parses exactly one type at p.i (bounded by sigEnd).
+	renderOne := func() (string, bool) {
+		if p.i >= sigEnd {
+			return "", false
+		}
+		// Decline a back-ref-led type that reaches outside the host chain.
+		if body[p.i] == 'A' {
+			idx, idxOK := fpVerboseSubIndexAt(body, p.i+1, sigEnd)
+			if !idxOK || idx >= hostSubLen {
+				return "", false
+			}
+		}
+		st := p.i
+		n, e := p.parseType()
+		if e != nil || n == nil || p.i > sigEnd || p.i == st {
+			return "", false
+		}
+		s := common.Print(n, common.DefaultPrintOptions())
+		if s == "" || strings.HasPrefix(s, "<<") {
+			return "", false
+		}
+		if fpVerboseTypeHasGenericMarker(s) {
+			return "", false
+		}
+		return s, true
+	}
+
+	// Label list: a `_` / `<n><ident>` run, read greedily; the post-parse
+	// arg-count cross-check rejects a mis-greedy reading.
+	var labels []string
+	for p.i < sigEnd {
+		c := body[p.i]
+		if c == '_' {
+			labels = append(labels, "")
+			p.i++
+			continue
+		}
+		if c < '0' || c > '9' {
+			break
+		}
+		save := p.i
+		saveSb, saveWd := p.subs, p.words
+		id, e := p.parseIdentifier()
+		if e != nil || id == "" {
+			p.i, p.subs, p.words = save, saveSb, saveWd
+			break
+		}
+		// `<n><ident>` immediately followed by a nominal-kind byte is the
+		// start of the result type, not a label.
+		if !p.eof() && (p.s[p.i] == 'V' || p.s[p.i] == 'C' ||
+			p.s[p.i] == 'O' || p.s[p.i] == 'P') {
+			p.i, p.subs, p.words = save, saveSb, saveWd
+			break
+		}
+		labels = append(labels, id)
+	}
+
+	// Result type. A lone `y` is the empty tuple `()`.
+	resStr := ""
+	if p.i < sigEnd && body[p.i] == 'y' &&
+		!(p.i+1 < sigEnd && body[p.i+1] == 'p') {
+		resStr = "()"
+		p.i++
+	} else {
+		s, ok := renderOne()
+		if !ok {
+			return ""
+		}
+		resStr = s
+	}
+
+	// Params.
+	var args []string
+	// singleBare marks the single-unlabelled-argument shape: Apple prints
+	// that argument as a bare type with NO `_:` prefix.
+	singleBare := false
+	rest := body[p.i:sigEnd]
+	switch {
+	case rest == "":
+		// Zero-arg function (result only).
+	case !strings.HasSuffix(rest, "t"):
+		s, ok := renderOne()
+		if !ok || p.i != sigEnd {
+			return ""
+		}
+		args = append(args, s)
+		singleBare = true
+	default:
+		innerEnd := sigEnd - 1 // drop trailing `t`
+		for p.i < innerEnd {
+			// `A<digits><UPPER>` repeat-substitution merge.
+			if body[p.i] == 'A' && p.i+1 < innerEnd &&
+				body[p.i+1] >= '0' && body[p.i+1] <= '9' {
+				j := p.i + 1
+				for j < innerEnd && body[j] >= '0' && body[j] <= '9' {
+					j++
+				}
+				if j < innerEnd && body[j] >= 'A' && body[j] <= 'Z' {
+					n := 0
+					for k := p.i + 1; k < j; k++ {
+						n = n*10 + int(body[k]-'0')
+						if n > 64 {
+							return ""
+						}
+					}
+					idx := int(body[j] - 'A')
+					if idx >= hostSubLen {
+						return ""
+					}
+					sub, sok := p.subs.Get(idx)
+					if !sok || n < 2 {
+						return ""
+					}
+					if common.NodeKind(sub.Kind) == common.KindIdentifier {
+						if nx, ok2 := p.subs.Get(idx + 1); ok2 &&
+							common.NodeKind(nx.Kind) == common.KindType {
+							sub = nx
+						}
+					}
+					mergeStr := common.Print(sub, common.DefaultPrintOptions())
+					if mergeStr == "" || strings.HasPrefix(mergeStr, "<<") ||
+						fpVerboseTypeHasGenericMarker(mergeStr) {
+						return ""
+					}
+					p.i = j + 1
+					for k := 0; k < n; k++ {
+						args = append(args, mergeStr)
+					}
+					// A trailing `Sg` optional-sugar applies to the last copy.
+					if p.i+1 < innerEnd && body[p.i] == 'S' && body[p.i+1] == 'g' {
+						args[len(args)-1] += "?"
+						p.i += 2
+					}
+					if p.i < innerEnd {
+						if body[p.i] != '_' {
+							return ""
+						}
+						p.i++
+					}
+					continue
+				}
+			}
+			s, ok := renderOne()
+			if !ok {
+				return ""
+			}
+			args = append(args, s)
+			if p.i < innerEnd {
+				if body[p.i] != '_' {
+					return ""
+				}
+				p.i++
+			}
+		}
+		if p.i != innerEnd {
+			return ""
+		}
+		p.i = sigEnd // consume `t`
+	}
+	if p.i != sigEnd {
+		return ""
+	}
+
+	// Label / arg cross-check.
+	if len(labels) != 0 && len(labels) != len(args) {
+		return ""
+	}
+	if singleBare && len(labels) != 0 {
+		return ""
+	}
+
+	var parts []string
+	for i, a := range args {
+		if singleBare {
+			parts = append(parts, a)
+			continue
+		}
+		lbl := ""
+		if i < len(labels) {
+			lbl = labels[i]
+		}
+		if lbl == "" {
+			lbl = "_"
+		}
+		parts = append(parts, lbl+": "+a)
+	}
+	text := hostStr + "." + declName + "(" + strings.Join(parts, ", ") + ")"
+	if isInit {
+		text += " -> " + hostStr
+	} else {
+		if isThrows {
+			text += " throws"
+		}
+		text += " -> " + resStr
+	}
 	if isStatic {
 		text = "static " + text
 	}
