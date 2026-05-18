@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 97.54% (62188/63757) — 2026-05-18T11:46:46Z
-**Round-trip**: 34.57% (22043/63757) — 2026-05-18T11:46:37.885558Z
-**Failures**: 43 parse-errors + 1526 mismatches
+**Parity**: 97.56% (62204/63757) — 2026-05-18T11:57:31Z
+**Round-trip**: 34.60% (22059/63757) — 2026-05-18T11:58:20.622473Z
+**Failures**: 27 parse-errors + 1526 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,6 +29,9 @@
 
 ## Last 10 Commits
 
+- eaaa70ae chore: lock snapshot after CKS commit (parity 97.50%->97.54%)
+- 003ec336 chore: update digest.md for CKS commit (parity 97.50%->97.54%)
+- 376d9cff swift-parity: CKS protocol-witness-thunk function sub-shape (plan-witness-thunk-grammar P3) — parity 97.50%->97.54% +27 production
 - a5c49348 chore: lock snapshot after CKR commit (parity 97.47%->97.50%)
 - 85c4e844 chore: update digest.md for CKR commit (parity 97.47%->97.50%)
 - 753bc791 swift-parity: CKR protocol-witness-thunk getter sub-shape (plan-witness-thunk-grammar P2) — parity 97.47%->97.50% +17 production
@@ -36,9 +39,6 @@
 - b137ea47 chore: defer subscript-ipMV extension-nested slice; close plan-subscript-descriptor-verbose (P7/P8)
 - 9a48712f chore: defer subscript-ipMV labeled-form + greedy-result shapes (deferred-1)
 - d75052b9 chore: plan-subscript-descriptor-verbose-P5 result-tuple FirstElementMarker grammar fix (parity +0)
-- aa88e30c chore: defer subscript-ipMV substitution-count alignment (deferred-1)
-- 9991d344 chore: plan-subscript-descriptor-verbose-P3 tryBoundGeneric subs-table restore on rollback (parity +0)
-- bed69e71 chore: lock snapshot after CKQ commit (parity 62140->62144 roundtrip 21318->21999)
 
 ## Suggested Next 3 Items
 
