@@ -67,10 +67,18 @@ constraint clauses, double nesting, and descriptor wrapping.
       in `double_extension_test.go` cover `scanStructuralE`,
       `parseNominalDecl`, `parseExtLayerModuleRef`. Returns false pending
       P4/P5; parity +0.
-- [ ] **P4 — descriptor wrapping**: wrap the nested-extension type in
-      the `Mc` (protocol conformance descriptor) / `WP` (protocol
-      witness table) entity, emitting Apple's `… : <proto> in <mod>`
-      tail.
+- [x] **P4 — descriptor wrapping** (2026-05-18 fire-19): after the
+      extension-layer loop, `tryDoubleExtensionConformanceDescriptor` now
+      parses the conformed-type tail — the bound-generic wrapper `y…G`
+      (first arg group, up to the first `_`, marks whether the base host
+      renders as `Host<A>`), the trailing multi-substitution run (`A` +
+      lowercase indices + one uppercase terminator), and the `Mc`/`WP`
+      marker → `descriptorKind`. Returns false pending P5 (resolve
+      protocol/module from the substitution run + render). Note: the
+      corpus `[error]` bucket holds only 3 true double-extension symbols
+      — the Mc/WP pair on the canonical body plus one `…FZ`
+      static-function variant; realistic payoff is ~+2, not the plan's
+      original ~+88 (that counted the whole bucket). parity +0.
 - [ ] **P5 — verbose render**: emit the full
       `(extension in X):(extension in X):Host<A>< where …>.Nested…`
       string.
@@ -87,6 +95,9 @@ constraint clauses, double nesting, and descriptor wrapping.
 - 2026-05-18 fire-18: P3 done — nested-extension loop builds the full
   `[]extLayer` chain; helper unit tests added; +0; gates green;
   [error] bucket 89 → 89.
+- 2026-05-18 fire-19: P4 done — conformed-type tail + descriptor marker
+  parsed; +0; gates green. Scope correction: only ~2 corpus symbols
+  are recoverable here (Mc/WP pair), not ~88.
 
 ## Failed attempts
 

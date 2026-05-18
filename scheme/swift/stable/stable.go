@@ -14650,11 +14650,65 @@ func (p *parser) tryDoubleExtensionConformanceDescriptor() (*demangle.Node, bool
 	if len(layers) < 2 {
 		return nil, false
 	}
-	// TODO P4: wrap the nested-extension type in the Mc/WP descriptor entity.
-	// TODO P5: emit the verbose
-	// `(extension in X):(extension in X):Host<A>< where …>.Nested…` string.
+	// P4: parse the conformed-type tail and the descriptor marker.
+	//   `pos` sits just past the final nested nominal's kind byte.
+	//   <bound-generic-args>? <substitution-run> (Mc|WP)
+	// The bound-generic wrapper `y…G` supplies the conformed type's
+	// generic arguments per nesting level (e.g. `yx__G` = [[A],[],[]]
+	// → only the base host is parameterised).
+	baseHasGenericArg := false
+	if pos < len(s) && s[pos] == 'y' {
+		gEnd := strings.IndexByte(s[pos:], 'G')
+		if gEnd < 0 {
+			return nil, false
+		}
+		gEnd += pos
+		// The first argument group (up to the first '_') belongs to the
+		// base host; a non-empty group means the host renders as Host<A>.
+		argGroup0End := strings.IndexByte(s[pos+1:gEnd], '_')
+		if argGroup0End < 0 {
+			argGroup0End = gEnd
+		} else {
+			argGroup0End += pos + 1
+		}
+		baseHasGenericArg = argGroup0End > pos+1
+		pos = gEnd + 1
+	}
+	// Substitution run: 'A' then zero or more lowercase indices then one
+	// terminating uppercase index. Encodes the conformance's protocol +
+	// module references (resolved in P5).
+	var subRun []int
+	if pos < len(s) && s[pos] == 'A' {
+		pos++
+		for pos < len(s) && s[pos] >= 'a' && s[pos] <= 'z' {
+			subRun = append(subRun, int(s[pos]-'a'))
+			pos++
+		}
+		if pos < len(s) && s[pos] >= 'A' && s[pos] <= 'Z' {
+			subRun = append(subRun, int(s[pos]-'A'))
+			pos++
+		} else {
+			return nil, false
+		}
+	}
+	// Descriptor marker.
+	var descriptorKind string
+	switch {
+	case pos+2 == len(s) && s[pos] == 'M' && s[pos+1] == 'c':
+		descriptorKind = "protocol conformance descriptor for "
+	case pos+2 == len(s) && s[pos] == 'W' && s[pos+1] == 'P':
+		descriptorKind = "protocol witness table for "
+	default:
+		return nil, false
+	}
+	// TODO P5: resolve protocol + module from subRun and emit the verbose
+	// `<descriptor> (extension in X):(extension in X):Host<A>< where …>
+	//  .Nested… : <protocol> in <module>` string.
 	_ = baseName
 	_ = layers
+	_ = baseHasGenericArg
+	_ = subRun
+	_ = descriptorKind
 	return nil, false
 }
 

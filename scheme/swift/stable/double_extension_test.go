@@ -53,6 +53,22 @@ func TestParseNominalDecl(t *testing.T) {
 	}
 }
 
+func TestDoubleExtensionParseChainNoPanic(t *testing.T) {
+	// P2-P4: the parse chain (base nominal, extension-layer loop,
+	// conformed-type tail, descriptor marker) must walk the canonical
+	// body without panicking. It still returns false pending P5 render.
+	for _, body := range []string{
+		deCanonicalBody,
+		deCanonicalBody[:len(deCanonicalBody)-2] + "WP",
+		"10Foundation4DataV", // not a double-extension symbol
+	} {
+		p := &parser{s: body, origin: "_$s" + body}
+		if _, ok := p.tryDoubleExtensionConformanceDescriptor(); ok {
+			t.Fatalf("tryDoubleExtensionConformanceDescriptor returned true (P5 not done) for %q", body)
+		}
+	}
+}
+
 func TestParseExtLayerModuleRef(t *testing.T) {
 	mods := []string{"Foundation"}
 	// 'AA' back-reference resolves substitution index 0.
