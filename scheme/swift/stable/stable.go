@@ -5851,6 +5851,56 @@ func (p *parser) tryImplFunctionType() (*demangle.Node, bool) {
 	return node, true
 }
 
+// aRepeat carries the result of a resolved A<digits><UPPER>
+// compact-repeat back-reference: the substitution node and the
+// repeat count.
+type aRepeat struct {
+	node  *demangle.Node
+	count int
+}
+
+// aRepeatExpand resolves an `A<digits><UPPER>` compact-repeat
+// back-reference at the current parse position. It is the canonical
+// realigned Mechanism-C resolver (substitution-model-rebuild P3.5):
+// `idx = UPPER-'A'` indexes p.subs DIRECTLY — in the rebuilt
+// substitution frame Apple's index points straight at the resolved
+// Type slot, so the legacy `idx+1`-Type band-aid (a calibration
+// against the old mis-aligned table) is dropped.
+//
+// On a match it consumes the `A<digits><UPPER>` bytes and returns the
+// resolved node + repeat count (>=2). On a non-match it leaves the
+// parse position untouched and returns ok=false.
+func (p *parser) aRepeatExpand() (aRepeat, bool) {
+	if p.eof() || p.s[p.i] != 'A' || p.i+1 >= len(p.s) ||
+		p.s[p.i+1] < '0' || p.s[p.i+1] > '9' {
+		return aRepeat{}, false
+	}
+	j := p.i + 1
+	for j < len(p.s) && p.s[j] >= '0' && p.s[j] <= '9' {
+		j++
+	}
+	if j >= len(p.s) || p.s[j] < 'A' || p.s[j] > 'Z' {
+		return aRepeat{}, false
+	}
+	n := 0
+	for _, d := range p.s[p.i+1 : j] {
+		n = n*10 + int(d-'0')
+		if n > 512 {
+			return aRepeat{}, false
+		}
+	}
+	if n < 2 {
+		return aRepeat{}, false
+	}
+	idx := int(p.s[j] - 'A')
+	sub, ok := p.subs.Get(idx)
+	if !ok {
+		return aRepeat{}, false
+	}
+	p.i = j + 1 // consume A<digits><UPPER>
+	return aRepeat{node: sub, count: n}, true
+}
+
 // foldVariableTupleTail extends a variable's declared type when
 // parseType returned only the head element of a multi-element tuple.
 // parseType has no general tuple production — the '_' tuple-element
@@ -5886,6 +5936,17 @@ func (p *parser) foldVariableTupleTail(head *demangle.Node) (*demangle.Node, boo
 	}
 	for !p.eof() && p.s[p.i] == '_' {
 		p.i++ // consume '_'
+		// A<digits><UPPER> compact-repeat back-ref — expand to N copies
+		// of the substitution at idx=(UPPER-'A'). In the substitution-
+		// model-rebuilt frame the index points directly at the resolved
+		// Type slot, so no idx+1 band-aid is needed (P3.5).
+		if rep, ok := p.aRepeatExpand(); ok {
+			repStr := common.Print(rep.node, common.DefaultPrintOptions())
+			for k := 0; k < rep.count; k++ {
+				elts = append(elts, tupleElt{typeStr: repStr})
+			}
+			continue
+		}
 		t, err := p.parseType()
 		if err != nil || t == nil {
 			revert()
@@ -6009,6 +6070,16 @@ func (p *parser) parseSubscriptResultTuple(head *demangle.Node) (*demangle.Node,
 	}
 	p.i++ // consume FirstElementMarker '_'
 	for !p.eof() && p.s[p.i] != 't' {
+		// A<digits><UPPER> compact-repeat back-ref — realigned-frame
+		// direct index, no idx+1 band-aid (substitution-model-rebuild
+		// P3.5).
+		if rep, repOK := p.aRepeatExpand(); repOK {
+			repStr := common.Print(rep.node, opts)
+			for k := 0; k < rep.count; k++ {
+				elts = append(elts, tupleElt{typeStr: repStr})
+			}
+			continue
+		}
 		t, err := p.parseType()
 		if err != nil || t == nil {
 			revert()
@@ -7036,41 +7107,14 @@ func (p *parser) tryInitDeinitEntity() (*demangle.Node, bool, error) {
 			p.i++ // consume FirstElementMarker '_'
 			for !p.eof() && p.s[p.i] != 't' {
 				// A<N><UPPER> compact-repeat back-ref: expand to N copies
-				// of subs[UPPER-'A']. parseNominalPath/WithModule pushes
-				// Identifier THEN Type at adjacent slots; Apple's index
-				// points at the Type slot, which our parser stores at
-				// idx+1 (Identifier at idx). Use idx+1 to fetch the Type.
-				if p.s[p.i] == 'A' && p.i+1 < len(p.s) &&
-					p.s[p.i+1] >= '0' && p.s[p.i+1] <= '9' {
-					j := p.i + 1
-					for j < len(p.s) && p.s[j] >= '0' && p.s[j] <= '9' {
-						j++
+				// of the substitution at idx=(UPPER-'A'). Realigned frame
+				// — direct index, no idx+1 band-aid (substitution-model-
+				// rebuild P3.5).
+				if rep, repOK := p.aRepeatExpand(); repOK {
+					for k := 0; k < rep.count; k++ {
+						paramTypes = append(paramTypes, rep.node)
 					}
-					if j < len(p.s) && p.s[j] >= 'A' && p.s[j] <= 'Z' {
-						idx := int(p.s[j] - 'A')
-						sub, ok := p.subs.Get(idx)
-						// Prefer the Type at idx+1 when idx slot is an
-						// Identifier and the next slot is a wrapping Type.
-						if ok && common.NodeKind(sub.Kind) == common.KindIdentifier {
-							if nx, ok2 := p.subs.Get(idx + 1); ok2 &&
-								common.NodeKind(nx.Kind) == common.KindType {
-								sub = nx
-							}
-						}
-						if ok {
-							n := 0
-							for _, d := range p.s[p.i+1 : j] {
-								n = n*10 + int(d-'0')
-							}
-							if n >= 2 && n <= 512 {
-								p.i = j + 1
-								for k := 0; k < n; k++ {
-									paramTypes = append(paramTypes, sub)
-								}
-								continue
-							}
-						}
-					}
+					continue
 				}
 				elem, eerr := p.parseType()
 				if eerr != nil {
@@ -15952,12 +15996,9 @@ func (p *parser) fpVerbosePlainHostText(wantHost string) string {
 					if !sok || n < 2 {
 						return ""
 					}
-					if common.NodeKind(sub.Kind) == common.KindIdentifier {
-						if nx, ok2 := p.subs.Get(idx + 1); ok2 &&
-							common.NodeKind(nx.Kind) == common.KindType {
-							sub = nx
-						}
-					}
+					// Realigned frame: idx points directly at the resolved
+					// substitution; no idx+1 band-aid (substitution-model-
+					// rebuild P3.5).
 					mergeStr := common.Print(sub, common.DefaultPrintOptions())
 					if mergeStr == "" || strings.HasPrefix(mergeStr, "<<") ||
 						fpVerboseTypeHasGenericMarker(mergeStr) {
@@ -18346,13 +18387,10 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 							}
 							if n >= 2 && n <= 512 {
 								idx := int(letter - 'A')
+								// Realigned frame: idx points directly at the
+								// resolved substitution; no idx+1 band-aid
+								// (substitution-model-rebuild P3.5).
 								sub, ok := p.subs.Get(idx)
-								if ok && common.NodeKind(sub.Kind) == common.KindIdentifier {
-									if nx, ok2 := p.subs.Get(idx + 1); ok2 &&
-										common.NodeKind(nx.Kind) == common.KindType {
-										sub = nx
-									}
-								}
 								if ok {
 									for k := 1; k < n; k++ {
 										paramTypes = append(paramTypes, sub)
@@ -18447,39 +18485,15 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 					}
 				}
 				// A<N><UPPER> compact-repeat back-ref: expand to N copies of
-				// subs[UPPER-'A']. parseNominalPath pushes Identifier THEN Type
-				// at adjacent slots; prefer the Type at idx+1 when idx is an
-				// Identifier (mirrors aCompactExpand in tryFunctionEntity).
-				if p.s[p.i] == 'A' && p.i+1 < len(p.s) &&
-					p.s[p.i+1] >= '0' && p.s[p.i+1] <= '9' {
-					j := p.i + 1
-					for j < len(p.s) && p.s[j] >= '0' && p.s[j] <= '9' {
-						j++
+				// the substitution at idx=(UPPER-'A'). Realigned frame —
+				// direct index, no idx+1 band-aid (substitution-model-
+				// rebuild P3.5).
+				if rep, repOK := p.aRepeatExpand(); repOK {
+					for k := 0; k < rep.count; k++ {
+						paramTypes = append(paramTypes, rep.node)
+						paramCount++
 					}
-					if j < len(p.s) && p.s[j] >= 'A' && p.s[j] <= 'Z' {
-						idx := int(p.s[j] - 'A')
-						sub, ok := p.subs.Get(idx)
-						if ok && common.NodeKind(sub.Kind) == common.KindIdentifier {
-							if nx, ok2 := p.subs.Get(idx + 1); ok2 &&
-								common.NodeKind(nx.Kind) == common.KindType {
-								sub = nx
-							}
-						}
-						if ok {
-							n := 0
-							for _, d := range p.s[p.i+1 : j] {
-								n = n*10 + int(d-'0')
-							}
-							if n >= 2 && n <= 512 {
-								p.i = j + 1
-								for k := 0; k < n; k++ {
-									paramTypes = append(paramTypes, sub)
-									paramCount++
-								}
-								continue
-							}
-						}
-					}
+					continue
 				}
 				elemSave := p.i
 				elemSubs := p.subs
@@ -21714,38 +21728,14 @@ func (p *parser) tryExtensionEntity() (*demangle.Node, bool, error) {
 				}
 			}
 			// A<N><UPPER> compact-repeat back-ref: expand to N copies of
-			// subs[UPPER-'A']. parseNominalPath pushes Identifier THEN Type
-			// at adjacent slots; prefer the Type at idx+1 when idx is an
-			// Identifier (mirrors aCompactExpand in tryFunctionEntity).
-			if p.s[p.i] == 'A' && p.i+1 < len(p.s) &&
-				p.s[p.i+1] >= '0' && p.s[p.i+1] <= '9' {
-				j := p.i + 1
-				for j < len(p.s) && p.s[j] >= '0' && p.s[j] <= '9' {
-					j++
+			// the substitution at idx=(UPPER-'A'). Realigned frame —
+			// direct index, no idx+1 band-aid (substitution-model-
+			// rebuild P3.5).
+			if rep, repOK := p.aRepeatExpand(); repOK {
+				for k := 0; k < rep.count; k++ {
+					paramTypes = append(paramTypes, rep.node)
 				}
-				if j < len(p.s) && p.s[j] >= 'A' && p.s[j] <= 'Z' {
-					idx := int(p.s[j] - 'A')
-					sub, ok := p.subs.Get(idx)
-					if ok && common.NodeKind(sub.Kind) == common.KindIdentifier {
-						if nx, ok2 := p.subs.Get(idx + 1); ok2 &&
-							common.NodeKind(nx.Kind) == common.KindType {
-							sub = nx
-						}
-					}
-					if ok {
-						n := 0
-						for _, d := range p.s[p.i+1 : j] {
-							n = n*10 + int(d-'0')
-						}
-						if n >= 2 && n <= 512 {
-							p.i = j + 1
-							for k := 0; k < n; k++ {
-								paramTypes = append(paramTypes, sub)
-							}
-							continue
-						}
-					}
-				}
+				continue
 			}
 			elemSave := p.i
 			elemSubs := p.subs
@@ -26689,47 +26679,17 @@ func (p *parser) tryFunctionEntity() (*demangle.Node, bool, error) {
 					return true
 				}
 				// aCompactExpand: A<digits><UPPER> compact-repeat back-ref —
-				// expand to N copies of subs[UPPER-'A']. Mirrors sCompactExpand.
-				// parseNominalPath pushes Identifier THEN Type at adjacent
-				// slots; Apple's index points at the Type slot, which our
-				// parser stores at idx+1. Prefer the Type at idx+1 when the
-				// idx slot is an Identifier.
+				// expand to N copies of the substitution at idx=(UPPER-'A').
+				// Mirrors sCompactExpand. Realigned-frame direct index via
+				// aRepeatExpand — no idx+1 band-aid (substitution-model-
+				// rebuild P3.5).
 				aCompactExpand := func() bool {
-					if p.eof() || p.s[p.i] != 'A' || p.i+1 >= len(p.s) ||
-						p.s[p.i+1] < '0' || p.s[p.i+1] > '9' {
-						return false
-					}
-					j := p.i + 1
-					for j < len(p.s) && p.s[j] >= '0' && p.s[j] <= '9' {
-						j++
-					}
-					if j >= len(p.s) || p.s[j] < 'A' || p.s[j] > 'Z' {
-						return false
-					}
-					idx := int(p.s[j] - 'A')
-					sub, ok := p.subs.Get(idx)
+					rep, ok := p.aRepeatExpand()
 					if !ok {
 						return false
 					}
-					if common.NodeKind(sub.Kind) == common.KindIdentifier {
-						if nx, ok2 := p.subs.Get(idx + 1); ok2 &&
-							common.NodeKind(nx.Kind) == common.KindType {
-							sub = nx
-						}
-					}
-					n := 0
-					for _, d := range p.s[p.i+1 : j] {
-						n = n*10 + int(d-'0')
-						if n > 512 {
-							return false
-						}
-					}
-					if n < 2 {
-						return false
-					}
-					p.i = j + 1 // consume A<digits><UPPER>
-					for k := 0; k < n; k++ {
-						elements = append(elements, sub)
+					for k := 0; k < rep.count; k++ {
+						elements = append(elements, rep.node)
 					}
 					return true
 				}

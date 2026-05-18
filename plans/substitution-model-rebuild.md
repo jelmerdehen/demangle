@@ -206,15 +206,41 @@ convergence — done inside the open `BREAK_OK` window.
       pre-skip table length; restored at P3.5 (Mechanism C
       realignment) + P5 convergence. Chained as a second
       independent `BREAK_ID`; P2's break stays open.
-- [ ] **P3.5 — Mechanism C decoupling (inside the window)**: with A
-      and B realigned, the substitution table now matches Apple's
-      frame. Re-implement the `A<digits><letter>` repeat-count
-      resolver (`aCompactExpand` + the five sibling sites listed
-      above) to index the *realigned* table directly and DROP the
-      `idx+1`-Type band-aid heuristic — the realigned table has the
-      Type at the slot Apple's index points to. Verify the
-      `_A13Ht`/`_A31Ht`/`_A15Ft` family resolves to the correct
-      N-element tuple.
+- [x] **P3.5 — Mechanism C decoupling (inside the window)** — done
+      2026-05-19. Added a single canonical realigned resolver
+      `aRepeatExpand` (`stable.go:~5866`): it scans `A<digits><UPPER>`,
+      resolves `idx = UPPER-'A'` against `p.subs` DIRECTLY, and returns
+      `{node, count}`. In the A/B-realigned frame Apple's index points
+      straight at the resolved Type slot, so the legacy `idx+1`-Type
+      band-aid (a calibration against the OLD mis-aligned table) is
+      DROPPED. Root cause of the broken family: the variable-getter /
+      property-descriptor tuple folders `foldVariableTupleTail` and
+      `parseSubscriptResultTuple` had NO inline `A<digits><UPPER>`
+      handling at all — `parseType` → `parseNumericSubstitution`
+      resolved `A15F` to a single node and dropped the repeat count
+      `15`, yielding a 2-element tuple instead of 16. Both folders now
+      call `aRepeatExpand` in their `_`-separated element loop. The
+      five sibling repeat-count sites were re-routed through
+      `aRepeatExpand` (`~7050` firstParam-tuple, `~18460`/`~21695`
+      param-loops, `aCompactExpand` variable-tuple) or had the band-aid
+      dropped in place where they scan already-consumed bytes (`~18307`
+      `_t` back-compat, `~15915` verbose-form renderer). `multiSubExpand`
+      (the `A<lowers>+<UPPER>` multi-substitution chain — a DIFFERENT
+      mechanism, not repeat-count) left untouched, out of P3.5 scope.
+      **Measured delta:** parity 62151 → 62161 (+10), roundtrip
+      22067 → 22067 (+0). **Zero new losses** — all 81 disappeared-parity
+      / 11 disappeared-roundtrip symbols are subsets of the open P2/P3
+      break disappeared-sets; P3.5 is pure recovery, NO new break
+      chained. **Recovers the full Mechanism-C `_A13Ht`/`_A31Ht`/`_A15Ft`
+      family** — all 4 parity symbols of P2's break `pending-1779145924`
+      disappeared-set (`Foundation.Data.InlineData.bytes`,
+      `Data.Iterator._buffer`, `UUID.uuid` getter + descriptor) now
+      pass, byte-exact vs Apple swift-demangle (14 / 32 / 16 elements
+      respectively). The remaining +6 parity recovered are P3-break
+      index-shift casualties. P2's break `pending-1779145924` parity set
+      is now FULLY restored; its 2 roundtrip symbols + the P3 break set
+      remain for P4 (remangler) / P5. Hard gates GREEN: Apple 153/153,
+      swiftc 222/222, categories, build.
 - [ ] **P4 — remangler coordination**: emit substitution-sourced
       nodes as `A<letter>` sub-refs (not length-prefixed idents) so
       the realigned parses round-trip byte-exact — closes the −2
@@ -232,6 +258,25 @@ convergence — done inside the open `BREAK_OK` window.
 
 ## Status
 
+- 2026-05-19: **P3.5 complete (Mechanism C decoupling — pure
+  recovery, NO new break).** Added canonical realigned resolver
+  `aRepeatExpand` (`stable.go:~5866`): `A<digits><UPPER>` → direct
+  `p.subs.Get(UPPER-'A')` index, `idx+1`-Type band-aid DROPPED. Root
+  cause: the variable-getter / property-descriptor tuple folders
+  (`foldVariableTupleTail`, `parseSubscriptResultTuple`) had no inline
+  `A<digits><UPPER>` handling — `parseNumericSubstitution` dropped the
+  repeat count, so `s5UInt8V_A15Ft` folded to 2 elements not 16. Both
+  folders + five sibling repeat-count sites now route through
+  `aRepeatExpand` (or had the band-aid dropped in place for
+  back-scanning sites). Parity 62151 → 62161 (+10), roundtrip
+  22067 → 22067 (+0). **Zero new losses** — every disappeared symbol
+  is within the open P2/P3 break sets. **The `_A13Ht`/`_A31Ht`/`_A15Ft`
+  Mechanism-C family is fully recovered** (all 4 parity symbols of P2
+  break `pending-1779145924` now pass, byte-exact vs Apple). P2's
+  break parity disappeared-set is fully restored; formal `BREAK_FIXED`
+  closure happens at P5 (its 2 roundtrip symbols still pend P4). Hard
+  gates green (Apple 153/153, swiftc 222/222, categories, build). No
+  new break — 2 breaks remain open. Next: P4 (remangler coordination).
 - 2026-05-19: **P3 complete (Mechanism B, retry — scoped, chained
   `BREAK_OK` fire).** The blanket `c != 'A'` skip that broke the
   prior attempt's hard gate is replaced by a precisely-scoped skip:
