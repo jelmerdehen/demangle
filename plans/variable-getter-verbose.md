@@ -1,0 +1,142 @@
+# PLAN: variable-getter-verbose
+
+**Origin:** production-divergences.txt mismatch scan, 2026-05-18 (post
+witness-thunk-grammar close). 74 symbols render a bare simplified
+variable-getter where Apple emits the verbose form. Largest coherent
+single-mechanism mismatch slice that is not the plateaued
+function-signature problem.
+**Estimated payoff:** up to ~+74P; P1 splits the coherent sub-shapes
+and re-estimates honestly (see the double-extension `~88→+2` and
+property-descriptor `217→+72` corrections — the headline is not the
+target).
+**Estimated fires:** 5+.
+**Anti-cheat invariants apply:** no preparseLiterals, no scoring tamper.
+
+## Problem
+
+74 symbols whose `got` is a bare `X.Y.getter` parse but whose Apple
+`want` is the verbose form — fully module-qualified host plus a
+` : <declared-type>` annotation:
+
+```
+got  CocoaError.stringEncoding.getter
+want Foundation.CocoaError.stringEncoding.getter : (extension in Foundation):Swift.String.Encoding?
+
+got  PredicateExpressions.PredicateRegex.regex.getter
+want Foundation.PredicateExpressions.PredicateRegex.regex.getter : _StringProcessing.Regex<_StringProcessing.AnyRegexOutput>
+```
+
+Two gaps (same family as the landed `vpMV` var-property-descriptor
+work):
+
+1. **Host-path module qualification** — `CocoaError` →
+   `Foundation.CocoaError`; `(extension in <Mod>):` prefix when
+   extension-nested.
+2. **Declared-type tail** — Apple appends ` : <type>`; we drop it.
+
+A sub-slice is subscript getters (`X.subscript.getter : <A>(...) ->
+…`) which additionally need an index/return signature — harder; P1
+isolates it.
+
+`tryVariableEntity` (scheme/swift/stable/stable.go) already renders the
+verbose form for Foundation/Swift hosts on the `vpMV` path
+(stable.go:~6007, proven by the property-descriptor work). The getter
+(`vg`) accessor likely bails before reaching that render — P1 confirms.
+
+## P1 findings (2026-05-18)
+
+**Bucket re-confirmed: 74 getter-bucket mismatches.** Split:
+
+| Sub-shape | Count | Description |
+|-----------|-------|-------------|
+| A1 — plain var getter, plain-module host | 38 | `got` = `X.Y.getter`; `want` host is plain `Module.X.Y` |
+| A2 — plain var getter, `(extension in)` host | 14 | host is extension-nested (`So<Class>C<Mod>E…`) |
+| B1 — subscript getter, plain host | 13 | `got` = `X.subscript.getter` |
+| B2 — subscript getter, `(extension in)` host | 9 | subscript + extension-nested host |
+
+**Render/bail site — NOT a render gap.** `tryVariableEntity`
+(stable.go:6011) already renders the correct verbose form for
+Foundation/Swift `vg` getters at **stable.go:6326-6334**
+(`mod=="Foundation"||mod=="Swift"` → `pathStr + pathSuffix + " : " +
+typeStr`). The verbose printer is fine; the symbols never reach it.
+
+**Actual mechanism — `parseType` truncates the declared type.**
+Instrumented `tryVariableEntity` at the post-`parseType` point
+(stable.go:6184-6209). For all 38 A1 symbols, `parseType` *succeeds*
+but **consumes only the head of the declared type**, leaving a
+non-`v` leftover. At stable.go:6209 (`p.s[p.i] != 'v'`)
+`tryVariableEntity` then `restore()`s and returns false. The symbol
+falls through to the generic `parseType()` at stable.go:568, which
+parses the *whole* body as a standalone type (the bound-generic /
+extension chain parses fine standalone), and `tryEntitySuffix`
+(stable.go:8533) applies `vg` at **stable.go:9114-9121** as the
+simplified `innerStr + ".getter"` — no module, no type annotation.
+That line is the simplified-render site; the bail is stable.go:6209.
+
+**A1 leftover classification (38 syms, what `parseType` left behind):**
+
+| Leftover shape | Count | Meaning |
+|----------------|-------|---------|
+| `A…` substitution back-ref | 11 | extension/member-type tail (`AAE0E0VSg` = `(ext in Foundation):String.Encoding?`; `ADVvg` = member type) |
+| `y…G` bound-generic args | 7 | `parseType` returned bare nominal, left the `y<args>G` arg list (`yAG03AnyD6OutputVGvg`) |
+| `_…t` / `q_Qp` / `xQp` | 11 | tuple continuation or pack/`repeat` expansion — `parseType` returned only the first tuple element / pack head (foldVariableTupleTail territory, stable.go:5803) |
+| `<digit><ident>` | ~6 | stopped at a member/qualified-type boundary |
+| parseType errored | 3 | full parse failure (hardest slice) |
+
+The 18 `A…`/`y…G` leftovers are **one mechanism**: `parseType`
+returns a head nominal and does not continue into the trailing
+bound-generic argument list or substitution-applied member/extension
+chain when invoked in variable-entity-type position. This is the
+largest coherent single-mechanism slice and the P2 target.
+
+The tuple/pack slice (11) is a *different* mechanism — declared-type
+position tuple/pack fold — and `foldVariableTupleTail` at
+stable.go:5803 already gates only on `vpMV`/`vpZMV`, not `vg`; that
+is P3.
+
+## Primitives
+
+- [x] **P1 — categorise + bail-site probe** (done 2026-05-18). Bucket
+      = 74, sub-shapes A1/A2/B1/B2 = 38/14/13/9. Bail site is
+      stable.go:6209 (`tryVariableEntity` declines because `parseType`
+      truncated the type); simplified render is stable.go:9114. P2
+      retargeted to the parseType-continuation mechanism. +0.
+- [ ] **P2 — declared-type continuation for var getters (A1, ~18
+      syms)**: make `tryVariableEntity`'s declared-type parse consume
+      the FULL type — bound-generic `y<args>G` suffix and the
+      substitution-applied member/extension tail (`A…` leftover) —
+      before checking for the `v` terminal at stable.go:6209. The
+      verbose render at 6326-6334 then fires unchanged. Scope to the
+      bound-generic/subref leftover slice; tuple/pack stays for P3.
+- [ ] **P3 — tuple / pack declared-type tail for var getters (~11
+      syms)**: extend `foldVariableTupleTail` (stable.go:5803) — which
+      currently commits only on `vpMV`/`vpZMV` — to also fire on the
+      `vg`/`vs`/`vM` accessor terminals, so multi-element tuple and
+      `repeat`/pack declared types fold in variable-getter position.
+- [ ] **P4 — extension-nested var-getter hosts (A2, 14 syms)**:
+      `(extension in <Mod>):` host prefix for `So<Class>C<Mod>E…vg`
+      shapes. Reuse the property-descriptor / double-extension host-
+      walk helpers; emit the verbose getter form for extension hosts.
+- [ ] **P5 — subscript getters (B1+B2, 22 syms) + enable/scope**:
+      verbose `X.subscript.getter : <gen-sig>(<params>) -> <result>`
+      for subscript accessors; reuse the subscript-getter sig work
+      noted in INVESTIGATIONS.md (trySubscriptEntityTyped). Smoke
+      wide; narrow on regression; close the plan.
+
+## Status
+
+- 2026-05-18: plan forked from the mismatch scan (post
+  witness-thunk-grammar close). Executed by the orchestrating session
+  via one subagent per fire, sequential, with cross-fire verification.
+- 2026-05-18: **P1 complete.** Bucket = 74. Root cause is NOT a
+  missing verbose printer (it exists at stable.go:6326-6334) — it is
+  `parseType` truncating the declared type inside `tryVariableEntity`,
+  forcing the bail at stable.go:6209 and a fall-through to the
+  simplified `tryEntitySuffix` render at stable.go:9114. P2..P5
+  rewritten around the four distinct mechanisms (parseType
+  continuation / tuple-pack fold / extension host / subscript sig).
+  P2 target = the ~18-symbol bound-generic + subref-tail slice.
+
+## Failed attempts
+
+(none yet)
