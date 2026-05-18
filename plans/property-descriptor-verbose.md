@@ -138,8 +138,10 @@ and the protocol step carries `<>`, emit at `:14332` produces
       (vpMV 65 / ipMV 49 verbose render; vpZMV-ext 31 verbose
       constraint) — out of scope for this plan, candidates for their
       own forks.
-- [ ] **P5 — close**: final `make smoke` + snapshot-check + ratchet
-      green; close the plan.
+- [x] **P5 — close** — done 2026-05-18. Final `make smoke`,
+      `make snapshot-check`, `make ratchet` all green at
+      parity=62134 / roundtrip=21318. Snapshot locked in commit CKN.
+      **Plan closed.**
 
 ## Status
 
@@ -153,6 +155,9 @@ and the protocol step carries `<>`, emit at `:14332` produces
   AMvpZMV bucket; parity 62062→62134.
 - 2026-05-18: P4 done (+0) — bucket scoped; 217→145 mismatches, P3
   guard correctly tight.
+- 2026-05-18: P5 done — **plan closed**. Net result: +72 production
+  parity (62062→62134), roundtrip unchanged, no regressions. The
+  72-sym AMvpZMV property-descriptor sub-bucket is fully drained.
 
 ## Failed attempts
 
