@@ -8664,6 +8664,79 @@ func (p *parser) tryEntitySuffix(inner *demangle.Node) (*demangle.Node, bool) {
 	return wrap, true
 }
 
+// skipProtoExtChain handles a constrained protocol-extension context in the
+// fast-path host walk. It is called when the walk has just parsed an
+// identifier that follows a protocol step and the next bytes do not open a
+// nested nominal type. In `…<proto>P<module><subref>E<gen-sig>E<decl-name>`
+// the identifier is the extension's module, not the decl-name; the chain up
+// to the trailing structural 'E' must be skipped (the simplified
+// property-descriptor form drops the constraint clause entirely).
+//
+// Pass 1 locates the LAST structural 'E' before `end` that is followed by a
+// digit-led identifier, restoring all parser state afterwards. Pass 2 walks
+// up to that 'E', parsing identifiers so word-substitution words are
+// captured for the decl-name that follows. On success p.i is advanced just
+// past the trailing 'E' and true is returned; on no match p.i is unchanged.
+func (p *parser) skipProtoExtChain(end int) bool {
+	if p.i >= end {
+		return false
+	}
+	// The chain must open with a substitution ref directly followed by the
+	// extension 'E' — `A<idx>E`, the extended-type back-ref. A real protocol
+	// decl-name is followed by its type or arg labels, never this shape.
+	j := p.i
+	if p.s[j] != 'A' {
+		return false
+	}
+	j++
+	for j < end && ((p.s[j] >= 'a' && p.s[j] <= 'z') ||
+		(p.s[j] >= '0' && p.s[j] <= '9')) {
+		j++
+	}
+	if j >= end || !(p.s[j] >= 'A' && p.s[j] <= 'Z') {
+		return false
+	}
+	j++
+	if j >= end || p.s[j] != 'E' {
+		return false
+	}
+	save := p.i
+	saveWords := p.words
+	lastE := -1
+	for p.i < end {
+		c := p.s[p.i]
+		if c >= '0' && c <= '9' {
+			before := p.i
+			if _, err := p.parseIdentifier(); err != nil {
+				p.i = before + 1
+			}
+			continue
+		}
+		if c == 'E' && p.i+1 < end && p.s[p.i+1] >= '0' && p.s[p.i+1] <= '9' {
+			lastE = p.i
+		}
+		p.i++
+	}
+	p.i = save
+	p.words = saveWords
+	if lastE < 0 || lastE+1 >= end {
+		return false
+	}
+	for p.i < lastE {
+		c := p.s[p.i]
+		if c >= '0' && c <= '9' {
+			before := p.i
+			if _, err := p.parseIdentifier(); err != nil {
+				p.i = before + 1
+			}
+			continue
+		}
+		p.i++
+	}
+	p.i = lastE + 1
+	return true
+}
+
 // tryGlobalLastResortFastPath emits a labels-only output for symbols that
 // none of the structured handlers could parse. Patterns covered:
 //
@@ -13349,6 +13422,8 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 	// Walk nested-type chain + decl-name.
 	var nestedNames []string
 	declName := ""
+	lastNominalKind := byte(0)
+	fpProtoExtMarker := ""
 	if fpTopLevelDecl != "" {
 		declName = fpTopLevelDecl
 	}
@@ -13363,6 +13438,7 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			p.s[p.i] == 'O' || p.s[p.i] == 'P') {
 			nestedNames = append(nestedNames, ident)
 			fpHostIsSwiftClass = (p.s[p.i] == 'C')
+			lastNominalKind = p.s[p.i]
 			p.i++
 			continue
 		}
@@ -13371,6 +13447,19 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 		// Skip past E and continue nested-walk.
 		if !p.eof() && p.s[p.i] == 'E' {
 			p.i++
+			lastNominalKind = 0
+			continue
+		}
+		// Constrained protocol extension: after a protocol step the parsed
+		// identifier is the extension's module, followed by the extended-type
+		// substitution ref, an 'E', a generic signature, and a trailing 'E'
+		// before the real decl-name. Skip the whole chain and resume the walk
+		// at the decl-name, marking the protocol step with the empty-generic
+		// placeholder "<>".
+		if lastNominalKind == 'P' && len(nestedNames) > 0 &&
+			p.skipProtoExtChain(len(p.s)) {
+			fpProtoExtMarker = "<>"
+			lastNominalKind = 0
 			continue
 		}
 		declName = ident
@@ -13526,6 +13615,11 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			}
 			break
 		}
+	}
+	// A constrained protocol extension consumed in the host walk marks the
+	// extended protocol step with the empty-generic placeholder "<>".
+	if fpProtoExtMarker != "" && fpNestedExtMarker == "" {
+		fpNestedExtMarker = fpProtoExtMarker
 	}
 
 	// Determine terminal: init (fC/fc/KfC/Kfc) OR function (F/FZ).
