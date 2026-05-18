@@ -1,7 +1,7 @@
 # Swift Production Digest
 
-**Parity**: 97.34% (62060/63757) — 2026-05-17T19:50:59Z
-**Round-trip**: 33.43% (21316/63757) — 2026-05-17T19:50:21.945983Z
+**Parity**: 97.34% (62060/63757) — 2026-05-18T00:23:14Z
+**Round-trip**: 33.44% (21318/63757) — 2026-05-18T00:32:38.648902Z
 **Failures**: 89 parse-errors + 1608 mismatches
 
 ## Top-20 Mismatch Categories
@@ -29,16 +29,16 @@
 
 ## Last 10 Commits
 
-- 5adb8a6c swift-parity: CKL function-verbose-form P2 — single-param function verbose form — parity 97.33%->97.33% +2 production +0 roundtrip
-- 5cd4990d chore: plan-function-verbose-form decode function-type encoding from oracle tree — P2 spec (parity +0)
-- 6c95a3be chore: plan-function-verbose-form-P1 isFn detection + FZ terminal (parity +0)
-- 556d60cd plan: fork function-verbose-form from verbose-form-nested-host P4 (function/init signature rendering, ~+150P)
-- 523a6b44 chore: plan-verbose-form-nested-host — drop P3 (+0, no qualifying syms), refine P4 functions scope (parity +0)
-- 5637784f chore: lock snapshot after CKK commit (parity 62054->62058 roundtrip 21316->21316)
-- 4f1d6806 chore: update digest.md for CKK commit (parity 97.33%->97.33% +4)
-- 95a03cc6 swift-parity: CKK verbose-form-nested-host P2 — compositional nested-host renderer — parity 97.33%->97.33% +4 production +0 roundtrip
-- 5d33593f chore: plan-verbose-form-nested-host P2 blocked on parseType extension-nested gap — re-scoped + failed-attempt logged (parity +0)
-- 210e1051 chore: plan-verbose-form-nested-host-P1 nested-host detection (parity +0)
+- d5683344 swift-parity: CKM double-extension-grammar P5 — verbose double-extension conformance-descriptor render — parity 97.34%->97.34% +2 production +2 roundtrip
+- 23583eb3 chore: plan-double-extension-grammar-P4 conformed-type tail + descriptor marker (parity +0)
+- 47e69698 chore: plan-double-extension-grammar-P3 nested-extension loop (parity +0)
+- 60c1a785 chore: plan-double-extension-grammar-P2 extension-on-bound-generic layer parser (parity +0)
+- 76cef752 chore: defer function-type Yj/Yb bare-annotations — fix regressed -26 roundtrip, needs remangler coordination (parity +0)
+- 7f9fc9d3 chore: plan-double-extension-grammar-P1 bail-site probe — main parser leaves extension chain as leftover (parity +0)
+- 39bdc1bd plan: fork double-extension-grammar (88-sym parse-error cluster, ~+88P)
+- a98cd1be chore: plateau SOS — verbose-form drained (+10 shipped), next investment is the 88-sym double-extension parse-error cluster (parity +0)
+- 496e2ad5 chore: plan-function-verbose-form P3a failed-attempt log — entity-sig parser needed, bucket plateaued (parity +0)
+- 7ab7bf82 chore: plan-function-verbose-form decode compact S<N> form, split P3 into P3a/P3b (parity +0)
 
 ## Suggested Next 3 Items
 
