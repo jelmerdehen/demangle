@@ -111,13 +111,18 @@ only fires if the main parser still bails).
       not a bounded primitive. Deferred to INVESTIGATIONS.md
       (`subscript ipMV substitution-count`, deferred-1). Slice1 (+1)
       and the index-resolution half of Slice2-5 stay blocked on it.
-- [ ] **P5 — `A<letter>…Q<param>` substitution-ref-led dependent
-      member type**: Slice2-5 carry `AHQy_Sg` etc. — a dependent member
-      type whose associated-type-ref is an `A<letter>` substitution
-      back-ref to a previously-registered identifier.
-      `tryDependentMemberType` only accepts the digit-led
-      (`<N><name>Q…`) form; extend it to also accept the
-      substitution-ref-led form. Unblocks the Slice2-5 tuple-fold.
+- [x] **P5 — result-tuple FirstElementMarker grammar fix** — done
+      2026-05-18 (+0 parity). Diagnosis corrected: the `A<letter>…Q`
+      dependent-member grammar already works (stable.go:~27631). The
+      real Slice2-5 blocker was a bug in P2's `parseSubscriptResultTuple`
+      — it required a `_` separator before *every* element, but a
+      Swift tuple carries exactly one `_` FirstElementMarker after
+      element 0 with the remaining elements contiguous to `t`. Rewrote
+      the loop to consume one `_` then parse elements contiguously;
+      added lowercase-leading guard on element labels. Slice2-5 now
+      fold correctly (result tuple right); their *index* type still
+      mis-resolves on the deferred-P4 substitution-count issue, so +0
+      parity. No regressions.
 - [ ] **P6 — remaining plain non-tuple `cipMV` shapes**: probe
       `_CocoaArrayWrapper` (`yXl` AnyObject result), `_NativeDictionary`
       (`(_:isUnique:)` multi-label, `B?` result), `_AnyCollectionBox`
@@ -155,8 +160,10 @@ only fires if the main parser still bails).
   carry the remaining AttributesSlice substitution-count + dependent-
   member-grammar work.
 - 2026-05-18: P4 deferred — substitution-count alignment regressed
-  −104, reverted; logged to INVESTIGATIONS.md (deferred-1). Next fire
-  picks up P5 (`A<letter>…Q` dependent-member grammar).
+  −104, reverted; logged to INVESTIGATIONS.md (deferred-1).
+- 2026-05-18: P5 done — result-tuple FirstElementMarker grammar fix
+  (one `_` then contiguous elements). +0 parity (Slice2-5 fold but
+  index blocked on deferred-P4), no regressions.
 
 ## Failed attempts
 

@@ -5891,10 +5891,12 @@ func (p *parser) foldVariableTupleTail(head *demangle.Node) (*demangle.Node, boo
 // parseSubscriptResultTuple folds a multi-element tuple result inside a
 // typed subscript signature. parseType returns only the head element of
 // a tuple (there is no general tuple production); when the subscript's
-// result type is a tuple it is encoded as '<e0> ['_' <eN>]+ t' with an
-// optional per-element label preceding each '_' / 't'. head is the
-// element parseType already returned. The fold reverts atomically when
-// the run is not a well-formed >=2-element tuple, leaving head intact.
+// result type is a tuple it is encoded as '<e0> '_' <e1> <e2> … <eN> t'
+// — exactly one '_' FirstElementMarker after element 0, the remaining
+// elements contiguous up to 't'. Each element may carry a trailing
+// lowercase identifier label. head is the element parseType already
+// returned. The fold reverts atomically when the run is not a
+// well-formed >=2-element tuple, leaving head intact.
 func (p *parser) parseSubscriptResultTuple(head *demangle.Node) (*demangle.Node, bool) {
 	if p.eof() {
 		return head, false
@@ -5909,30 +5911,53 @@ func (p *parser) parseSubscriptResultTuple(head *demangle.Node) (*demangle.Node,
 	opts := common.DefaultPrintOptions()
 	type tupleElt struct{ label, typeStr string }
 	elts := []tupleElt{{typeStr: common.Print(head, opts)}}
-	if c >= '0' && c <= '9' {
+	// parseElementLabel consumes a trailing tuple-element label. A label
+	// is a lowercase-leading identifier; an uppercase-leading digit run
+	// is the next element's nominal type, not a label — rewind.
+	parseElementLabel := func() (string, bool) {
+		if p.eof() || !(p.s[p.i] >= '0' && p.s[p.i] <= '9') {
+			return "", true
+		}
+		lblSave := p.i
+		lblSubs := p.subs
 		name, err := p.parseIdentifier()
 		if err != nil {
+			return "", false
+		}
+		if name == "" || !(name[0] >= 'a' && name[0] <= 'z') {
+			p.i = lblSave
+			p.subs = lblSubs
+			return "", true
+		}
+		return name, true
+	}
+	if c >= '0' && c <= '9' {
+		name, ok := parseElementLabel()
+		if !ok {
 			revert()
 			return head, false
 		}
 		elts[0].label = name
 	}
-	for !p.eof() && p.s[p.i] == '_' {
-		p.i++ // consume '_'
+	// Exactly one '_' FirstElementMarker follows element 0.
+	if p.eof() || p.s[p.i] != '_' {
+		revert()
+		return head, false
+	}
+	p.i++ // consume FirstElementMarker '_'
+	for !p.eof() && p.s[p.i] != 't' {
 		t, err := p.parseType()
 		if err != nil || t == nil {
 			revert()
 			return head, false
 		}
 		e := tupleElt{typeStr: common.Print(t, opts)}
-		if !p.eof() && p.s[p.i] >= '0' && p.s[p.i] <= '9' {
-			name, nerr := p.parseIdentifier()
-			if nerr != nil {
-				revert()
-				return head, false
-			}
-			e.label = name
+		name, ok := parseElementLabel()
+		if !ok {
+			revert()
+			return head, false
 		}
+		e.label = name
 		elts = append(elts, e)
 	}
 	if p.eof() || p.s[p.i] != 't' || len(elts) < 2 {
