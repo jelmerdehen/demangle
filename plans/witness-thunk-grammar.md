@@ -89,20 +89,20 @@ Handle plain conformances first; constrained ones may need a narrow.
       33 getter / 29 function; conformance region is substitution-heavy
       `<protocol> <module>` then an ordinary entity. Primitives below
       rewritten to the two coherent sub-shapes. +0.
-- [ ] **P2 — getter sub-shape end-to-end**: add `tryProtocolWitnessThunk`,
-      wired into `parseGlobal` after `inner` is parsed (alongside the
-      other `try*` wrappers, before the entity-suffix loop). Detect a
-      trailing `…TW`; decode the `<protocol> <module>` conformance
-      region (substitution math — `--expand` ground truth); parse the
-      `<var-name> <type> vg` (and `vgZ`) variable-getter entity; render
-      `protocol witness for [static ]<proto>.<var>.getter in conformance
-      <conforming-type-simplified>` and wire it in. Conforming type =
-      `inner` printed simplified (no module, generic args kept).
-      Target ~33 getter syms (`vgTW` + `vgZTW`). If the conformance
-      decode proves too large to also land the render in one fire,
-      ship the decode as a `+0` scaffold and let P3 take the render —
-      either way, one primitive this fire. Three-commit parity round
-      on net rise.
+- [x] **P2 — getter sub-shape end-to-end** (2026-05-18): added
+      `tryProtocolWitnessThunk` (stable.go), wired into `parseGlobal`
+      after the conformance-witness check (terminal — consumes to EOF).
+      Grammar parsed structurally: `<conf-module>` (parseType→Module),
+      `<protocol-ident>` (parseIdentifier), `<proto-module>` (A-led
+      multi-substitution run or `s`), `P`, `<req-name>`, `<req-type>`
+      (parseType, discarded), `vg`/`vgZ`, `TW`. Renders
+      `protocol witness for [static ]<proto>.<req>.getter in conformance
+      <conforming-type>` (conforming type printed `QualifyEntities=false`).
+      **Result: +17 production** — 16 plain `vgTW` + 1 `vgZTW`. TW
+      error bucket 62→45. The 16 remaining `vgTW` carry a generic-
+      requirement clause (`Group` / `_ConditionalContent` / `xSg`
+      constrained conformances) — declined cleanly (mod2 run stops at
+      a non-`P` byte), deferred to P4.
 - [ ] **P3 — function sub-shape**: extend `tryProtocolWitnessThunk` to
       the `<labels> <fn-type> tF` / `tFZ` entity tail; render
       `[static ]<proto>.<fn>(<label>:<label>:)` (labels only, no
@@ -121,6 +121,8 @@ Handle plain conformances first; constrained ones may need a narrow.
   subscript-descriptor-verbose close).
 - 2026-05-18: P1 done — bail site `stable.go:181-196`, 62 split
   33 getter / 29 function, primitives rewritten to the two sub-shapes.
+- 2026-05-18: P2 done — `tryProtocolWitnessThunk` getter sub-shape,
+  +17 production (CKR), TW bucket 62→45.
 
 ## Failed attempts
 

@@ -595,6 +595,12 @@ func (p *parser) parseGlobal() (*demangle.Node, error) {
 	if wrapped, ok := p.tryConcreteProtocolConformanceWitness(inner); ok {
 		inner = wrapped
 	}
+	// Protocol-witness-thunk shape: <conforming-type> <protocol-
+	// conformance> <requirement> 'TW'. Terminal — consumes to EOF.
+	if wrapped, ok := p.tryProtocolWitnessThunk(inner); ok {
+		common.AddChildren(g, wrapped)
+		return g, nil
+	}
 	// Associated conformance descriptor shape:
 	//
 	//   <Protocol-Type> x A<idx> <ident> T(n|N)
@@ -8184,6 +8190,104 @@ func (p *parser) tryConformanceDescriptor(inner *demangle.Node) (*demangle.Node,
 	}
 	wrap := common.NewNode(common.KindTypeMangling)
 	wrap.Text = prefix + innerName + " : " + protoNameStr + " in " + srcMod
+	return wrap, true
+}
+
+// tryProtocolWitnessThunk handles the 'TW' protocol-witness-thunk
+// terminal. Grammar (after the conforming type is parsed into inner):
+//
+//	<conf-module> <protocol-ident> <proto-module>? 'P' <requirement> 'TW'
+//
+// Apple renders the simplified form
+// "protocol witness for [static ]<proto>.<requirement> in conformance
+// <conforming-type>". This handler covers the variable-getter
+// requirement sub-shape (`vg` / `vgZ` accessor); function requirements
+// and constrained conformances decline and fall through unchanged.
+func (p *parser) tryProtocolWitnessThunk(inner *demangle.Node) (*demangle.Node, bool) {
+	if p.eof() || !strings.HasSuffix(p.s, "TW") {
+		return inner, false
+	}
+	save := p.i
+	saveSubs := p.subs
+	saveWords := p.words
+	revert := func() { p.i = save; p.subs = saveSubs; p.words = saveWords }
+
+	// Conformance source module.
+	mod1, err := p.parseType()
+	if err != nil || mod1 == nil || common.NodeKind(mod1.Kind) != common.KindModule {
+		revert()
+		return inner, false
+	}
+	// Protocol identifier (digit-led; plain or word-substituted).
+	if p.eof() || !(p.s[p.i] >= '0' && p.s[p.i] <= '9') {
+		revert()
+		return inner, false
+	}
+	protoName, err := p.parseIdentifier()
+	if err != nil || protoName == "" {
+		revert()
+		return inner, false
+	}
+	// Protocol context module: an 'A'-led multi-substitution run
+	// (A <[0-9a-z]>* <[A-Z]>), an 's' Swift shorthand, or absent.
+	if !p.eof() && p.s[p.i] == 'A' {
+		p.i++
+		for !p.eof() && ((p.s[p.i] >= '0' && p.s[p.i] <= '9') || (p.s[p.i] >= 'a' && p.s[p.i] <= 'z')) {
+			p.i++
+		}
+		if !p.eof() && p.s[p.i] >= 'A' && p.s[p.i] <= 'Z' {
+			p.i++
+		}
+	} else if !p.eof() && p.s[p.i] == 's' {
+		p.i++
+	}
+	// Protocol kind operator.
+	if p.eof() || p.s[p.i] != 'P' {
+		revert()
+		return inner, false
+	}
+	p.i++
+	// Requirement entity: <name> <declared-type> 'v' 'g' ['Z'].
+	if p.eof() || !(p.s[p.i] >= '0' && p.s[p.i] <= '9') {
+		revert()
+		return inner, false
+	}
+	reqName, err := p.parseIdentifier()
+	if err != nil || reqName == "" {
+		revert()
+		return inner, false
+	}
+	if _, err := p.parseType(); err != nil {
+		revert()
+		return inner, false
+	}
+	if p.i+1 >= len(p.s) || p.s[p.i] != 'v' || p.s[p.i+1] != 'g' {
+		revert()
+		return inner, false
+	}
+	p.i += 2
+	isStatic := false
+	if !p.eof() && p.s[p.i] == 'Z' {
+		isStatic = true
+		p.i++
+	}
+	// 'TW' terminal — must consume the remaining bytes exactly.
+	if p.i+2 != len(p.s) || p.s[p.i] != 'T' || p.s[p.i+1] != 'W' {
+		revert()
+		return inner, false
+	}
+	p.i += 2
+	o := common.DefaultPrintOptions()
+	o.QualifyEntities = false
+	confType := common.Print(inner, o)
+	staticPrefix := ""
+	if isStatic {
+		staticPrefix = "static "
+	}
+	wrap := common.NewNode(common.KindTypeMangling)
+	wrap.Text = "protocol witness for " + staticPrefix + protoName + "." + reqName +
+		".getter in conformance " + confType
+	wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
 	return wrap, true
 }
 
