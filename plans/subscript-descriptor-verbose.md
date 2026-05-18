@@ -123,12 +123,22 @@ only fires if the main parser still bails).
       fold correctly (result tuple right); their *index* type still
       mis-resolves on the deferred-P4 substitution-count issue, so +0
       parity. No regressions.
-- [ ] **P6 — remaining plain non-tuple `cipMV` shapes**: probe
-      `_CocoaArrayWrapper` (`yXl` AnyObject result), `_NativeDictionary`
-      (`(_:isUnique:)` multi-label, `B?` result), `_AnyCollectionBox`
-      (`(start:end:)` multi-label) with `--expand`; fix remaining
-      `trySubscriptEntityTyped` bail causes (labeled index tuple,
-      protocol-list result). swift-parity round if parity rises.
+- [x] **P6 — remaining plain non-tuple `cipMV` shapes — DEFERRED**
+      (2026-05-18). Probed all three; each is a distinct mechanism, so
+      not a bounded single primitive — deferred to INVESTIGATIONS.md
+      (`subscript ipMV labeled-form + greedy-result`, deferred-1):
+      • `_CocoaArrayWrapper` (`yyXlSicipMV`): `trySubscriptEntityTyped`
+        reaches the result parse but `parseType` greedily folds the
+        index+terminator `Sic` into a function type
+        (`(Swift.Int) -> Swift.AnyObject`) — `inSubscriptTypes` gates
+        `tryPostfixFunctionTypeWithParams` but a different postfix
+        slips through. Needs the slipping postfix identified + gated.
+      • `_NativeDictionary` / `_AnyCollectionBox`: the *labeled*
+        subscript form — body is `<labels> <result> <args> c i p MV`
+        with no leading `y`, so `trySubscriptEntity` (requires `y`)
+        never dispatches to `trySubscriptEntityTyped`.
+        `trySubscriptEntityLabeled` handles a single label only; needs
+        a multi-label + property-descriptor (`p`+`MV`) path.
 - [ ] **P4 — plain local-generic subscript propdescs** (`luipMV` /
       `cluipMV`): AttributedString.Runs.Run dynamicMember ×2,
       PredicateBindings, ScopedAttributeContainer, Data, String —
@@ -164,6 +174,9 @@ only fires if the main parser still bails).
 - 2026-05-18: P5 done — result-tuple FirstElementMarker grammar fix
   (one `_` then contiguous elements). +0 parity (Slice2-5 fold but
   index blocked on deferred-P4), no regressions.
+- 2026-05-18: P6 deferred — 3 plain symbols, 3 distinct mechanisms
+  (greedy-result fold; labeled-form subscript ×2); logged to
+  INVESTIGATIONS.md (deferred-1). Next fire picks up P7.
 
 ## Failed attempts
 

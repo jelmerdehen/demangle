@@ -163,6 +163,30 @@ goal. Note: `tryBoundGeneric` already restores `p.subs` on rollback
 (plan-subscript-descriptor-verbose P3) so the table is no longer
 *doubled* — only mis-counted by the re-push.
 
+### subscript ipMV labeled-form + greedy-result [3 syms, deferred-1, ~+3P]
+
+Three plain-module subscript property descriptors
+(plan-subscript-descriptor-verbose P6) — three distinct bail causes:
+
+- `_$ss18_CocoaArrayWrapperVyyXlSicipMV`: `trySubscriptEntityTyped`
+  reaches the result-type parse, but `parseType` greedily folds the
+  index type + subscript terminator `Sic` into a function type — the
+  result comes back as `(Swift.Int) -> Swift.AnyObject` with 0 index
+  nodes, then the missing `c` triggers revert. `inSubscriptTypes`
+  gates `tryPostfixFunctionTypeWithParams` (stable.go:~3373) but a
+  different postfix path builds the function type anyway. Fix: find
+  and gate the slipping postfix under `inSubscriptTypes`.
+- `_$ss17_NativeDictionaryV_8isUniqueq_Sgx_SbtcipMV` and
+  `_$ss17_AnyCollectionBoxC5start3endAByxGs01_a5IndexC0_p_sAF_ptcipMV`:
+  the *labeled* subscript form — `<labels> <result> <args> c i p MV`,
+  body starts with the label idents (`_8isUnique`, `5start3end`), no
+  leading `y`. `trySubscriptEntity` only dispatches the `y` form to
+  `trySubscriptEntityTyped`; `trySubscriptEntityLabeled` handles a
+  single label. Needs a multi-label labeled-subscript property-
+  descriptor path.
+
+Each is its own fire; pick up when the ipMV bucket is revisited.
+
 ### label-arity all-paths-tuple-tokenizer needed [~40 syms, deferred-3, ~+40P]
 
 **Promoted to tier-3** after this fire's probing revealed the problem
