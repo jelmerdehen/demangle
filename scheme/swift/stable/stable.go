@@ -5758,6 +5758,100 @@ func (p *parser) tryImplFunctionType() (*demangle.Node, bool) {
 	return node, true
 }
 
+// foldVariableTupleTail extends a variable's declared type when
+// parseType returned only the head element of a multi-element tuple.
+// parseType has no general tuple production — the '_' tuple-element
+// separator is overloaded (function-param lists, generic-signature
+// separators) so a context-free postfix tuple is unsafe. In the
+// variable-entity declared-type position, however, '<type>('_'<type>)+
+// 't'' (optionally labelled, optionally trailing 'Sg') is unambiguous.
+//
+// The fold only commits when the run lands exactly on the 'v' variable
+// marker, so a non-tuple continuation is reverted and leaves the parse
+// untouched. head is the element parseType already returned.
+func (p *parser) foldVariableTupleTail(head *demangle.Node) (*demangle.Node, bool) {
+	if p.eof() {
+		return head, false
+	}
+	c := p.s[p.i]
+	labelled := c >= '0' && c <= '9'
+	if !labelled && c != '_' {
+		return head, false
+	}
+	save := p.i
+	saveSubs := p.subs
+	revert := func() { p.i = save; p.subs = saveSubs }
+	type tupleElt struct{ label, typeStr string }
+	elts := []tupleElt{{typeStr: common.Print(head, common.DefaultPrintOptions())}}
+	if labelled {
+		name, err := p.parseIdentifier()
+		if err != nil {
+			revert()
+			return head, false
+		}
+		elts[0].label = name
+	}
+	for !p.eof() && p.s[p.i] == '_' {
+		p.i++ // consume '_'
+		t, err := p.parseType()
+		if err != nil || t == nil {
+			revert()
+			return head, false
+		}
+		e := tupleElt{typeStr: common.Print(t, common.DefaultPrintOptions())}
+		if labelled {
+			name, nerr := p.parseIdentifier()
+			if nerr != nil {
+				revert()
+				return head, false
+			}
+			e.label = name
+		}
+		elts = append(elts, e)
+	}
+	if p.eof() || p.s[p.i] != 't' || len(elts) < 2 {
+		revert()
+		return head, false
+	}
+	p.i++ // consume 't'
+	optional := false
+	if p.i+1 < len(p.s) && p.s[p.i] == 'S' && p.s[p.i+1] == 'g' {
+		p.i += 2
+		optional = true
+	}
+	// Commit only when the run lands exactly on a property-descriptor
+	// terminal (vpMV / vpZMV). The folded tuple node is pre-rendered and
+	// does not remangle structurally; restricting to the descriptor
+	// terminal keeps accessor kinds (vg/vs/vM…) on their existing
+	// fast-path round-trip and bounds the change to the target bucket.
+	if rest := p.s[p.i:]; rest != "vpMV" && rest != "vpZMV" {
+		revert()
+		return head, false
+	}
+	var sb strings.Builder
+	sb.WriteByte('(')
+	for i, e := range elts {
+		if i > 0 {
+			sb.WriteString(", ")
+		}
+		if e.label != "" {
+			sb.WriteString(e.label)
+			sb.WriteString(": ")
+		}
+		sb.WriteString(e.typeStr)
+	}
+	sb.WriteByte(')')
+	display := sb.String()
+	if optional {
+		display += "?"
+	}
+	wrap := common.NewNode(common.KindType)
+	inner := common.NewNode(common.KindBuiltinTypeName)
+	inner.Text = display
+	common.AddChildren(wrap, inner)
+	return wrap, true
+}
+
 // tryVariableEntity matches the variable-entity shape:
 //
 //	<context> <decl-name> <type> 'v' <kind>
@@ -5766,7 +5860,22 @@ func (p *parser) tryImplFunctionType() (*demangle.Node, bool) {
 // w (willSet), W (didSet), M (materializeForSet), a (addressor),
 // m (mutable addressor). Renders as "<prefix> <context>.<decl> : <type>"
 // where prefix depends on kind.
-func (p *parser) tryVariableEntity() (*demangle.Node, bool, error) {
+func (p *parser) tryVariableEntity() (resNode *demangle.Node, resOK bool, resErr error) {
+	// When the declared type needed a multi-element-tuple fold (see
+	// foldVariableTupleTail), the folded tuple node is pre-rendered and
+	// cannot remangle structurally. Stamp the raw body so the symbol
+	// round-trips byte-exact, mirroring the last-resort fast-path.
+	tupleFolded := false
+	defer func() {
+		if resOK && tupleFolded && resNode != nil {
+			if resNode.Attrs == nil {
+				resNode.Attrs = map[string]string{}
+			}
+			if resNode.Attrs["swift.fastpath.rawBody"] == "" {
+				resNode.Attrs["swift.fastpath.rawBody"] = p.s
+			}
+		}
+	}()
 	save := p.i
 	saveSubs := p.subs
 	restore := func() {
@@ -5925,6 +6034,13 @@ func (p *parser) tryVariableEntity() (*demangle.Node, bool, error) {
 	if err != nil {
 		restore()
 		return nil, false, nil
+	}
+	// Multi-element tuple declared-type tail: parseType returns only the
+	// head element since it has no general tuple production. Fold the
+	// continuation in here — variable-type position only.
+	if folded, ok := p.foldVariableTupleTail(typ); ok {
+		typ = folded
+		tupleFolded = true
 	}
 	// v + kind, OR 'fm' for macro-entity (rendered as "<ctx>.<name> : <type>").
 	if p.i+1 < len(p.s) && p.s[p.i] == 'f' && p.s[p.i+1] == 'm' {

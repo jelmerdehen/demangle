@@ -90,17 +90,30 @@ one fire is forbidden — narrow per fire, re-estimate honestly.
 
 - [x] **P1 — categorise + bail-site probe** — done 2026-05-18 (fire 1).
       Findings above; P2–P5 rewritten.
-- [x] **P2 — first plain-module bail trigger** — done 2026-05-18
-      (fire 2): **DEFERRED**. Probe pinpointed the bail
-      (`tryVariableEntity` line 5983, after `parseType` returns the
-      head type only). The fix needs general multi-element tuple
-      parsing, which regresses a hard-gated Apple-corpus function
-      symbol, plus a substitution-numbering alignment. Not a
-      ≤3-primitive fix — see INVESTIGATIONS.md
-      `vpMV-instance-var-verbose-form [65 syms, deferred-2]`.
-- [x] **P3–P5 — subsumed by the deferral.** The whole 65-sym bucket
-      shares the two blockers documented in the INVESTIGATIONS.md
-      entry; its 5-primitive fire-plan (P-a…P-e) supersedes P3–P5.
+- [x] **P2 — labelled multi-element tuple fold** — done 2026-05-18
+      (fire 2, CKO, +4P). Added `foldVariableTupleTail`
+      (`stable.go`): in the variable-entity declared-type position
+      only, fold the `<type>('_'<type>)+'t'` continuation parseType
+      leaves behind (parseType has no general tuple production — the
+      `_` separator is overloaded, so a context-free postfix tuple
+      regresses Apple-corpus functions, see Failed attempts). Commits
+      only when the run lands exactly on a `vpMV`/`vpZMV` terminal;
+      stamps `swift.fastpath.rawBody` so the pre-rendered tuple node
+      round-trips byte-exact. Landed the 4 labelled-tuple symbols
+      (StrideToIterator/StrideThroughIterator/Unicode.Scalar.Properties
+      .age/`_ValidUTF8Buffer`).
+- [ ] **P3 — bound-generic-with-tuple-arg cluster**: `Mirror.children`
+      et al. (~10) — the generic arg is itself a multi-element
+      (labelled) tuple, so `tryBoundGeneric`'s arg parseType stops at
+      `y`. Reuse the tuple fold inside the bound-generic arg path.
+- [ ] **P4 — unlabelled tuple + subs alignment**: the 6 `(UInt64,
+      UInt64)` symbols (`_StringGuts`/`_SmallString`/`_StringObject`)
+      need general unlabelled tuple parsing AND the `AE`-substitution
+      to resolve in `tryVariableEntity`'s context (subs off-by-one —
+      Swift module not pushed). See INVESTIGATIONS.md blocker 2.
+- [ ] **P5 — extension-nested hosts + close**: the 36 `(extension in)`
+      slice (separate host-walk `E` mechanism); smoke wide; narrow on
+      regression; close.
 
 ## Status
 
@@ -109,9 +122,9 @@ one fire is forbidden — narrow per fire, re-estimate honestly.
   located render site (`tryGlobalLastResortFastPath` isPropDesc
   branch, `stable.go:14424`); root cause = `tryVariableEntity` bail,
   verbose form already wired at `stable.go:6007`. P2–P5 rewritten.
-- 2026-05-18 (fire 2, P2): attempted the parser fix; reverted on
-  Apple-corpus regression; bucket deferred to multi-fire. **Plan
-  closed (deferred).**
+- 2026-05-18 (fire 2, P2): shipped the labelled-tuple fold (CKO,
+  +4P, roundtrip flat); vpMV mismatch bucket 65→61. P3–P5 re-scoped
+  to the remaining clusters.
 
 ## Failed attempts
 
