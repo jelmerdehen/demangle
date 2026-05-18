@@ -15581,6 +15581,499 @@ func (p *parser) fpVerboseFunctionText(hostLetter byte, extMod, declName, span s
 	return text
 }
 
+// entitySigDecode is the structured result of decoding an entity's
+// pre-`F`/`FZ` mangling span (`<labels><result-type><arg-tuple>`).
+// All offsets are absolute into the parser's p.s — callers feed each
+// [start,end) byte range straight to fpVerboseRenderTypeAt.
+//
+// labels carries one entry per parameter: the empty string for an
+// unlabelled param (FirstElementMarker `_`), otherwise the identifier
+// text. len(labels) always equals len(argRanges).
+//
+// See plans/entity-signature-parser.md P1.
+type entitySigDecode struct {
+	labels      []string // one per arg; "" = unlabelled (FirstElementMarker)
+	resultStart int      // absolute offset of the result type
+	resultEnd   int      // absolute offset one past the result type
+	argRanges   [][2]int // absolute [start,end) of each arg element
+	ok          bool     // true only if the span fully decoded
+	reason      string   // why ok==false (closure / generic / variadic / …)
+}
+
+// decodeEntitySignatureSpan decodes the captured pre-`F`/`FZ` span of a
+// function/initializer entity into a structured entitySigDecode. The
+// span byte-layout (decoded from the Apple --expand tree, see
+// plans/function-verbose-form.md fire-9/11/12) is:
+//
+//	<label-run> <result-type> <arg-tuple>
+//
+//   - label-run: a run of label tokens, one per parameter — `<n><name>`
+//     for a labelled param, `_` for an unlabelled FirstElementMarker.
+//     A lone `y` (and nothing else) is the empty-LabelList marker:
+//     no parameter labels at all.
+//   - result-type: exactly one type. `y` here means `()` (empty tuple).
+//   - arg-tuple: either a single bare type (one unlabelled arg, NOT
+//     tuple-wrapped) or a `_`-separated, `t`-terminated element list
+//     (`<e0>_<e1>…t`) for 1+ labelled or 2+ args.
+//
+// Compact `S<N><letter>` runs are expanded first: such a run lays down
+// N copies of stdlib type `S<letter>` and FUSES the result type with
+// the first arg, so it must be expanded before the result/arg split.
+//
+// Type boundaries are found with the parser's own parseType (the
+// legitimate boundary oracle) — parser state (p.i, p.subs, p.words,
+// p.depth, p.parseOps) is saved and restored, so the call is a pure
+// probe with no side effects. Returns ok==false with a reason for any
+// shape outside the cleanly-decodable subset (closures, generic
+// parameters in the type bytes, variadic packs, malformed runs).
+//
+// spanStart is the absolute offset of the span within p.s.
+func (p *parser) decodeEntitySignatureSpan(spanStart, spanEnd int) entitySigDecode {
+	fail := func(reason string) entitySigDecode {
+		return entitySigDecode{reason: reason}
+	}
+	if spanStart < 0 || spanEnd > len(p.s) || spanStart >= spanEnd {
+		return fail("empty-span")
+	}
+	span := p.s[spanStart:spanEnd]
+
+	// --- 1. label run -------------------------------------------------
+	// A lone `y` is the empty-LabelList marker. Otherwise the run is a
+	// sequence of `_` (FirstElementMarker) and `<n><name>` tokens.
+	var labels []string
+	k := 0 // offset within span
+	if len(span) >= 1 && span[0] == 'y' &&
+		(len(span) == 1 || span[1] != 't') {
+		// `y` empty-LabelList prefix: consumed, no labels. (A `y` that
+		// is itself the whole/result body — `yt` empty tuple — is left
+		// for the result-type step; `y` followed by a type is the
+		// prefix.) Distinguish: an empty-LabelList prefix `y` is only
+		// consumed here when at least one more byte follows that is a
+		// type-start (not `t`). A symbol whose span is exactly `y` has
+		// no args and no result bytes — handled by the no-arg branch.
+		if len(span) > 1 {
+			k = 1
+		}
+	} else {
+		for k < len(span) {
+			c := span[k]
+			if c == '_' {
+				labels = append(labels, "")
+				k++
+				continue
+			}
+			if c >= '1' && c <= '9' {
+				n := 0
+				j := k
+				for j < len(span) && span[j] >= '0' && span[j] <= '9' {
+					n = n*10 + int(span[j]-'0')
+					j++
+				}
+				if n <= 0 || j+n > len(span) {
+					return fail("bad-label-len")
+				}
+				labels = append(labels, span[j:j+n])
+				k += (j - k) + n
+				continue
+			}
+			break // first byte that cannot start a label token
+		}
+	}
+
+	// --- 2. compact S<N><letter> fusion ------------------------------
+	// A body opening with a compact run `S<N><letter>` FUSES the result
+	// type with the first argument: F1 is the result, F2..FN feed the
+	// args, and bytes after the run extend the *last* laid-down type.
+	// Because the fused result and arg-0 share one 3+-byte token, the
+	// decoder cannot return non-overlapping byte ranges for them — the
+	// fused case needs synthesised type strings, which is P2's render
+	// concern. P1 detects the compact opener and declines cleanly.
+	bodyStart := spanStart + k
+	if bodyStart >= spanEnd {
+		// No result/arg bytes: a zero-arg function with an implicit
+		// `()` result is not encoded as bytes here — treat as not
+		// cleanly decodable so the caller falls through.
+		return fail("no-body")
+	}
+	if bodyStart+1 < spanEnd && p.s[bodyStart] == 'S' &&
+		p.s[bodyStart+1] >= '0' && p.s[bodyStart+1] <= '9' {
+		return fail("compact-fused-run")
+	}
+
+	// --- 3. result type ----------------------------------------------
+	// `y` as the result body is the empty tuple `()`.
+	var resStart, resEnd int
+	cur := bodyStart
+	if p.s[cur] == 'y' {
+		resStart, resEnd = cur, cur+1
+		cur++
+	} else {
+		end, ok := p.spanTypeEnd(cur, spanEnd)
+		if !ok {
+			return fail("result-type-unparseable")
+		}
+		resStart, resEnd = cur, end
+		cur = end
+	}
+
+	// --- 4. arg tuple ------------------------------------------------
+	var argRanges [][2]int
+	rest := p.s[cur:spanEnd]
+	switch {
+	case rest == "":
+		// No arg bytes — a zero-arg function (result only).
+		argRanges = nil
+	case strings.HasSuffix(rest, "t"):
+		// `t`-terminated argument tuple. Elements are concatenated
+		// types; each element is followed by a `_` (FirstElementMarker
+		// for elem 0, separator before each later elem), with the last
+		// element followed directly by `t`. So the layout is
+		// `<e0> _ <e1> _ … <eN-1> t` for a 1-arg tuple `<e0> _ t`.
+		inner := cur
+		innerEnd := spanEnd - 1 // drop the trailing `t`
+		for inner < innerEnd {
+			end, ok := p.spanTypeEnd(inner, innerEnd)
+			if !ok {
+				return fail("arg-type-unparseable")
+			}
+			argRanges = append(argRanges, [2]int{inner, end})
+			inner = end
+			// A `_` follows every element (separator / FirstElementMarker).
+			if inner < innerEnd {
+				if p.s[inner] != '_' {
+					return fail("arg-tuple-sep")
+				}
+				inner++
+			}
+		}
+		if inner != innerEnd {
+			return fail("arg-tuple-leftover")
+		}
+	default:
+		// Single bare unlabelled arg, not tuple-wrapped.
+		end, ok := p.spanTypeEnd(cur, spanEnd)
+		if !ok {
+			return fail("single-arg-unparseable")
+		}
+		if end != spanEnd {
+			return fail("single-arg-leftover")
+		}
+		argRanges = [][2]int{{cur, end}}
+	}
+
+	// --- 5. label / arg cross-check ----------------------------------
+	// When labels are present (non-empty run) there must be exactly one
+	// per arg. An empty label run is valid for any arg count (all
+	// unlabelled) — normalise labels to one "" per arg.
+	if len(labels) == 0 {
+		labels = make([]string, len(argRanges))
+	} else if len(labels) != len(argRanges) {
+		return fail("label-arg-count-mismatch")
+	}
+
+	return entitySigDecode{
+		labels:      labels,
+		resultStart: resStart,
+		resultEnd:   resEnd,
+		argRanges:   argRanges,
+		ok:          true,
+	}
+}
+
+// spanTypeEnd measures the byte length of exactly ONE type starting at
+// absolute offset start, bounded by limit, and returns the absolute
+// offset one past it. ok is false if the bytes are not one of the
+// type forms this scanner recognises, or run past limit.
+//
+// This is a pure structural byte-length scanner — it does NOT resolve
+// substitutions (so it works on an isolated span without the full
+// mid-symbol substitution table) and does NOT build a node. It only
+// counts bytes far enough to find the result/arg boundary. Type
+// rendering is still delegated to fpVerboseRenderTypeAt / parseType.
+//
+// Recognised forms (the alphabet observed across the function-verbose
+// candidate corpus — see plans/entity-signature-parser.md P1):
+//
+//   - leading parameter modifiers: `z` inout, `h` __shared, `n`
+//     __owned, `d` (variadic packs are rejected — out of scope)
+//   - substitution: `A` <index>, index per parseNumericSubstitution
+//     (`_`, `<digits>_`, `<digits><upper>`, `[A-Z]*[a-z]`)
+//   - stdlib letter type: `S<letter>`
+//   - namespaced nominal: `s<n><name><V|O|C|P>`
+//   - literal nominal: `<n><name><V|O|C>`, with an optional
+//     extension/nesting continuation `(<ref><n><name><kind>)*`
+//   - bound generic: `<base> y <type>+ G`  and `Say<type>G`
+//   - optional sugar suffix: trailing `Sg` runs
+//
+// Anything richer (function-typed params `c`/`X`, generic params
+// `x`/`q`, pack expansions, tuples-as-types) makes ok==false so the
+// caller falls through cleanly.
+func (p *parser) spanTypeEnd(start, limit int) (end int, ok bool) {
+	if start < 0 || start >= limit || limit > len(p.s) {
+		return 0, false
+	}
+	i := start
+	// Leading parameter-position modifiers.
+	for i < limit {
+		switch p.s[i] {
+		case 'z', 'h', 'n':
+			i++
+			continue
+		}
+		break
+	}
+	body, bok := p.scanOneTypeBody(i, limit)
+	if !bok {
+		return 0, false
+	}
+	i = body
+	// Trailing markers: optional-sugar `Sg` runs and the inout `z`,
+	// __shared `h`, __owned `n` parameter modifiers (which Apple also
+	// mangles as a type suffix, e.g. `s6HasherVz`).
+	for i < limit {
+		if i+2 <= limit && p.s[i] == 'S' && p.s[i+1] == 'g' {
+			i += 2
+			continue
+		}
+		if p.s[i] == 'z' || p.s[i] == 'h' || p.s[i] == 'n' {
+			i++
+			continue
+		}
+		break
+	}
+	if i <= start || i > limit {
+		return 0, false
+	}
+	return i, true
+}
+
+// scanOneTypeBody scans the core (modifier- and sugar-stripped) body of
+// one type and returns the offset one past it. See spanTypeEnd.
+//
+// Recognised type bodies:
+//
+//   - `y` — empty tuple `()`.
+//   - `S<letter>` — stdlib short-form type.
+//   - `A<index>` — substitution reference; a complete type on its own.
+//     It only extends via an `E`-rooted extension/nesting suffix:
+//     `A<index> ( E <step>* <kind> )*`.
+//   - `<ident>`- or `s`-led nominal — a run of context steps (idents,
+//     `A` refs, `E` markers) closed by a kind byte `V`/`O`/`C`(/`P`),
+//     repeated for each nesting level.
+//
+// A trailing `y<type>+G` is consumed as a bound-generic argument list.
+func (p *parser) scanOneTypeBody(start, limit int) (end int, ok bool) {
+	if start >= limit {
+		return 0, false
+	}
+	i := start
+	switch {
+	case p.s[i] == 'y':
+		return i + 1, true
+	case p.s[i] == 'S':
+		if i+2 > limit {
+			return 0, false
+		}
+		if nx := p.s[i+1]; nx >= '0' && nx <= '9' {
+			return 0, false // compact function-type opener — not here
+		}
+		i += 2
+		// Optional extension/nesting suffix on the stdlib base
+		// (`SSAAE8EncodingV` = (extension in M):Swift.String.Encoding).
+		for i < limit && (p.s[i] == 'A' || p.s[i] == 'E') {
+			lvl, lok := p.scanNominalLevel(i, limit)
+			if !lok {
+				break
+			}
+			i = lvl
+		}
+	case p.s[i] == 'A':
+		// Substitution ref. A bare ref is a complete type; but Apple
+		// also uses a ref as the *module/parent* step of a nominal
+		// (`AA18AttributeContainerV` = (extension in M):…Container).
+		// Whether the ref stands alone or qualifies a following
+		// identifier depends on what the ref resolves to (a full type
+		// vs a module) — which a byte-only scanner cannot know. The
+		// scanner takes the *greedy* reading: if the ref is directly
+		// followed by an identifier (or `E`) it is consumed as the
+		// head of a nominal level. A mis-greedy split is caught by the
+		// decoder's label/arg count cross-check, so it degrades to a
+		// clean decode failure rather than a wrong answer.
+		j, jok := scanSubstitutionIndex(p.s, i+1, limit)
+		if !jok {
+			return 0, false
+		}
+		if j < limit && ((p.s[j] >= '1' && p.s[j] <= '9') || p.s[j] == 'E') {
+			// Greedy: ref heads a nominal level — re-scan from the ref.
+			if lvl, lok := p.scanNominalLevel(i, limit); lok {
+				i = lvl
+			} else {
+				i = j
+			}
+		} else {
+			i = j
+		}
+		for i < limit && (p.s[i] == 'A' || p.s[i] == 'E') {
+			lvl, lok := p.scanNominalLevel(i, limit)
+			if !lok {
+				break
+			}
+			i = lvl
+		}
+	default:
+		// `<ident>`- or `s`-led nominal: one or more nesting levels.
+		levels := 0
+		for i < limit {
+			lvl, lok := p.scanNominalLevel(i, limit)
+			if !lok {
+				break
+			}
+			i = lvl
+			levels++
+		}
+		if levels == 0 {
+			return 0, false
+		}
+	}
+	if i < limit && p.s[i] == 'y' {
+		if j, jok := p.scanBoundGenericTail(i, limit); jok {
+			i = j
+		}
+	}
+	return i, true
+}
+
+// scanNominalLevel scans one nominal nesting level: a run of context
+// steps (identifier `<n><name>`, the namespace marker `s`, the
+// extension marker `E`, or a substitution ref `A<index>`) terminated
+// by a kind byte `V`/`O`/`C`/`P`. Returns the offset past the kind.
+func (p *parser) scanNominalLevel(start, limit int) (end int, ok bool) {
+	i := start
+	steps := 0
+	for i < limit {
+		c := p.s[i]
+		switch {
+		case c == 's':
+			i++
+			steps++
+		case c == 'E':
+			i++
+			steps++
+		case c == 'A':
+			j, jok := scanSubstitutionIndex(p.s, i+1, limit)
+			if !jok {
+				goto done
+			}
+			i = j
+			steps++
+		case c >= '1' && c <= '9':
+			j, jok := scanIdentRun(p.s, i, limit)
+			if !jok {
+				goto done
+			}
+			i = j
+			steps++
+		default:
+			goto done
+		}
+	}
+done:
+	if steps == 0 || i >= limit {
+		return 0, false
+	}
+	k := p.s[i]
+	if k != 'V' && k != 'O' && k != 'C' && k != 'P' {
+		return 0, false
+	}
+	return i + 1, true
+}
+
+// scanBoundGenericTail scans a `y <type>+ G` bound-generic argument
+// list starting at the `y`. Returns the offset past the closing `G`.
+func (p *parser) scanBoundGenericTail(start, limit int) (end int, ok bool) {
+	if start >= limit || p.s[start] != 'y' {
+		return 0, false
+	}
+	i := start + 1
+	for i < limit && p.s[i] != 'G' {
+		j, jok := p.spanTypeEnd(i, limit)
+		if !jok || j <= i {
+			return 0, false
+		}
+		i = j
+	}
+	if i >= limit || p.s[i] != 'G' {
+		return 0, false
+	}
+	return i + 1, true
+}
+
+// scanSubstitutionIndex measures a substitution index starting just
+// after the `A` prefix, per parseNumericSubstitution's grammar. Returns
+// the offset one past the index.
+func scanSubstitutionIndex(s string, start, limit int) (end int, ok bool) {
+	if start >= limit {
+		return 0, false
+	}
+	i := start
+	switch {
+	case s[i] == '_':
+		return i + 1, true
+	case s[i] >= '0' && s[i] <= '9':
+		for i < limit && s[i] >= '0' && s[i] <= '9' {
+			i++
+		}
+		if i >= limit {
+			return 0, false
+		}
+		if s[i] >= 'A' && s[i] <= 'Z' {
+			return i + 1, true
+		}
+		if s[i] == '_' {
+			return i + 1, true
+		}
+		return 0, false
+	case (s[i] >= 'a' && s[i] <= 'z') || (s[i] >= 'A' && s[i] <= 'Z'):
+		// Letter form (parseNumericSubstitution): a run of lowercase
+		// letters (each a pushed sub) terminated by exactly one
+		// uppercase letter (the final, returned sub).
+		for i < limit {
+			c := s[i]
+			if c >= 'a' && c <= 'z' {
+				i++
+				continue
+			}
+			if c >= 'A' && c <= 'Z' {
+				return i + 1, true // uppercase terminates
+			}
+			return 0, false
+		}
+		return 0, false
+	}
+	return 0, false
+}
+
+// scanIdentRun measures a `<n><name>` identifier run (n decimal digits
+// then n name bytes). Returns the offset one past the name.
+func scanIdentRun(s string, start, limit int) (end int, ok bool) {
+	if start >= limit || s[start] < '1' || s[start] > '9' {
+		return 0, false
+	}
+	n := 0
+	i := start
+	for i < limit && s[i] >= '0' && s[i] <= '9' {
+		n = n*10 + int(s[i]-'0')
+		i++
+		if n > 1<<20 {
+			return 0, false
+		}
+	}
+	if n <= 0 || i+n > limit {
+		return 0, false
+	}
+	return i + n, true
+}
+
 // fpVerboseRetExtCont continues a verbose-form retType parse when
 // parseType consumed only the extended type and the remaining bytes
 // (up to retEnd) encode an extension-nested nominal:
