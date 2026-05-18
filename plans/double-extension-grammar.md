@@ -55,9 +55,18 @@ constraint clauses, double nesting, and descriptor wrapping.
       canonical sym: layer-1 constraintBytes `So11NSDimensionCRbzrl` →
       `< where A: __C.NSDimension>`. Returns false pending P3–P5;
       parity +0.
-- [ ] **P3 — nested (double) extension**: allow an extension context to
-      itself be extended — `…E…E…` — building the
-      `(extension in X):(extension in X):…` chain.
+- [x] **P3 — nested (double) extension** (2026-05-18 fire-18): replaced
+      the single-layer P2 parse with a loop in
+      `tryDoubleExtensionConformanceDescriptor` — each iteration parses
+      `<mod-ref> <gensig-constraints> E <nested-nominal>` and the nested
+      nominal (new `parseNominalDecl` helper) becomes the extended type
+      of the next layer. Builds a `[]extLayer` chain; requires ≥2 layers.
+      On the canonical sym: layer0 `{Foundation, A: __C.NSDimension,
+      nested FormatStyle}`, layer1 `{Foundation, A == __C.
+      NSUnitInformationStorage, nested ByteCount}`. Internal helper tests
+      in `double_extension_test.go` cover `scanStructuralE`,
+      `parseNominalDecl`, `parseExtLayerModuleRef`. Returns false pending
+      P4/P5; parity +0.
 - [ ] **P4 — descriptor wrapping**: wrap the nested-extension type in
       the `Mc` (protocol conformance descriptor) / `WP` (protocol
       witness table) entity, emitting Apple's `… : <proto> in <mod>`
@@ -75,6 +84,9 @@ constraint clauses, double nesting, and descriptor wrapping.
 - 2026-05-18 fire-17: P2 done — extension-layer-1 parser scaffold
   (`tryDoubleExtensionConformanceDescriptor`) wired +0; smoke /
   snapshot-check / ratchet green; [error] bucket 89 → 89.
+- 2026-05-18 fire-18: P3 done — nested-extension loop builds the full
+  `[]extLayer` chain; helper unit tests added; +0; gates green;
+  [error] bucket 89 → 89.
 
 ## Failed attempts
 

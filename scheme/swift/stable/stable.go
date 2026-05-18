@@ -14518,6 +14518,34 @@ func parseExtLayerModuleRef(s string, from int, mods []string) (module string, n
 	return "", from, false
 }
 
+// parseNominalDecl parses a plain length-prefixed nominal declaration
+// `<n><name>(V|C|O|P)` at index `from` in s — the type a nested
+// extension introduces after its 'E' terminator. Returns the name, the
+// kind byte, the index just past the kind byte, and ok=false on any
+// other shape (word-substituted names included — P6 scope handles those).
+func parseNominalDecl(s string, from int) (name string, kind byte, next int, ok bool) {
+	if from >= len(s) || s[from] < '1' || s[from] > '9' {
+		return "", 0, from, false
+	}
+	n := 0
+	j := from
+	for j < len(s) && s[j] >= '0' && s[j] <= '9' {
+		n = n*10 + int(s[j]-'0')
+		j++
+	}
+	if n <= 0 || j+n >= len(s) {
+		return "", 0, from, false
+	}
+	name = s[j : j+n]
+	j += n
+	switch s[j] {
+	case 'V', 'C', 'O', 'P':
+		return name, s[j], j + 1, true
+	default:
+		return "", 0, from, false
+	}
+}
+
 // tryDoubleExtensionConformanceDescriptor handles protocol conformance
 // descriptors / witness tables whose conformed type is reached through one
 // or more nested extension contexts on a bound-generic host — e.g.
@@ -14583,40 +14611,50 @@ func (p *parser) tryDoubleExtensionConformanceDescriptor() (*demangle.Node, bool
 	// Substitution-index order for the back-references that open extension
 	// layers: index 0 is the base nominal's root module.
 	mods := []string{rootModule}
-	// Require at least two structural 'E' terminators — the defining trait
-	// of the double-extension cluster.
-	e1 := scanStructuralE(s, i)
-	if e1 < 0 {
+	// P2/P3: parse the extension chain. Each layer is
+	//   <mod-ref> <generic-signature-constraints> 'E' <nested-nominal>
+	// where the nested nominal becomes the extended type of the next
+	// layer and, for the last layer, the conformed type itself.
+	var layers []extLayer
+	pos := i
+	for {
+		eIdx := scanStructuralE(s, pos)
+		if eIdx < 0 {
+			break
+		}
+		module, afterMod, ok := parseExtLayerModuleRef(s, pos, mods)
+		if !ok || afterMod > eIdx {
+			return nil, false
+		}
+		layer := extLayer{
+			module:          module,
+			constraintBytes: s[afterMod:eIdx],
+		}
+		if len(layer.constraintBytes) > 0 {
+			sig, _ := extractConstraintSigFullOpts(
+				[]byte(layer.constraintBytes), true, p.words, module)
+			layer.constraintSig = sig
+		}
+		// Nested nominal introduced by this extension, immediately past 'E'.
+		name, kind, np, ok := parseNominalDecl(s, eIdx+1)
+		if !ok {
+			return nil, false
+		}
+		layer.nestedName = name
+		layer.nestedKind = kind
+		layers = append(layers, layer)
+		pos = np
+	}
+	// Double-extension is the defining trait of this cluster: two or more
+	// nested extension layers.
+	if len(layers) < 2 {
 		return nil, false
 	}
-	if scanStructuralE(s, e1+1) < 0 {
-		return nil, false
-	}
-	// P2: parse the first extension layer — module reference followed by
-	// the generic-signature constraint bytes up to the layer's 'E'.
-	module, afterMod, ok := parseExtLayerModuleRef(s, i, mods)
-	if !ok {
-		return nil, false
-	}
-	if afterMod > e1 {
-		return nil, false
-	}
-	layer1 := extLayer{
-		module:          module,
-		constraintBytes: s[afterMod:e1],
-	}
-	if len(layer1.constraintBytes) > 0 {
-		sig, _ := extractConstraintSigFullOpts(
-			[]byte(layer1.constraintBytes), true, p.words, module)
-		layer1.constraintSig = sig
-	}
-	// TODO P3: loop the remaining extension layers (…E…E…) and capture
-	// each layer's nested nominal type.
 	// TODO P4: wrap the nested-extension type in the Mc/WP descriptor entity.
 	// TODO P5: emit the verbose
 	// `(extension in X):(extension in X):Host<A>< where …>.Nested…` string.
 	_ = baseName
-	_ = layer1
+	_ = layers
 	return nil, false
 }
 
