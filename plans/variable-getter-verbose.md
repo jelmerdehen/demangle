@@ -139,4 +139,51 @@ is P3.
 
 ## Failed attempts
 
-(none yet)
+- **2026-05-18 — P2 parseType-continuation attempt, reverted.**
+  Implemented the declared-type continuation as a `parseType`-level
+  fix: extended the postfix nominal-step loop (stable.go:~28203) to
+  also accept a substitution-ref-led member step — `A<uppercase>`
+  resolving an Identifier from the subs table followed by a V/C/O/P
+  kind byte (e.g. `...LanguageVADV` → `.Components`). Because the
+  bound-generic arg loop calls `parseType` recursively, this single
+  change also fixed the `y<args>G` slice (the `AAV` member tail
+  inside each arg, e.g. `Slice<String.UnicodeScalarView>` mangled
+  `SSAAV`).
+  - **Result:** parity 62204→62253 (+49 production), getter bucket
+    74→64. 5 of 6 probed target symbols flipped to byte-exact.
+  - **Why reverted:** `make snapshot-check` reported a per-symbol
+    regression — **2 parity** symbols
+    (`_$sSD5IndexV7_nativeAByxq__Gs10_HashTableVAAV_tcfC`,
+    `_$sSh5IndexV7_nativeAByx_Gs10_HashTableVAAV_tcfC`) and **82
+    roundtrip** symbols (the `…ISO8601FormatStyleV…ADV…` getter /
+    `vpMV` / `F` family) disappeared from the committed snapshot.
+    The INVARIANT requires per-symbol monotone non-decrease for
+    BOTH parity and roundtrip; net +49 does not excuse the
+    regressions.
+  - **Root cause of the regression:** the member-step builds the
+    member nominal with a fresh `common.NewIdentifier(name)` node
+    sourced from a substitution back-ref. The remangler re-emits
+    that identifier as a length-prefixed string instead of the
+    original `A<letter>` sub-ref, so the symbol no longer
+    round-trips byte-exact, and the subs-table indices shift. The
+    2 parity regressions are `init` functions where the `AAV`
+    member-step grabbed the wrong sub-index (`_HashTable.Index`
+    expected, `Set<A>.Index` produced) — confirming the bare
+    sub-index resolution is not always the member name.
+  - **Conclusion / fire-plan for next P2 attempt:** the
+    parseType-continuation needs **remangler coordination** — the
+    member nominal node must carry the substitution origin (e.g.
+    an `Attrs["swift.subRef"]` marker) so the remangler emits
+    `A<letter>` rather than a length-prefixed ident, and the
+    member-step must validate that the resolved sub is actually a
+    member-name Identifier (not a Type) before consuming. This is
+    the same "needs remangler coordination" class as the deferred
+    `Yj/Yb` function-type work. P2 stays `[ ]`; next fire either
+    (a) does the remangler-side `A<letter>` emission first, or
+    (b) narrows the member-step to fire only when the resulting
+    node is stamped `swift.fastpath.rawBody` AND the symbol is a
+    `vg`-getter routed through `tryVariableEntity` (which already
+    has the rawBody stamp at stable.go:6018-6027) — but that
+    narrowing does not help the `vpMV`/`F` siblings and so cannot
+    be done without first confirming it does not re-introduce the
+    getter-side roundtrip break.
