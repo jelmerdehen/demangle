@@ -407,6 +407,33 @@ type parser struct {
 	tuplePreRendered bool
 }
 
+// stampVerboseRawBody marks a pre-rendered verbose-form TypeMangling node
+// (built by tryVariableEntity's accessor / property-descriptor branches)
+// with swift.fastpath.rawBody so the remangler emits the original body
+// verbatim instead of trying to structurally re-mangle a text-only node.
+//
+// substitution-model-rebuild P4: the A/B/C realignment moved these
+// substitution-bearing variable getters / property descriptors off the
+// whole-symbol fast-path and onto this verbose-form text path, which
+// produced a text-only node carrying no round-trip origin. Without the
+// rawBody marker the remangler re-emits the verbose string as a
+// length-prefixed identifier instead of the original A<letter> sub-refs,
+// breaking byte-exact round-trip. Stamping rawBody restores it — the
+// same mechanism the sibling fast-path / tuple-pre-rendered branches
+// already use.
+func (p *parser) stampVerboseRawBody(wrap *demangle.Node) *demangle.Node {
+	if wrap == nil {
+		return wrap
+	}
+	if wrap.Attrs == nil {
+		wrap.Attrs = map[string]string{}
+	}
+	if wrap.Attrs["swift.fastpath.rawBody"] == "" {
+		wrap.Attrs["swift.fastpath.rawBody"] = p.s
+	}
+	return wrap
+}
+
 const maxParseDepth = 64
 const maxParseOps = 65536
 
@@ -6341,7 +6368,7 @@ func (p *parser) tryVariableEntity() (resNode *demangle.Node, resOK bool, resErr
 		typeStr := common.Print(typ, opts)
 		wrap := common.NewNode(common.KindTypeMangling)
 		wrap.Text = pathStr + " : " + typeStr
-		return wrap, true, nil
+		return p.stampVerboseRawBody(wrap), true, nil
 	}
 	if p.i+1 >= len(p.s) || p.s[p.i] != 'v' {
 		restore()
@@ -6421,7 +6448,7 @@ func (p *parser) tryVariableEntity() (resNode *demangle.Node, resOK bool, resErr
 			wrap := common.NewNode(common.KindTypeMangling)
 			wrap.Text = "property descriptor for " + staticPrefix +
 				common.Print(path, opts) + " : " + common.Print(typ, opts)
-			return wrap, true, nil
+			return p.stampVerboseRawBody(wrap), true, nil
 		}
 		var parts []string
 		for _, step := range pathSteps[1:] { // skip module
@@ -6429,7 +6456,7 @@ func (p *parser) tryVariableEntity() (resNode *demangle.Node, resOK bool, resErr
 		}
 		wrap := common.NewNode(common.KindTypeMangling)
 		wrap.Text = "property descriptor for " + staticPrefix + strings.Join(parts, ".")
-		return wrap, true, nil
+		return p.stampVerboseRawBody(wrap), true, nil
 	}
 	// For plain stored-property ('vp'), produce a structured KindStoredProperty
 	// node so the remangler can round-trip it, and so the QO (opaque-return-
@@ -6468,7 +6495,7 @@ func (p *parser) tryVariableEntity() (resNode *demangle.Node, resOK bool, resErr
 			typeStr := common.Print(typ, opts)
 			wrap := common.NewNode(common.KindTypeMangling)
 			wrap.Text = staticPrefix + pathStr + pathSuffix + " : " + typeStr
-			return wrap, true, nil
+			return p.stampVerboseRawBody(wrap), true, nil
 		}
 		// Module-stripped, type-annotation-stripped.
 		pathNoMod := common.NewNode(common.KindEntityPath)
@@ -6476,7 +6503,7 @@ func (p *parser) tryVariableEntity() (resNode *demangle.Node, resOK bool, resErr
 		pathStr := common.Print(pathNoMod, opts)
 		wrap := common.NewNode(common.KindTypeMangling)
 		wrap.Text = staticPrefix + pathStr + pathSuffix
-		return wrap, true, nil
+		return p.stampVerboseRawBody(wrap), true, nil
 	default:
 		path := common.NewNode(common.KindEntityPath)
 		common.AddChildren(path, pathSteps...)
@@ -6484,7 +6511,7 @@ func (p *parser) tryVariableEntity() (resNode *demangle.Node, resOK bool, resErr
 		typeStr := common.Print(typ, opts)
 		wrap := common.NewNode(common.KindTypeMangling)
 		wrap.Text = prefix + staticPrefix + pathStr + pathSuffix + " : " + typeStr
-		return wrap, true, nil
+		return p.stampVerboseRawBody(wrap), true, nil
 	}
 }
 

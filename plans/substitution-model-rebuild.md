@@ -241,10 +241,35 @@ convergence — done inside the open `BREAK_OK` window.
       is now FULLY restored; its 2 roundtrip symbols + the P3 break set
       remain for P4 (remangler) / P5. Hard gates GREEN: Apple 153/153,
       swiftc 222/222, categories, build.
-- [ ] **P4 — remangler coordination**: emit substitution-sourced
-      nodes as `A<letter>` sub-refs (not length-prefixed idents) so
-      the realigned parses round-trip byte-exact — closes the −2
-      roundtrip regressions from P2.
+- [x] **P4 — remangler coordination** — done 2026-05-19. Root cause:
+      the A/B/C realignment moved the 2 PredicateRegex
+      substitution-bearing variable getters / property descriptors OFF
+      the whole-symbol fast-path and ONTO `tryVariableEntity`'s
+      verbose-form accessor / property-descriptor branches
+      (`stable.go:~6342/6421/6430/6469/6477/6485`). Those branches
+      build a pre-rendered text-only `KindTypeMangling` `wrap` node but
+      — unlike every sibling fast-path / tuple-pre-rendered branch —
+      never stamped `swift.fastpath.rawBody`. With no rawBody marker,
+      `isTextOnlyGlobal` strips the Tree to `nil` (rt-unsupported) and,
+      where a tree survives, the remangler re-emits the verbose string
+      as a length-prefixed identifier instead of the original
+      `A<letter>` sub-refs — byte-exact round-trip breaks. Fix: new
+      `parser.stampVerboseRawBody` helper stamps
+      `swift.fastpath.rawBody = p.s` on all 6 verbose-form `wrap`
+      nodes; the remangler's existing `mangleGlobal` rawBody fast-path
+      (`remangler.go:333`) then emits the body verbatim. **No
+      remangler.go change needed** — the remangler already honoured
+      rawBody; the omission was parser-side. **Measured delta:** parity
+      62161 → 62161 (+0, expected — P4 is roundtrip recovery), roundtrip
+      recovers both P2-break PredicateRegex symbols
+      (`…VyAG03AnyD6OutputVGvg` + `…vpMV`). **Zero new losses** — the
+      90 still-disappeared symbols (81 parity + 9 roundtrip) are
+      exactly the union of the 2 open break disappeared-sets; P4 added
+      none. Purely additive — NO new break chained. Hard gates GREEN:
+      Apple 153/153, swiftc 222/222, categories, build. P2's break
+      `pending-1779145924` is now FULLY restored (4 parity recovered
+      by P3.5 + 2 roundtrip recovered by P4) — formal `BREAK_FIXED`
+      closure at P5.
 - [ ] **P5 — converge + close the window**: with A/B/C/remangler
       aligned, re-run the corpus; the realignment should now be net
       POSITIVE. `make snapshot` to re-lock; confirm parity ≥ 62216 and
@@ -258,6 +283,27 @@ convergence — done inside the open `BREAK_OK` window.
 
 ## Status
 
+- 2026-05-19: **P4 complete (remangler coordination — pure recovery,
+  NO new break).** Root cause was parser-side, not remangler-side:
+  the A/B/C realignment moved the 2 PredicateRegex variable getters /
+  property descriptors off the whole-symbol fast-path onto
+  `tryVariableEntity`'s verbose-form accessor / property-descriptor
+  branches, which built pre-rendered text-only `KindTypeMangling`
+  nodes WITHOUT stamping `swift.fastpath.rawBody`. The remangler then
+  had no round-trip origin and re-emitted the verbose string as a
+  length-prefixed identifier instead of the original `A<letter>`
+  sub-refs. New `parser.stampVerboseRawBody` helper stamps
+  `swift.fastpath.rawBody = p.s` on all 6 verbose-form `wrap` nodes;
+  the remangler's existing `mangleGlobal` rawBody fast-path
+  (`remangler.go:333`) emits the body verbatim — no remangler.go
+  change. Parity 62161 → 62161 (+0, expected), roundtrip recovers
+  both P2-break PredicateRegex symbols. **Zero new losses** — the 90
+  still-disappeared symbols are exactly the union of the 2 open break
+  disappeared-sets. Purely additive — NO new break. Hard gates green
+  (Apple 153/153, swiftc 222/222, categories, build). **P2's break
+  `pending-1779145924` disappeared-set is now FULLY restored** (4
+  parity by P3.5 + 2 roundtrip by P4); formal `BREAK_FIXED` closure
+  at P5. 2 breaks still open. Next: P5 (converge + close the window).
 - 2026-05-19: **P3.5 complete (Mechanism C decoupling — pure
   recovery, NO new break).** Added canonical realigned resolver
   `aRepeatExpand` (`stable.go:~5866`): `A<digits><UPPER>` → direct
