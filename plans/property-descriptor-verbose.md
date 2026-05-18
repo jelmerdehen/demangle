@@ -129,12 +129,17 @@ and the protocol step carries `<>`, emit at `:14332` produces
       structural `E` and resumes at the decl-name with the `<>`
       placeholder. Drained all 72 AMvpZMV symbols — parity
       62062→62134 (+72), roundtrip unchanged.
-- [ ] **P4 — scope + stragglers**: probe the remaining AMvpZMV
-      symbols; widen/narrow the P3 guard so all 72 pass without
-      regression elsewhere. Net parity round (may be +0 if P3 already
-      drains the bucket).
-- [ ] **P5 — enable + scope**: `make smoke` wide; lock snapshot;
-      close the plan.
+- [x] **P4 — scope + stragglers** — done 2026-05-18 (+0). P3 drained
+      all 72 AMvpZMV in one fire. Post-P3 divergence rescan: the
+      property-descriptor bucket fell 217→145; zero remaining symbols
+      exhibit the wrong-module-as-declName shape, so the P3 guard
+      (`A<idx>E` opener) is correctly scoped — no widening or
+      narrowing needed. The remaining 145 are different mechanisms
+      (vpMV 65 / ipMV 49 verbose render; vpZMV-ext 31 verbose
+      constraint) — out of scope for this plan, candidates for their
+      own forks.
+- [ ] **P5 — close**: final `make smoke` + snapshot-check + ratchet
+      green; close the plan.
 
 ## Status
 
@@ -146,6 +151,8 @@ and the protocol step carries `<>`, emit at `:14332` produces
   host-walk `stable.go:13355-13394`, not `tryVariableEntity`).
 - 2026-05-18: P3 done (CKN) — `skipProtoExtChain` drains the 72-sym
   AMvpZMV bucket; parity 62062→62134.
+- 2026-05-18: P4 done (+0) — bucket scoped; 217→145 mismatches, P3
+  guard correctly tight.
 
 ## Failed attempts
 
