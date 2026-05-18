@@ -81,15 +81,34 @@ does not.
       `TestVerbosePlainHostRender`. +1 production
       (`Foundation.Morphology.Pronoun.init`); all gates green, zero
       regression. See "## P3 findings".
-- [ ] **P4 — `0`-prefixed word-sub idents + bound generics**: extend
-      the renderer to types containing word-substitution identifiers
-      (`A0B0V…`) and `Say…G` / `…y…G` bound generics.
-- [ ] **P5 — compact `S<N>` fused render**: the compact run fuses the
-      result with arg-0 across one shared token; render it by
-      synthesising the per-slot type strings (P1's decoder declines
-      this with reason `compact-fused-run`).
-- [ ] **P6 — wire into function-verbose-form P3 + close**: replace
-      that plan's stalled P3, smoke wide, narrow on regression, close.
+- [~] **P4 / P5 / P6 — DEFERRED 2026-05-18, plan closed.** P3's
+      findings established that the remaining payoff (the ~100-symbol
+      plain-host bucket, word-sub idents, bound generics, compact-fused
+      runs) all inherit the **substitution-alignment wall**: rendering
+      any arg/result type that back-references a *signature-time*
+      substitution requires reproducing Apple's signature-time
+      `addSubstitution` push order, which the incremental re-parse does
+      not. That is exactly the wall `plans/substitution-model-alignment.md`
+      P1 measured and closed as infeasible-for-bounded-work (+18 gross
+      but −4/−2 structural regressions, `make snapshot-check` fails).
+      P4/P5/P6 cannot be done as gate-safe bounded primitives without
+      that foundational refactor landing first. Deferred — see Outcome.
+
+## Outcome
+
+**Plan closed 2026-05-18.** Shipped P1 (decoder, +0), P2 (CKW, +1),
+P3 (CKX, +1) — **+2 production total**, all gate-clean, zero
+regression. The `decodeEntitySignatureSpan` decoder + `fpVerbose*`
+renderers are real, tested infrastructure that a future fire reuses.
+
+The bucket's bulk (~100 plain-host functions + word-sub / bound-generic
+/ compact-fused variants) is **blocked on the substitution-model wall**
+— the same Wall 1 that `substitution-model-alignment` P1 proved is not
+addressable as bounded ratchet work. Unblocking it needs the
+foundational subs-model rebuild under a `BREAK_OK` window (owner
+decision — it deliberately regresses the parity gate temporarily).
+Until then the entity-signature verbose-form bucket is at its bounded
+ceiling.
 
 ## P1 findings
 
