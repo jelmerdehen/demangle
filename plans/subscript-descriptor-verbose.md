@@ -88,18 +88,40 @@ only fires if the main parser still bails).
       resolves one slot short — the result-tuple back-references "Value"
       assoc-type-refs not registered identically to Apple) deferred to
       P3.
-- [ ] **P3 — substitution-index consistency + remaining plain
-      non-tuple `cipMV` shapes**: (a) the AttributesSlice1-5 /
-      NSAttributesSlice family parse via P2's tuple-fold but the index
-      substitution `A<letter>` resolves one slot short — the
-      result-tuple's "Value" associated-type-ref back-references are
-      not registered into `p.subs` identically to Apple; fix the
-      registration so `AL`/`AN`/… resolve. (b) probe `_CocoaArrayWrapper`
-      (`yXl` AnyObject result), `_NativeDictionary` (`(_:isUnique:)`
-      multi-label, `B?` result), `_AnyCollectionBox` (`(start:end:)`
-      multi-label) with `--expand`; fix remaining bail causes.
-      swift-parity round if parity rises; +0 defer-write if no
-      ≤3-primitive fix. May split across fires.
+- [x] **P3 — tryBoundGeneric substitution-table restore on rollback**
+      — done 2026-05-18 (+0 parity). Root cause of the AttributesSlice
+      index mis-resolution traced: the host `parseType` (parseGlobal
+      fallback) speculatively tried the `y…G` bound-generic trailer on
+      the subscript body, parsed (and registered) the result-tuple
+      types, then rolled back position-only — `tryBoundGeneric`'s three
+      failure paths restored `p.i` but not `p.subs`, leaving the
+      substitution table doubled. Fixed: capture `saveSubs` and restore
+      it on every rollback. +0 parity (no symbol flips on its own) but
+      removes table corruption that mis-resolves `A<letter>` back-refs
+      across the corpus. snapshot-check clean.
+- [ ] **P4 — AttributesSlice substitution-count alignment**: even with
+      the table un-doubled, the index `A<letter>` resolves ~2 slots
+      short of Apple. Discrepancies in the result-tuple region: (1)
+      building a nested type from an `A<letter>` back-ref base
+      (`AC5IndexV`) re-pushes the base nominal as a fresh substitution
+      — Apple does not; (2) the "Index" identifier / element-region
+      push count differs from Apple's `addSubstitution` order. Probe
+      with a subs-dump (DBG print in trySubscriptEntityTyped before the
+      index loop) against Apple, align the pushes. Targets Slice1
+      (+1); Slice2-5 additionally need P5.
+- [ ] **P5 — `A<letter>…Q<param>` substitution-ref-led dependent
+      member type**: Slice2-5 carry `AHQy_Sg` etc. — a dependent member
+      type whose associated-type-ref is an `A<letter>` substitution
+      back-ref to a previously-registered identifier.
+      `tryDependentMemberType` only accepts the digit-led
+      (`<N><name>Q…`) form; extend it to also accept the
+      substitution-ref-led form. Unblocks the Slice2-5 tuple-fold.
+- [ ] **P6 — remaining plain non-tuple `cipMV` shapes**: probe
+      `_CocoaArrayWrapper` (`yXl` AnyObject result), `_NativeDictionary`
+      (`(_:isUnique:)` multi-label, `B?` result), `_AnyCollectionBox`
+      (`(start:end:)` multi-label) with `--expand`; fix remaining
+      `trySubscriptEntityTyped` bail causes (labeled index tuple,
+      protocol-list result). swift-parity round if parity rises.
 - [ ] **P4 — plain local-generic subscript propdescs** (`luipMV` /
       `cluipMV`): AttributedString.Runs.Run dynamicMember ×2,
       PredicateBindings, ScopedAttributeContainer, Data, String —
@@ -107,14 +129,14 @@ only fires if the main parser still bails).
       index/return types. Determine whether the main parser reaches
       `trySubscriptEntityTyped` or a separate `lu`-prefixed path; fix
       accordingly. May split across fires if >3 primitives.
-- [ ] **P5 — extension-nested hosts** (33 syms, `want` carries
+- [ ] **P7 — extension-nested hosts** (33 syms, `want` carries
       `(extension in <Mod>):`): `(extension in <Mod>):<Mod>.<Host>`
       prefix + ` where <constraint>` clause. Reuse the
       double-extension-grammar / property-descriptor host-walk
       helpers. Largest sub-bucket — likely multi-fire; re-split into
-      P5a/P5b… when scoped. Honest defer-write per bail if no
+      P7a/P7b… when scoped. Honest defer-write per bail if no
       ≤3-primitive slice.
-- [ ] **P6 — enable + scope + close**: smoke wide; narrow on
+- [ ] **P8 — enable + scope + close**: smoke wide; narrow on
       regression; final snapshot lock; close plan.
 
 ## Status
@@ -126,6 +148,10 @@ only fires if the main parser still bails).
   rewritten; P-count grown to 6.
 - 2026-05-18: P2 done (CKQ) — result-tuple fold + raw-body stamp.
   parity 62140->62144, roundtrip 21318->21999, no regressions.
+- 2026-05-18: P3 done — tryBoundGeneric subs-table restore on
+  rollback. +0 parity, no regressions. P-count grown to 8; P4/P5
+  carry the remaining AttributesSlice substitution-count + dependent-
+  member-grammar work.
 
 ## Failed attempts
 

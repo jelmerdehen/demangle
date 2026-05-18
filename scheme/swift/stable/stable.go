@@ -28526,6 +28526,11 @@ func (p *parser) tryBoundGeneric(base *demangle.Node) (*demangle.Node, bool, err
 		return base, false, nil
 	}
 	save := p.i
+	// Speculatively parsing the y...G arg stream registers substitutions;
+	// every rollback below must also restore p.subs, otherwise a failed
+	// bound-generic guess leaves the substitution table corrupted for the
+	// rest of the symbol (off-by-N A<letter> back-references).
+	saveSubs := p.subs
 	p.i++
 	var args []*demangle.Node
 	var conformanceBuf strings.Builder
@@ -28674,15 +28679,18 @@ func (p *parser) tryBoundGeneric(base *demangle.Node) (*demangle.Node, bool, err
 		// (probably a function-type marker in a context we don't yet
 		// understand).
 		p.i = save
+		p.subs = saveSubs
 		return base, false, nil
 	}
 	if p.eof() {
 		p.i = save
+		p.subs = saveSubs
 		return base, false, nil
 	}
 	p.i++ // consume 'G'
 	if len(args) == 0 {
 		p.i = save
+		p.subs = saveSubs
 		return base, false, nil
 	}
 
