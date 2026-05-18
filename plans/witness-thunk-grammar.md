@@ -117,11 +117,29 @@ Handle plain conformances first; constrained ones may need a narrow.
       **Result: +27 production** (all 27 plain + word-subst function
       witnesses), TW bucket 45→18. Constrained-conformance getters and
       2 UIKit nested-protocol funcs remain → P4.
-- [ ] **P4 — scope wide + close**: `make smoke` wide; if constrained-
-      conformance symbols (`Group` / `_ConditionalContent`) still fail,
-      either land a narrow extension or `chore: defer` them with an
-      INVESTIGATIONS.md entry. Narrow on any regression. Final snapshot
-      lock; close the plan.
+- [x] **P4 — scope wide + close** (2026-05-18): extended
+      `tryProtocolWitnessThunk` to constrained conformances — the
+      proto-module + conformance generic-requirement clause is skipped
+      by anchoring on the `P` protocol-kind operator (`P` followed by a
+      digit). Added `witnessConformanceConstraintPrefix`: a
+      single-requirement conformance renders `<subject> `, two-or-more
+      `<> ` (matching Apple's simplified form). The conformance source
+      module now also accepts a digit-led module identifier (for the
+      `xSg` Optional-conforming-type symbols). A guard declines
+      nested-protocol witnesses (the byte after the protocol identifier
+      must be an `A`-led substitution / `s`). **Result: +16 production**
+      — 6 `Group` + 5 `_ConditionalContent` + 5 `xSg` constrained
+      getters. TW error bucket 18→2. The 2 remaining are UIKit
+      nested-protocol witnesses → deferred (INVESTIGATIONS.md
+      `protocol-witness-thunk-nested-protocol`).
+
+## Outcome
+
+**Plan closed 2026-05-18.** The 62-symbol `TW` parse-error bucket:
+**60 fixed** (correct parity passes), 2 deferred (UIKit nested-protocol
+witnesses). Cumulative production parity 97.47%→97.56% (+60), TW error
+bucket 62→2. Commits CKR (P2 getter, +17), CKS (P3 function, +27),
+CKT (P4 constrained, +16).
 
 ## Status
 
@@ -133,6 +151,8 @@ Handle plain conformances first; constrained ones may need a narrow.
   +17 production (CKR), TW bucket 62→45.
 - 2026-05-18: P3 done — function sub-shape via synthetic reparse,
   +27 production (CKS), TW bucket 45→18.
+- 2026-05-18: P4 done — constrained conformances + close,
+  +16 production (CKT), TW bucket 18→2. Plan closed.
 
 ## Failed attempts
 

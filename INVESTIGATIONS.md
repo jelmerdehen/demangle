@@ -2563,3 +2563,39 @@ Defer reason: two independent deep blockers; the obvious general fix
 regresses a hard-gated Apple-corpus symbol. Exceeds the bounded
 5-fire plan. Needs a context-flag-gated tuple grammar plus a subs-table
 alignment pass — ≥4 primitives, regression-prone.
+
+### protocol-witness-thunk-nested-protocol [2 syms, deferred-1]
+
+The `TW` protocol-witness-thunk bucket (plans/witness-thunk-grammar.md,
+now closed) closed 60/62. Two UIKit symbols remain — witnesses whose
+protocol context is a **nested type** rather than a single-identifier
+protocol:
+
+```
+_$sSo37_UITextViewAnimatedPlaceholderSupportC5UIKit0a6EffectB0C0
+  15ReplacementTextG0C8DelegateAcgHP011replacementG11DidCompleteyyAGFTW
+_$sSo37_UITextViewAnimatedPlaceholderSupportC5UIKit0a6EffectB0C0
+  15ReplacementTextG0C8DelegateAcgHP07performH18AndGeneratePreview…tYaFTW
+```
+
+want: `protocol witness for
+UITextEffectView.ReplacementTextEffect.Delegate.<fn>(…) in conformance
+_UITextViewAnimatedPlaceholderSupport`.
+
+`tryProtocolWitnessThunk` (stable.go) parses the conformance protocol
+as one `parseIdentifier` + a scan to the `P` operator. Here the
+protocol is `UITextEffectView.ReplacementTextEffect.Delegate` — three
+nominal components with `C`/`P` kind bytes. The handler now declines
+cleanly (guard: the byte after the protocol identifier must be an
+`A`-led substitution or `s`; a nominal-kind byte means a nested
+context), so both stay honest `[error]`s rather than emitting a
+truncated single-component name.
+
+Fire-plan: replace the single-identifier protocol parse with a real
+nominal-context walk (`<ctx><ident><kindbyte>`* terminating in `P`),
+building the dotted protocol path. ~1 primitive; deferred only because
+it is 2 symbols and the witness-thunk plan was scoped to the coherent
+getter/function sub-shapes.
+
+Defer reason: 2 symbols, distinct nested-protocol mechanism; below the
+bar for extending the closed bounded plan.

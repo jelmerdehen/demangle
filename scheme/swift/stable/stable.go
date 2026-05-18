@@ -8196,13 +8196,13 @@ func (p *parser) tryConformanceDescriptor(inner *demangle.Node) (*demangle.Node,
 // tryProtocolWitnessThunk handles the 'TW' protocol-witness-thunk
 // terminal. Grammar (after the conforming type is parsed into inner):
 //
-//	<conf-module> <protocol-ident> <proto-module>? 'P' <requirement> 'TW'
+//	<conf-module> <protocol-ident> <proto-module> <generic-sig>? 'P' <requirement> 'TW'
 //
 // Apple renders the simplified form
 // "protocol witness for [static ]<proto>.<requirement> in conformance
-// <conforming-type>". This handler covers the variable-getter
-// requirement sub-shape (`vg` / `vgZ` accessor); function requirements
-// and constrained conformances decline and fall through unchanged.
+// <conforming-type>". Covers the variable-getter and function
+// requirement sub-shapes, plain and constrained conformances; other
+// shapes decline and fall through unchanged.
 func (p *parser) tryProtocolWitnessThunk(inner *demangle.Node) (*demangle.Node, bool) {
 	if p.eof() || !strings.HasSuffix(p.s, "TW") {
 		return inner, false
@@ -8212,9 +8212,28 @@ func (p *parser) tryProtocolWitnessThunk(inner *demangle.Node) (*demangle.Node, 
 	saveWords := p.words
 	revert := func() { p.i = save; p.subs = saveSubs; p.words = saveWords }
 
-	// Conformance source module.
-	mod1, err := p.parseType()
-	if err != nil || mod1 == nil || common.NodeKind(mod1.Kind) != common.KindModule {
+	// Conformance source module: a substitution ('A'-led), the 's'
+	// Swift shorthand, or a digit-led module identifier.
+	var modName string
+	switch {
+	case p.s[p.i] == 'A':
+		mt, merr := p.parseType()
+		if merr != nil || mt == nil || common.NodeKind(mt.Kind) != common.KindModule {
+			revert()
+			return inner, false
+		}
+		modName = mt.Text
+	case p.s[p.i] == 's':
+		p.i++
+		modName = "Swift"
+	case p.s[p.i] >= '0' && p.s[p.i] <= '9':
+		m, merr := p.parseIdentifier()
+		if merr != nil || m == "" {
+			revert()
+			return inner, false
+		}
+		modName = m
+	default:
 		revert()
 		return inner, false
 	}
@@ -8228,28 +8247,37 @@ func (p *parser) tryProtocolWitnessThunk(inner *demangle.Node) (*demangle.Node, 
 		revert()
 		return inner, false
 	}
-	// Protocol context module: an 'A'-led multi-substitution run
-	// (A <[0-9a-z]>* <[A-Z]>), an 's' Swift shorthand, or absent.
-	if !p.eof() && p.s[p.i] == 'A' {
-		p.i++
-		for !p.eof() && ((p.s[p.i] >= '0' && p.s[p.i] <= '9') || (p.s[p.i] >= 'a' && p.s[p.i] <= 'z')) {
-			p.i++
-		}
-		if !p.eof() && p.s[p.i] >= 'A' && p.s[p.i] <= 'Z' {
-			p.i++
-		}
-	} else if !p.eof() && p.s[p.i] == 's' {
-		p.i++
-	}
-	// Protocol kind operator.
-	if p.eof() || p.s[p.i] != 'P' {
+	// The protocol context module always follows as an 'A'-led
+	// substitution (or 's' Swift shorthand). Anything else — notably a
+	// nominal-kind byte or a digit — means the protocol context is a
+	// nested type (e.g. the UIKit
+	// `UITextEffectView.ReplacementTextEffect.Delegate` witnesses);
+	// decline rather than emit a truncated single-component name.
+	if p.eof() || (p.s[p.i] != 'A' && p.s[p.i] != 's') {
 		revert()
 		return inner, false
 	}
-	p.i++
+	// Skip the protocol context module plus any conformance generic-
+	// requirement clause, anchoring on the 'P' protocol-kind operator
+	// that precedes the requirement entity. The entity always begins
+	// with a digit (the requirement-name length).
+	clauseStart := p.i
+	pPos := -1
+	for k := p.i; k+1 < len(p.s)-2; k++ {
+		if p.s[k] == 'P' && p.s[k+1] >= '0' && p.s[k+1] <= '9' {
+			pPos = k
+			break
+		}
+	}
+	if pPos < 0 {
+		revert()
+		return inner, false
+	}
+	p.i = pPos + 1
 	o := common.DefaultPrintOptions()
 	o.QualifyEntities = false
-	confType := common.Print(inner, o)
+	confType := witnessConformanceConstraintPrefix(p.s[clauseStart:pPos]) +
+		common.Print(inner, o)
 	// Function-requirement sub-shape: the entity ends in 'F' / 'FZ'.
 	// The requirement entity is a self-contained function entity whose
 	// context is the protocol; re-demangle it as a synthetic
@@ -8263,7 +8291,7 @@ func (p *parser) tryProtocolWitnessThunk(inner *demangle.Node) (*demangle.Node, 
 		// word-substituted names and substitution back-refs resolve
 		// against the same indices they were mangled against; the
 		// synthetic prefix only appends new entries.
-		synthetic := mangleModulePrefix(mod1.Text) +
+		synthetic := mangleModulePrefix(modName) +
 			strconv.Itoa(len(protoName)) + protoName + "P" + entity
 		p2 := &parser{
 			s:          synthetic,
@@ -8327,6 +8355,51 @@ func (p *parser) tryProtocolWitnessThunk(inner *demangle.Node) (*demangle.Node, 
 		".getter in conformance " + confType
 	wrap.Attrs = map[string]string{"swift.fastpath.rawBody": p.s}
 	return wrap, true
+}
+
+// witnessConformanceConstraintPrefix derives the simplified
+// constrained-conformance prefix ("<A> ", "<> ", or "") from the
+// conformance generic-requirement clause sitting between the protocol
+// identifier and the 'P' operator. Apple's simplified form shows a
+// single conformance requirement as "<subject> " and two or more as
+// "<> "; an unconstrained conformance has no prefix.
+func witnessConformanceConstraintPrefix(clause string) string {
+	var subjects []int
+	for k := 0; k+1 < len(clause); k++ {
+		if clause[k] != 'R' {
+			continue
+		}
+		j := k + 1
+		if clause[j] == 'p' || clause[j] == 't' {
+			j++
+		}
+		if j >= len(clause) {
+			continue
+		}
+		switch {
+		case clause[j] == 'z':
+			subjects = append(subjects, 0)
+		case clause[j] == '_':
+			subjects = append(subjects, 1)
+		case clause[j] >= '0' && clause[j] <= '9':
+			n := 0
+			for j < len(clause) && clause[j] >= '0' && clause[j] <= '9' {
+				n = n*10 + int(clause[j]-'0')
+				j++
+			}
+			if j < len(clause) && clause[j] == '_' {
+				subjects = append(subjects, n+2)
+			}
+		}
+	}
+	switch len(subjects) {
+	case 0:
+		return ""
+	case 1:
+		return "<" + string(rune('A'+subjects[0])) + "> "
+	default:
+		return "<> "
+	}
 }
 
 // mangleModulePrefix renders a module name back into its mangled
