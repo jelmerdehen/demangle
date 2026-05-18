@@ -2287,6 +2287,7 @@ func (p *parser) trySubscriptEntityTyped(inner *demangle.Node) (*demangle.Node, 
 			}
 		}
 	}
+	resultStart := p.i
 	if resultNode == nil {
 		var err error
 		resultNode, err = p.parseType()
@@ -2314,6 +2315,33 @@ func (p *parser) trySubscriptEntityTyped(inner *demangle.Node) (*demangle.Node, 
 			break
 		}
 		indexNodes = append(indexNodes, idxNode)
+	}
+
+	// Greedy-fold recovery: when the result type begins with 'y', parseType
+	// routes it through parseFunctionType, which can greedily swallow an
+	// index type plus the subscript 'c' terminator as a function-type
+	// convention byte (e.g. result 'yXl' + index 'Si' + 'c' parsed as
+	// '(Swift.AnyObject) -> Swift.Int'). When that leaves no real 'c'
+	// terminator for the subscript, re-parse the result as a 'y'-existential
+	// ('y' <type>) — which consumes only the existential head — and re-run
+	// the index loop so the genuine 'c' terminator is exposed.
+	if (p.eof() || p.s[p.i] != 'c') && resultStart < len(p.s) && p.s[resultStart] == 'y' {
+		p.i = resultStart + 1 // skip the 'y' existential marker
+		if existNode, existErr := p.parseType(); existErr == nil && existNode != nil {
+			resultNode = existNode
+			indexNodes = nil
+			for !p.eof() && p.s[p.i] != 'c' {
+				idxSave := p.i
+				idxSubs := p.subs
+				idxNode, idxErr := p.parseType()
+				if idxErr != nil {
+					p.i = idxSave
+					p.subs = idxSubs
+					break
+				}
+				indexNodes = append(indexNodes, idxNode)
+			}
+		}
 	}
 
 	// Require 'c' terminator.

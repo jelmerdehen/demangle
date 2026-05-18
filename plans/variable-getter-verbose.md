@@ -201,14 +201,78 @@ is P3.
       until the `A…E` extension-member-tail type production lands.
       Per the goal's defer rule, deferred honestly — no forced
       regression. +0.
-- [ ] **P5 — subscript getters (B1+B2, 22 syms) + enable/scope**:
-      verbose `X.subscript.getter : <gen-sig>(<params>) -> <result>`
-      for subscript accessors; reuse the subscript-getter sig work
-      noted in INVESTIGATIONS.md (trySubscriptEntityTyped). Smoke
-      wide; narrow on regression; close the plan.
+- [x] **P5 — subscript getters (B1+B2, 22 syms) — done 2026-05-18,
+      +2 production.** Probe (P5PROBE-instrumented
+      `trySubscriptEntityTyped`, reverted) split the 22-symbol slice:
+      - **17 syms never reach `trySubscriptEntityTyped`** — labeled
+        subscript form (body starts with the label idents
+        `5start3end…`, not the `y` typed-marker — the
+        `_…CollectionBox` family; INVESTIGATIONS "labeled-form" note),
+        or a `So<Class>C` ObjC-class / extension-nested host that the
+        host dispatch rejects (the `NSData`/`NSDictionary`/
+        `DispatchData.Region`/`Duration.…FormatStyle` B2 slice). Same
+        host + labeled-subscript walls already deferred for P4.
+      - **4 syms reach it but the result-type `parseType` leaves an
+        `A…`/`x`-led leftover** (`PredicateBindings`, `Data`,
+        `UnicodeScalarView`, `String` `SSySS…`) — the substitution-
+        table-misalignment / generic-signature wall that deferred P2.
+      - **1 sym tractable: `_$ss18_CocoaArrayWrapperVyyXlSicig`.**
+        Result type `yXl` (`any AnyObject`) begins with `y`, so
+        `parseType` routes it through `parseFunctionType`, which
+        greedily swallows the index type `Si` *and* the subscript `c`
+        terminator as a function-type convention byte — producing
+        `(Swift.Int) -> Swift.AnyObject` with 0 index nodes and no
+        `c` left, so `trySubscriptEntityTyped` reverted to the
+        simplified render. This is the exact greedy-fold INVESTIGATIONS
+        flagged for the `…cipMV` sibling.
+      **Fix (stable.go:~2291).** Added a greedy-fold recovery in
+      `trySubscriptEntityTyped`: after the result+index parse, if no
+      `c` terminator was found AND the result body began with `y`,
+      re-parse the result as a `y`-existential (`y` <type>, consuming
+      only the existential head) and re-run the index loop so the
+      genuine `c` is exposed. The shared `trySubscriptEntityTyped`
+      path also serves the `cipMV` property-descriptor accessor, so
+      both `_CocoaArrayWrapper` accessors (`…Sicig` getter +
+      `…SicipMV` descriptor) flipped to byte-exact.
+      Result: parity 62212→62214 (+2 production), subscript-getter
+      mismatch bucket 22→21, snapshot-check clean (+0 roundtrip
+      regressions). Closes the plan.
+
+## Outcome
+
+**Plan CLOSED 2026-05-18.** Total parity shipped: **+10 production**
+(P3 +8 tuple/pack declared-type tail; P5 +2 subscript-getter
+greedy-fold recovery). P1 was a no-gain categorisation fire.
+
+Deferred primitives and why:
+- **P2** `[~]` — var-getter declared-type continuation. The `y…G`
+  bound-generic slice fails on a substitution-table misalignment
+  (`tryVariableEntity`'s path-walk pushes a shorter subs table than
+  Apple's entity-context model, so `A…` arg back-refs resolve to the
+  wrong nodes); the `A…E` slice needs a new substitution-applied
+  extension-member-tail type parser that does not exist.
+- **P4** `[~]` — extension-nested var-getter hosts. Hard-blocked on
+  the `So<Class>C` ObjC-class host (no host-dispatch branch) and the
+  same `A…E` extension-member-tail wall as P2b.
+- **P5** mostly landed but its B2 (extension-nested host) and
+  `A…`-leftover sub-slices hit the identical two walls — only the one
+  `y`-existential greedy-fold symbol was tractable.
+
+The common blocker for every deferred slice is the
+**substitution-model misalignment** plus the missing **`A…E`
+extension-member-tail type production**. These are unblocked by a
+future dedicated substitution-model-alignment plan (re-derive Apple's
+`addSubstitution` order, migrate the corpus's `A<letter>`-bearing
+symbols behind a `BREAK_OK` window — see INVESTIGATIONS.md "subscript
+ipMV substitution-count alignment").
 
 ## Status
 
+- 2026-05-18: **plan CLOSED.** P5 complete (+2 production,
+  subscript-getter greedy-fold recovery in `trySubscriptEntityTyped`).
+  All five primitives terminal: P1 `[x]` (categorise), P2 `[~]`,
+  P3 `[x]` (+8), P4 `[~]`, P5 `[x]` (+2). Plan total +10. See
+  ## Outcome.
 - 2026-05-18: plan forked from the mismatch scan (post
   witness-thunk-grammar close). Executed by the orchestrating session
   via one subagent per fire, sequential, with cross-fire verification.
