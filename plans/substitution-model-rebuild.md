@@ -270,19 +270,102 @@ convergence — done inside the open `BREAK_OK` window.
       `pending-1779145924` is now FULLY restored (4 parity recovered
       by P3.5 + 2 roundtrip recovered by P4) — formal `BREAK_FIXED`
       closure at P5.
-- [ ] **P5 — converge + close the window**: with A/B/C/remangler
-      aligned, re-run the corpus; the realignment should now be net
-      POSITIVE. `make snapshot` to re-lock; confirm parity ≥ 62216 and
-      roundtrip ≥ 22059; verify every `BREAK_ID`'s disappeared set is
-      back in the pass-set; commit `BREAK_FIXED:` footers; manually
-      append the `closed` lines to `breaks.log`; `make breaks-status`
-      must exit 0.
+- [~] **P5 — converge (partial; P5b needed)** — done 2026-05-19.
+      Root cause of the P3-break casualties located precisely: when
+      `case 'A'` resolves a plain back-ref that is THEN extended by a
+      postfix nested-nominal step (`A<letter>` + `<digits><ident><kind>`,
+      e.g. `AB5IndexV` → `__CocoaSet.Index`), Mechanism B (P3) deferred
+      the bare-base push but the nested-nominal step never reinstated
+      it — leaving the table one slot short for every subsequent
+      `A<letter>` back-ref. The fix: reinstate the deferred
+      `caseADeferredBase` push inside the postfix nested-nominal loop
+      (`stable.go:~29265`), once, mirroring the existing bound-generic
+      `bgOk` reinstatement. **Scoped** to NOT fire inside a
+      bound-generic argument list (`!p.inBoundGenericArgs`) — there the
+      enclosing BG's own subs push already accounts for the resolved
+      arg and reinstating would double-count (regresses the
+      `AttributedString.Runs.AttributesSlice*` subscript families,
+      which carry a `Range<AC5IndexV>` BG arg — verified). **Measured
+      delta:** parity 62161 → 62212 (+51 net), roundtrip 39642 → 39643
+      (+1 net). **Zero new losses** — all 33 still-disappeared symbols
+      are a strict subset of the open break disappeared-sets; the
+      change is pure recovery, NO new break chained. Hard gates GREEN:
+      Apple 153/153, swiftc 222/222, categories, build.
+      **P2's break `pending-1779145924` FULLY recovered** (0/4 parity,
+      0/2 roundtrip fail) — formally closed this commit
+      (`BREAK_FIXED: pending-1779145924`). **P3's break
+      `pending-1779147219` PARTIALLY recovered** — 55/85 parity +
+      3/9 roundtrip back; 30 parity + 6 roundtrip still down. P3's
+      break stays OPEN → P5b.
+      Tried but rejected: a blanket param-label-identifier push in
+      `tryFunctionEntity` (Apple's `demangleIdentifier` addSubstitution
+      model) — Apple-correct in isolation but exposed 137 latent
+      table-misalignments elsewhere (`clamped(to:)` resolving its param
+      type to the label "to"); net −39 parity. Reverted. The
+      label-identifier-push convergence is a separate, larger primitive
+      (the 137 misalignments each need their own fix) — deferred.
+- [ ] **P5b — close the P3-break remainder**: 30 parity + 6 roundtrip
+      symbols of `pending-1779147219` still down, three families:
+      (1) `NSDecimal{Add,Divide,Multiply,Subtract}` (~3) — `So`-form
+      `__C` nominals sitting in a bound-generic arg slot have their
+      post-switch push wrongly suppressed by the
+      `parsedStdlib && inRawStdlibBoundGenericArgs` guard; the table
+      ends one slot short for the trailing `AH` back-ref. A measured
+      fix (gate `parsedStdlib`/`parsedRawStdlib` false for `So`/`Sc`
+      module forms) recovers them +4 parity but costs −8 roundtrip
+      (remangler cannot re-emit the now-pushed `So` nominal) — needs
+      paired remangler work.
+      (2) `LocalePreferences.init` default-argument family (~17) —
+      large `A<digits>_` chained back-refs; every param shifted, needs
+      the `A<digits>_` decimal-index resolver checked against the
+      realigned frame.
+      (3) `WeekendRange.init` (3) `AHS2it` repeat-count tuple +
+      `URL.template`, `Data.range`, `Date.ComponentsFormatStyle` (4
+      parity + 4 roundtrip), `LazySequenceProtocol` (2),
+      `SwiftUI._GraphValue` (2 roundtrip) — assorted chained-back-ref
+      shifts. Each is a bounded resolver-frame check.
 - [ ] **P6 — harvest**: re-run the deferred slices (variable-getter
       P2/P4, entity-signature-parser P4/P5, subscript-descriptor P4)
       that the realignment unblocks; close.
 
+## Outcome (partial — P5b needed)
+
+The refactor's A/B/C/remangler realignment is converged for the
+Mechanism-A/B/C-core casualty families. **P2's break
+`pending-1779145924` is fully restored and closed.** Parity is at
+**62212**, +51 above the post-P4 baseline 62161 and **−4 below** the
+pre-refactor 62216; roundtrip is at **39643**, +1 above the post-P4
+baseline 39642. The refactor is therefore net-POSITIVE on the
+post-refactor baseline but has NOT yet reattained the absolute
+pre-refactor parity (62216) — the gap is the 30 unrecovered P3-break
+parity symbols (NSDecimal `So`-form, LocalePreferences default-args,
+WeekendRange) scoped into **P5b**. The `BREAK_OK` window is therefore
+NOT yet closed: `pending-1779147219` stays open (RESTORE_BY 2026-05-24)
+until P5b lands. The refactor "succeeded" structurally — the
+substitution model now matches Apple's `addSubstitution` for the
+nested-nominal-after-back-ref path — but the convergence is finished
+only when P5b closes the second break.
+
 ## Status
 
+- 2026-05-19: **P5 partial (A<letter> nested-nominal frame realign —
+  pure recovery, P2 break CLOSED, P3 break PARTIAL).** The P3-break
+  casualties were NOT a plain-`A<letter>`-resolver miscalibration but
+  a missing push: Mechanism B (P3) deferred the bare-base push for
+  plain `case 'A'` back-refs, and the postfix nested-nominal step
+  (`A<letter>` + `<digits><ident><kind>`) never reinstated it — so
+  `AB5IndexV`-style nested types left the subs table one slot short
+  for every later `A<letter>` ref. Fix: reinstate `caseADeferredBase`
+  inside the nested-nominal loop (`stable.go:~29265`), once, scoped to
+  `!p.inBoundGenericArgs` (inside a BG arg list the enclosing BG push
+  already covers it; reinstating double-counts and regresses the
+  AttributesSlice subscript families). Parity 62161 → 62212 (+51),
+  roundtrip 39642 → 39643 (+1), zero new losses. P2's break
+  `pending-1779145924` fully restored (0/4 parity, 0/2 roundtrip
+  fail) — closed with `BREAK_FIXED`. P3's break `pending-1779147219`
+  partially restored (55/85 parity + 3/9 roundtrip back) — 30 parity
+  + 6 roundtrip remain, scoped to P5b. Hard gates green (Apple
+  153/153, swiftc 222/222, categories, build). Next: P5b.
 - 2026-05-19: **P4 complete (remangler coordination — pure recovery,
   NO new break).** Root cause was parser-side, not remangler-side:
   the A/B/C realignment moved the 2 PredicateRegex variable getters /

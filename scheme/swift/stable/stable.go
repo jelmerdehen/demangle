@@ -29263,6 +29263,27 @@ afterYAnnotations:
 			goto afterNestedLoop
 		}
 		p.i++ // consume kind byte
+		// substitution-model-rebuild P5: a postfix nested-nominal step
+		// extending a plain `case 'A'`-resolved base. Mechanism B (P3)
+		// deferred the bare-base push for plain back-refs, but when the
+		// base is the parent context of a fresh nested nominal used as a
+		// standalone type, Apple's frame keeps that base addressable —
+		// the nested ident + Type it is about to push land one slot
+		// LATER than the un-realigned `A<letter>` resolver expects.
+		// Reinstate the deferred base push here (once), mirroring the
+		// bound-generic-base reinstatement on the bgOk path.
+		//
+		// Scope: NOT inside a bound-generic argument list. There the
+		// enclosing bound-generic's own subs push (tryBoundGeneric)
+		// already accounts for the resolved arg, and reinstating the
+		// bare base would double-count — shifting later A<letter> refs
+		// off by one (regressing the AttributedString.Runs.Attributes-
+		// Slice subscript families, which carry a `Range<AC5IndexV>`
+		// bound-generic argument).
+		if caseADeferredBase != nil && !p.inBoundGenericArgs {
+			p.subs.Push(caseADeferredBase)
+			caseADeferredBase = nil
+		}
 		identNode := common.NewIdentifier(nestedIdent)
 		p.subs.Push(identNode)
 		nom := common.NewNode(nestKind)
