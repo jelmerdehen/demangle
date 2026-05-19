@@ -1,12 +1,12 @@
 # Swift Production Digest
 
-**Parity**: 97.58% (62216/63757) — 2026-05-18T18:00:04Z
-**Round-trip**: 34.60% (22059/63757) — 2026-05-18T17:34:03.262482Z
-**Failures**: 27 parse-errors + 1514 mismatches
+**Parity**: 97.58% (62212/63757) — 2026-05-19T00:22:00Z
+**Round-trip**: 85.49% (39643/46374) — 2026-05-19T00:22:01Z
+**Failures**: 27 parse-errors + 1519 mismatches
 
 ## Top-20 Mismatch Categories
 
-- property descriptor                        137
+- property descriptor                        128
 - static (extension                          102
 - (extension in Foundation):Foundation.PredicateExpr… 85
 - (extension in Foundation):Swift.Duration.UnitsForm… 22
@@ -29,19 +29,19 @@
 
 ## Last 10 Commits
 
-- aba90bef swift-parity: CKX entity-signature-parser P3 — plain-host detection + substitution-ref arg/result types — parity 97.58%->97.58% +1 production
-- 1ac2b9b4 chore: lock snapshot after CKW commit (parity 62214->62215 roundtrip 22059->22059)
-- e0bfb63a chore: update digest.md for CKW commit (parity 97.58%->97.58%)
-- 3eaf1efd swift-parity: CKW entity-signature-parser P2 — literal-typed function verbose render — parity 97.58%->97.58% +1 production
-- 84cb9a00 chore: plan-entity-signature-parser-P1 span decoder + scope (parity +0)
-- b7e637db chore: plan-substitution-model-alignment-P1 characterise divergence + feasibility verdict (parity +0)
-- 614a509b chore: lock snapshot after CKV commit (parity 62212->62214 roundtrip 22059->22059)
-- 40f0fc30 chore: update digest.md for CKV commit (parity 97.58%->97.58%)
-- c7850eaf swift-parity: CKV variable-getter-verbose P5 — subscript-getter verbose render — parity 97.58%->97.58% +2 production
-- 1e91f38a chore: plan-variable-getter-verbose-P4 defer — A2 extension-host var getters blocked on P2b A…E type-tail parser (parity +0)
+- 049b9629 chore: close breaks.log pending-1779145924 (substitution-model-rebuild P5)
+- 9ddb6dca refactor: substitution-model-rebuild P5 — A<letter> nested-nominal frame realign + converge (BREAK_FIXED)
+- 98027e0f refactor: substitution-model-rebuild P4 — remangler emits substitution-sourced nodes as A<letter>
+- e28a5f41 refactor: substitution-model-rebuild P3.5 — Mechanism C realign to corrected subs frame (recovers C-tuple family)
+- 47d6a62b refactor: substitution-model-rebuild P3 — Mechanism B drop case-'A' re-push, scoped (BREAK_OK, chained)
+- c2b2dbcf chore: plan-substitution-model-rebuild-P3 failed-attempt log (parity +0)
+- f7dcae55 chore: record breaks.log BREAK_ID pending-1779145924 for substitution-model-rebuild P2
+- f2b52ad1 refactor: substitution-model-rebuild P2 — Mechanism A decl-name push (BREAK_OK, regresses ~4 C-tuples)
+- 536ae17c chore: plan-substitution-model-rebuild-P1 stage refactor + Mechanism-C decoupling (parity +0)
+- c0edb90c chore: close plan-entity-signature-parser — P4/P5/P6 deferred on substitution-model wall (parity +0)
 
 ## Suggested Next 3 Items
 
-1. P1: property descriptor fix — 137 mismatches
+1. P1: property descriptor fix — 128 mismatches
 2. investigate: static (extension — 102 mismatches
 3. investigate: (extension in Foundation):Foundation.PredicateExpr… — 85 mismatches
