@@ -4,8 +4,13 @@
 package common
 
 import (
+	"fmt"
+	"os"
+
 	"github.com/jelmerdehen/demangle"
 )
+
+var debugSubs = os.Getenv("DEBUG_SUBS") != ""
 
 // StdlibSubstitutions maps the one-letter Swift standard-library
 // abbreviations (Mangling.rst §"Known-type substitutions") to their
@@ -225,7 +230,29 @@ type SubstitutionTable struct {
 // Push records a new substitution and returns its index.
 func (t *SubstitutionTable) Push(n *demangle.Node) int {
 	t.entries = append(t.entries, n)
+	if debugSubs {
+		fmt.Fprintf(os.Stderr, "  PUSH[%d] = %s\n", len(t.entries)-1, debugNodeStr(n))
+	}
 	return len(t.entries) - 1
+}
+
+// DebugSubsEnabled reports whether DEBUG_SUBS tracing is on.
+func DebugSubsEnabled() bool { return debugSubs }
+
+// DebugSubsResolve traces a resolved A<letter> back-ref.
+func DebugSubsResolve(letter byte, idx int, n *demangle.Node) {
+	fmt.Fprintf(os.Stderr, "  RESOLVE A%c -> idx %d = %s\n", letter, idx, debugNodeStr(n))
+}
+
+func debugNodeStr(n *demangle.Node) string {
+	if n == nil {
+		return "<nil>"
+	}
+	s := Print(n, DefaultPrintOptions())
+	if s == "" {
+		s = fmt.Sprintf("<kind=%d text=%q>", n.Kind, n.Text)
+	}
+	return fmt.Sprintf("(%d) %s", n.Kind, s)
 }
 
 // Get looks up the n-th entry. Returns (node, true) if present.

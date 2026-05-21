@@ -31464,6 +31464,9 @@ func (p *parser) parseNumericSubstitution() (*demangle.Node, error) {
 				if !ok {
 					return nil, p.grammarErr("valid substitution index")
 				}
+				if common.DebugSubsEnabled() {
+					common.DebugSubsResolve(c, idx, n)
+				}
 				return n, nil
 			}
 			return nil, p.grammarErr("substitution letter")
