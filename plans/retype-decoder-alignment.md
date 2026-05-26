@@ -115,31 +115,42 @@ the retType resolve correctly.
       word-extraction fix (3 syms est). P2 rewritten; P3-P5
       consolidated to follow-on plans.
 
-- [ ] **P2 — scoped word-extraction re-pass** (1 fire, est. +N).
-      Target the largest divergence sub-shape from P1. Likely:
-      replicate Apple's word-extraction by running a synthetic
-      pre-pass over the constraint bytes (or the host bytes, or
-      both) to capture word identifiers BEFORE the retType decode
-      begins. Implement as a scoped helper that only fires when the
-      retType-parse block is about to invoke parseIdentifier on a
-      word-sub byte. Sentinel-trace + smoke before commit.
+- [x] **P2 — word-extraction + s-led + constraint-sig fallback**
+      (2026-05-26 CLA +4): three coupled changes (commit f478a9f9):
+      (a) constraint-bytes literal-ident pre-capture into p.words;
+      (b) fpVerboseRetExtCont s-led branch for Pattern B retType;
+      (c) outer-constraint-sig fallback (new parser field
+      fpOuterConstraintSig) when retType's own extraction comes
+      back partial due to AB-back-ref unresolution. Net +4
+      (ClosedRange.startIndex/endIndex.getter + 2 adjacent syms).
 
-- [ ] **P3 — scoped substitution-table seeding** (1 fire, est. +N).
-      For the back-ref divergence (`AB` not resolving to
-      `A.Stride`): pre-populate the subs table with the constraint-
-      bytes-derived associated types BEFORE the retType decode.
+- [x] **P2 follow-on — ObjC-host retType multi-level nested**
+      (2026-05-26 CLB +2): extended the ObjC-host emit branch's
+      fallback retType handler (from fastpath-candidate-broadening
+      P2) to loop nested types after the first E continuation. Net
+      +2 (NSOperationQueue.minimumTolerance,
+      NSRunLoop.minimumTolerance).
 
-- [ ] **P4 — extractConstraintSigFullOpts back-ref + RQ extension**
-      (1 fire, est. +N). The `< where A: Swift.Strideable, A.Stride:
-      Swift.SignedInteger>` partial-render bug: extend the constraint
-      sig extractor to resolve `AB`/`AC`/... substitution refs in
-      requirement positions, and to handle `RQ` equality
-      requirements alongside the existing `Rz`/`Rp`/`rl` patterns.
+- [x] **P3-P5 — DEFERRED** (2026-05-26 +0): the P2 + CLB
+      mechanisms unblocked 6 of the ~93 originally-blocked syms.
+      The remaining sub-shapes need different mechanism work:
+      - Double-extension host (NSNotificationCenter cluster, Pattern
+        B hashValue.getter, Measurement.AttributedStyle) — needs
+        nested-extension host parsing in the candidate scanner.
+      - Sg Optional retType wrapping (NSTimer.TimerPublisher.options)
+        and complex bound-gen retTypes (NSDecimal.FormatStyle) need
+        retType post-processing for `Sg` and `y...G` patterns.
+      - 10F-host candidate broadening (14 syms) — different
+        mechanism: candidate-detection coverage, not retType decode.
+      - Subscript ig/iM candidate broadening (28 syms) — same.
+      - Subscript ipMV substitution-count alignment (31 syms) —
+        deferred-1 mechanism.
 
-- [ ] **P5 — sweep + close** (1 fire). Sweep remaining blocked
-      sub-shapes with the P2-P4 mechanism fixes in place. Re-fire
-      the deferred plans (cross-mod-printer, fastpath-candidate-
-      broadening) probes to count actual recovered yield. Close.
+      Forking `plans/host-shape-broadening-2.md` to address the 10F
+      and subscript ig/iM candidate-detection gaps (leverages the
+      P2+CLB retType-decoder mechanisms which are now in place).
+      The double-extension host work and Sg wrapping defer to a
+      separate follow-on.
 
 ## Status
 

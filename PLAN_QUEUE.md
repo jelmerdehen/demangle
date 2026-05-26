@@ -32,7 +32,7 @@ Each fire:
 
 | Plan | File | Status | Last touched |
 |------|------|--------|--------------|
-| retype-decoder-alignment | plans/retype-decoder-alignment.md | P1 pending — word-table + subs-table divergence on fast-path retType decode; convergence point for ~93 blocked syms | 2026-05-26 |
+| host-shape-broadening-2 | plans/host-shape-broadening-2.md | P1 pending — 10F-host candidate detection + subscript ig/iM terminal coverage, leverages retype-decoder-alignment CLA/CLB mechanisms | 2026-05-26 |
 | double-extension grammar | plans/double-extension-grammar.md | P2 pending | 2026-05-17 |
 | function verbose-form | plans/function-verbose-form.md | P3 BLOCKED (entity-sig parser needed); plateaued after CKL | 2026-05-17 |
 | verbose-form nested-host | plans/verbose-form-nested-host.md | P4 split to function plan; P5 scope pending | 2026-05-17 |
@@ -41,6 +41,7 @@ Each fire:
 
 | Plan | File | Outcome | Closed |
 |------|------|---------|--------|
+| retype-decoder-alignment | plans/retype-decoder-alignment.md | P2 ship +6 (CLA +4 word-extraction+s-led+constraint-fallback / CLB +2 multi-level nested); P3-P5 deferred to host-shape-broadening-2 + double-ext follow-ons | 2026-05-26 |
 | fastpath-candidate-broadening | plans/fastpath-candidate-broadening.md | P2 ship +3 ObjC-host Foundation-ext vg (CKZ); P4–P6 deferred to retType-decoder + entity-signature-decoder mechanism follow-ons | 2026-05-26 |
 | cross-mod-printer | plans/cross-mod-printer.md | P2 ship +6 sub-shape F (CKY); P3–P7 deferred to mechanism follow-ons | 2026-05-26 |
 | verbose-form printer | plans/verbose-form-printer.md | P1–P5 done; +4 production (CKJ) | 2026-05-17 |
