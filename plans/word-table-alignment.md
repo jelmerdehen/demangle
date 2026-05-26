@@ -96,6 +96,38 @@ missing the splits Apple has.
 
 - 2026-05-26: plan forked from session 2026-05-26 closing analysis.
   Multi-fire mechanism plan; high risk; future session work.
+- 2026-05-26 P1 research (via subagent, read-only): Apple's
+  `demangleAnyGenericType` in swiftlang/swift `lib/Demangling/
+  Demangler.cpp:2088-2093` is stack-based, not recursive:
+
+  ```
+  Name = popNode(isDeclName)    // pops topmost Identifier, skipping Types
+  Ctx  = popContext()           // pops Module OR unwraps Type-with-context
+  NTy  = createType(createWithChildren(kind, Ctx, Name))
+  addSubstitution(NTy)          // Type-wrapped, NOT bare Structure
+  return NTy
+  ```
+
+  Key insights for the Go port:
+  - V/C/O dispatch is a stack-pop op, not recursive call.
+  - `popNode(isDeclName)` SKIPS Type nodes and pulls the most recent
+    Identifier — this is how `V AD V` works (after V pushes Type,
+    AD back-ref pushes an Identifier underneath the Type, then the
+    next V pops that Identifier as Name + the Type as Ctx).
+  - `addSubstitution` writes the Type-wrapped form for nominals,
+    raw form for word-sub identifiers.
+  - `demangleMultiSubstitutions` lowercase letters chain (push +
+    continue), uppercase terminates and returns one node.
+  - For bytes `AA0B0VADV0bH0O`, tokenization is
+    `[AA] [0B0] [V] [AD] [V] [0bH0] [O]` with subs-table writes at
+    each `0…` (identifier) AND each `V`/`O` (Type-wrapped nominal).
+
+  **Implementation strategy (P2):** implement a scoped nested-
+  nominal-chain decoder as a helper function that maintains a small
+  Go-side stack mirroring Apple's. Walk the retType bytes, dispatch
+  per opcode (A-led, 0/digit-led, V/C/O), push results to the stack,
+  return common.Print of the final top. Only invoke when the
+  existing parseType + fpVerboseRetExtCont path returns "".
 
 ## Failed attempts
 
