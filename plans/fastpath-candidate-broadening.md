@@ -59,74 +59,166 @@ form override can render once candidate detection routes them to it.
 The work is candidate detection + retType-bytes capture, not new
 emit logic.
 
+## P1 findings (2026-05-26)
+
+**Bucket totals from production-divergences.txt:**
+- `So<n>...` ObjC-host extended: **239 syms** (was estimated ~187)
+- `_$s10Foundation...` literal-module-host (same-mod ext or cross-
+  type-cross-ext within Foundation): **362 syms** (was estimated ~181)
+- Combined: **601 syms** — larger than initial estimate.
+
+**(Host-shape, terminal) cell distribution:**
+
+| Terminal | ObjC-host (So) | 10F-host (Foundation) |
+|----------|---------------:|----------------------:|
+| F (fn)   |             85 |                   154 |
+| fC (init)|             63 |                    82 |
+| FZ (static fn) |       12 |                    47 |
+| vg (getter)    |        9 |                    14 |
+| Tq (method desc) |      1 |                    11 |
+| ig (subscript-get) |    3 |                    10 |
+| ipMV (subscript-pd) |   0 |                     7 |
+| iM (subscript-mod) |    0 |                     4 |
+| vgZ (static getter) |   2 |                     0 |
+| cipMV |                 0 |                     5 |
+| vs / vM (setter/mod) |  0 |                   2/2 |
+| WP    |                 1 |                     1 |
+| Tj    |                 1 |                     0 |
+| total |               239 |                   362 |
+
+**Sentinel-trace evidence (sym-prefix gate at the bare-emit
+`stable.go:15040`, removed after probe):**
+
+| Sample | Hits 15040? | candidate? | hostStr captured |
+|--------|-------------|-----------|------------------|
+| `So12NSFileHandleC10FoundationE5bytes...vg` | YES | **false** | `NSFileHandle` |
+| `10Foundation10CocoaErrorV14stringEncoding...vg` | YES | **false** | `CocoaError` |
+
+Confirmed: both sub-shapes reach `tryGlobalLastResortFastPath` and
+emit the bare form at line 15040. The fast-path's main host-parser
+(`stable.go:13700-14000`) captures hostStr correctly but does NOT
+set `fpVerboseFormCandidate` — the scanner at `stable.go:9450`
+requires `p.s[0]=='S'` AND `p.s[1]!='o'/'c'/'C'` AND
+`BuildStdlibNominal(p.s[1])` resolves. Both fail.
+
+**Critical scope revision — emit path also needs work, not just
+candidate detection.** The existing verbose-form override at
+`stable.go:15108-15170` is hardcoded to the Pattern A/B emit form:
+
+```
+newText := "(extension in " + fpVerboseFormExtMod + "):Swift." + hostName +
+    fpVerboseFormConstraintSig + "." + fpVerboseFormDeclName
+```
+
+This **only works for stdlib-protocol hosts** (Swift.StringProtocol,
+Swift.ClosedRange, etc.). For ObjC-host the prefix must be
+`(extension in <extMod>):__C.<HostName>` (not Swift). For 10F-host
+the prefix must be `<mod>.<HostName>` (no `(extension in...)` at all
+— same-module extension renders without the ext-marker on the host
+side, only on retType).
+
+So each P2-P5 primitive lands TWO things: (a) extend candidate
+scanner for the host-shape, (b) extend emit branch for the matching
+verbose form. They are tightly coupled — no point detecting without
+an emit path.
+
+**Route decision: NEW emit branches in `tryGlobalLastResortFastPath`,
+parallel to but distinct from the existing Pattern A/B override.**
+Each new branch fires when its candidate matches and falls through
+cleanly (no text change) when candidate doesn't match. Safe.
+
+**P2-P7 rewritten below.**
+
 ## Primitives
 
-> Per the witness-thunk-grammar / cross-mod-printer-P1 precedent,
-> **P1 is a probe+categorise fire that REWRITES P2+ primitives** to
-> match the actual sub-shape distribution. Honour the rewritten
-> primitives on subsequent fires. The recommended approach is to
-> ship one host-shape × one terminal per primitive to keep risk
-> narrow.
+> P1 done. P2 onward implements (candidate detection + emit branch)
+> pairs in (host-shape × terminal) order chosen by yield × safety.
+> Property-accessor terminals (vg/vs/vM/vgZ) ship first — their
+> retType-bytes shape is the simplest. Function terminals (F/FZ/fC)
+> defer the larger function-decoder work to a follow-on plan.
 
-- [ ] **P1 — probe + sub-shape categorise + sentinel-trace**
-      (1 fire, +0). Enumerate `So<n>...E...` and `<n><mod><n><type>
-      <kind>E...` shapes from production-divergences.txt. Count
-      each (host-shape, terminal) cell — vg, vs, vM, vg/F/FZ/fC.
-      Add hardcoded sym-prefix sentinels at the bare-emit lines
-      (`stable.go:15040`, `stable.go:15058`, `stable.go:19229` and
-      adjacent) to verify which path each sub-shape currently takes.
-      Re-scope P2-P6 to the top-yield (host-shape, terminal) cells
-      identified. Remove sentinels before commit. Commit
-      `chore: plan-fastpath-candidate-broadening-P1 probe + categorise
-      + route (parity +0)`.
+- [x] **P1 — probe + sub-shape categorise + sentinel-trace**
+      (2026-05-26, +0): done — see "P1 findings" above. Bucket =
+      601 syms across (ObjC-host, 10F-host) × terminals. Both
+      sub-shapes reach `tryGlobalLastResortFastPath` bare emit but
+      candidate=false. **Scope revision:** emit-branch work
+      required IN ADDITION to candidate detection — each primitive
+      lands both.
 
-- [ ] **P2 — ObjC-host + vg accessor** (1 fire, est. +N production).
-      Extend candidate detection at `stable.go:9450` to recognize
-      `So<n><name>C<extMod>E<n><decl>...` shape: detect `S` + `o` +
-      digit-led length + name + `C` class-kind + ext-mod scan. Set
-      `fpVerboseFormHostLetter='o'` (special-case in BuildStdlibNominal
-      lookup OR carry a parallel hostNameOverride) so the existing
-      verbose-form override at line 15108-15170 emits
-      `(extension in <extMod>):__C.<HostName>.<decl>.getter : <retType>`.
+- [ ] **P2 — ObjC-host + vg + vgZ accessor** (1 fire, est. +11
+      production — 9 vg + 2 vgZ).
+      Add a NEW candidate-detection branch at `stable.go:9450-9540`
+      for `So<n><name>C<extMod>E<n><decl><retTypeBytes>vg[Z]` shape:
+      detect `S` + `o` + digit-led length + name + `C` class-kind +
+      digit-led extMod + `E` + decl-peeling loop. Carry the parsed
+      hostName ("NSFileHandle") via a NEW field
+      `fpVerboseFormHostNameOverride` so the override emit branch
+      can use it directly. Add a parallel emit branch at
+      `stable.go:15108-15170` (or new sibling block immediately
+      after) gated on `fpVerboseFormHostNameOverride != "" &&
+      strings.HasPrefix(p.s, "So")`. Emit form:
+      `[static ](extension in <extMod>):__C.<HostName>.<decl>.getter[Z] : <retType>`.
       Probe symbol: `_$sSo12NSFileHandleC10FoundationE5bytesAbCE10AsyncBytesVvg`.
       Want: `(extension in Foundation):__C.NSFileHandle.bytes.getter : (extension in Foundation):__C.NSFileHandle.AsyncBytes`.
-      Sentinel-trace before commit; smoke + roundtrip green.
+      Sentinel-trace REQUIRED at the new emit branch entry — confirm
+      only `So`-prefix syms hit it, no adjacent regression.
 
-- [ ] **P3 — ObjC-host + setter/modify accessors** (1 fire, est. +N).
-      Extends P2's detection to the `vs`/`vM`/`vw`/`vW` terminals.
-      Same emit shape with different accessor suffix.
+- [ ] **P3 — ObjC-host + vs/vM setter/modify accessors** (1 fire,
+      est. +0 production — there are 0 ObjC `vs`/`vM` syms in
+      current divergences; this primitive is OBVIATED by P1's data.
+      Skip and mark `[x]` obviated).
 
-- [ ] **P4 — ObjC-host + function terminals (F/FZ/fC)** (1 fire,
-      est. +N — largest ObjC-host sub-bucket if function-shape
-      decoder doesn't itself stall; if it does, re-scope to a
-      decoder-extension primitive in plans/entity-signature-parser.md
-      follow-on and defer here).
-
-- [ ] **P5 — Literal-module host + vg accessor** (1 fire, est. +N).
-      Extend candidate detection to recognize the
-      `<n><mod><n><type><kind>E<decl>...` shape. Note this is NOT
-      a stdlib-host shape — the host nominal is parsed via the
-      normal module+identifier+kind grammar. Emit form (note: the
-      `(extension in <mod>):` prefix on the HOST is absent for
-      same-module extensions; only on the retType):
-      `<mod>.<Host>.<decl>.<acc> : <retType>`.
+- [ ] **P4 — Literal-module host + vg + vs + vM accessor** (1 fire,
+      est. +18 production — 14 vg + 2 vs + 2 vM).
+      Add a NEW candidate-detection branch handling the
+      `<n><mod><n><type><kind>E<decl>...v<acc>` shape (no leading `S`).
+      For 10F-host the leading byte is a digit, not `S` — so this
+      is a fundamentally new scanner branch. Detect: digit-led
+      module name + digit-led type name + V/C/O kind + `E` +
+      decl-peeling. Capture both module name AND host name into
+      new fields. Add parallel emit branch gated on these. Emit form
+      (same-module extension renders WITHOUT `(extension in ...)`
+      on the host): `<mod>.<HostName>.<decl>.<acc> : <retType>`.
       Probe symbol: `_$s10Foundation10CocoaErrorV14stringEncodingSSAAE0E0VSgvg`.
       Want: `Foundation.CocoaError.stringEncoding.getter : (extension in Foundation):Swift.String.Encoding?`.
 
-- [ ] **P6 — Literal-module host + function terminals** (1 fire,
-      est. +N). Same caveat as P4 (function-decoder stall may
-      force defer).
+- [ ] **P5 — Literal-module host with nested-type host
+      (`<mod><type1>V<type2>V...`)** (1 fire, est. +N production).
+      Many 10F-host samples have nested host paths
+      (e.g. `10Foundation14DateComponentsV18ISO8601FormatStyleV13dateSeparator...`).
+      P4 handles the single-level nested case implicitly through
+      the decl-peeling loop; this primitive ensures multi-level
+      nested hosts (Foundation.DateComponents.ISO8601FormatStyle.X)
+      render correctly. Probe samples + size in P4's wake.
+
+- [ ] **P6 — ObjC-host + literal-module-host function terminals
+      (F/FZ/fC) — DEFERRAL CANDIDATE** (1 fire). Function
+      terminals (ObjC: 85+63+12=160; 10F: 154+82+47=283; total 443)
+      need the entity-signature decoder extension that was the
+      blocker for cross-mod-printer P6 (decodeEntitySignatureSpan
+      doesn't handle multi-label/throws/depth-1-gen function
+      signatures). Verify on a probe sample whether the existing
+      decoder can render the ObjC/10F function shape; if not, defer
+      to a follow-on plan and close this plan early.
 
 - [ ] **P7 — sweep wide + close** (1 fire). Sweep remaining candidate-
-      broadening candidates (other host shapes if any), close.
-      Defer any sub-shape that needs >1 additional primitive to a
-      follow-on rather than blocking close.
+      broadening candidates not covered by P2-P6 (subscript-getter
+      ig/iM, method-descriptor Tq, etc.). Defer any sub-shape that
+      needs >1 additional primitive. Close plan.
 
 ## Status
 
 - 2026-05-26: plan forked from INVESTIGATIONS.md and the
   cross-mod-printer P7 close. Targets the candidate-detection layer,
   not the type-decoder or substitution-table.
+- 2026-05-26 P1 done: bucket = 601 syms (239 ObjC-host + 362
+  10F-host); scope expanded: emit-branch work required IN ADDITION
+  to candidate detection (the existing override at 15108-15170
+  hardcodes Swift-stdlib host prefix). P2-P7 rewritten:
+  P2 (ObjC vg/vgZ, +11), P3 obviated, P4 (10F vg/vs/vM, +18),
+  P5 (10F nested-host), P6 (function-terminals, deferral candidate),
+  P7 (close). Honest accessor-only yield: ~+29. Function-terminal
+  work (P6 onward) is decoder-stall risk.
 
 ## Failed attempts
 
