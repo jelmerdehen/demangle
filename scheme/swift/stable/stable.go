@@ -9453,6 +9453,12 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 	// of "Swift." prefix. See plans/fastpath-candidate-broadening.md.
 	fpVerboseFormHostName := ""
 	fpVerboseFormIsObjC := false
+	// host-shape-broadening-2 P2: HostMod carries the module name for
+	// the direct-host (`<n><mod><n><type><kind>` non-extension) shape.
+	// When non-empty AND fpVerboseFormIsObjC is false, the 10F-host emit
+	// branch fires with form `<mod>.<HostName>.<decl>.<acc> : <retType>`
+	// (no `(extension in ...)` prefix; same-module direct member).
+	fpVerboseFormHostMod := ""
 	{
 		// Pattern A: `S<letter><n><mod>E<n><decl><type-bytes>v<kind>` (cross-mod property)
 		//        OR  `S<letter><n><mod>E<n><decl><type-bytes>F` (cross-mod function)
@@ -9714,8 +9720,92 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			}
 		}
 	}
+	// host-shape-broadening-2 P2: 10F-host direct shape (no leading `S`).
+	// Pattern: `<n><mod><n><type><kind><n><decl><retTypeBytes>v<acc>`
+	// where module = type's defining module (same-module direct member,
+	// not an extension). Example: `10Foundation10CocoaErrorV14string
+	// EncodingSSAAE0E0VSgvg`. Apple emits `<mod>.<HostName>.<decl>.<acc> :
+	// <retType>` — no `(extension in ...)` on host.
+	if !fpVerboseFormCandidate && len(p.s) >= 12 &&
+		p.s[0] >= '1' && p.s[0] <= '9' {
+		j := 0
+		// <n><mod>
+		mLen := 0
+		for j < len(p.s) && p.s[j] >= '0' && p.s[j] <= '9' {
+			mLen = mLen*10 + int(p.s[j]-'0')
+			j++
+		}
+		if mLen > 0 && j+mLen+1 < len(p.s) {
+			modNm := p.s[j : j+mLen]
+			j += mLen
+			// <n><hostType>
+			if j < len(p.s) && p.s[j] >= '1' && p.s[j] <= '9' {
+				hLen := 0
+				for j < len(p.s) && p.s[j] >= '0' && p.s[j] <= '9' {
+					hLen = hLen*10 + int(p.s[j]-'0')
+					j++
+				}
+				if hLen > 0 && j+hLen+1 < len(p.s) {
+					hostNm := p.s[j : j+hLen]
+					j += hLen
+					// <kind> V/C/O.
+					if p.s[j] == 'V' || p.s[j] == 'C' || p.s[j] == 'O' {
+						j++
+						// <n><decl> directly (no E ext-marker; this is a
+						// same-module direct member, not an extension).
+						if j < len(p.s) && p.s[j] >= '1' && p.s[j] <= '9' {
+							dLen := 0
+							for j < len(p.s) && p.s[j] >= '0' && p.s[j] <= '9' {
+								dLen = dLen*10 + int(p.s[j]-'0')
+								j++
+							}
+							if dLen > 0 && j+dLen < len(p.s) {
+								declNm := p.s[j : j+dLen]
+								j += dLen
+								// Terminal: vg / vgZ only in this primitive
+								// (P3 would add vs/vM if data warrants).
+								tail2 := ""
+								if len(p.s) >= 2 {
+									tail2 = p.s[len(p.s)-2:]
+								}
+								tail3 := ""
+								if len(p.s) >= 3 {
+									tail3 = p.s[len(p.s)-3:]
+								}
+								var accessor string
+								termLen := 0
+								isStaticAcc := false
+								switch {
+								case tail3 == "vgZ":
+									accessor = ".getter"
+									termLen = 3
+									isStaticAcc = true
+								case tail2 == "vg":
+									accessor = ".getter"
+									termLen = 2
+								}
+								if termLen > 0 {
+									endRet := len(p.s) - termLen
+									if endRet > j {
+										fpVerboseFormCandidate = true
+										fpVerboseFormDeclName = declNm
+										fpVerboseFormRetTypeBytes = p.s[j:endRet]
+										fpVerboseFormAccessor = accessor
+										fpVerboseFormHostName = hostNm
+										fpVerboseFormHostMod = modNm
+										fpVerboseFormFnStatic = isStaticAcc
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
 	_ = fpVerboseFormHostName
 	_ = fpVerboseFormIsObjC
+	_ = fpVerboseFormHostMod
 	_ = fpVerboseFormCandidate    // TODO P4: actually emit verbose form
 	_ = fpVerboseFormExtMod       // TODO P4
 	_ = fpVerboseFormHostLetter   // TODO P4
@@ -15405,6 +15495,56 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 				}
 				text = staticP + "(extension in " + fpVerboseFormExtMod +
 					"):__C." + fpVerboseFormHostName + "." +
+					fpVerboseFormDeclName + fpVerboseFormAccessor + " : " + retStr
+			}
+		}
+	}
+	// host-shape-broadening-2 P2: 10F-host direct-member emit branch.
+	// Mirror of the ObjC-host branch but uses `<mod>.<HostName>.` prefix
+	// (no `(extension in ...)`) because the host is NOT an extension —
+	// it's a direct member of `<mod>.<HostName>`. RetType reuses the
+	// existing parseType + fpVerboseRetExtCont path with the CLA word-
+	// extraction + CLB multi-level nested handling already in place.
+	// Module gate: same Foundation-only convention as the ObjC-host
+	// branch — UIKit and other modules use bare-form wants in the
+	// corpus (verified: 3 UIKit syms regressed without this gate).
+	if fpVerboseFormCandidate && !fpVerboseFormIsObjC && fpVerboseFormHostMod != "" &&
+		fpVerboseFormHostName != "" && isPropAcc && !isSubscript &&
+		fpVerboseFormHostMod == "Foundation" {
+		retOff := strings.Index(p.s, fpVerboseFormRetTypeBytes)
+		if retOff >= 0 && fpVerboseFormRetTypeBytes != "" {
+			saveI, saveSubs, saveWords := p.i, p.subs, p.words
+			// Trailing Sg / Sq detection: peel before invoking parseType
+			// so the inner type renders, then wrap with `?` (Sg) afterward.
+			// Apple's simplified form prefers `?` over `Optional<...>`.
+			retBytes := fpVerboseFormRetTypeBytes
+			retOptional := false
+			if len(retBytes) >= 4 && strings.HasSuffix(retBytes, "Sg") {
+				retBytes = retBytes[:len(retBytes)-2]
+				retOptional = true
+			}
+			p.i = retOff
+			retEnd := retOff + len(retBytes)
+			retNode, retErr := p.parseType()
+			postI := p.i
+			retStr := ""
+			if retErr == nil && retNode != nil {
+				if postI == retEnd {
+					retStr = common.Print(retNode, common.DefaultPrintOptions())
+				} else {
+					retStr = p.fpVerboseRetExtCont(retNode, retEnd)
+				}
+			}
+			p.i, p.subs, p.words = saveI, saveSubs, saveWords
+			if retStr != "" && !strings.HasPrefix(retStr, "<<") {
+				if retOptional {
+					retStr += "?"
+				}
+				staticP := ""
+				if fpVerboseFormFnStatic {
+					staticP = "static "
+				}
+				text = staticP + fpVerboseFormHostMod + "." + fpVerboseFormHostName + "." +
 					fpVerboseFormDeclName + fpVerboseFormAccessor + " : " + retStr
 			}
 		}
