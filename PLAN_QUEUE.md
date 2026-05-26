@@ -32,6 +32,7 @@ Each fire:
 
 | Plan | File | Status | Last touched |
 |------|------|--------|--------------|
+| word-table-alignment | plans/word-table-alignment.md | P1 pending — Apple word-extraction CamelCase-split research; convergence point for multi-level nested 10F-host vg + Pattern B hashValue.getter + retType word-sub decodes | 2026-05-26 |
 | double-extension grammar | plans/double-extension-grammar.md | P2 pending | 2026-05-17 |
 | function verbose-form | plans/function-verbose-form.md | P3 BLOCKED (entity-sig parser needed); plateaued after CKL | 2026-05-17 |
 | verbose-form nested-host | plans/verbose-form-nested-host.md | P4 split to function plan; P5 scope pending | 2026-05-17 |
