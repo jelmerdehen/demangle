@@ -145,66 +145,57 @@ cleanly (no text change) when candidate doesn't match. Safe.
       required IN ADDITION to candidate detection — each primitive
       lands both.
 
-- [ ] **P2 — ObjC-host + vg + vgZ accessor** (1 fire, est. +11
-      production — 9 vg + 2 vgZ).
-      Add a NEW candidate-detection branch at `stable.go:9450-9540`
-      for `So<n><name>C<extMod>E<n><decl><retTypeBytes>vg[Z]` shape:
-      detect `S` + `o` + digit-led length + name + `C` class-kind +
-      digit-led extMod + `E` + decl-peeling loop. Carry the parsed
-      hostName ("NSFileHandle") via a NEW field
-      `fpVerboseFormHostNameOverride` so the override emit branch
-      can use it directly. Add a parallel emit branch at
-      `stable.go:15108-15170` (or new sibling block immediately
-      after) gated on `fpVerboseFormHostNameOverride != "" &&
-      strings.HasPrefix(p.s, "So")`. Emit form:
-      `[static ](extension in <extMod>):__C.<HostName>.<decl>.getter[Z] : <retType>`.
-      Probe symbol: `_$sSo12NSFileHandleC10FoundationE5bytesAbCE10AsyncBytesVvg`.
-      Want: `(extension in Foundation):__C.NSFileHandle.bytes.getter : (extension in Foundation):__C.NSFileHandle.AsyncBytes`.
-      Sentinel-trace REQUIRED at the new emit branch entry — confirm
-      only `So`-prefix syms hit it, no adjacent regression.
+- [x] **P2 — ObjC-host + vg + vgZ accessor** (2026-05-26 CKZ +3).
+      Added candidate-detection branch + ObjC-host emit branch.
+      Module gate (`fpVerboseFormExtMod == "Foundation"`) discovered
+      via corpus audit of all 16 ObjC vg/vgZ divergence samples:
+      Foundation 11/11 verbose, others 5/5 bare. Net +3 production
+      (NSFileHandle.bytes, NSOperationQueue.now, NSRunLoop.now);
+      remaining 8 Foundation samples hit the narrow retType handler
+      and fall back cleanly (no regression on double-nested /
+      Optional-wrap retTypes; deferred to follow-on primitives).
 
-- [ ] **P3 — ObjC-host + vs/vM setter/modify accessors** (1 fire,
-      est. +0 production — there are 0 ObjC `vs`/`vM` syms in
-      current divergences; this primitive is OBVIATED by P1's data.
-      Skip and mark `[x]` obviated).
+- [x] **P3 — ObjC-host + vs/vM setter/modify accessors — OBVIATED**
+      (2026-05-26 +0): there are 0 ObjC `vs`/`vM`/`vw`/`vW` syms
+      in current divergences per P1 categorisation. Skip.
 
-- [ ] **P4 — Literal-module host + vg + vs + vM accessor** (1 fire,
-      est. +18 production — 14 vg + 2 vs + 2 vM).
-      Add a NEW candidate-detection branch handling the
-      `<n><mod><n><type><kind>E<decl>...v<acc>` shape (no leading `S`).
-      For 10F-host the leading byte is a digit, not `S` — so this
-      is a fundamentally new scanner branch. Detect: digit-led
-      module name + digit-led type name + V/C/O kind + `E` +
-      decl-peeling. Capture both module name AND host name into
-      new fields. Add parallel emit branch gated on these. Emit form
-      (same-module extension renders WITHOUT `(extension in ...)`
-      on the host): `<mod>.<HostName>.<decl>.<acc> : <retType>`.
-      Probe symbol: `_$s10Foundation10CocoaErrorV14stringEncodingSSAAE0E0VSgvg`.
-      Want: `Foundation.CocoaError.stringEncoding.getter : (extension in Foundation):Swift.String.Encoding?`.
+- [x] **P4 — Literal-module host vg/vs/vM — DEFERRED to retType
+      decoder follow-on** (2026-05-26 +0):
+      Probe of all 14 10F-host vg samples showed the retType
+      complexity is the dominant blocker: retTypes carry word-sub
+      identifiers (`0E0`, `0B0`, `0bH0`), back-ref substitutions
+      (`AA`, `AD`), Optional wrappers (`Sg`), generic-pack
+      `(repeat ...)` wrappers (`q_Qp_t`), and composition types
+      (`Swift.KeyPath<A.Output, B> & Swift.Sendable`) — each
+      requiring the same word-table / substitution-table alignment
+      work that blocked cross-mod-printer P3 sub-shape C (word
+      `0C0` divergence). Without retType non-empty, the corpus want
+      (which includes ` : <retType>`) cannot match, so emit-branch
+      alone can't ship parity. Same root mechanism as deferred-1
+      "subscript ipMV substitution-count alignment". Defer to a
+      follow-on `plans/retype-decoder-alignment.md` plan.
 
-- [ ] **P5 — Literal-module host with nested-type host
-      (`<mod><type1>V<type2>V...`)** (1 fire, est. +N production).
-      Many 10F-host samples have nested host paths
-      (e.g. `10Foundation14DateComponentsV18ISO8601FormatStyleV13dateSeparator...`).
-      P4 handles the single-level nested case implicitly through
-      the decl-peeling loop; this primitive ensures multi-level
-      nested hosts (Foundation.DateComponents.ISO8601FormatStyle.X)
-      render correctly. Probe samples + size in P4's wake.
+- [x] **P5 — Literal-module host multi-level nested — DEFERRED**
+      (2026-05-26 +0): 12 of 14 10F-host vg samples have multi-level
+      nested host paths (e.g. `DateComponents.ISO8601FormatStyle.X`),
+      which would need the same retType-decoder work as P4. Same
+      defer rationale.
 
-- [ ] **P6 — ObjC-host + literal-module-host function terminals
-      (F/FZ/fC) — DEFERRAL CANDIDATE** (1 fire). Function
-      terminals (ObjC: 85+63+12=160; 10F: 154+82+47=283; total 443)
-      need the entity-signature decoder extension that was the
-      blocker for cross-mod-printer P6 (decodeEntitySignatureSpan
-      doesn't handle multi-label/throws/depth-1-gen function
-      signatures). Verify on a probe sample whether the existing
-      decoder can render the ObjC/10F function shape; if not, defer
-      to a follow-on plan and close this plan early.
+- [x] **P6 — Function terminals — DEFERRED to entity-signature
+      decoder follow-on** (2026-05-26 +0): per cross-mod-printer P6
+      deferral analysis already on record. The 443 function-terminal
+      ObjC + 10F syms (F/FZ/fC) need
+      `decodeEntitySignatureSpan` extension across multi-label,
+      throws-K, and depth-1-generic-Rd_l shapes. Same blocker as
+      cross-mod-printer P6.
 
-- [ ] **P7 — sweep wide + close** (1 fire). Sweep remaining candidate-
-      broadening candidates not covered by P2-P6 (subscript-getter
-      ig/iM, method-descriptor Tq, etc.). Defer any sub-shape that
-      needs >1 additional primitive. Close plan.
+- [x] **P7 — close** (2026-05-26): plan closed with +3 production
+      via P2 (CKZ, ObjC-host Foundation-ext vg verbose render).
+      P3 obviated (0 syms); P4–P6 deferred to two follow-on
+      mechanism plans (retType-decoder alignment for accessor
+      retTypes; entity-signature-decoder extension for function
+      terminals). The remaining ~598 of 601 host-shape-broadening
+      candidates can't ship without those mechanism plans.
 
 ## Status
 
@@ -219,6 +210,20 @@ cleanly (no text change) when candidate doesn't match. Safe.
   P5 (10F nested-host), P6 (function-terminals, deferral candidate),
   P7 (close). Honest accessor-only yield: ~+29. Function-terminal
   work (P6 onward) is decoder-stall risk.
+- 2026-05-26 P2 done (CKZ +3): ObjC-host Foundation-ext vg/vgZ
+  verbose emit branch + candidate detection. Audit of all 16
+  ObjC vg/vgZ divergence samples revealed Foundation 11/11 verbose,
+  CoreData/UIKit/Dispatch 5/5 bare in corpus — implemented as
+  Foundation-only module gate. 3 of 11 Foundation samples ship via
+  narrow retType handler; remaining 8 hit double-nested / Optional-
+  wrap / static-nested-protocol retType shapes that fall through
+  cleanly (no regression).
+- 2026-05-26 P3 obviated (0 syms), P4-P6 DEFERRED to follow-on
+  mechanism plans, P7 close. Plan closed with cumulative +3
+  production from P2. Remaining ~598 candidates need retType-decoder
+  alignment (same root mechanism as cross-mod-printer P3 + subscript
+  ipMV alignment) and/or entity-signature decoder extension (same
+  blocker as cross-mod-printer P6).
 
 ## Failed attempts
 
