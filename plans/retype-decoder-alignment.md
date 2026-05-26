@@ -81,17 +81,39 @@ the 957 ext-bucket).
 > across the blocked symbols. P2-P5 implement scoped mechanism fixes
 > per divergence type, narrow gates + sentinel-trace per primitive.
 
-- [ ] **P1 — categorise word/subs divergence patterns + sentinel-
-      trace per blocked sub-shape** (1 fire, +0). For each blocked
-      sub-shape sample (one each from the six categories above), add
-      a sentinel inside `fpVerboseRetExtCont` and the retType-parse
-      block that dumps `p.words` and `p.subs` snapshot at the moment
-      retType parsing begins. Compare to Apple's `--expand` tree
-      to identify which word index / subs index Apple is referring
-      to. Produce a table mapping (sub-shape, divergence type) →
-      (Apple's table state, our table state, fix scope). Re-scope
-      P2-P5 to match. Commit `chore: plan-retype-decoder-alignment-
-      P1 probe + categorise (parity +0)`.
+## P1 findings (2026-05-26)
+
+Sentinel-traced four representative samples by gating a printf in
+the retType-parse block at `stable.go:15235` on hardcoded sym
+prefixes. **Critical finding: most "blocked" sub-shapes don't
+share the retType-decoder issue.** They have DIFFERENT root causes:
+
+| Sub-shape | Sample | Sentinel fired? | Root cause |
+|-----------|--------|----------------|-----------|
+| C (Pattern B vg) | `SNsSx...10startIndex...vg` | YES | retType decode fails — word-table missing constraint literal capture (`6Stride`); words=[start, Index], Apple needs index 2="Index" |
+| D (subscript ig/iM) | `SnsSx...EySnyxGACcig` | NO | candidate-detection doesn't fire — terminal `ig`/`iM` not in scanner's switch (only vg/vs/vM/vw/vW/FZ/F/vpMV) |
+| 10F-host vg | `10FoundationE10CocoaError...vg` | NO | candidate-detection doesn't fire — host shape `<n><mod>...` not in scanner (only `S<letter>` Pattern A/B and `So<n>...` ObjC from P2) |
+| Multi-level 10F nested | `10Foundation14DateComponents...vg` | NO | same as 10F-host vg |
+
+**Scope correction:** the only sub-shape that fits this plan's
+"retType-decoder alignment" framing is **sub-shape C (3 syms,
+cross-mod-printer P3)**. The other blocked sub-shapes have
+DIFFERENT mechanism gaps (candidate-detection coverage), not
+retType-decoder alignment. Those should go to a follow-on plan
+focused on candidate-broadening for subscript-getter and 10F-host
+terminals.
+
+**P2 narrows to sub-shape C's word-extraction fix:** before the
+retType decode in the verbose-form override (stable.go:15235),
+when `fpVerboseFormConstraintBytes` is non-empty AND contains
+digit-led literal identifiers (like `6Stride`), pre-capture those
+identifiers into `p.words` so that `0C0`-style word-sub bytes in
+the retType resolve correctly.
+
+- [x] **P1 — probe + categorise** (2026-05-26 +0): done — see
+      findings above. Plan scope narrowed to sub-shape C
+      word-extraction fix (3 syms est). P2 rewritten; P3-P5
+      consolidated to follow-on plans.
 
 - [ ] **P2 — scoped word-extraction re-pass** (1 fire, est. +N).
       Target the largest divergence sub-shape from P1. Likely:
