@@ -157,25 +157,23 @@ plain-host Pattern A getter (sub-shape A). The gaps are:
       `tryGlobalLastResortFastPath:9377-15170`; six per-sub-shape gaps
       identified with file:line targets; route (a-extended). +0.
 
-- [ ] **P2 — sub-shape C: nested-ext-with-constraint retType
-      continuation** (1 fire, est. +N production where N is the
-      Pattern-B accessor slice — likely +30 to +80 in this fire alone
-      as a first slice, more across follow-on fires).
-      Target: `fpVerboseRetExtCont` (`stable.go:16619`) + the
-      retType-parse block at `stable.go:15108-15155`. For retType bytes
-      starting `S<UpperLetter>s<constraintBytes>E<n><decl>...G` (the
-      nested-extension-with-constraint form), render the full
-      `(extension in M):Swift.<Host><A>< where ...>.<Decl>` shape
-      (matching Apple's simplified form). The constraint bytes are
-      already extracted at host-parse time
-      (`fpVerboseFormConstraintBytes`) — the retType uses the SAME
-      constraint sig (`A == ABRQrl` style remap) — reuse
-      `extractConstraintSigFullOpts` against the retType's own
-      constraint span.
-      Probe symbol: `_$sSNsSxRzSZ6StrideRpzrlE10startIndexSNsSxRzSZABRQrlE0C0Oyx_Gvg`.
-      Want: `(extension in Swift):Swift.ClosedRange< where A: Swift.Strideable, A.Stride: Swift.SignedInteger>.startIndex.getter : (extension in Swift):Swift.ClosedRange<A>< where A: Swift.Strideable, A.Stride: Swift.SignedInteger>.Index`.
-      Smoke + roundtrip green; sentinel-trace confirms only the target
-      sub-shape is affected (no -7-style regression on adjacent paths).
+- [x] **P2 — sub-shape F: binary-operator extension-nested back-ref
+      arg verbose render** (2026-05-26, CKY +6 production):
+      Re-scoped from sub-shape C after the route-trace revealed (a)
+      smallestEncoding sub-shape A is already passing (not in current
+      divergences), (b) Pattern-B vg sub-shape C is only 3 syms, and
+      (c) 6 of 10 already-firing verbose-form mismatches share sub-
+      shape F. Fix in `tryTypeFirstExtensionEntity`'s
+      `verboseParamStr` closure at stable.go:18790-18815: when
+      `declIsOp && verbose && extSig != "" && len(nestedTypes) > 0`
+      and rendered typeStr matches the back-ref short form
+      `<innerNested><A>`, substitute the full
+      `(extension in Swift):Swift.<Base><A><extSig>.<Nested>` form
+      built from the same baseHostPath used by the receiver emit at
+      line 19217. Gate is exact short-form match → no regression on
+      adjacent paths. All 6 sub-shape F syms (SN.Index.==/<,
+      FlattenSequence.Index.==/<, LazyPrefixWhileSequence.Index.==/<)
+      now pass. Parity 62212→62218.
 
 - [ ] **P3 — sub-shape B: function-terminal candidate detection +
       verbose render** (1 fire, est. largest yield — F=683 has 967
@@ -251,6 +249,13 @@ plain-host Pattern A getter (sub-shape A). The gaps are:
   (A getter / B function / C constraint-retType / D subscript-getter /
   E ipMV-gate / F binary-infix-back-ref) identified with file:line
   targets; P2–P7 rewritten. +0 parity.
+- 2026-05-26 P2 done (CKY): re-scoped to sub-shape F after route-
+  trace revealed sub-shape A is already passing (so removed from
+  bucket) and sub-shape C is only 3 syms. All 6 sub-shape F syms now
+  pass via `verboseParamStr` arg-rendering override gated on
+  `declIsOp && verbose && extSig != "" && len(nestedTypes) > 0` and
+  exact `<innerNested><A>` back-ref short-form match. Parity 62212→
+  62218 (+6).
 
 ## Failed attempts
 
