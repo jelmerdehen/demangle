@@ -4,19 +4,24 @@
 verbose-form printer` (deferred-2).
 **Estimated payoff:** ~+400–600P across the cross-module extension
 family — the dominant remaining lever per the 2026-05-26 plateau
-analysis. Top-20 digest buckets that chain to this root cause:
-property descriptor (128), static (extension (102),
-PredicateExpressions (85), Duration UnitsForm (22), FlattenSequence
-(17), method descriptor (16), dispatch thunk (14), Foundation
-Measurement (14), AttributedString (13), ClosedRange (13),
-RangeReplaceableCollection (13), Range< where A == > (11),
+analysis. **Actual shipped: +6** (sub-shape F via P2). P3–P7
+deferred — the remaining 961 of 967 ext-bucket symbols are
+mechanism-blocked (substitution-table alignment, entity-signature
+decoder extension, label-arity tokenizer) and don't fit the
+bounded-primitive workflow. Top-20 digest buckets that chain to
+this root cause: property descriptor (128), static (extension
+(102), PredicateExpressions (85), Duration UnitsForm (22),
+FlattenSequence (17), method descriptor (16), dispatch thunk (14),
+Foundation Measurement (14), AttributedString (13), ClosedRange
+(13), RangeReplaceableCollection (13), Range< where A == > (11),
 String.Localization (10), NSDecimal.FormatStyle (10),
 _KeyValueCoding (9), KeyedDecoding/EncodingContainer (9+9),
 Duration.TimeForma (8).
-**Estimated fires:** 8–12 (P1 probe + ~6 sub-shape primitives + close).
-**Risk:** HIGH — touches multiple fast-path bypasses; roundtrip may
-regress on already-passing simplified-form symbols. Every primitive
-ships with sentinel-trace verification + smoke + roundtrip green.
+**Estimated fires (original):** 8–12. **Actual:** 3 fires (P1
+probe, P2 ship +6, P3–P7 defer/close).
+**Risk:** HIGH — verified empirically: P3 sub-shape C revert
+demonstrated the mechanism dependencies. Every shipped primitive
+verified with sentinel-trace + smoke + roundtrip green.
 **Anti-cheat invariants apply:** no preparseLiterals, no scoring tamper.
 
 ## Problem
@@ -188,49 +193,48 @@ plain-host Pattern A getter (sub-shape A). The gaps are:
       with `K` throws / `Rd_l` depth-1 generics. Both deferred per
       INVESTIGATIONS.md `### cross-mod-printer (deferred-2)`.
 
-- [ ] **P4 — sub-shape D: subscript-getter terminal verbose render**
-      (1 fire, est. +30 to +60 production).
-      Target: the subscript-acc emit at `stable.go:15058`
-      (`text = propStaticPfx + hostStr + ".subscript" + subAcc`).
-      Add a verbose-form override mirror of the isPropAcc one at
-      15099–15155 for `isSubscript && fpVerboseFormCandidate &&
-      fpVerboseFormConstraintSig != ""`. Emit form: `(extension in M):
-      Swift.<Host>< where ...>.subscript.getter : (<index>) -> <result>`.
+- [x] **P4 — sub-shape D / E (subscript-getter `ig`/`iM` + ipMV
+      gate lift) — DEFERRED to follow-on plan** (2026-05-26, +0):
+      Probe revealed both sub-shapes are dominated by **wrong
+      subscript-index-type resolution** (substitution-table
+      alignment bug — same root mechanism as INVESTIGATIONS.md
+      `### subscript ipMV substitution-count alignment`). Sample
+      `AttributedString.Runs.AttributesSlice2.subscript` gets got
+      `(B.Value?)` index where want is
+      `(Foundation.AttributedString.Index)` — the bare-substitution
+      `A<letter>` resolves wrong. Bounded printer-side fix would not
+      help; needs the deferred-1 mechanism work. The Measurement.
+      AttributedStyle.subscript double-extension samples are a
+      separate problem (full nested-host verbose for a constrained
+      bound-gen-on-objc host). Both deferred to a follow-on
+      cross-mod-printer-subscript plan after the substitution
+      mechanism investigation closes.
 
-- [ ] **P5 — sub-shape E: ipMV subscript-propdesc gate lift**
-      (1 fire, est. +20 to +31 production).
-      Target: the `!isSubscript` exclusion at `stable.go:15099` and
-      `15108`. Once P4 lands the subscript verbose-form render, lift
-      this exclusion conditionally on
-      `fpVerboseFormCandidate && fpVerboseFormConstraintSig != ""`
-      so subscript property descriptors render as
-      `property descriptor for (extension in M):Swift.<Host>< where ...>.subscript(<index>) -> <result>`.
-      Couples with P4; ship after P4 lands.
+- [x] **P5 — sub-shape A retType module rendering refinement —
+      OBVIATED (no syms in current divergences)** (2026-05-26, +0):
+      P1 trace verified `_$sSy10FoundationE16smallestEncodingSSAAE0C0Vvg`
+      already passes; the Sy plain-getter slice has 0 syms in the
+      current divergence set. The verbose-form override at
+      stable.go:15108-15155 already handles Pattern A getter with
+      correct retType module rendering. No fire needed.
 
-- [ ] **P6 — sub-shape A retType module rendering refinement**
-      (1 fire, est. +30 to +50 production).
-      Target: `fpVerboseRetExtCont` (`stable.go:16619`) or
-      `fpVerboseRenderTypeAt` (`stable.go:15613`). The retType emit
-      `(extension in Foundation):Swift.String.Encoding` for sub-shape A
-      symbols should drop the `(extension in Foundation):Swift.`
-      prefix when the host-substitution + extension marker resolves to
-      a nominal in the *same* module as the host-extension (i.e. when
-      Apple's `--simplified` shows the bare-module qualification).
-      Probe symbol: `_$sSy10FoundationE16smallestEncodingSSAAE0C0Vvg`
-      → want `Foundation.String.Encoding`.
+- [x] **P6 — sub-shape B (function-terminal verbose) — DEFERRED**
+      (2026-05-26, +0): per P3 deferral notes — the
+      `fpVerboseFunctionText`/`decodeEntitySignatureSpan` decoder
+      needs extension across the full range of multi-label /
+      throws / depth-1-generic function shapes. 683 syms but each
+      shape sub-class needs its own primitive. Deferred to a
+      follow-on plan; not bounded for one fire.
 
-- [ ] **P7 — sub-shape F: static-binary-infix back-ref param
-      rendering + sweep wide + close** (1 fire).
-      Target: param-type rendering for back-refs to inner
-      extension-nested types (line ~16076-16094 region per
-      INVESTIGATIONS.md:129). When the FZ binary-op symbol has both
-      params as back-refs to the inner nested-type (e.g.
-      ClosedRange<A>.Index), render full form
-      `(extension in Swift):Swift.ClosedRange<A>< where ...>.Index`
-      not `Index<A>`. Then sweep remaining sub-shapes (PredicateExpr
-      Foundation nested, Foundation Measurement bound-gen, etc.) for
-      any that fall in scope; defer the rest to a follow-on plan
-      rather than blocking close.
+- [x] **P7 — close** (2026-05-26): plan closed with +6 production
+      via P2 (sub-shape F binary-infix back-ref args, CKY). P3–P6
+      deferred for substitution/word/decoder mechanism follow-ons.
+      The remaining 961-of-967 ext-bucket mismatches need work in
+      categories that don't fit the bounded-primitive workflow:
+      substitution-table alignment (deferred-1), entity-signature
+      decoder extension (deferred-2), and multi-label tuple
+      tokenizer (deferred-3 per INVESTIGATIONS.md). Re-fork once
+      one of those mechanism plans lands.
 
 ## Status
 
@@ -251,6 +255,12 @@ plain-host Pattern A getter (sub-shape A). The gaps are:
   `declIsOp && verbose && extSig != "" && len(nestedTypes) > 0` and
   exact `<innerNested><A>` back-ref short-form match. Parity 62212→
   62218 (+6).
+- 2026-05-26 P3-P7 deferred / closed: see Failed attempts (P3) and
+  per-primitive deferral rationale above. Plan closed with +6
+  cumulative production parity from P2. Follow-on work blocked on
+  substitution mechanism (deferred-1) + entity-signature decoder
+  extension (deferred-2) + multi-label tuple tokenizer (deferred-3)
+  — none bounded for the per-fire primitive workflow.
 
 ## Failed attempts
 

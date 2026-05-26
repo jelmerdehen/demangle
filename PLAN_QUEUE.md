@@ -32,7 +32,6 @@ Each fire:
 
 | Plan | File | Status | Last touched |
 |------|------|--------|--------------|
-| cross-mod-printer | plans/cross-mod-printer.md | P1 pending (probe + sub-shape categorise + route decision) — dominant remaining lever, ~+400–600P, ~8–12 fires | 2026-05-26 |
 | double-extension grammar | plans/double-extension-grammar.md | P2 pending | 2026-05-17 |
 | function verbose-form | plans/function-verbose-form.md | P3 BLOCKED (entity-sig parser needed); plateaued after CKL | 2026-05-17 |
 | verbose-form nested-host | plans/verbose-form-nested-host.md | P4 split to function plan; P5 scope pending | 2026-05-17 |
@@ -41,6 +40,7 @@ Each fire:
 
 | Plan | File | Outcome | Closed |
 |------|------|---------|--------|
+| cross-mod-printer | plans/cross-mod-printer.md | P2 ship +6 sub-shape F (CKY); P3–P7 deferred to mechanism follow-ons | 2026-05-26 |
 | verbose-form printer | plans/verbose-form-printer.md | P1–P5 done; +4 production (CKJ) | 2026-05-17 |
 
 ## Forking new plans
