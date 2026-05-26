@@ -1,4 +1,4 @@
-# snapshot-pass-set update 2026-05-26T12:46:41Z — union with previous (high-water)
+# snapshot-pass-set update 2026-05-26T15:21:36Z — union with previous (high-water)
 _$s10Foreground7SwiftUI18LabelGroupStyle_v0PTl
 _$s10Foundation10CocoaErrorV010formattingC0AC4CodeVvgZ
 _$s10Foundation10CocoaErrorV010formattingC0AC4CodeVvpZMV
@@ -42204,6 +42204,8 @@ _$sSNsSERzrlE6encode2toys7Encoder_p_tKF
 _$sSNsSHRzrlE4hash4intoys6HasherVz_tF
 _$sSNsSHRzrlE9hashValueSivg
 _$sSNsSHRzrlE9hashValueSivpMV
+_$sSNsSxRzSZ6StrideRpzrlE10startIndexSNsSxRzSZABRQrlE0C0Oyx_Gvg
+_$sSNsSxRzSZ6StrideRpzrlE10startIndexSNsSxRzSZABRQrlE0C0Oyx_GvpMV
 _$sSNsSxRzSZ6StrideRpzrlE31_customContainsEquatableElementySbSgxF
 _$sSNsSxRzSZ6StrideRpzrlE5IndexO1loiySbADyx_G_AFtFZ
 _$sSNsSxRzSZ6StrideRpzrlE5IndexO2eeoiySbADyx_G_AFtFZ
@@ -42214,6 +42216,8 @@ _$sSNsSxRzSZ6StrideRpzrlE5IndexOyx_GSLsMc
 _$sSNsSxRzSZ6StrideRpzrlE5IndexOyx_GSLsWP
 _$sSNsSxRzSZ6StrideRpzrlE5IndexOyx_GSQsMc
 _$sSNsSxRzSZ6StrideRpzrlE5IndexOyx_GSQsWP
+_$sSNsSxRzSZ6StrideRpzrlE8endIndexSNsSxRzSZABRQrlE0C0Oyx_Gvg
+_$sSNsSxRzSZ6StrideRpzrlE8endIndexSNsSxRzSZABRQrlE0C0Oyx_GvpMV
 _$sSNyxGSEsSERzrlMc
 _$sSNyxGSHsSHRzrlMc
 _$sSNyxGSKsSxRzSZ6StrideRpzrlMc
