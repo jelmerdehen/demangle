@@ -15353,23 +15353,44 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 					// digit-led modName patterns).
 					retStr = p.fpVerboseRetExtCont(retNode, retEnd)
 					// Fall back: parseType-consumed host stopped at E,
-					// remaining is `E<n><ident><kind>` continuation where
-					// modName inherits from outer fpVerboseFormExtMod.
+					// remaining is `E<n><ident><kind>(<n><ident><kind>)*`
+					// continuation where modName inherits from outer
+					// fpVerboseFormExtMod. Loop nested types so multi-level
+					// retTypes like NSOperationQueue.SchedulerTimeType.Stride
+					// render correctly.
 					if retStr == "" && p.i < retEnd && p.s[p.i] == 'E' {
 						extStr := common.Print(retNode, common.DefaultPrintOptions())
 						savedI2 := p.i
 						p.i++ // past E
-						ident, ierr := p.parseIdentifier()
-						if ierr == nil && ident != "" && p.i < retEnd &&
-							(p.s[p.i] == 'V' || p.s[p.i] == 'C' || p.s[p.i] == 'O') &&
-							extStr != "" && !strings.HasPrefix(extStr, "<<") {
-							p.i++ // past kind byte
-							if p.i == retEnd {
-								retStr = "(extension in " + fpVerboseFormExtMod + "):" +
-									extStr + "." + ident
-							} else {
-								p.i = savedI2
+						var idents []string
+						ok := true
+						for p.i < retEnd {
+							ident, ierr := p.parseIdentifier()
+							if ierr != nil || ident == "" {
+								ok = false
+								break
 							}
+							if p.i >= retEnd ||
+								(p.s[p.i] != 'V' && p.s[p.i] != 'C' && p.s[p.i] != 'O') {
+								ok = false
+								break
+							}
+							p.i++ // past kind byte
+							idents = append(idents, ident)
+							if p.i == retEnd {
+								break
+							}
+							// Continue only if next byte is digit (another
+							// `<n><ident><kind>` segment).
+							if !(p.s[p.i] >= '1' && p.s[p.i] <= '9') {
+								ok = false
+								break
+							}
+						}
+						if ok && len(idents) > 0 && p.i == retEnd &&
+							extStr != "" && !strings.HasPrefix(extStr, "<<") {
+							retStr = "(extension in " + fpVerboseFormExtMod + "):" +
+								extStr + "." + strings.Join(idents, ".")
 						} else {
 							p.i = savedI2
 						}
