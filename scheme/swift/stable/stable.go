@@ -9437,6 +9437,13 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 	var fpVerboseFormNestedHost []string // nested-host type levels between E and the decl
 	fpVerboseFormIsFn := false           // candidate terminal is F (function), not a property
 	fpVerboseFormFnStatic := false       // function candidate terminal is FZ (static)
+	// fastpath-candidate-broadening P2: fields for non-stdlib host shapes.
+	// HostName carries the parsed long-form name when the host is NOT a
+	// stdlib substitution (BuildStdlibNominal-resolved). IsObjC flags the
+	// ObjC-class-host shape so the emit branch uses "__C." prefix instead
+	// of "Swift." prefix. See plans/fastpath-candidate-broadening.md.
+	fpVerboseFormHostName := ""
+	fpVerboseFormIsObjC := false
 	{
 		// Pattern A: `S<letter><n><mod>E<n><decl><type-bytes>v<kind>` (cross-mod property)
 		//        OR  `S<letter><n><mod>E<n><decl><type-bytes>F` (cross-mod function)
@@ -9596,6 +9603,110 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			}
 		}
 	}
+	// fastpath-candidate-broadening P2: ObjC-class host extended shape.
+	// Pattern: `So<n><name>C<n><extMod>E<n><decl><retTypeBytes><v<acc>>`
+	// (vg / vgZ only in P2; P3 would add vs/vM but is OBVIATED — 0 syms).
+	// Does not overlap the Pattern A/B block above, which requires
+	// `p.s[1] != 'o'`. Sets candidate fields with IsObjC=true so the
+	// emit branch chooses the "__C." prefix.
+	if !fpVerboseFormCandidate && len(p.s) >= 10 && p.s[0] == 'S' && p.s[1] == 'o' {
+		j := 2
+		// <n><hostName>
+		hostLen := 0
+		for j < len(p.s) && p.s[j] >= '0' && p.s[j] <= '9' {
+			hostLen = hostLen*10 + int(p.s[j]-'0')
+			j++
+		}
+		if hostLen > 0 && j+hostLen+1 < len(p.s) {
+			hostNm := p.s[j : j+hostLen]
+			j += hostLen
+			// `C` class-kind byte.
+			if p.s[j] == 'C' {
+				j++
+				// <n><extMod>
+				if j < len(p.s) && p.s[j] >= '1' && p.s[j] <= '9' {
+					mLen := 0
+					mStart := j
+					for j < len(p.s) && p.s[j] >= '0' && p.s[j] <= '9' {
+						mLen = mLen*10 + int(p.s[j]-'0')
+						j++
+					}
+					if mLen > 0 && j+mLen < len(p.s) {
+						extModNm := p.s[j : j+mLen]
+						j += mLen
+						if j < len(p.s) && p.s[j] == 'E' {
+							j++ // past E
+							// Decl-peeling loop (same shape as Pattern A/B).
+							declName := ""
+							declOK := false
+							for j < len(p.s) && p.s[j] >= '1' && p.s[j] <= '9' {
+								dlen := 0
+								for j < len(p.s) && p.s[j] >= '0' && p.s[j] <= '9' {
+									dlen = dlen*10 + int(p.s[j]-'0')
+									j++
+								}
+								if dlen <= 0 || j+dlen > len(p.s) {
+									break
+								}
+								ident := p.s[j : j+dlen]
+								j += dlen
+								if j < len(p.s) &&
+									(p.s[j] == 'V' || p.s[j] == 'O' || p.s[j] == 'C') {
+									// Nested host type — P2 narrows to non-nested only.
+									// Leave declOK=false to decline; P5 follow-on
+									// handles the nested case.
+									declOK = false
+									break
+								}
+								declName = ident
+								declOK = true
+								break
+							}
+							if declOK {
+								// Terminal: vg or vgZ only (P2 scope).
+								tail2 := ""
+								if len(p.s) >= 2 {
+									tail2 = p.s[len(p.s)-2:]
+								}
+								tail3 := ""
+								if len(p.s) >= 3 {
+									tail3 = p.s[len(p.s)-3:]
+								}
+								var accessor string
+								termLen := 0
+								isStaticAcc := false
+								switch {
+								case tail3 == "vgZ":
+									accessor = ".getter"
+									termLen = 3
+									isStaticAcc = true
+								case tail2 == "vg":
+									accessor = ".getter"
+									termLen = 2
+								}
+								if termLen > 0 {
+									endRet := len(p.s) - termLen
+									if endRet > j {
+										fpVerboseFormCandidate = true
+										fpVerboseFormExtMod = extModNm
+										fpVerboseFormDeclName = declName
+										fpVerboseFormRetTypeBytes = p.s[j:endRet]
+										fpVerboseFormAccessor = accessor
+										fpVerboseFormHostName = hostNm
+										fpVerboseFormIsObjC = true
+										fpVerboseFormFnStatic = isStaticAcc
+										_ = mStart
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	_ = fpVerboseFormHostName
+	_ = fpVerboseFormIsObjC
 	_ = fpVerboseFormCandidate    // TODO P4: actually emit verbose form
 	_ = fpVerboseFormExtMod       // TODO P4
 	_ = fpVerboseFormHostLetter   // TODO P4
@@ -15156,6 +15267,76 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 						text = newText
 					}
 				}
+			}
+		}
+	}
+	// fastpath-candidate-broadening P2: ObjC-host emit branch.
+	// Parallel to the stdlib-host override above, but with "__C." prefix
+	// instead of "Swift." and using the parsed hostName (no
+	// BuildStdlibNominal lookup). RetType uses the existing
+	// parseType + fpVerboseRetExtCont path; if that yields "" but parseType
+	// consumed an ext-nested host and stopped at E (the most common shape
+	// in this slice), fall back to a narrow E-led continuation render
+	// where modName is inherited from the outer fpVerboseFormExtMod.
+	//
+	// Module gate: the production corpus uses the verbose form for the
+	// Foundation-extended ObjC subset and the simplified (bare) form for
+	// CoreData / UIKit / Dispatch / other extension modules — verified
+	// against all 16 ObjC vg/vgZ divergence samples (Foundation = 11/11
+	// verbose; CoreData / UIKit / Dispatch = 5/5 bare). Limiting to
+	// Foundation matches the corpus convention and avoids regressing the
+	// bare-form syms.
+	if fpVerboseFormCandidate && fpVerboseFormIsObjC && isPropAcc &&
+		!isSubscript && fpVerboseFormHostName != "" &&
+		fpVerboseFormExtMod == "Foundation" {
+		retOff := strings.Index(p.s, fpVerboseFormRetTypeBytes)
+		if retOff >= 0 && fpVerboseFormRetTypeBytes != "" {
+			saveI, saveSubs, saveWords := p.i, p.subs, p.words
+			p.i = retOff
+			retEnd := retOff + len(fpVerboseFormRetTypeBytes)
+			retNode, retErr := p.parseType()
+			postI := p.i
+			retStr := ""
+			if retErr == nil && retNode != nil {
+				if postI == retEnd {
+					retStr = common.Print(retNode, common.DefaultPrintOptions())
+				} else {
+					// Try existing fpVerboseRetExtCont (handles A-led /
+					// digit-led modName patterns).
+					retStr = p.fpVerboseRetExtCont(retNode, retEnd)
+					// Fall back: parseType-consumed host stopped at E,
+					// remaining is `E<n><ident><kind>` continuation where
+					// modName inherits from outer fpVerboseFormExtMod.
+					if retStr == "" && p.i < retEnd && p.s[p.i] == 'E' {
+						extStr := common.Print(retNode, common.DefaultPrintOptions())
+						savedI2 := p.i
+						p.i++ // past E
+						ident, ierr := p.parseIdentifier()
+						if ierr == nil && ident != "" && p.i < retEnd &&
+							(p.s[p.i] == 'V' || p.s[p.i] == 'C' || p.s[p.i] == 'O') &&
+							extStr != "" && !strings.HasPrefix(extStr, "<<") {
+							p.i++ // past kind byte
+							if p.i == retEnd {
+								retStr = "(extension in " + fpVerboseFormExtMod + "):" +
+									extStr + "." + ident
+							} else {
+								p.i = savedI2
+							}
+						} else {
+							p.i = savedI2
+						}
+					}
+				}
+			}
+			p.i, p.subs, p.words = saveI, saveSubs, saveWords
+			if retStr != "" && !strings.HasPrefix(retStr, "<<") {
+				staticP := ""
+				if fpVerboseFormFnStatic {
+					staticP = "static "
+				}
+				text = staticP + "(extension in " + fpVerboseFormExtMod +
+					"):__C." + fpVerboseFormHostName + "." +
+					fpVerboseFormDeclName + fpVerboseFormAccessor + " : " + retStr
 			}
 		}
 	}
