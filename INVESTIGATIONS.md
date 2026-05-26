@@ -142,6 +142,39 @@ a one-shot Explore agent. Before any `swift-parity:` commit:
 
 ## Active targets
 
+### cross-mod-printer P3 sub-shape C / B [~686 syms, deferred-2]
+
+After plan-cross-mod-printer P2 shipped (CKY +6 sub-shape F binary
+infix), the remaining sub-shapes P3 (B function-terminal, 683 syms)
+and P3-alt (C Pattern B retType continuation, 3 syms) both hit
+substitution/word-table mechanism limits on 2026-05-26:
+
+- **Sub-shape C (Pattern B vg retType):** `fpVerboseRetExtCont`
+  extended with `s`-led branch, retType `SNsSxRzSZABRQrlE0C0Oyx_G`
+  parsed past `E` BUT (a) `extractConstraintSigFullOpts` returns only
+  `< where A: Swift.Strideable>` — half the constraint; the `AB`
+  back-ref + `RQ` equality requirement is not resolved.
+  (b) `parseIdentifier` errors on `0C0` word-sub — word table at
+  that call site is `[start, Index]` (2 entries), Apple's `0C0`
+  needs word at index 2 (likely "Index" via different word-extraction
+  ordering — Apple captures `6Stride` literal before the decl
+  identifiers, ours doesn't). Both are mechanism work, not bounded
+  printer work. Reverted; smoke green.
+- **Sub-shape B (function-terminal verbose):** Sentinel-traced
+  `Sy10FoundationE10writeToURL_...tKF` — candidate=true, isFn=true,
+  reaches `fpVerboseFunctionText(stable.go:15654)` BUT returns "".
+  The decoder `decodeEntitySignatureSpan` doesn't handle multi-label
+  function signatures with throws (`K`) and/or depth-1 generic
+  (`Rd_l`). 683 syms in the bucket; per-primitive fix requires
+  extending the entity-signature decoder + arg-rendering for the
+  full range of function shapes.
+
+Fire-plan: fork a follow-on plan once the substitution-table-
+alignment work is feasible (see also subscript ipMV alignment in
+the next section — same root mechanism). Both blockers point at
+post-substitution-rebuild mechanism follow-ons rather than bounded
+printer-side fixes.
+
 ### subscript ipMV substitution-count alignment [~5 syms, deferred-1, ~+5P]
 
 The AttributesSlice1-5 subscript property descriptors (`...cipMV`)

@@ -175,23 +175,18 @@ plain-host Pattern A getter (sub-shape A). The gaps are:
       FlattenSequence.Index.==/<, LazyPrefixWhileSequence.Index.==/<)
       now pass. Parity 62212→62218.
 
-- [ ] **P3 — sub-shape B: function-terminal candidate detection +
-      verbose render** (1 fire, est. largest yield — F=683 has 967
-      ext-marker hits including this slice; even capturing 1/3 here
-      is +200P).
-      Target: candidate scanner at `stable.go:9540-9580` (the `tail2 ==
-      "vg"` etc. switch + the Pattern A/B detection above it at
-      9450-9540). Function terminal `F` is already in the switch
-      (line 9568) but the verbose-form override at 15045+ for
-      function emits goes through `fpVerboseFunctionText`
-      (`stable.go:15654`) — confirm whether the Sy-Foundation `lF` +
-      depth-1-generic (`Rd_`) syms reach that override and what
-      retStr it returns. The `Sy10FoundationE10components...lF` shape
-      may need a sub-case in `fpVerboseFunctionText` or a
-      depth-1-generic-aware candidate detection.
-      Sub-fire to P3.5 if the scope balloons (Rd_ depth-1 generics
-      have their own LOOP_DEPTH1_GENERICS.md notes — touch only what
-      this bucket needs).
+- [x] **P3 — sub-shape C / B both deferred to multi-fire**
+      (2026-05-26, +0):
+      Attempted sub-shape C (Pattern B nested-ext-with-constraint
+      retType continuation, 3 syms) — see Failed attempts log above.
+      Reverted on partial-constraint-sig + word-table divergence;
+      both substitution-mechanism work, not bounded primitives.
+      Sub-shape B (function-terminal, 683 syms) also too wide for
+      one primitive: candidate detection works (`Sy10FoundationE...
+      writeToURL_...tKF` reaches `fpVerboseFunctionText`) but the
+      decoder + arg-rendering fails on multi-label function signatures
+      with `K` throws / `Rd_l` depth-1 generics. Both deferred per
+      INVESTIGATIONS.md `### cross-mod-printer (deferred-2)`.
 
 - [ ] **P4 — sub-shape D: subscript-getter terminal verbose render**
       (1 fire, est. +30 to +60 production).
@@ -262,3 +257,45 @@ plain-host Pattern A getter (sub-shape A). The gaps are:
 (per-primitive log; appended on rollback. The two pre-fork failed
 attempts from 2026-05-17 are captured in the "Failed attempt log"
 section above — not the per-primitive log.)
+
+### P3 sub-shape C nested-ext-with-constraint retType — 2026-05-26
+
+Attempted: extend `fpVerboseRetExtCont` with an `s`-led Pattern B
+branch handling `s<constraintBytes>E<decl><kind>[y<args>G]` retType
+shape. Branch enters, scans for `E` preceded by constraint markers,
+extracts constraintBytes, derives constraint sig via
+`extractConstraintSigFullOpts`, parses decl identifier + nominal-kind
+byte + optional `yx_G` bound-gen suffix, emits
+`(extension in Swift):<extStr><boundGen><constraintSig>.<ident>`.
+
+Reverted: two blockers surfaced during sentinel-trace on
+`_$sSNsSxRzSZ6StrideRpzrlE10startIndexSNsSxRzSZABRQrlE0C0Oyx_Gvg`:
+
+1. **Partial constraint sig.** `extractConstraintSigFullOpts` on the
+   retType's constraint bytes `SxRzSZABRQrl` (with `AB` substitution
+   back-ref + `RQ` equality requirement) returns only
+   `< where A: Swift.Strideable>` — missing the
+   `, A.Stride: Swift.SignedInteger` part. The constraint extractor
+   does not resolve the `AB` back-ref to `A.Stride` in this context.
+2. **parseIdentifier on word-sub fails.** After `E` the bytes are
+   `0C0Oyx_G`. `parseIdentifier` errors with "expected identifier
+   length, got 'C'" — the word table at fpVerboseRetExtCont call
+   site is `[start, Index]` (2 entries), Apple's `0C0` references
+   word index 2 which our parser doesn't have. Word-extraction
+   ordering / context divergence — likely the `6Stride` literal in
+   the outer constraint was captured by Apple but not by our
+   word-extractor by this point.
+
+**Fire-plan for follow-on (deferred-2):**
+- Investigate `extractConstraintSigFullOpts` handling of `RQ` /
+  back-ref-led constraint requirements; ensure full sig emit.
+- Investigate word-extraction divergence: when does Apple capture
+  `Stride` such that retType `0C0` resolves to "Index" via index 2?
+  Likely the outer parsing pass captures host-constraint identifiers
+  BEFORE the decl-name pass.
+- Both fixes are substitution-table / word-table mechanism work,
+  not bounded printer work. Sub-shape C has only 3 syms — payoff
+  is small unless the same fix unlocks adjacent shapes.
+
+INVESTIGATIONS.md entry: `### cross-mod-printer P3 sub-shape C
+(deferred-2)` captures the same.
