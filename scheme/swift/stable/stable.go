@@ -405,6 +405,15 @@ type parser struct {
 	// node during the current variable-entity parse; tryVariableEntity
 	// then stamps swift.fastpath.rawBody so the symbol round-trips.
 	tuplePreRendered bool
+	// fpOuterConstraintSig carries the outer host's constraint signature
+	// (e.g. "< where A: Swift.Strideable, A.Stride: Swift.SignedInteger>")
+	// into fpVerboseRetExtCont so it can complete Pattern B retType
+	// constraint sigs when the retType's own extraction comes back
+	// partial due to unresolved substitution back-refs (e.g. `AB` →
+	// `A.Stride`). Set by the verbose-form override block before calling
+	// fpVerboseRetExtCont; cleared on exit. See plans/retype-decoder-
+	// alignment.md P2.
+	fpOuterConstraintSig string
 }
 
 // stampVerboseRawBody marks a pre-rendered verbose-form TypeMangling node
@@ -15232,6 +15241,44 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 				fpVerboseFormExtMod != "Swift" {
 				p.subs, p.words = fpVerboseSeedContext(fpVerboseFormExtMod, fpVerboseFormDeclName)
 			}
+			// retype-decoder-alignment P2: pre-capture constraint-bytes
+			// literal identifiers into p.words. Apple's word-extraction
+			// captures these in symbol order BEFORE the decl identifier,
+			// so word-sub references in the retType decode (e.g. `0C0`)
+			// resolve to indices that include the constraint literals.
+			// Without this, our table is e.g. `[start, Index]` (2 entries
+			// from the decl-name split) and Apple's `0C0` (index 2) fails
+			// to resolve. With "Stride" from `6Stride` prepended, the
+			// table becomes `[Stride, start, Index]` and `0C0` resolves to
+			// "Index" correctly. Scoped: only fires when constraintBytes
+			// is non-empty; restored via saveWords on exit.
+			if fpVerboseFormConstraintBytes != "" {
+				cb := fpVerboseFormConstraintBytes
+				var extraWords []string
+				for k := 0; k < len(cb); {
+					if cb[k] >= '1' && cb[k] <= '9' {
+						n := 0
+						for k < len(cb) && cb[k] >= '0' && cb[k] <= '9' {
+							n = n*10 + int(cb[k]-'0')
+							k++
+						}
+						if n > 0 && k+n <= len(cb) {
+							extraWords = append(extraWords, cb[k:k+n])
+							k += n
+							continue
+						}
+					}
+					k++
+				}
+				if len(extraWords) > 0 {
+					p.words = append(extraWords, p.words...)
+				}
+			}
+			// Pass the outer constraint sig to fpVerboseRetExtCont so its
+			// s-led branch can fall back when the retType's own constraint
+			// extraction comes back partial. Restored on exit.
+			savedOuterSig := p.fpOuterConstraintSig
+			p.fpOuterConstraintSig = fpVerboseFormConstraintSig
 			retEnd := retOff + len(fpVerboseFormRetTypeBytes)
 			retNode, retErr := p.parseType()
 			postI := p.i
@@ -15248,6 +15295,7 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 			}
 			// Restore state — emit-only side effect.
 			p.i, p.subs, p.words = saveI, saveSubs, saveWords
+			p.fpOuterConstraintSig = savedOuterSig
 			if retStr != "" && !strings.HasPrefix(retStr, "<<") {
 				{
 					hostName := ""
@@ -16802,8 +16850,11 @@ func (p *parser) fpVerboseRetExtCont(extNode *demangle.Node, retEnd int) string 
 	if extStr == "" || strings.HasPrefix(extStr, "<<") {
 		return ""
 	}
-	// Module: A-prefixed substitution ref or literal <n><name>.
+	// Module: A-prefixed substitution ref, literal <n><name>, or `s` self-
+	// Swift with a constraint clause (retype-decoder-alignment P2 Pattern B
+	// retType continuation).
 	modName := ""
+	constraintSig := ""
 	if p.i < retEnd && p.s[p.i] == 'A' {
 		p.i++
 		modNode, _, ok := p.parseMultiSubstitution()
@@ -16822,6 +16873,47 @@ func (p *parser) fpVerboseRetExtCont(extNode *demangle.Node, retEnd int) string 
 		}
 		modName = p.s[p.i : p.i+n]
 		p.i += n
+	} else if p.i < retEnd && p.s[p.i] == 's' {
+		// Pattern B retType: self-Swift extension with constraint clause.
+		// Shape: s<constraintBytes>E<decl><kind>[y<args>G]
+		p.i++ // past 's'
+		modName = "Swift"
+		eAt := -1
+		for k := p.i; k < retEnd; k++ {
+			if p.s[k] == 'E' {
+				cb := p.s[p.i:k]
+				if strings.Contains(cb, "Rz") || strings.Contains(cb, "Rp") ||
+					strings.Contains(cb, "Rb") || strings.Contains(cb, "rl") ||
+					strings.Contains(cb, "RQ") {
+					eAt = k
+					break
+				}
+			}
+		}
+		if eAt < 0 {
+			return ""
+		}
+		cbStr := p.s[p.i:eAt]
+		sig, _ := extractConstraintSigFullOpts([]byte(cbStr), true, p.words, "Swift")
+		if sig == "" {
+			return ""
+		}
+		// retype-decoder-alignment P2 follow-on: when the retType's
+		// constraint sig comes back partial (because of AB-style
+		// substitution back-refs to associated types that the extractor
+		// can't resolve in this re-entry context), fall back to the
+		// outer constraint sig if it has the same prefix. This handles
+		// Pattern B retTypes whose constraint clause structurally
+		// mirrors the outer host's. Stored on the parser struct as
+		// fpOuterConstraintSig — set by the override block before
+		// calling fpVerboseRetExtCont.
+		if p.fpOuterConstraintSig != "" &&
+			strings.HasPrefix(p.fpOuterConstraintSig, strings.TrimSuffix(sig, ">")) &&
+			len(p.fpOuterConstraintSig) > len(sig) {
+			sig = p.fpOuterConstraintSig
+		}
+		constraintSig = sig
+		p.i = eAt // E is consumed below by the shared `p.i++ // consume E` path
 	} else {
 		return ""
 	}
@@ -16837,8 +16929,21 @@ func (p *parser) fpVerboseRetExtCont(extNode *demangle.Node, retEnd int) string 
 		return ""
 	}
 	p.i++ // consume nominal-kind byte
+	// Optional bound-generic qualifier `y<args>G` (Pattern B retType has
+	// explicit bound-gen reference to the host). Apple renders this as
+	// `<A>` on the host before the constraint clause:
+	// `(extension in Swift):Swift.<Host><A>< where ...>.<Nested>`.
+	boundGen := ""
+	if constraintSig != "" && p.i+3 < retEnd && p.s[p.i] == 'y' &&
+		p.s[p.i+1] == 'x' && p.s[p.i+2] == '_' && p.s[p.i+3] == 'G' {
+		boundGen = "<A>"
+		p.i += 4
+	}
 	if p.i != retEnd {
 		return ""
+	}
+	if constraintSig != "" {
+		return "(extension in " + modName + "):" + extStr + boundGen + constraintSig + "." + ident
 	}
 	return "(extension in " + modName + "):" + extStr + "." + ident
 }
