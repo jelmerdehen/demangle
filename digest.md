@@ -1,8 +1,8 @@
 # Swift Production Digest
 
-**Parity**: 97.59% (62218/63757) — 2026-05-26T12:05:52Z
-**Round-trip**: 62.18% (39643/63757) — 2026-05-26T12:04:57.859727Z
-**Failures**: 27 parse-errors + 1512 mismatches
+**Parity**: 97.59% (62221/63757) — 2026-05-26T12:45:20Z
+**Round-trip**: 62.18% (39643/63757) — 2026-05-26T12:45:05.858186Z
+**Failures**: 27 parse-errors + 1509 mismatches
 
 ## Top-20 Mismatch Categories
 
@@ -29,16 +29,16 @@
 
 ## Last 10 Commits
 
+- 23c52e8e swift-parity: CKZ fastpath-candidate-broadening P2 — ObjC-host Foundation-ext vg verbose render — parity 97.59%->97.59% +3 production
+- 5fa157b9 chore: plan-fastpath-candidate-broadening-P1 probe + categorise + route decision (parity +0)
+- fea9893b plan: fork fastpath-candidate-broadening from cross-mod-printer P7 close (deferred-2)
+- 2ac2f16b chore: close plan-cross-mod-printer P3-P7 deferred (parity +0)
+- e75adb20 chore: defer cross-mod-printer P3 sub-shape C/B to multi-fire (parity +0)
+- 4f76bcd8 chore: mark plan-cross-mod-printer P2 done (CKY +6)
+- cb959367 chore: lock snapshot after CKY commit (parity 62212->62218 roundtrip 39643->39643)
+- bc81e5e4 chore: update digest.md for CKY commit (parity 97.58%->97.59% +6)
 - 545b3686 swift-parity: CKY cross-mod-printer P2 — binary-operator extension-nested back-ref arg verbose render — parity 97.58%->97.59% +6 production
 - 55de9127 chore: plan-cross-mod-printer-P1 probe + sub-shape categorise + route decision (parity +0)
-- a65cbdd1 plan: fork cross-mod-printer from INVESTIGATIONS.md (deferred-2)
-- 57e23d93 debug: DEBUG_SUBS substitution-resolution trace instrumentation
-- 618ecf98 chore: update digest.md for substitution-model-rebuild P5 (parity 62161->62212)
-- 049b9629 chore: close breaks.log pending-1779145924 (substitution-model-rebuild P5)
-- 9ddb6dca refactor: substitution-model-rebuild P5 — A<letter> nested-nominal frame realign + converge (BREAK_FIXED)
-- 98027e0f refactor: substitution-model-rebuild P4 — remangler emits substitution-sourced nodes as A<letter>
-- e28a5f41 refactor: substitution-model-rebuild P3.5 — Mechanism C realign to corrected subs frame (recovers C-tuple family)
-- 47d6a62b refactor: substitution-model-rebuild P3 — Mechanism B drop case-'A' re-push, scoped (BREAK_OK, chained)
 
 ## Suggested Next 3 Items
 
