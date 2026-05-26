@@ -18804,6 +18804,25 @@ func (p *parser) tryTypeFirstExtensionEntity() (*demangle.Node, bool, error) {
 			} else {
 				typeStr = common.Print(pt, opts)
 			}
+			// Binary-operator extension-nested back-ref args: a back-ref to an
+			// inner extension-nested type (pushed via the nested-type subs
+			// push in this function) renders short (e.g. "Index<A>"). Apple's
+			// verbose form keeps the full "(extension in Swift):Swift.<Base>
+			// <A><extSig>.<Nested>" form. Override only when typeStr matches
+			// the back-ref short form exactly and we are in a constraint-
+			// bearing Swift-on-Swift binary-op context.
+			if declIsOp && verbose && extSig != "" && len(nestedTypes) > 0 {
+				innerNested := nestedTypes[len(nestedTypes)-1]
+				if typeStr == innerNested+"<A>" {
+					fullNestedSuffix := "." + strings.Join(nestedTypes, ".")
+					vfBaseHostPath := hostPath
+					if strings.HasSuffix(hostPath, fullNestedSuffix) {
+						vfBaseHostPath = hostPath[:len(hostPath)-len(fullNestedSuffix)]
+					}
+					typeStr = "(extension in Swift):Swift." + vfBaseHostPath +
+						"<A>" + extSig + fullNestedSuffix
+				}
+			}
 			if lbl == "_" && hasNamedLabel {
 				parts = append(parts, "_: "+typeStr)
 			} else if lbl != "" && lbl != "_" {
