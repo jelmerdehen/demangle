@@ -9459,6 +9459,12 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 	// branch fires with form `<mod>.<HostName>.<decl>.<acc> : <retType>`
 	// (no `(extension in ...)` prefix; same-module direct member).
 	fpVerboseFormHostMod := ""
+	// host-shape-broadening-2 P4: IsSubscript signals the candidate has
+	// no decl name — the entity is a subscript, not a named property.
+	// Emit form uses `.subscript<accessor>` instead of `.<decl><accessor>`.
+	// Set by the no-decl branch of 10F-host candidate detection when the
+	// symbol ends in `ig` (subscript-getter) or `iM` (subscript-modify).
+	fpVerboseFormIsSubscript := false
 	{
 		// Pattern A: `S<letter><n><mod>E<n><decl><type-bytes>v<kind>` (cross-mod property)
 		//        OR  `S<letter><n><mod>E<n><decl><type-bytes>F` (cross-mod function)
@@ -9581,6 +9587,19 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 						case tail2 == "vW":
 							accessor = ".didset"
 							terminalLen = 2
+						case tail2 == "ig":
+							// Subscript getter — terminal `ig` (length 2). The
+							// decl-peel above will have captured a non-empty
+							// declName for shapes that fit Pattern A/B, but for
+							// pure subscript shapes (no decl) this case never
+							// triggers here; the no-decl subscript branch is
+							// handled in the 10F-host block below. Scaffold for
+							// future Pattern A/B subscript-decl shapes.
+							accessor = ".getter"
+							terminalLen = 2
+						case tail2 == "iM":
+							accessor = ".modify"
+							terminalLen = 2
 						case tail2 == "FZ":
 							// Static function terminal (F + Z static).
 							isFn = true
@@ -9698,6 +9717,14 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 								case tail2 == "vg":
 									accessor = ".getter"
 									termLen = 2
+								case tail2 == "ig":
+									// Subscript getter — scaffold for future
+									// no-decl-subscript ObjC shape extension.
+									accessor = ".getter"
+									termLen = 2
+								case tail2 == "iM":
+									accessor = ".modify"
+									termLen = 2
 								}
 								if termLen > 0 {
 									endRet := len(p.s) - termLen
@@ -9751,9 +9778,50 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 					// <kind> V/C/O.
 					if p.s[j] == 'V' || p.s[j] == 'C' || p.s[j] == 'O' {
 						j++
+						// host-shape-broadening-2 P4: no-decl subscript shape.
+						// When the byte after the kind byte is NOT a digit, the
+						// entity is a subscript (no decl name) — the next bytes
+						// are the typed-subscript body `y<result><indexes>c`
+						// followed by `ig` (getter) or `iM` (modify). Set the
+						// candidate with empty declName + IsSubscript=true so
+						// the subscript emit branch fires. RetTypeBytes here
+						// is the entire body from j (post-kind) to (sEnd-2);
+						// it includes the `c` subscript terminator and any
+						// `lu` local-generic-sig prefix. The emit branch is
+						// expected to fall through cleanly when parseType
+						// cannot consume those trailing bytes — yielding the
+						// short form from the main parser path.
+						if j < len(p.s) && !(p.s[j] >= '1' && p.s[j] <= '9') {
+							tail2 := ""
+							if len(p.s) >= 2 {
+								tail2 = p.s[len(p.s)-2:]
+							}
+							var subAccessor string
+							subTermLen := 0
+							switch tail2 {
+							case "ig":
+								subAccessor = ".getter"
+								subTermLen = 2
+							case "iM":
+								subAccessor = ".modify"
+								subTermLen = 2
+							}
+							if subTermLen > 0 {
+								subEndRet := len(p.s) - subTermLen
+								if subEndRet > j {
+									fpVerboseFormCandidate = true
+									fpVerboseFormDeclName = ""
+									fpVerboseFormRetTypeBytes = p.s[j:subEndRet]
+									fpVerboseFormAccessor = subAccessor
+									fpVerboseFormHostName = hostNm
+									fpVerboseFormHostMod = modNm
+									fpVerboseFormIsSubscript = true
+								}
+							}
+						}
 						// <n><decl> directly (no E ext-marker; this is a
 						// same-module direct member, not an extension).
-						if j < len(p.s) && p.s[j] >= '1' && p.s[j] <= '9' {
+						if !fpVerboseFormCandidate && j < len(p.s) && p.s[j] >= '1' && p.s[j] <= '9' {
 							dLen := 0
 							for j < len(p.s) && p.s[j] >= '0' && p.s[j] <= '9' {
 								dLen = dLen*10 + int(p.s[j]-'0')
@@ -9782,6 +9850,15 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 									isStaticAcc = true
 								case tail2 == "vg":
 									accessor = ".getter"
+									termLen = 2
+								case tail2 == "ig":
+									// Subscript-getter ig terminal — scaffold for
+									// future named-subscript shape; the no-decl
+									// case is handled by the sibling branch below.
+									accessor = ".getter"
+									termLen = 2
+								case tail2 == "iM":
+									accessor = ".modify"
 									termLen = 2
 								}
 								if termLen > 0 {
@@ -9817,6 +9894,7 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 	_ = fpVerboseFormFnStatic
 	_ = fpVerboseFormConstraintBytes // TODO P4
 	_ = fpVerboseFormConstraintSig   // TODO P4
+	_ = fpVerboseFormIsSubscript     // consumed by 10F-host subscript emit branch
 	// Special: `xSg<...>Mc` / `xSg<...>WP` — Optional<gen-param> conformance
 	// descriptor or protocol witness table. Apple short form is `<A> A?`.
 	if len(p.s) >= 4 && p.s[0] == 'x' && p.s[1] == 'S' && p.s[2] == 'g' {
@@ -15546,6 +15624,37 @@ func (p *parser) tryGlobalLastResortFastPath() (*demangle.Node, bool) {
 				}
 				text = staticP + fpVerboseFormHostMod + "." + fpVerboseFormHostName + "." +
 					fpVerboseFormDeclName + fpVerboseFormAccessor + " : " + retStr
+			}
+		}
+	}
+	// host-shape-broadening-2 P4: 10F-host direct-member subscript-getter
+	// emit branch. Fires when the candidate detector found a no-decl
+	// subscript shape (IsSubscript=true, DeclName=""). Emit form is
+	// `<mod>.<HostName>.subscript<accessor> : <retStr>`. The retTypeBytes
+	// include the typed-subscript body `y<result><indexes>c` plus any
+	// trailing `lu` local-generic-sig marker — parseType does NOT
+	// understand the subscript-c terminator or the `lu` prefix, so this
+	// branch typically falls through cleanly (retStr empty), leaving the
+	// short form `<HostName>.subscript<acc>` emitted by the main parser.
+	// Module-gated to Foundation per the existing 10F-host convention.
+	if fpVerboseFormCandidate && fpVerboseFormIsSubscript && !fpVerboseFormIsObjC &&
+		fpVerboseFormHostMod == "Foundation" && fpVerboseFormHostName != "" &&
+		isSubscript && fpVerboseFormDeclName == "" {
+		retOff := strings.Index(p.s, fpVerboseFormRetTypeBytes)
+		if retOff >= 0 && fpVerboseFormRetTypeBytes != "" {
+			saveI, saveSubs, saveWords := p.i, p.subs, p.words
+			p.i = retOff
+			retEnd := retOff + len(fpVerboseFormRetTypeBytes)
+			retNode, retErr := p.parseType()
+			postI := p.i
+			retStr := ""
+			if retErr == nil && retNode != nil && postI == retEnd {
+				retStr = common.Print(retNode, common.DefaultPrintOptions())
+			}
+			p.i, p.subs, p.words = saveI, saveSubs, saveWords
+			if retStr != "" && !strings.HasPrefix(retStr, "<<") {
+				text = fpVerboseFormHostMod + "." + fpVerboseFormHostName +
+					".subscript" + fpVerboseFormAccessor + " : " + retStr
 			}
 		}
 	}
