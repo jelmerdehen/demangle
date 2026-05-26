@@ -25,33 +25,46 @@ broadening P2 (which landed +3 cleanly). Sentinel-trace per primitive.
 
 ## Primitives
 
-- [ ] **P1 — probe samples for each sub-shape + sentinel-trace**
-      (1 fire, +0). For each of (10F-host vg / 10F-host nested-host
-      vg / subscript-getter ig / subscript-getter iM), pick a probe
-      sample, sentinel-trace through the existing fast-path, check
-      what shapes the existing override + new emit branches can
-      partially render. Re-scope P2-P4 to highest-yield targets.
+- [x] **P1 — probe sample inspection + scoping** (2026-05-26 +0,
+      consolidated into P2's commit): direct 10F-host shape uses
+      `<n><mod><n><type><kind><n><decl>...v<acc>` (NO leading `S`,
+      NO `E` ext-marker between host and decl — it's a same-module
+      direct member, not an extension). Subscript-getter ig/iM not
+      explored deeply in this fire; deferred to P4 attempt.
 
-- [ ] **P2 — 10F-host vg candidate detection + emit branch**
-      (1 fire, est. +N). Add a new candidate-detection branch for
-      `<n><mod><n><type><kind>E<decl>...v<acc>` shape (digit-led,
-      no leading `S`). Set candidate fields including hostName and
-      hostMod. Add a new emit branch with same-module form:
-      `<mod>.<HostName>.<decl>.<acc> : <retType>`. Reuses
-      fpVerboseRetExtCont + retType-decoder mechanisms.
+- [x] **P2 — 10F-host vg candidate detection + emit branch**
+      (2026-05-26 CLC +3): added candidate detection for digit-led
+      direct-host shape + emit branch with `<mod>.<HostName>.
+      <decl>.<acc> : <retType>` format. Foundation-only module gate
+      (mirrors ObjC P2 corpus convention; verified 3 UIKit syms
+      that regressed without it). Added trailing-Sg Optional peel
+      so `SSAAE<word-sub><kind>Sg` retTypes render with `?` wrap.
+      Net +3 (CocoaError.stringEncoding, SortDescriptor.string-
+      Comparator, LocalizedStringResource.defaultValue).
 
-- [ ] **P3 — 10F-host multi-level nested host vg** (1 fire,
-      est. +N). Extend P2 detection to handle multi-level nested
-      hosts (e.g. `DateComponents.ISO8601FormatStyle.dateSeparator`).
+- [x] **P3 — multi-level nested host vg — DEFERRED** (2026-05-26 +0):
+      Implemented multi-level host peel (mirrors Pattern A/B's
+      decl-peel loop), confirmed it routes correctly through
+      candidate detection. But the retTypes for these samples
+      (`AA0B0VADV0bH0O` family) use word-sub identifiers (`0B0`,
+      `0bH0`) that need the same word-table alignment work as
+      retype-decoder-alignment P3 (which was deferred). Net +0;
+      reverted the multi-level peel to keep code minimal.
+      Re-attempt after a word-table-alignment plan lands.
 
-- [ ] **P4 — subscript-getter ig/iM terminal recognition** (1 fire,
-      est. +N). Extend candidate-detection terminal switch to
-      include ig (subscript-getter) and iM (subscript-modify).
-      Subscript-getter emit form differs from vg: `<host>.subscript.
-      <acc>` not `<host>.<decl>.<acc>`. Add a parallel subscript-
-      shape emit branch.
+- [x] **P4 — subscript-getter ig/iM — DEFERRED** (2026-05-26 +0):
+      Subscript-getter ig/iM terminals would add ~28 candidates,
+      but the emit form is `<host>.subscript.<acc>` not
+      `<host>.<decl>.<acc>` (subscript not decl), needing a
+      separate emit branch. Many ig samples also have substitution-
+      table alignment issues (wrong index type — same as INVESTI-
+      GATIONS.md subscript ipMV alignment deferred-1). Defer to
+      a follow-on plan.
 
-- [ ] **P5 — sweep + close** (1 fire).
+- [x] **P5 — close** (2026-05-26): plan closed with +3 production
+      via P2 (CLC). P3-P4 deferred. Cumulative session yield
+      across this plan + retype-decoder-alignment + fastpath-
+      candidate-broadening + cross-mod-printer = +18 production.
 
 ## Status
 
