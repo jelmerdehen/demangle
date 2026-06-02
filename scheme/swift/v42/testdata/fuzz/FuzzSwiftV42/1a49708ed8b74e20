@@ -1,0 +1,2 @@
+go test fuzz v1
+string("$SSA27700000000000000000E0")
